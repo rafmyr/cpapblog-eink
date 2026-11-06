@@ -136,6 +136,9 @@ struct StanRtc {
   // oceny wieczornej bez Wi-Fi (`slot_wieczorny_bez_sieci`) rysuje stopkę z tych wartości, więc e-ink odświeża się
   // tylko przy zmianie ekranu (jak R-EKR-60 dla stopki: co 2 h, tu wcale). NAN = brak.
   float stopkaTemp = NAN, stopkaWilg = NAN;
+  // temperatura za oknem w stopce slotu dziennego tej klatki (z prognozy albo źródła otoczenia); ocena o pełnej
+  // godzinie rysuje stopkę z niej i z stopkaTemp (06.11.2026, R-KON-42). NAN = brak albo inny ekran.
+  float stopkaZaOknem = NAN;
   // M-25 (E-05): wygładzony procent baterii i surowy procent poprzedniego pomiaru
   // (src/bateria.h wygladzProcent()); -1 = brak (po zaniku zasilania od nowa z pierwszego pomiaru).
   int8_t bateriaProc = -1, bateriaSurowy = -1;

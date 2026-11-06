@@ -7,3 +7,6 @@
 #ifndef RTC_NOINIT_ATTR
 #define RTC_NOINIT_ATTR
 #endif
+#ifndef IRAM_ATTR
+#define IRAM_ATTR
+#endif

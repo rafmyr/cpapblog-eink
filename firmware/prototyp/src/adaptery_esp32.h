@@ -113,6 +113,9 @@ class PrzyciskiEsp32 : public Przyciski {
   PrzyciskiEsp32();
   uint8_t wcisniete() override;
   void dioda(bool swieci) override;
+  bool zKolejki(int& przycisk, uint32_t& trwaloMs) override;
+  void wyczyscKolejke() override;
+  bool piskPrzyNacisnieciu() const override { return true; }
 };
 
 class CzujnikiEsp32 : public Czujniki {
@@ -170,6 +173,8 @@ class DiagnostykaEsp32 : public Diagnostyka {
 // Piny i przygotowanie sprzętu przed dyrygentem, wołane z setup() w src/main.cpp (piny przycisków, UART, dioda,
 // strefa czasu).
 void przygotujPanel();
+// Pierwsza czynność programu po wybudzeniu przyciskiem: krótki pisk, zanim ruszy reszta startu (R-PRZ-20, Z1).
+void piskBudzenia();
 // Awaryjny sen, gdy dyrygent wróci (na panelu tylko po nieudanym powrocie do poprzedniej wersji): 30 min albo
 // przycisk, bez pętli bez snu.
 void snAwaryjny();

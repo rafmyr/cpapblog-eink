@@ -727,12 +727,13 @@ static void testR_KON_42_bezOdswiezeniaBezZmiany() {
     ocen++;
   }
   ROWNE_L(ocen, 4);
-  // czujnik co godzinę inny: stopka `przy łóżku` się zmienia → przy każdej ocenie jedno odświeżenie
+  // czujnik co godzinę inny: od 06.11.2026 stopka `przy łóżku` przy ocenie o pełnej godzinie
+  // z klatki, więc sama zmiana odczytu nie odświeża e-ink (wcześniej: jedno odświeżenie przy każdej ocenie)
   PanelSym q;
   std::vector<Wyb> u = symuluj(q, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 13, 30), odpowiedziSlotu, true);
   for (int h : {9, 10, 12, 13}) {
     const Wyb* w = wybudzenieO(u, h * 60);
-    SPRAWDZ(w != nullptr && maPowod(*w, "slot_dzienny_godzina") && w->m.odswiezen == 1);
+    SPRAWDZ(w != nullptr && maPowod(*w, "slot_dzienny_godzina") && w->m.odswiezen == 0);
   }
 }
 

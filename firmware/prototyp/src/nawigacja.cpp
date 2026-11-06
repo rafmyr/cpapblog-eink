@@ -50,6 +50,8 @@ int numerStrony(Ekran e) {
   }
 }
 
+bool zKolejkiWolno(Ekran e, bool dlugo) { return !dlugo && (e == Ekran::DZIEN || numerStrony(e) > 0); }
+
 int przytnijKarte(int karta, int liczba) { return liczba < 1 ? 1 : karta < 1 ? 1 : karta > liczba ? liczba : karta; }
 
 std::string numerStronyTekst(Ekran e) {

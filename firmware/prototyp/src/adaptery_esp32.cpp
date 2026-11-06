@@ -27,6 +27,9 @@
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
 #include <esp_heap_caps.h>
+#include <esp_timer.h>
+#include <soc/soc.h>
+#include <soc/gpio_reg.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <GxEPD2_BW.h>
@@ -55,6 +58,10 @@ static const char* OTA_HOST = "cpap-eink";  // cpap-eink.local, upload_port w [e
 
 // ---------- piny i przygotowanie ----------
 static int pin(Przycisk p) { return p == Przycisk::LEWY ? KEY_LEWY : p == Przycisk::SRODEK ? KEY_SRODEK : KEY_PRAWY; }
+
+void piskBudzenia() {
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) tone(BUZZER, 2000, 60);
+}
 
 void przygotujPanel() {
   pinMode(KEY_PRAWY, INPUT);
@@ -722,10 +729,97 @@ void WyswietlaczEsp32::odswiez() {
 }
 
 // ---------- przyciski i dioda (digitalWrite(LED, …)) ----------
+// Kolejka naciśnięć (R-PRZ-20): zadanie esp_timer co 5 ms próbkuje piny przycisków, także w czasie rysowania ekranu,
+// gdy rdzeń nie czyta przycisków. Stan liczy się po 3 zgodnych próbkach (15 ms), więc drgania styku nie dają
+// fałszywych naciśnięć ani zgubionych puszczeń. Wciśnięcie: od razu krótki pisk; puszczenie: naciśnięcie do kolejki
+// z czasem trzymania. Próbkowanie działa tylko, gdy panel nie śpi (głębokie uśpienie zatrzymuje esp_timer).
+namespace {
+struct NacisniecieKolejki {
+  uint8_t przycisk;
+  uint32_t trwaloMs;
+};
+struct StanKlawisza {
+  bool wcisniety = false;  // stan po odsianiu drgań
+  uint8_t zgodnych = 0;    // kolejne próbki różne od `wcisniety`
+  int64_t odUs = 0;        // chwila wciśnięcia (0 = nieznana)
+  bool pomin = false;      // puszczenie nie trafia do kolejki (przycisk budzący, wyczyscKolejke())
+};
+const int KOLEJKA_NACISNIEC = 8;            // R-PRZ-20 [PRÓG]; nadmiar przepada (najnowsze)
+const uint64_t OKRES_PROBKI_US = 5000;
+const uint8_t PROBEK_STANU = 3;             // 15 ms zgodnych próbek
+NacisniecieKolejki kolejkaPrz[KOLEJKA_NACISNIEC];
+uint8_t kolejkaGlowa = 0, kolejkaOgon = 0;
+StanKlawisza klawisze[4];                   // indeks = (int)Przycisk
+portMUX_TYPE muxPrzyciskow = portMUX_INITIALIZER_UNLOCKED;
+const uint8_t PIN_PRZYCISKU[4] = {0, KEY_LEWY, KEY_SRODEK, KEY_PRAWY};
+esp_timer_handle_t zegarPrzyciskow = nullptr;
+
+bool wcisnietyTeraz(uint32_t wejscia, int i) { return ((wejscia >> PIN_PRZYCISKU[i]) & 1u) == 0; }  // stan niski
+
+void probkujPrzyciski(void*) {
+  uint32_t we = REG_READ(GPIO_IN_REG);
+  int64_t t = esp_timer_get_time();
+  for (int i = 1; i <= 3; i++) {
+    StanKlawisza& k = klawisze[i];
+    bool teraz = wcisnietyTeraz(we, i);
+    if (teraz == k.wcisniety) {
+      k.zgodnych = 0;
+      continue;
+    }
+    if (++k.zgodnych < PROBEK_STANU) continue;
+    k.zgodnych = 0;
+    k.wcisniety = teraz;
+    if (teraz) {
+      k.odUs = t;
+      if (!k.pomin) tone(BUZZER, 2000, 60);  // pisk w chwili naciśnięcia, nie po rysowaniu
+      continue;
+    }
+    portENTER_CRITICAL(&muxPrzyciskow);
+    uint8_t nast = (uint8_t)((kolejkaOgon + 1) % KOLEJKA_NACISNIEC);
+    if (!k.pomin && k.odUs != 0 && nast != kolejkaGlowa) {
+      kolejkaPrz[kolejkaOgon].przycisk = (uint8_t)i;
+      kolejkaPrz[kolejkaOgon].trwaloMs = (uint32_t)((t - k.odUs) / 1000);
+      kolejkaOgon = nast;
+    }
+    k.odUs = 0;
+    k.pomin = false;
+    portEXIT_CRITICAL(&muxPrzyciskow);
+  }
+}
+}  // namespace
+
 PrzyciskiEsp32::PrzyciskiEsp32() {
   pinMode(KEY_PRAWY, INPUT);
   pinMode(KEY_SRODEK, INPUT);
   pinMode(KEY_LEWY, INPUT);
+  // przycisk, który obudził panel, jest już wciśnięty: bez pisku tutaj (piszczy rdzeń) i bez kolejki po puszczeniu
+  uint32_t we = REG_READ(GPIO_IN_REG);
+  for (int i = 1; i <= 3; i++) klawisze[i].wcisniety = klawisze[i].pomin = wcisnietyTeraz(we, i);
+  esp_timer_create_args_t z = {};
+  z.callback = probkujPrzyciski;
+  z.name = "przyciski";
+  if (esp_timer_create(&z, &zegarPrzyciskow) == ESP_OK) esp_timer_start_periodic(zegarPrzyciskow, OKRES_PROBKI_US);
+}
+
+bool PrzyciskiEsp32::zKolejki(int& przycisk, uint32_t& trwaloMs) {
+  bool jest = false;
+  portENTER_CRITICAL(&muxPrzyciskow);
+  if (kolejkaGlowa != kolejkaOgon) {
+    przycisk = kolejkaPrz[kolejkaGlowa].przycisk;
+    trwaloMs = kolejkaPrz[kolejkaGlowa].trwaloMs;
+    kolejkaGlowa = (uint8_t)((kolejkaGlowa + 1) % KOLEJKA_NACISNIEC);
+    jest = true;
+  }
+  portEXIT_CRITICAL(&muxPrzyciskow);
+  return jest;
+}
+
+void PrzyciskiEsp32::wyczyscKolejke() {
+  portENTER_CRITICAL(&muxPrzyciskow);
+  kolejkaGlowa = kolejkaOgon;
+  for (int i = 1; i <= 3; i++)
+    if (klawisze[i].wcisniety) klawisze[i].pomin = true;
+  portEXIT_CRITICAL(&muxPrzyciskow);
 }
 
 uint8_t PrzyciskiEsp32::wcisniete() {

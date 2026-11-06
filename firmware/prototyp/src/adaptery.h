@@ -210,6 +210,20 @@ class Przyciski {
   // Dioda przy przyciskach: świeci, gdy panel
   // pracuje (pobiera, rysuje), gaśnie, gdy czeka na naciśnięcie.
   virtual void dioda(bool swieci) = 0;
+  // Naciśnięcie zakończone (wciśnięcie i puszczenie), gdy rdzeń nie czytał stanu, np. w czasie rysowania ekranu
+  // (kolejka naciśnięć, spec 5.6.1). Najstarsze pierwsze: numer przycisku jak `(int)Przycisk` i czas trzymania w ms.
+  // false, gdy kolejka pusta. Domyślnie bez kolejki.
+  virtual bool zKolejki(int& przycisk, uint32_t& trwaloMs) {
+    (void)przycisk;
+    (void)trwaloMs;
+    return false;
+  }
+  // Kolejka od nowa: naciśnięcie obsłużone już z odczytu stanu nie wraca z kolejki; przycisk trzymany w tej chwili
+  // nie trafi do niej po puszczeniu.
+  virtual void wyczyscKolejke() {}
+  // true: adapter piszczy sam w chwili naciśnięcia (raz), także w czasie rysowania; rdzeń dokłada wtedy tylko drugi
+  // pisk przytrzymania i pisk przycisku, który obudził panel (R-PRZ-20). Domyślnie false: piszczy rdzeń.
+  virtual bool piskPrzyNacisnieciu() const { return false; }
 };
 
 struct OdczytCzujnikow {

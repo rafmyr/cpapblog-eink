@@ -294,7 +294,14 @@ class Przebieg {
   bool prognozaTeraz = false;  // POWOD_PROGNOZA_GODZINOWA w tym wybudzeniu (R-KON-52)
   // wybudzenie zegarem tylko z oceną wieczorną bez Wi-Fi (ewentualnie z zapisem czujników): stopka
   // czujnika z ostatnio wyświetlonej klatki (StanRtc::stopkaTemp), więc e-ink tylko przy zmianie ekranu
+  // Od 06.11.2026 także ocena slotu dziennego o pełnej godzinie (R-KON-42): stopka z odczytów
+  // klatki, wybór ekranu ze świeżych; e-ink tylko, gdy zmienia się coś poza odczytami w stopce.
   bool stopkaZPamieci = false;
+  // naciśnięcie odtwarzane z kolejki (R-PRZ-20): bez pisku w rdzeniu; pisk był w chwili naciśnięcia (adapter), a pisk
+  // przy odtwarzaniu przychodziłby po rysowaniu i kilka naraz zlewało się w nieregularne sygnały
+  bool zKolejkiTeraz = false;
+  int skrotBudzenia = 0;  // przytrzymanieLubSkrot() przy przycisku budzącym (R-PRZ-21)
+  float zaOknemKlatki = NAN;  // temperatura za oknem w stopce rysowanej klatki slotu dziennego (StanRtc::stopkaZaOknem)
   float tempStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaTemp) ? r.stopkaTemp : temp; }
   float wilgStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaWilg) ? r.stopkaWilg : wilg; }
   bool ekranWlaczony = false;  // sterownik ekranu włączony dopiero przed pierwszym rysowaniem (wybudzenie pomiarowe bez)
@@ -2273,7 +2280,8 @@ class Przebieg {
     we.dzis = dzis;
     we.minuta = m;
     we.prognoza = wazna ? &pr : nullptr;
-    we.przyLozku = tempStopki();
+    we.przyLozku = temp;  // wybór i wizualizacja ze świeżego odczytu; stopka niżej z klatki (stopkaZPamieci)
+    float przyStopki = tempStopki();
     we.co2 = co2B17() ? co2Teraz(r.oto, ep) : -1;  // wariant CO2 S-K-33 tylko z ekranami CO2 (5.8.8)
     we.pylki = us.pylki;
     we.sprzet = &us.sprzet;
@@ -2301,6 +2309,7 @@ class Przebieg {
       if (f.size() == 4) {
         we.minuta = liczbaCalk(f[1].c_str());
         we.przyLozku = f[2].empty() ? NAN : (float)liczbaRzecz(f[2].c_str());
+        przyStopki = we.przyLozku;
         we.co2 = co2B17() ? liczbaCalk(f[3].c_str()) : -1;  // `co2=nie` w trakcie drzemki bez wariantu CO2
         log("drzemka trwa (rop 1): ekran bez zmian (R-KON-56)");
       }
@@ -2342,7 +2351,10 @@ class Przebieg {
       if (g) zaOknem = g->temp;
     }
     if (std::isnan(zaOknem) && r.oto.pogoda && swiezy(r.oto.tsPogody, ep, OTO_SWIEZOSC_POGODY_S)) zaOknem = r.oto.temp;
-    StopkaDzienna st = stopkaDzienna(noc, ubiegla, we.drzemka.minut, zaOknem, we.przyLozku);
+    // ocena o pełnej godzinie: temperatura za oknem z klatki, tak jak przy łóżku (R-KON-42)
+    if (stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaZaOknem)) zaOknem = r.stopkaZaOknem;
+    zaOknemKlatki = zaOknem;
+    StopkaDzienna st = stopkaDzienna(noc, ubiegla, we.drzemka.minut, zaOknem, przyStopki);
     if (w.ekran == EkranSlotu::SK38) {
       std::string dane, pw;
       ObrazPbm o;
@@ -4308,6 +4320,7 @@ class Przebieg {
   }
 
   void pokaz() {
+    zaOknemKlatki = NAN;  // ustawia je tylko slot dzienny
     zapiszOdlozone();  // R-DANE-04: rekord nocy w plikach przed odświeżeniem (gdy Wi-Fi zostało dla okna serwisowego)
     std::string dzis = dzisiaj();
     switch (ekran()) {
@@ -4378,6 +4391,7 @@ class Przebieg {
     r.klatkaOd = zegar() ? teraz() : 0;
     r.stopkaTemp = tempStopki();  // stopka tej klatki
     r.stopkaWilg = wilgStopki();
+    r.stopkaZaOknem = zaOknemKlatki;
     log("ekran %d narysowany w %lu ms", (int)r.ekran, (unsigned long)(ms() - t0));
   }
 
@@ -4390,6 +4404,7 @@ class Przebieg {
   bool abPrzerwij() {
     if (abPrzerywalne && !abPrzerwano && abDetektor.krok(wcisniety() != Przycisk::BRAK)) {
       abPrzerwano = true;
+      a.przyciski.wyczyscKolejke();  // naciśnięcie, które przerwało pobieranie, nie wraca z kolejki
       log("AirBridge: pobieranie przerwane przyciskiem");
     }
     return abPrzerwano;
@@ -5319,7 +5334,11 @@ class Przebieg {
     Przejscie pr = nacisniecie(przed, p, dlugo, kn);
     // sieć panelu w nocy (slot nocny albo aparat pracuje, `rop` = 1) bez buzzera
     bool cicho = pr.akcja == Akcja::SIEC_PANELU_START && ((zegar() && slotNocny(minutaDoby())) || r.ab.rop == 1);
-    if (!cicho) a.dzwiek.pisk(dlugo ? 2 : 1);
+    // adapter z piskiem przy naciśnięciu (R-PRZ-20) już zapiszczał raz, także za przycisk budzący (pierwsza czynność
+    // programu): tu tylko drugi pisk przytrzymania; naciśnięcie z kolejki bez pisku tutaj
+    int piskow = dlugo ? 2 : 1;
+    if (a.przyciski.piskPrzyNacisnieciu()) piskow--;
+    if (!cicho && !zKolejkiTeraz && piskow > 0) a.dzwiek.pisk(piskow);
     PoNacisnieciu w;
     w.pobranie = pobraniePoNacisnieciu(pr, przed, budzacy);
     switch (pr.akcja) {
@@ -5500,7 +5519,8 @@ class Przebieg {
     if (w == PowodWybudzenia::PRZYCISK) {
       // przytrzymanie liczone od startu programu (ms = 0), a przycisk był wciśnięty już przed startem (T-WYM-21)
       budzacy = przyciskBudzacy(a.uruchomienie.przyciskiBudzace());
-      budzacyDlugo = przytrzymany(budzacy, 0);
+      skrotBudzenia = przytrzymanieLubSkrot(budzacy, 0, budzacyDlugo);
+      if (skrotBudzenia == 1) budzacy = Przycisk::PRAWY;
     }
     r.wybudzen++;
 
@@ -5554,8 +5574,11 @@ class Przebieg {
     tylkoStatusTeraz = w == PowodWybudzenia::ZEGAR && tylkoStatus(powody);
     wieczorTeraz = tylkoStatusTeraz && (powody & POWOD_SLOT_WIECZORNY) && !(powody & (POWOD_SLOT_DZIENNY_START | POWOD_SLOT_DZIENNY_GODZINA | POWOD_PROGNOZA_GODZINOWA));
     prognozaTeraz = w == PowodWybudzenia::ZEGAR && (powody & POWOD_PROGNOZA_GODZINOWA);  // R-KON-52
-    stopkaZPamieci = w == PowodWybudzenia::ZEGAR && (powody & POWOD_SLOT_WIECZORNY_BEZ_SIECI) &&
-                     (powody & (Powody)~(POWOD_SLOT_WIECZORNY_BEZ_SIECI | POWOD_CZUJNIKI)) == 0;
+    stopkaZPamieci = w == PowodWybudzenia::ZEGAR &&
+                     (((powody & POWOD_SLOT_WIECZORNY_BEZ_SIECI) &&
+                       (powody & (Powody)~(POWOD_SLOT_WIECZORNY_BEZ_SIECI | POWOD_CZUJNIKI)) == 0) ||
+                      ((powody & POWOD_SLOT_DZIENNY_GODZINA) &&
+                       (powody & (Powody)~(POWOD_SLOT_DZIENNY_GODZINA | POWOD_CZUJNIKI)) == 0));
     log("cpap-eink %s, wybudzenie %s, licznik %lu", a.uruchomienie.wersja(), powodBaterii.c_str(),
         (unsigned long)r.wybudzen);
     // skąd sieć i AirBridge (src/sekrety.h), bez haseł (R-KONF-38)
@@ -5574,7 +5597,8 @@ class Przebieg {
     if (w == PowodWybudzenia::PRZYCISK) {
       powod = "przycisk";
       odczytUdany = r.ostatniOdczytOk;  // tylko zmiana widoku, dane bez zmian
-      PoNacisnieciu pn = obsluz(budzacy, budzacyDlugo, true);
+      PoNacisnieciu pn;
+      if (skrotBudzenia != 2) pn = obsluz(budzacy, budzacyDlugo, true);
       zmiana = pn.zmiana;
       wykonajPobranie(pn.pobranie, otworzycOknoSerwisowe(ekran()));  // ekran testu: świeży stan sieci, Wi-Fi dla okna
       czekajNaPuszczenie();
@@ -5672,9 +5696,13 @@ class Przebieg {
         if (tryb != PowodWybudzenia::PRZYCISK) log("przycisk wciśnięty przed snem: obsługa jak przycisk budzący");
         tryb = PowodWybudzenia::PRZYCISK;
         a.przyciski.dioda(true);
-        bool dlugo = przytrzymany(p, ms());
-        PoNacisnieciu pn = obsluz(p, dlugo, false);
+        bool dlugo = false;
+        int skrot = przytrzymanieLubSkrot(p, ms(), dlugo);
+        if (skrot == 1) p = Przycisk::PRAWY;
+        PoNacisnieciu pn;
+        if (skrot != 2) pn = obsluz(p, dlugo, false);
         czekajNaPuszczenie();  // zacięty przycisk nie blokuje snu (U4)
+        a.przyciski.wyczyscKolejke();  // to naciśnięcie obsłużone z odczytu stanu: nie wraca z kolejki
         // trzymany co najmniej ZACIECIE_MS: zacięcie, nie naciśnięcie, więc bez czuwania 20 s
         if (zaciete & (1u << (int)p)) tryb = przed;
         t0 = ms();
@@ -5688,6 +5716,9 @@ class Przebieg {
         if (rysowacPoNacisnieciu(pn.zmiana, zegar(), minutaDoby())) pokaz();
         else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
         a.przyciski.dioda(false);
+      } else if (nacisnieciaZKolejki()) {
+        tryb = PowodWybudzenia::PRZYCISK;
+        t0 = ms();
       }
       bool oknoOta = otaAktywne && ekran() == Ekran::TEST;
       uint32_t limit = czuwanieMs(tryb, oknoOta);
@@ -5695,6 +5726,80 @@ class Przebieg {
       if (ms() - t0 >= limit && !rap.serwer && !frm.serwer && !ap.aktywna) break;
       czekaj(OBIEG_CZUWANIA_MS);
     }
+  }
+
+  // Przytrzymanie przycisku `p` wciśniętego od `od` (ms) albo skrót ◀ + ▶ razem ≥ 2 s (R-PRZ-21,
+  // 06.11.2026): test sprzętu U-05 z oknem wgrywania, tą samą drogą co U-03 ▶ 2 s. Skrót rozpoznany, gdy
+  // w czasie trzymania ◀ albo ▶ dojdzie drugi z nich, więc zwykłe naciśnięcie nie czeka. Zwraca 0 = zwykłe naciśnięcie
+  // (`dlugo` jak przytrzymany()), 1 = skrót (ekran U-03, dalej obsługa jak ▶ 2 s), 2 = oba puszczone przed 2 s
+  // (bez akcji).
+  int przytrzymanieLubSkrot(Przycisk p, uint32_t od, bool& dlugo) {
+    const uint8_t oba = (uint8_t)((1u << (int)Przycisk::LEWY) | (1u << (int)Przycisk::PRAWY));
+    const uint8_t bit = (uint8_t)(1u << (int)p);
+    bool lewyAlboPrawy = p == Przycisk::LEWY || p == Przycisk::PRAWY;
+    for (;;) {
+      uint8_t b = a.przyciski.wcisniete();
+      if (lewyAlboPrawy && (b & oba) == oba) break;
+      Przytrzymanie s = przytrzymanie(od, ms(), (b & bit) != 0);
+      if (s != Przytrzymanie::TRWA) {
+        dlugo = s == Przytrzymanie::DLUGO;
+        return 0;
+      }
+      czekaj(5);
+    }
+    uint32_t odOba = ms();
+    while ((a.przyciski.wcisniete() & oba) == oba) {
+      odnow();
+      if (ms() - odOba >= PROG_PRZYTRZYMANIA_MS) {
+        log("skrót ◀ + ▶ 2 s: test sprzętu z oknem wgrywania (R-PRZ-21)");
+        ustawEkran(Ekran::FORMULARZ);  // dalej jak ▶ 2 s na U-03
+        dlugo = true;
+        return 1;
+      }
+      czekaj(5);
+    }
+    log("skrót ◀ + ▶ puszczony przed 2 s: bez akcji");
+    dlugo = false;
+    return 2;
+  }
+
+  // Kolejka naciśnięć (spec 5.6.1): naciśnięcia z czasu rysowania po kolei, ekran rysowany raz, na końcu. Tylko
+  // nawigacja (zKolejkiWolno); pierwsze naciśnięcie poza nią kończy kolejkę i odrzuca resztę, bo ekranu, na który
+  // trafiłoby, nikt jeszcze nie widział. Zwraca true, gdy było co najmniej jedno naciśnięcie z kolejki.
+  bool nacisnieciaZKolejki() {
+    int nr = 0;
+    uint32_t trwalo = 0;
+    int wykonane = 0, pominiete = 0;
+    bool zmiana = false;
+    while (a.przyciski.zKolejki(nr, trwalo)) {
+      if (nr < (int)Przycisk::LEWY || nr > (int)Przycisk::PRAWY) continue;
+      Przycisk q = (Przycisk)nr;
+      bool dlugo = trwalo >= PROG_PRZYTRZYMANIA_MS;
+      if (!zKolejkiWolno(ekran(), dlugo)) {
+        pominiete = 1;
+        while (a.przyciski.zKolejki(nr, trwalo)) pominiete++;
+        break;
+      }
+      if (wykonane == 0) a.przyciski.dioda(true);
+      zKolejkiTeraz = true;
+      PoNacisnieciu pn = obsluz(q, false, false);
+      zKolejkiTeraz = false;
+      zmiana = zmiana || pn.zmiana;
+      wykonane++;
+      wykonajPobranie(pn.pobranie, otaAktywne || otworzycOknoSerwisowe(ekran()));
+      if (otworzycOknoSerwisowe(ekran())) {
+        otworzOknoAlboZamknijSiec();
+        otaDo = ms() + OKNO_SERWISOWE_MS;
+      }
+    }
+    if (wykonane == 0 && pominiete == 0) return false;
+    log("kolejka naciśnięć: %d wykonane, %d pominięte (ekran %d)", wykonane, pominiete, (int)ekran());
+    if (wykonane > 0) {
+      if (rysowacPoNacisnieciu(zmiana, zegar(), minutaDoby())) pokaz();
+      else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
+      a.przyciski.dioda(false);
+    }
+    return true;
   }
 
   // ---------- tryb awaryjny (T-WYM-83, R-AW-39; spec funkcjonalna U-06, U-05) ----------

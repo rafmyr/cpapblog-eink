@@ -483,6 +483,82 @@ static void testWymianaZCofnieciem() {
   SPRAWDZ(przytnijKarte(4, 2) == 2 && przytnijKarte(0, 3) == 1 && przytnijKarte(2, 0) == 1 && przytnijKarte(2, 3) == 2);
 }
 
+// ---------- kolejka naciśnięć z czasu rysowania (spec 5.6.1) ----------
+// wymaganie: R-PRZ-20
+static void testKolejkaNacisniec() {
+  // czysta funkcja: tylko krótkie naciśnięcie na ekranie dnia albo stronie `n / 6`
+  SPRAWDZ(zKolejkiWolno(Ekran::DZIEN, false));
+  SPRAWDZ(zKolejkiWolno(Ekran::K1, false) && zKolejkiWolno(Ekran::SPRAWY, false) && zKolejkiWolno(Ekran::USTAWIENIA, false));
+  SPRAWDZ(!zKolejkiWolno(Ekran::K1, true));         // przytrzymanie zapisuje: nie z kolejki
+  SPRAWDZ(!zKolejkiWolno(Ekran::PYTANIE, false));   // odpowiedź na niewidziane pytanie: nie
+  SPRAWDZ(!zKolejkiWolno(Ekran::OMOWIONE, false));  // potwierdzenie: nie
+  SPRAWDZ(!zKolejkiWolno(Ekran::FORMULARZ, false) && !zKolejkiWolno(Ekran::TEST, false));
+  // 6 szybkich ▶ (budzące i 5 z kolejki) = ten sam ekran co 6 osobnych ▶, przy dwóch odświeżeniach zamiast sześciu
+  const int N = 6;
+  Panel a;
+  a.zegar.epoch = ep(10, 0);
+  zerujPrzedSnem(a.start.l, identyfikatorWersji(a.start.napisWersji));
+  a.pliki.pliki["/konfiguracja.txt"] = "";
+  uint32_t t = ep(10, 0);
+  for (int i = 0; i < N; i++) przycisk(a, t += 30, BIT_PRAWY);
+  Panel b;
+  b.zegar.epoch = ep(10, 0);
+  zerujPrzedSnem(b.start.l, identyfikatorWersji(b.start.napisWersji));
+  b.pliki.pliki["/konfiguracja.txt"] = "";
+  b.przyciski.kolejka.assign(N - 1, {(int)Przycisk::PRAWY, 150u});
+  int przed = b.ekran.odswiezen;
+  przycisk(b, ep(10, 0) + 30, BIT_PRAWY);
+  SPRAWDZ(ekran(b) == ekran(a));
+  if (ekran(b) != ekran(a)) printf("  kolejka: %s, osobno: %s\n", nazwa(ekran(b)).c_str(), nazwa(ekran(a)).c_str());
+  SPRAWDZ(b.ekran.odswiezen - przed == 2);
+  SPRAWDZ(b.przyciski.kolejka.empty());
+  // pisk tylko za naciśnięcie budzące: odtwarzane z kolejki nie piszczą (zlewały się po rysowaniu, 06.11.2026)
+  SPRAWDZ(b.dzwiek.piskow == 1);
+  // przytrzymanie w kolejce: kończy kolejkę, nic po nim się nie wykonuje
+  Panel c;
+  c.zegar.epoch = ep(10, 0);
+  zerujPrzedSnem(c.start.l, identyfikatorWersji(c.start.napisWersji));
+  c.pliki.pliki["/konfiguracja.txt"] = "";
+  c.przyciski.kolejka = {{(int)Przycisk::PRAWY, 2500u}, {(int)Przycisk::PRAWY, 150u}};
+  przycisk(c, ep(10, 0) + 30, BIT_PRAWY);
+  SPRAWDZ(ekran(c) == Ekran::K1);
+  SPRAWDZ(c.przyciski.kolejka.empty());
+}
+
+// ---------- skrót ◀ + ▶ 2 s do testu sprzętu (R-PRZ-21) ----------
+// wymaganie: R-PRZ-21
+static void skrot(Panel& p, uint32_t kiedy, uint32_t trzymaj) {
+  p.zegar.epoch = kiedy;
+  p.zegar.msTeraz = 0;
+  p.d.z.clear();
+  p.sen.snow = 0;
+  p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  p.start.powodWybudzenia = PowodWybudzenia::PRZYCISK;
+  p.start.budzace = (uint8_t)(BIT_LEWY | BIT_PRAWY);
+  p.przyciski.skrypt = {{0, (uint8_t)(BIT_LEWY | BIT_PRAWY)}, {trzymaj, 0}};
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  Dyrygent(p.adaptery(), KONF).wybudzenie();
+}
+static void testSkrotTestu() {
+  Panel p;
+  p.zegar.epoch = ep(10, 0);
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  p.pliki.pliki["/konfiguracja.txt"] = "";
+  uint32_t t = ep(10, 0);
+  przycisk(p, t += 30, BIT_SRODEK);  // ekran dnia
+  SPRAWDZ(ekran(p) == Ekran::DZIEN);
+  skrot(p, t += 30, 2500);  // z ekranu dnia, z uśpienia: test sprzętu
+  SPRAWDZ(ekran(p) == Ekran::TEST);
+  p.start.stan.ekran = (uint8_t)Ekran::K2;
+  skrot(p, t += 30, 2500);  // z dowolnej strony
+  SPRAWDZ(ekran(p) == Ekran::TEST);
+  p.start.stan.ekran = (uint8_t)Ekran::K1;
+  skrot(p, t += 30, 500);  // puszczone przed 2 s: bez akcji (nie ◀ i nie ▶)
+  SPRAWDZ(ekran(p) == Ekran::K1);
+  przycisk(p, t += 30, BIT_LEWY, true);  // samo ◀ 2 s w K1: nic, jak dotąd
+  SPRAWDZ(ekran(p) == Ekran::K1);
+}
+
 int main() {
   testCiagStron();
   testZielonyDom();
@@ -493,6 +569,8 @@ int main() {
   testStopki();
   testDyrygentCiag();
   testWymianaZCofnieciem();
+  testKolejkaNacisniec();
+  testSkrotTestu();
   printf("testy_nawigacja: %d dobrze, %d źle\n", ok, zle);
   return zle ? 1 : 0;
 }

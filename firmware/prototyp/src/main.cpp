@@ -93,12 +93,14 @@ static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s) {
 }
 
 void setup() {
+  piskBudzenia();  // przycisk budzący słychać od razu, przed resztą startu (R-PRZ-20)
   // Zwykłe alokacje od 8 B do PSRAM (8 MB): historia nocy, teksty i stany silnika reguł (głównie małe węzły map
   // i zbiorów) nie zajmują pamięci wewnętrznej, którą potrzebują Wi-Fi, DMA i stos. Przy kilkumiesięcznej historii
   // i stosie 48 KB minimum wolnej pamięci wewnętrznej spadało do 452 B, przy progu 64 B nadal, po tej zmianie
   // 162 KB (06.11.2026). Bufory z wymaganym typem pamięci (DMA, Wi-Fi) idą jak dotąd.
   heap_caps_malloc_extmem_enable(8);
   przygotujPanel();
+  static PrzyciskiEsp32 przyciski;  // próbkowanie przycisków jak najwcześniej (R-PRZ-20): kolejka od startu
   Serial.printf("pamiec start: PSRAM %u KB (wolne %u KB), wewnetrzna wolna %u KB, najwiekszy blok %u KB\n",
                 (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024),
                 (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024),
@@ -110,7 +112,6 @@ void setup() {
   static const sekrety::Wynik sek = sekrety::wczytaj(nvs, zKompilacji());
   static SiecEsp32 siec({sek.d.ssid, sek.d.hasloWifi, HASLO_OKNA}, pliki);
   static WyswietlaczEsp32 ekran;
-  static PrzyciskiEsp32 przyciski;
   static CzujnikiEsp32 czujniki;
   static DzwiekEsp32 dzwiek;
   static UruchomienieEsp32 uruchomienie(IDENTYFIKATOR);

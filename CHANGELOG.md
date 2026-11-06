@@ -4,6 +4,16 @@ The history of versions before this repository is not published. The specificati
 
 ## Unreleased
 
+### Added
+
+- Fast button presses (R-PRZ-20): presses made while the screen is being drawn are no longer lost. A 5 ms sampling task debounces the buttons (15 ms stable), beeps at the moment of the press and queues it; navigation presses (short presses on the day screen and on cockpit pages `n / 6`) are replayed with a single refresh at the end. Questions, confirmations and long presses stop the queue, so nothing is answered on a screen the user has not seen.
+- Hidden shortcut ◀ + ▶ held together for 2 s (R-PRZ-21): opens the hardware test U-05 with the Wi-Fi update window from any screen, also from sleep.
+
+### Changed
+
+- Day slot hourly check (R-KON-42): the footer readings (outside temperature from the hourly forecast or the local source, bedside temperature) are taken from the last displayed frame, so a forecast change of one degree no longer refreshes the e-ink every hour.
+- The button that wakes the panel beeps as the first action of the program.
+
 ### Fixed
 
 - Panel with a few months of night history crashed on start (`Stack canary watchpoint triggered (loopTask)` while drawing the day screen S8) and entered the safe mode U-06 after three failed starts. The loop task stack is now 48 KB (was 24 KB).

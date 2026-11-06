@@ -243,8 +243,9 @@ static KonfiguracjaPanelu konf(bool wspolrzedne) {
   if (wspolrzedne) { k.pogodaLat = 50.2597; k.pogodaLon = 19.0217; }
   return k;
 }
-// Open-Meteo: dziś i jutro co godzinę; za oknem 15°, PM2.5 10, opad 0 (bez trybu wietrzenia przy łóżku 15–20°)
-static std::string jsonPrognozy(const std::string& d) {
+// Open-Meteo: dziś i jutro co godzinę; za oknem 15° (przy zmiennej: 5° + godzina), PM2.5 10, opad 0 (bez trybu
+// wietrzenia przy łóżku 15–20°)
+static std::string jsonPrognozy(const std::string& d, bool zmiennaTemp = false) {
   std::string t = "\"time\":[", a = "\"temperature_2m\":[", o = "\"precipitation_probability\":[", c = "\"cloud_cover\":[",
               w = "\"wind_gusts_10m\":[";
   for (int i = 0; i < 48; i++) {
@@ -253,7 +254,7 @@ static std::string jsonPrognozy(const std::string& d) {
     snprintf(b, sizeof b, "\"%sT%02d:00\"", dz.c_str(), i % 24);
     const char* s = i ? "," : "";
     t += s + std::string(b);
-    a += s + std::string("15");
+    a += s + (zmiennaTemp ? std::to_string(5 + i % 24) : std::string("15"));
     o += s + std::string("0");
     c += s + std::string("40");
     w += s + std::string("20");
@@ -283,6 +284,11 @@ static void odpowiedziB9(PanelSym& s, uint32_t t) {
   s.siec.dodaj("/v1/forecast", 200, jsonPrognozy("2026-11-04"));
   s.siec.dodaj("/v1/air-quality", 200, jsonPowietrza("2026-11-04"));
   s.siec.dodaj("/otoczenie", 200, "{\"wersja\":1,\"sypialnia\":{\"co2\":1250},\"ostrzezenia\":[]}");
+}
+static void odpowiedziB9ZmiennaTemp(PanelSym& s, uint32_t t) {
+  odpowiedziB9(s, t);
+  s.siec.odpowiedzi.erase("/v1/forecast");
+  s.siec.dodaj("/v1/forecast", 200, jsonPrognozy("2026-11-04", true));
 }
 static bool logMa(const std::vector<Wyb>& v, const std::string& t, int odMin = 0, int doMin = 24 * 60) {
   for (auto& w : v)
@@ -393,7 +399,32 @@ static void testDrzemka() {
   SPRAWDZ(noce.find("30.0") == std::string::npos);
 }
 
+// Od 06.11.2026 (R-KON-42): ocena o pełnej godzinie rysuje stopkę z odczytów klatki (za oknem
+// z prognozy godzinowej i przy łóżku), więc sama zmiana prognozy i czujnika nie odświeża e-ink w bloku obrazka;
+// przy zmianie ekranu (10:00, S-K-37) jedno odświeżenie ze świeżymi odczytami.
+// wymaganie: R-KON-42
+static void testR_KON_42_stopkaZKlatki() {
+  PanelSym s;
+  s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
+  s.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
+  std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 11, 30), odpowiedziB9ZmiennaTemp, true,
+                               konf(true));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 8 * 60, 8 * 60 + 1));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 9 * 60, 9 * 60 + 1));
+  int odswiezen = 0;
+  for (auto& w : v)
+    if (w.minuta > 8 * 60 && w.minuta < 10 * 60) odswiezen += w.m.odswiezen;
+  ROWNE_L(odswiezen, 0);  // 09:00: za oknem 14° zamiast 13°, przy łóżku 24° zamiast 23°: bez odświeżenia
+  SPRAWDZ(logMa(v, "bez zmian: klatka jak wyświetlona", 9 * 60, 9 * 60 + 1));
+  int o10 = 0;
+  for (auto& w : v)
+    if (w.minuta == 10 * 60) o10 += w.m.odswiezen;
+  ROWNE_L(o10, 1);  // inny ekran (koniec bloku obrazka, R-KON-50): jedno odświeżenie, już ze świeżymi odczytami
+  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 10 * 60, 10 * 60 + 1));
+}
+
 int main() {
+  testR_KON_42_stopkaZKlatki();
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
   testSlotDziennyZObrazkiem();

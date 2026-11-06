@@ -4,7 +4,7 @@ Firmware panelu w wersji beta (`1.0.0-beta.1`). Ten plik opisuje przyciski, plik
 
 ## Przyciski (mapa 5.6.2 ze specyfikacji)
 
-◀ = przycisk `<`, ▶ = przycisk `>`, ↻ = zielony. Przytrzymanie = co najmniej 2 s (R-PRZ-08); panel piszczy raz przy krótkim naciśnięciu i dwa razy przy przytrzymaniu.
+◀ = przycisk `<`, ▶ = przycisk `>`, ↻ = zielony. Przytrzymanie = co najmniej 2 s (R-PRZ-08); panel piszczy raz w chwili naciśnięcia (także w czasie rysowania, R-PRZ-20) i drugi raz po puszczeniu przytrzymania; przycisk, który obudził panel, piszczy jako pierwsza czynność programu.
 
 **Jedna reguła (spec 5.6.1):** ▶ dalej / więcej / „tak”, ◀ wstecz / „nie”, ↻ ekran dnia. Przytrzymanie tylko zapisuje (albo uruchamia usługę z Wi-Fi: raport ▶ 2 s w K2 i na L, formularz U-03 ▶ 2 s z U-01, okno U-05 ▶ 2 s z U-03, sieć panelu ◀ 2 s), nigdy nie otwiera strony przeglądania; samo ▶ nie włącza Wi-Fi. Kokpit to ciąg stron z numerem w nagłówku: ekran dnia ▶ K1 `1 / 6` ▶ K2 `2 / 6` ▶ „Otwarte sprawy” `3 / 6` ▶ „Twoja norma” `4 / 6` (w profilu publicznym dalej „Co znaczą te liczby”) ▶ „Sprzęt” `5 / 6` ▶ „Ustawienia” `6 / 6` (koniec ciągu ▶; ▶ 2 s formularz U-03, tam ▶ 2 s test sprzętu U-05); ◀ cofa o stronę. Jedyny wyjątek: siatka „Co było inaczej?”. Logika: [`src/nawigacja.cpp`](src/nawigacja.cpp) (`nacisniecie`, ciąg stron `stronaPo`, `stronaPrzed`), testy [`test/testy_nawigacja.cpp`](test/testy_nawigacja.cpp).
 
@@ -31,6 +31,12 @@ Firmware panelu w wersji beta (`1.0.0-beta.1`). Ten plik opisuje przyciski, plik
 | potwierdzenie „Omówione z lekarzem?” | nie (ekran L) | nic | **tak, omówione** (jedyny zapis); po 60 s bez wyboru powrót bez zapisu, także w nocy | nic | ekran dnia (anuluj) | nic |
 | „Przeniesione”, „Zapisano”, `Nowy model maski zapisany.`, `Wymiana zapisana.` | ekran dnia („Sprzęt”) | **cofnij** | ekran dnia („Sprzęt”) | jak ▶ | ekran dnia | jak ▶ |
 | pytanie „Co było inaczej?” (siatka, wyjątek) | kursor wstecz | pomiń | kursor dalej | nic | zaznacz / odznacz | zapisz (tylko gdy coś zmieniono albo wybrano, inaczej ekran dnia bez zapisu) |
+
+**Szybkie naciśnięcia (R-PRZ-20):** zadanie esp_timer co 5 ms próbkuje piny przycisków (stan po 3 zgodnych próbkach, 15 ms, więc drgania styku nie gubią naciśnięć), piszczy w chwili wciśnięcia i zapisuje naciśnięcie po puszczeniu (kolejka 8 pozycji; `PrzyciskiEsp32::zKolejki()` w `src/adaptery_esp32.cpp`), także w czasie rysowania, gdy rdzeń nie czyta przycisków. W czuwaniu rdzeń wykonuje zapamiętane naciśnięcia po kolei i rysuje ekran raz, na końcu (`Przebieg::nacisnieciaZKolejki()`), ale tylko krótkie naciśnięcia na ekranie dnia i stronach `n / 6` (`zKolejkiWolno()` w `src/nawigacja.cpp`); pierwsze inne kończy kolejkę i odrzuca resztę (log `kolejka naciśnięć: {n} wykonane, {m} pominięte`).
+
+**Skrót ◀ + ▶ (R-PRZ-21):** ◀ i ▶ trzymane razem 2 s (drugi dochodzi w czasie trzymania pierwszego) otwierają z każdego ekranu, także z uśpienia, test sprzętu U-05 z oknem wgrywania przez Wi-Fi, tą samą drogą co ▶ 2 s na U-03 (`Przebieg::przytrzymanieLubSkrot()`). Puszczenie przed 2 s nie robi nic. Skrótu nie ma w stopce.
+
+**Stopka slotu dziennego przy ocenie o pełnej godzinie (R-KON-42):** `za oknem` (prognoza godzinowa albo źródło otoczenia) i `przy łóżku` z ostatnio wyświetlonej klatki (`StanRtc::stopkaZaOknem`, `stopkaTemp`), wybór ekranu ze świeżych odczytów; e-ink odświeża się tylko przy zmianie ekranu, tekstu albo wizualizacji, wtedy już ze świeżymi odczytami.
 
 **Stopki (5.6.1 pkt 6):** poza ekranem dnia każda stopka podpisuje każdy przycisk, krótko, w kolejności ◀ ▶ ↻ (np. K2 `◀ ostatnia noc · ▶ sprawy · 2 s raport · ↻ ekran dnia`); ekrany dnia z samym ▶ = K1 zostawiają pogodę i `przy łóżku`; ekran L podpisuje `◀ 2 s omówione · ▶ kokpit · 2 s raport · ↻ 2 s wiem`, a S5, S10 i instrukcja bez konfiguracji mają `▶ kokpit`. Cofnięcie na wszystkich potwierdzeniach `◀ 2 s cofnij`.
 

@@ -13,7 +13,8 @@
 //   publicznym dalej „Co znaczą te liczby”) ▶ Sprzęt (5/6) ▶ Ustawienia U-01 (6/6) ▶ formularz U-03 ▶ test U-05; ◀ cofa
 //   o jedną stronę, z K1 do ekranu dnia; na stronach z listą (sprawy, sprzęt) ▶ i ◀ przesuwają po liście, a za jej końcem
 //   przechodzą na sąsiednią stronę;
-// - wyjątek: pytanie „Co było inaczej?” (siatka): ◀ ▶ kursor, ↻ zaznacz, ↻ 2 s zapisz, ◀ 2 s pomiń.
+// - wyjątek: pytanie „Co było inaczej?” (siatka): ◀ ▶ kursor, ↻ zaznacz, ↻ 2 s zapisz, ◀ 2 s pomiń;
+// - ukryty skrót ◀ + ▶ razem 2 s: test U-05 z oknem wgrywania (R-PRZ-21, dyrygent przytrzymanieLubSkrot()).
 #pragma once
 
 #include <string>
@@ -57,6 +58,10 @@ enum class Akcja : unsigned char {
 const int STRON_KOKPITU = 6;
 int numerStrony(Ekran e);
 std::string numerStronyTekst(Ekran e);  // `n / 6` albo pusty
+// Kolejka naciśnięć (spec 5.6.1): naciśnięcie zapamiętane w czasie rysowania wykonuje się bez pokazania ekranu
+// pośredniego, więc tylko czysta nawigacja: krótkie naciśnięcie na ekranie dnia albo na stronie kokpitu `n / 6`.
+// Pytanie, potwierdzenie, ekran poza ciągiem stron albo przytrzymanie (zapis) = false: reszta kolejki przepada.
+bool zKolejkiWolno(Ekran e, bool dlugo);
 // karta „Otwartych spraw” z NVS przycięta do liczby kart (min. 1), żeby ◀ nie cofało niewidocznych kart
 int przytnijKarte(int karta, int liczba);
 

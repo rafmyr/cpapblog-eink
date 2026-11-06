@@ -464,6 +464,20 @@ class AtrapaPrzyciskow : public Przyciski {
       if (z_.msTeraz >= p.first) s = p.second;
     return s;
   }
+  // kolejka naciśnięć z czasu rysowania (spec 5.6.1): (numer jak (int)Przycisk, ms trzymania), najstarsze pierwsze
+  std::vector<std::pair<int, uint32_t>> kolejka;
+  int wyczyszczen = 0;
+  bool zKolejki(int& przycisk, uint32_t& trwaloMs) override {
+    if (kolejka.empty()) return false;
+    przycisk = kolejka.front().first;
+    trwaloMs = kolejka.front().second;
+    kolejka.erase(kolejka.begin());
+    return true;
+  }
+  void wyczyscKolejke() override {
+    kolejka.clear();
+    wyczyszczen++;
+  }
  private:
   AtrapaZegara& z_;
 };

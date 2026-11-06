@@ -739,6 +739,12 @@ R-PRZ-19,R-MAS-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
 R-PRZ-19,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
 R-PRZ-19,R-PRZ-16,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
 R-PRZ-19,R-PRZ-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-20,R-PRZ-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-20
+R-PRZ-20,R-PRZ-08,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-20
+R-PRZ-21,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-21,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-21,R-PRZ-08,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-21,R-PRZ-20,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-10,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,S-K-18,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-11,R-PRZ-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
@@ -2139,6 +2145,9 @@ R-PRZ-18,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
 R-PRZ-18,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
 R-PRZ-18,potwierdzenie „Omówione”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
 R-PRZ-19,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-20,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-20
+R-PRZ-21,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-21,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-10,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
