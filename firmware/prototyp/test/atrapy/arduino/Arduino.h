@@ -59,6 +59,12 @@ struct HardwareSerial {
 };
 extern HardwareSerial Serial;
 
+struct EspClass {  // ESP z Esp.h: tylko pola używane w main.cpp
+  uint32_t getPsramSize() { return 0; }
+  uint32_t getFreePsram() { return 0; }
+};
+extern EspClass ESP;
+
 void pinMode(int, int);
 int digitalRead(int);
 void digitalWrite(int, int);

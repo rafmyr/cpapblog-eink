@@ -288,3 +288,36 @@ def test_main_konfiguracja_wylacznie_z_innymi():
         w.main(["/dev/null", "--konfiguracja", "k.txt", "--obrazki", "obrazki"])
     with pytest.raises(SystemExit):
         w.main(["/dev/null", "zrzut", "--konfiguracja", "k.txt"])
+
+
+def test_po_resecie_czeka_na_narysowanie_ekranu():
+    """Po restarcie panel odpowiada na `?` przed rysowaniem; plik wysłany w czasie rysowania dochodził ucięty
+    (wynik "rozmiar" pierwszego pliku na panelu 06.11.2026). czekaj_na_rysowanie() czyta log do wiersza
+    `narysowany` i niczego nie wysyła."""
+    w = modul("wgraj_pliki")
+    port = AtrapaPortu()
+    port.odpowiedzi = [b"okno przywracania: 10 min\n", b"reguly: E-22 nie oceniam\n", b"ekran 4 narysowany w 3755 ms\n",
+                       b"po rysowaniu\n"]
+    logi = []
+    assert w.czekaj_na_rysowanie(port, limit_s=2, log=logi.append) is True
+    assert port.wyslane == b""
+    assert port.odpowiedzi == [b"po rysowaniu\n"]
+
+
+def test_rysowanie_juz_w_logu_nie_czeka():
+    """Ekran narysowany, zanim panel odpowiedział na `?` (start bez okna): czekanie na wiersz, który już minął,
+    usypiało panel po 20 s czuwania (obrazek 001 „brak odpowiedzi” 06.11.2026)."""
+    w = modul("wgraj_pliki")
+    port = AtrapaPortu()
+    port.odpowiedzi = [b"ekran 0 narysowany w 3619 ms\n", b"przywracanie: poza oknem\n"]
+    assert w.czekaj_na_okno(port, 2) == "poza oknem"
+    assert w.czekaj_na_rysowanie(port, limit_s=5) is True
+    w.resetuj(port)
+    assert port.narysowany is False
+
+
+def test_bez_wiersza_rysowania_czeka_najwyzej_limit():
+    w = modul("wgraj_pliki")
+    port = AtrapaPortu()
+    assert w.czekaj_na_rysowanie(port, limit_s=0.2, pytaj_co_s=0.05) is False
+    assert set(port.wyslane) <= {ord("?")}  # tylko zapytania podtrzymujące czuwanie

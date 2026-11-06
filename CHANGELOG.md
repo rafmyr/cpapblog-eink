@@ -2,6 +2,14 @@
 
 The history of versions before this repository is not published. The specification in this repository is version 1.2 ([docs/spec/](docs/spec/README.md)); the first tag is `spec-v1.2` together with `v1.0.0-beta.1`.
 
+## Unreleased
+
+### Fixed
+
+- Panel with a few months of night history crashed on start (`Stack canary watchpoint triggered (loopTask)` while drawing the day screen S8) and entered the safe mode U-06 after three failed starts. The loop task stack is now 48 KB (was 24 KB).
+- Internal RAM ran out with a long history: rule-engine state and night records (mostly small map and set nodes) were allocated in internal RAM although the board has 8 MB PSRAM. Ordinary allocations from 8 bytes now go to PSRAM (`heap_caps_malloc_extmem_enable(8)`); the minimum free internal RAM went from 452 B to 162 KB. The boot log has a new line `pamiec start: PSRAM …`.
+- `tools/prototyp/wgraj_pliki.py`: after `--reset` the first file could arrive truncated, because the panel does not read the serial port while drawing. The tool now waits until the screen is drawn and keeps the panel awake with `?` meanwhile.
+
 ## 1.0.0-beta.1 (2026-11-06)
 
 First public version. Beta for testing on a small number of panels; not a release for the general public.

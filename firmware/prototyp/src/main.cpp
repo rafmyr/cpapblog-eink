@@ -11,6 +11,7 @@
 // Cała logika jest w plikach bez Arduino z testami na komputerze: tools/prototyp/testy.sh.
 
 #include <Arduino.h>
+#include <esp_heap_caps.h>
 #include "secrets.h"
 #include "adaptery_esp32.h"
 #include "dyrygent.h"
@@ -18,8 +19,10 @@
 #include "start.h"
 
 // Stos zadania loop: domyślne 8 KB nie wystarcza na rysowanie ekranu dnia (snprintf w głębokim wywołaniu,
-// panika „Unhandled debug exception”).
-SET_LOOP_TASK_STACK_SIZE(24 * 1024);
+// panika „Unhandled debug exception”). 24 KB nie wystarczało przy kilkumiesięcznej historii: ekran dnia z S8
+// (silnik reguł, stany z pamięci, zapis nocy przez snprintf) przekraczał stos („Stack canary watchpoint
+// triggered (loopTask)”, 06.11.2026), więc 48 KB (zużycie ok. 24 KB).
+SET_LOOP_TASK_STACK_SIZE(48 * 1024);
 
 // Numer docelowego wydania (spec techniczna 8.7: przy wydaniu wersja z tagu git). Numer wydania nie zawiera przedrostka „proto”.
 #define WERSJA "1.0.0-beta.1"
@@ -90,7 +93,16 @@ static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s) {
 }
 
 void setup() {
+  // Zwykłe alokacje od 8 B do PSRAM (8 MB): historia nocy, teksty i stany silnika reguł (głównie małe węzły map
+  // i zbiorów) nie zajmują pamięci wewnętrznej, którą potrzebują Wi-Fi, DMA i stos. Przy kilkumiesięcznej historii
+  // i stosie 48 KB minimum wolnej pamięci wewnętrznej spadało do 452 B, przy progu 64 B nadal, po tej zmianie
+  // 162 KB (06.11.2026). Bufory z wymaganym typem pamięci (DMA, Wi-Fi) idą jak dotąd.
+  heap_caps_malloc_extmem_enable(8);
   przygotujPanel();
+  Serial.printf("pamiec start: PSRAM %u KB (wolne %u KB), wewnetrzna wolna %u KB, najwiekszy blok %u KB\n",
+                (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024),
+                (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024),
+                (unsigned)(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024));
   static ZegarEsp32 zegar;
   static NvsEsp32 nvs;
   static PlikiEsp32 pliki;

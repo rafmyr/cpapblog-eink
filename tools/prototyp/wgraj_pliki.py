@@ -236,6 +236,11 @@ def czekaj_na_okno(port, limit_s, log=None, pytaj_co_s=2.0):
         t = w.decode("utf-8", "replace").rstrip("\r\n")
         if log:
             log(t)
+        if "narysowany" in t:
+            try:
+                port.narysowany = True  # dla czekaj_na_rysowanie()
+            except AttributeError:
+                pass
         if WZOR_OKNA.search(t):
             return "otwarte"
         if POZA_OKNEM in t:
@@ -264,9 +269,38 @@ def przywroc_okno(port, limit_s, log=None, co_s=2.0):
     return False
 
 
+def czekaj_na_rysowanie(port, limit_s=20, log=None, pytaj_co_s=2.0):
+    """Po restarcie panel odpowiada na `?` także przed rysowaniem ekranu, a w czasie rysowania (ok. 4 s) nie czyta
+    portu: bajty pliku wysłane wtedy przepełniają bufor i plik dochodzi ucięty (wynik "rozmiar"). Wraca od razu, gdy
+    wiersz `… narysowany …` był już w logu od restartu (`port.narysowany`, ustawia czekaj_na_okno()); inaczej czyta log
+    do tego wiersza, najwyżej limit_s s, i co pytaj_co_s s wysyła `?`, bo zapytanie trzyma panel w czuwaniu (brak
+    wiersza nie jest błędem). Zwraca True, gdy ekran jest narysowany."""
+    if getattr(port, "narysowany", False):
+        return True
+    koniec = time.monotonic() + limit_s
+    ostatnie = time.monotonic()
+    while time.monotonic() < koniec:
+        if time.monotonic() - ostatnie >= pytaj_co_s:
+            port.write(b"?")
+            ostatnie = time.monotonic()
+        w = port.readline()
+        if not w:
+            continue
+        t = w.decode("utf-8", "replace").rstrip("\r\n")
+        if log:
+            log(t)
+        if "narysowany" in t:
+            return True
+    return False
+
+
 def resetuj(port):
     """Restart panelu przez DTR/RTS (jak zrzut_plikow.py --reset): start zasilania otwiera okno, dopóki przywracanie
     czeka (U2 wariant A)."""
+    try:
+        port.narysowany = False  # nowy start: ekran jeszcze nie narysowany
+    except AttributeError:
+        pass
     port.dtr = False
     port.rts = True
     time.sleep(0.1)
@@ -332,6 +366,8 @@ def main(argv=None):
                      "nic nie wysyłam")
         if stan is None:
             print("nie widzę okna przywracania; wysyłam mimo to (poza oknem panel odpowie `BLAD … poza oknem`)")
+        elif a.reset:
+            czekaj_na_rysowanie(s, log=lambda t: print(t, flush=True))
     wynik = wgraj(s, a.katalog, zakoncz=not a.bez_k, log=lambda t: print(t, flush=True))
     for n, w in wynik.items():
         print("%-18s %s" % (n, w))
@@ -356,6 +392,8 @@ def obrazki_main(s, a):
     stan = czekaj_na_okno(s, a.czas, log=lambda t: print(t, flush=True))
     if stan is None:
         return "panel nie odpowiada na `?`: naciśnij dowolny przycisk panelu i uruchom skrypt jeszcze raz"
+    if getattr(a, "reset", False):
+        czekaj_na_rysowanie(s, log=lambda t: print(t, flush=True))
     wynik = wgraj_obrazki(s, a.obrazki, log=lambda t: print(t, flush=True))
     for n, w in wynik.items():
         print("%-44s %s" % (n, w))
@@ -380,6 +418,8 @@ def konfiguracja_main(s, a):
     stan = czekaj_na_okno(s, a.czas, log=lambda t: print(t, flush=True))
     if stan is None:
         return "panel nie odpowiada na `?`: naciśnij dowolny przycisk panelu i uruchom skrypt jeszcze raz"
+    if getattr(a, "reset", False):
+        czekaj_na_rysowanie(s, log=lambda t: print(t, flush=True))
     wynik = wgraj_konfiguracje(s, a.konfiguracja, log=lambda t: print(t, flush=True))
     for n, w in wynik.items():
         print("%-44s %s" % (n, w))
