@@ -1,0 +1,11 @@
+# Narzędzia deweloperskie: testy narzędzi (pytest), generatory plików firmware i podglądy (Pillow, NumPy, fontTools),
+# wgrywanie plików przez port szeregowy (pyserial) i build firmware (PlatformIO). Nic z tej listy nie trafia do
+# firmware. Wersje przypięte, żeby testy i generatory dawały u każdego to samo co w CI:
+#   python3 -m pip install -r requirements-dev.txt
+pytest==9.0.3
+pillow==12.3.0
+numpy==2.5.4
+fonttools==4.68.0
+pyserial==3.5
+platformio==6.2.0
+# Opcjonalnie, poza CI: tools/eksport_png.py (playwright z Chromium) i sprawdzenie kodów QR w testy.sh (opencv-python).

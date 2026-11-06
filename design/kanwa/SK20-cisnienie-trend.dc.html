@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-20 Ciśnienie rośnie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'nd 17.01 · podsumowanie tygodnia', hr: 'dane 18:00',
+label: 'Twój trend', title: 'Ciśnienie rośnie od tygodni',
+reason: 'Urządzenie dobiera średnio o 1,5 cmH2O więcej niż miesiąc temu.',
+viz: 'line', line: { v: [10.6, 10.7, 10.6, 10.8, 10.9, 11.0, 11.1, 11.3, 11.5, 11.6, 11.9, 12.1], t: null, cl: 'ciśnienie P95, ostatnie 3 miesiące', cr: '10,6 → 12,1' },
+step: 'Przy najbliższej wizycie pokaż ten trend lekarzowi.',
+fl: 'ustawienia bez zmian: 5–13 · EPR 3', fr: 'bezdechy / h: 1,2, stabilnie'
+} };
+}
+}
+</script>
+</body>
+</html>

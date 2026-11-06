@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-26 Noc na wysokości</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'sob 14.02 · 6 h 10 · 5,4 / h', hr: 'dane 06:20',
+label: 'Ostatnia noc', title: 'Noc na wysokości',
+reason: 'W górach urządzenie zwykle liczy więcej zdarzeń. To typowe.',
+viz: 'pairs', pairs: [{ v: '1820 m', l: 'wysokość noclegu' }, { v: '5,4', l: 'bezdechy / h tej nocy' }, { v: '1,1', l: 'zwykle w domu' }],
+caps: ['noce w górach nie wchodzą do Twojej normy', ''],
+step: 'Złe samopoczucie w górach? Zadzwoń do lekarza.',
+fl: 'Zakopane −4° · śnieg', fr: 'dane z wyjazdu'
+} };
+}
+}
+</script>
+</body>
+</html>

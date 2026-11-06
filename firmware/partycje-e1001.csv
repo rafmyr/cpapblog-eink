@@ -1,0 +1,12 @@
+# Tablica partycji panelu reTerminal E1001, pamięć flash 32 MB (spec techniczna 8.2, T-WYM-38, zakres 4).
+# nvs i otadata w tym samym miejscu co w default_8MB.csv prototypu, więc NVS przeżywa przejście (8.9).
+# Oba sloty aplikacji i coredump poniżej 0x1000000 (granica 16 MB); powyżej tylko pliki.
+# Zmiana tego pliku zmienia identyfikator układu (src/magazyn.h ukladWkompilowany()): panel ze starą tablicą nie
+# formatuje i nie migruje (R7), więc nowy układ wgrywa się tylko kablem z przejściem z 8.9.
+# Name,   Type, SubType,  Offset,   Size
+nvs,      data, nvs,      0x9000,   0x5000
+otadata,  data, ota,      0xE000,   0x2000
+app0,     app,  ota_0,    0x10000,  0x400000
+app1,     app,  ota_1,    0x410000, 0x400000
+coredump, data, coredump, 0x810000, 0x10000
+spiffs,   data, spiffs,   0x820000, 0x17E0000

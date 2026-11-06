@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-13 Zaduch w nocy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'nd 15.11 · 6 h 45 · 1,2 / h', hr: 'dane 05:55',
+label: 'Ostatnia noc', title: 'Zaduch w sypialni w nocy',
+reason: 'CO2 w nocy doszło do 2100 ppm. Wtedy sen bywa płytszy.',
+viz: 'line', line: { v: [700, 850, 1050, 1250, 1420, 1580, 1720, 1850, 1950, 2030, 2080, 2100, 2090, 2060], t: 1000, cl: 'CO2 w nocy, 23:00–06:00', cr: 'linia przerywana = 1000 ppm' },
+step: 'Dziś wieczorem spróbuj z uchylonym oknem.',
+fl: 'Katowice 2° · mgła', fr: 'sypialnia 22° · 45%'
+} };
+}
+}
+</script>
+</body>
+</html>

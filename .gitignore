@@ -1,0 +1,28 @@
+# System and Python
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.log
+
+# Build output
+build/
+.pio/
+firmware/**/.pio/
+firmware/prototyp/pio.log
+firmware/prototyp/ota.log
+
+# Secrets: never commit (copy include/secrets.example.h to include/secrets.h)
+firmware/prototyp/include/secrets.h
+secrets.h
+!firmware/prototyp/test/atrapy/arduino/secrets.h
+
+# Data downloaded from a panel (dumps, logs, measurements)
+firmware/prototyp/zrzuty/
+firmware/prototyp/data/
+zrzuty/
+
+# Private daily pictures (not part of this repository)
+assets/obrazki-dzienne-prywatne/

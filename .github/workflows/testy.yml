@@ -1,0 +1,119 @@
+# Tests and quality gates. Runs on pull requests and on push to main.
+# Locally the same: tools/prototyp/testy.sh (PC tests) and tools/jakosc/sprawdz.sh (core quality gates).
+name: testy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The token only reads the repository; no job writes anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: testy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  testy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+        with:
+          fetch-depth: 0  # the consistency script checks the spec commit from the header (check h)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Zależności
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++
+          python3 -m pip install --quiet -r requirements-dev.txt
+      - name: Pliki generowane zgodne ze źródłami (zestaw reguł i obrazy budzika)
+        run: |
+          python3 tools/zestaw/buduj_zestaw.py
+          python3 tools/prototyp/generuj.py --tylko-obrazy
+          git diff --exit-code
+      - name: Testy prototypu (g++, -Werror i dodatkowe ostrzeżenia) i podgląd ekranów
+        run: bash tools/prototyp/testy.sh
+      - name: Spójność specyfikacji funkcjonalnej
+        run: python3 tools/spojnosc.py --strict
+      - name: Spójność specyfikacji technicznej (odwołania do kodu)
+        run: python3 tools/spojnosc_tech.py
+      - name: Testy narzędzi
+        run: python3 -m pytest -q tools
+
+  # Heavier core gates (about 3–4 min on 2 cores); the same commands as tools/jakosc/sprawdz.sh.
+  jakosc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+        with:
+          fetch-depth: 0  # bazy bramek porównywane z origin/main (merge-base)
+      - name: Zależności (g++, gcov, clang-tidy 18)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ clang-tidy-18
+          sudo ln -sf "$(command -v clang-tidy-18)" /usr/local/bin/clang-tidy
+          clang-tidy --version | head -2
+      - name: Standard (bez wyjątków i RTTI w src/)
+        run: bash tools/jakosc/sprawdz.sh standard
+      - name: ASan + UBSan na testach rdzenia (zero zgłoszeń)
+        run: bash tools/jakosc/sprawdz.sh sanitizery
+      - name: clang-tidy (zero nowych ostrzeżeń wobec tools/jakosc/clang-tidy-baza.txt)
+        run: bash tools/jakosc/sprawdz.sh tidy
+      - name: Pokrycie linii rdzenia (nie poniżej tools/jakosc/pokrycie-baza.txt)
+        run: bash tools/jakosc/sprawdz.sh pokrycie
+      - name: Bazy bramek nie gorsze niż na main
+        run: bash tools/jakosc/sprawdz.sh bazy
+
+  # ESP32 build: pioarduino from platformio.ini, secrets from the example file (no real passwords),
+  # size budget as a gate: flash ≤ 80% of the slot, RAM ≤ 60% (tools/jakosc/budzet_pio.py).
+  esp32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: firmware/prototyp
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Pamięć podręczna PlatformIO
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        with:
+          path: |
+            ~/.platformio
+            firmware/prototyp/.pio/libdeps
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/prototyp/platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+      - name: PlatformIO (wersja z requirements-dev.txt)
+        run: python3 -m pip install --quiet "$(grep -E '^platformio==' ../../requirements-dev.txt)"
+      - name: Sekrety ze wzoru (bez prawdziwych haseł)
+        run: cp include/secrets.example.h include/secrets.h
+      - name: Kompilacja e1001
+        run: |
+          set -o pipefail
+          pio run -e e1001 2>&1 | tee pio.log
+      - name: Budżet rozmiaru (Flash ≤ 80%, RAM ≤ 60%)
+        run: python3 ../../tools/jakosc/budzet_pio.py pio.log
+      - name: Blokada wgrywania przez Wi-Fi do przejścia na układ 32 MB
+        run: |
+          if pio run -e e1001_ota -t upload > ota.log 2>&1; then echo "BŁĄD: blokada e1001_ota nie działa"; exit 1; fi
+          grep -q "zablokowane do przejścia egzemplarza" ota.log && echo "blokada e1001_ota: ok"
+      - name: Wyjątki i RTTI w rdzeniu arduino-esp32 (informacja)
+        run: |
+          L="$(find ~/.platformio/packages -maxdepth 1 -name 'framework-arduinoespressif32-libs*' | head -1)/esp32s3"
+          echo "sdkconfig: $L"
+          grep -E '^(# )?CONFIG_COMPILER_CXX_(EXCEPTIONS|RTTI)' "$L/sdkconfig" || echo "brak wpisów w sdkconfig"
+          echo "flagi C++ rdzenia (wyjątki, RTTI):"
+          tr ' ' '\n' < "$L/flags/cpp_flags" | grep -E 'exceptions|rtti' || echo "brak flag wyjątków i RTTI w cpp_flags"
+          grep -rhoE -- '-f(no-)?(exceptions|rtti)' ~/.platformio/platforms/*/builder 2>/dev/null | sort | uniq -c || true

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-11 Przeciek falami</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'problem', hl: 'pt 13.11 · 6 h 22 · 2,1 / h', hr: 'dane 05:50',
+label: 'Ostatnia noc', title: 'Przeciek pojawiał się falami',
+reason: 'Taki wzór pasuje do otwierania ust we śnie. To częsta sprawa.',
+viz: 'line', line: { v: [2, 20, 3, 22, 2, 25, 4, 21, 3, 26, 2, 19, 3, 23, 2, 20, 3], t: null, cl: 'przeciek w nocy: 8 krótkich fal', cr: 'od 4 nocy podobnie' },
+step: 'Porozmawiaj o innej masce lub pasku pod brodę.',
+fl: 'Katowice 4° · pochmurno', fr: 'sypialnia 21° · 40% · CO2 860'
+} };
+}
+}
+</script>
+</body>
+</html>

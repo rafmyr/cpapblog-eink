@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Raport A4 dla lekarza: L-01, tryb ASVAuto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 794px; height: 1123px; box-sizing: border-box; overflow: hidden; background: #FFFFFF; color: #000000; font-family: 'Public Sans', Arial, sans-serif; font-size: 11px; line-height: 1.35; padding: 26px 40px 18px; display: flex; flex-direction: column; gap: 6px">
+
+<div data-strefa="1" style="display: flex; flex-direction: column; gap: 3px; border-bottom: 2px solid #000000; padding-bottom: 6px">
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; white-space: nowrap">Dane z&nbsp;domowego aparatu AirCurve 10 CS PaceWave, tryb ASVAuto</span>
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-size: 12px">{{h.okres}} · 90&nbsp;nocy, {{h.wazne}} ważnych</span>
+<span style="font-size: 12px">Pacjent: ______________________ &nbsp;ur.: ____________</span>
+</div>
+</div>
+
+<div data-strefa="2" style="display: grid; grid-template-columns: 130px 1fr; gap: 6px 14px">
+<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 10px; padding-top: 2px">Dlaczego ten raport</span>
+<div style="display: flex; flex-direction: column; gap: 3px; font-size: 12px">
+<span data-zdanie="powod"><b>Centralne średnio {{s.x}}&nbsp;/ h z&nbsp;7&nbsp;nocy, zwykle {{s.norma}}.</b></span>
+<span data-zdanie="objawy">„Czy w&nbsp;ostatnim tygodniu zdarzyło Ci się zasnąć w&nbsp;dzień mimo woli, w&nbsp;sytuacji, w&nbsp;której chciałeś pozostać przytomny?”: „tak” w&nbsp;1 z&nbsp;4 ostatnich tygodni.</span>
+<span data-zdanie="zmiana">Początek wzorca {{s.n}}&nbsp;nocy po zmianie ustawień {{s.ch}}.</span>
+<sc-for list="{{nor20}}" as="z" hint-placeholder-count="1"><span data-zdanie="R-NOR-20">{{z.t}}</span></sc-for>
+<span data-zdanie="tylko-raport">Oddychanie okresowe w&nbsp;4&nbsp;z&nbsp;14&nbsp;nocy, razem 96&nbsp;min (bez oceny pilności).</span>
+<span data-zdanie="czynnik">Zgłoszone przez pacjenta: katar lub infekcja w&nbsp;2&nbsp;z&nbsp;14&nbsp;nocy.</span>
+</div>
+</div>
+
+<div data-strefa="4" style="border-top: 1px solid #000000; padding-top: 6px; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; justify-content: space-between"><span style="font-weight: 600; font-size: 12px">Bezdechy centralne (CA/h), 90&nbsp;nocy</span><span>kreski = norma pacjenta P10–P90 sprzed wzorca · przerywana = 5&nbsp;/ h (Liu, Chest 2017)</span></div>
+<svg width="714" height="138" viewBox="0 0 714 138" role="img" aria-label="Wykres bezdechów centralnych z 90 nocy">
+<defs><pattern id="kreski" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#000000" stroke-width="2"></line></pattern></defs>
+<rect x="34" y="{{m.bandY}}" width="672" height="{{m.bandH}}" fill="url(#kreski)"></rect>
+<line x1="34" x2="706" y1="{{m.tY}}" y2="{{m.tY}}" stroke="#000000" stroke-width="1" stroke-dasharray="6 4"></line>
+<line x1="34" x2="34" y1="8" y2="124" stroke="#000000" stroke-width="1"></line>
+<line x1="34" x2="706" y1="124" y2="124" stroke="#000000" stroke-width="1"></line>
+<sc-for list="{{m.ticks}}" as="t" hint-placeholder-count="4"><text x="28" y="{{t.y}}" font-size="10" text-anchor="end" font-family="Public Sans, Arial">{{t.l}}</text></sc-for>
+<line x1="{{m.chX}}" x2="{{m.chX}}" y1="8" y2="124" stroke="#000000" stroke-width="1.5"></line>
+<text x="{{m.chXt}}" y="17" font-size="10" text-anchor="end" font-family="Public Sans, Arial">zmiana ustawień 14.11</text>
+<line x1="{{m.stX}}" x2="{{m.stX}}" y1="22" y2="124" stroke="#000000" stroke-width="1" stroke-dasharray="2 3"></line>
+<text x="{{m.stXt}}" y="31" font-size="10" text-anchor="end" font-family="Public Sans, Arial">początek wzorca {{s.start}}</text>
+<sc-for list="{{m.segs}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1.3"></polyline></sc-for>
+<sc-for list="{{m.full}}" as="d" hint-placeholder-count="85"><circle cx="{{d.x}}" cy="{{d.y}}" r="2.4" fill="#000000" stroke="#000000" stroke-width="1"></circle></sc-for>
+<sc-for list="{{m.empty}}" as="d" hint-placeholder-count="3"><circle cx="{{d.x}}" cy="{{d.y}}" r="2.8" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"></circle></sc-for>
+<sc-for list="{{m.xs}}" as="d" hint-placeholder-count="1"><path d="{{d.d}}" fill="none" stroke="#000000" stroke-width="1.4"></path></sc-for>
+<text x="34" y="135" font-size="10" font-family="Public Sans, Arial">{{m.d0}}</text>
+<text x="200" y="135" font-size="10" text-anchor="middle" font-family="Public Sans, Arial">90&nbsp;nocy</text>
+<text x="706" y="135" font-size="10" text-anchor="end" font-family="Public Sans, Arial">{{m.d1}}</text>
+</svg>
+<div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; border: 1px solid #000000">
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000"></span>
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">30&nbsp;nocy przed</span>
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">od początku wzorca</span>
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">ostatnie 7</span>
+<span style="padding: 2px 6px">CA/h</span><span style="padding: 2px 6px">{{s.t1}}</span><span style="padding: 2px 6px">{{s.t2}}</span><span style="padding: 2px 6px">{{s.t3}}</span>
+<span style="padding: 2px 6px">AHI</span><span style="padding: 2px 6px">{{s.a1}}</span><span style="padding: 2px 6px">{{s.a2}}</span><span style="padding: 2px 6px">{{s.a3}}</span>
+</div>
+<span style="font-size: 10px">pełne kółko = noc ważna · puste kółko = noc niepewna (duży wyciek) · × = noc nieważna (krócej niż 4&nbsp;h); puste i&nbsp;× nie wchodzą do średnich</span>
+</div>
+
+<div data-strefa="3" style="border-top: 1px solid #000000; padding-top: 6px; display: grid; grid-template-columns: 130px 1fr; gap: 6px 14px">
+<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 10px; padding-top: 2px">Pytanie do lekarza</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Bezdechy centralne utrwalone: czy to wymaga korekty leczenia albo dalszej diagnostyki?</span>
+<span style="font-style: italic">Pytanie przygotowane automatycznie. Pacjent może je skreślić lub dopisać własne.</span>
+</div>
+<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 10px; padding-top: 2px">Co najpewniej do poprawy</span>
+<div style="border: 1.5px solid #000000; padding: 5px 8px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px"><b>Przyczynę oceni lekarz.</b></span>
+<span style="font-style: italic">Hipoteza z&nbsp;danych urządzenia, do oceny lekarza.</span>
+</div>
+</div>
+
+<div data-strefa="5" style="border-top: 1px solid #000000; padding-top: 6px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 12px">Kontekst, te same 90&nbsp;nocy</span>
+<div style="display: grid; grid-template-columns: repeat(3, 226px); gap: 18px; font-size: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600; font-size: 11px">AHI ze składowymi, / h</span>
+<svg width="226" height="50" viewBox="0 0 226 50" aria-hidden="true">
+<line x1="0" x2="226" y1="{{g1.l1}}" y2="{{g1.l1}}" stroke="#000000" stroke-width="1" stroke-dasharray="6 3"></line>
+<line x1="0" x2="226" y1="{{g1.l2}}" y2="{{g1.l2}}" stroke="#000000" stroke-width="1" stroke-dasharray="1 3"></line>
+<line x1="{{g1.chX}}" x2="{{g1.chX}}" y1="0" y2="50" stroke="#000000" stroke-width="1"></line>
+<sc-for list="{{g1.s1}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1.3"></polyline></sc-for>
+<sc-for list="{{g1.s2}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="2 2"></polyline></sc-for>
+</svg>
+<span>ciągła = AHI, kropki = CA/h; poziome: 10&nbsp;/&nbsp;h (AHI) i&nbsp;5&nbsp;/&nbsp;h (CA/h)</span>
+<span><b>centralne {{s.p}}% AHI</b> (mediany z&nbsp;14&nbsp;nocy)</span>
+<span>CA/h, średnia z&nbsp;7&nbsp;nocy: <b>{{s.ca7}}&nbsp;/ h{{s.ca7f}}</b></span>
+<span>AHI, mediana z&nbsp;14&nbsp;nocy: <b>{{s.ahi14}}&nbsp;/ h{{s.ahi14f}}</b></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600; font-size: 11px">EPAP, cmH2O</span>
+<svg width="226" height="32" viewBox="0 0 226 32" aria-hidden="true">
+<line x1="0" x2="226" y1="{{g2.l1}}" y2="{{g2.l1}}" stroke="#000000" stroke-width="1" stroke-dasharray="4 3"></line>
+<line x1="0" x2="226" y1="{{g2.l2}}" y2="{{g2.l2}}" stroke="#000000" stroke-width="1" stroke-dasharray="4 3"></line>
+<line x1="{{g2.chX}}" x2="{{g2.chX}}" y1="0" y2="32" stroke="#000000" stroke-width="1"></line>
+<sc-for list="{{g2.s1}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1.3"></polyline></sc-for>
+<sc-for list="{{g2.s2}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="2 2"></polyline></sc-for>
+</svg>
+<span style="font-weight: 600; font-size: 11px">Wsparcie PS, cmH2O</span>
+<svg width="226" height="32" viewBox="0 0 226 32" aria-hidden="true">
+<line x1="0" x2="226" y1="{{g3.l1}}" y2="{{g3.l1}}" stroke="#000000" stroke-width="1" stroke-dasharray="4 3"></line>
+<line x1="0" x2="226" y1="{{g3.l2}}" y2="{{g3.l2}}" stroke="#000000" stroke-width="1" stroke-dasharray="4 3"></line>
+<line x1="{{g3.chX}}" x2="{{g3.chX}}" y1="0" y2="32" stroke="#000000" stroke-width="1"></line>
+<sc-for list="{{g3.s1}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1.3"></polyline></sc-for>
+<sc-for list="{{g3.s2}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="2 2"></polyline></sc-for>
+</svg>
+<span>ciągła = mediana, kropki = P95; przerywane = minimum i&nbsp;maksimum ustawień (EPAP&nbsp;6 i&nbsp;10, PS&nbsp;3 i&nbsp;15)</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600; font-size: 11px">Wyciek P95, L/min</span>
+<svg width="226" height="50" viewBox="0 0 226 50" aria-hidden="true">
+<line x1="0" x2="226" y1="{{g4.l1}}" y2="{{g4.l1}}" stroke="#000000" stroke-width="1" stroke-dasharray="4 3"></line>
+<line x1="{{g4.chX}}" x2="{{g4.chX}}" y1="0" y2="50" stroke="#000000" stroke-width="1"></line>
+<sc-for list="{{g4.s1}}" as="q" hint-placeholder-count="2"><polyline points="{{q.p}}" fill="none" stroke="#000000" stroke-width="1.3"></polyline></sc-for>
+</svg>
+<span>przerywana = 24&nbsp;L/min</span>
+</div>
+</div>
+</div>
+
+<div style="border-top: 1px solid #000000; padding-top: 6px; display: grid; grid-template-columns: 0.85fr 1.25fr; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div data-strefa="6" style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 12px">Ustawienia teraz</span>
+<span><b>ASVAuto · EPAP 6–10 · PS 3–15</b></span>
+<span>rampa auto · maska nosowa · nawilżanie&nbsp;4</span>
+<div style="display: grid; grid-template-columns: 56px 1fr; border: 1px solid #000000">
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">data</span><span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">zmiana w&nbsp;okresie</span>
+<span style="padding: 2px 6px">14.11</span><span style="padding: 2px 6px">PS 3–13 → 3–15</span>
+</div>
+</div>
+<div data-strefa="8" style="display: flex; flex-direction: column; gap: 2px; margin-top: 6px; font-size: 10.5px">
+<span style="font-weight: 600; font-size: 12px">Jakość danych</span>
+<span>Wyłączone z&nbsp;wyliczeń: {{q.n}}&nbsp;nocy. {{q.unc}}&nbsp;× duży wyciek (≥&nbsp;10% czasu terapii albo ≥&nbsp;30&nbsp;min powyżej 24&nbsp;L/min), {{q.short}}&nbsp;× krócej niż 4&nbsp;h, {{q.none}}&nbsp;× brak danych (noc bez terapii).</span>
+<span>Pełne przebiegi nocy: karta SD aparatu albo paczka EDF z&nbsp;panelu.</span>
+</div>
+</div>
+<div data-strefa="7" style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 12px">Regularność i&nbsp;podsumowanie</span>
+<div style="display: grid; grid-template-columns: 1.3fr 1fr 1fr; border: 1px solid #000000; font-size: 10px">
+<span style="padding: 2px 6px; border-bottom: 1px solid #000000"></span><span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">30&nbsp;nocy</span><span style="padding: 2px 6px; border-bottom: 1px solid #000000; font-weight: 600">90&nbsp;nocy</span>
+<span style="padding: 2px 6px">Noce ≥&nbsp;4&nbsp;h</span><span style="padding: 2px 6px">{{t30.g4}}</span><span style="padding: 2px 6px">{{t90.g4}}</span>
+<span style="padding: 2px 6px">Średnio na noc</span><span style="padding: 2px 6px">{{t30.avg}}</span><span style="padding: 2px 6px">{{t90.avg}}</span>
+<span style="padding: 2px 6px">EPAP mediana / 95%</span><span style="padding: 2px 6px">{{t30.p}}</span><span style="padding: 2px 6px">{{t90.p}}</span>
+<span style="padding: 2px 6px">Wsparcie PS mediana / 95%</span><span style="padding: 2px 6px">{{t30.ps}}</span><span style="padding: 2px 6px">{{t90.ps}}</span>
+<span style="padding: 2px 6px">Wyciek 95%</span><span style="padding: 2px 6px">{{t30.lk}}</span><span style="padding: 2px 6px">{{t90.lk}}</span>
+<span style="padding: 2px 6px">AHI (OA / CA / UA / H)</span><span style="padding: 2px 6px">{{t30.ahi}}</span><span style="padding: 2px 6px">{{t90.ahi}}</span>
+<span style="padding: 2px 6px">Przerwy w&nbsp;nocy</span><span style="padding: 2px 6px">{{t30.br}}</span><span style="padding: 2px 6px">{{t90.br}}</span>
+</div>
+<span>Kryterium 4&nbsp;h w&nbsp;70% nocy: <b>{{kryt}}</b></span>
+<span>Noce ≥&nbsp;4&nbsp;h i&nbsp;średnia: wszystkie noce okresu. Pozostałe wiersze: noce z&nbsp;terapią.</span>
+</div>
+</div>
+
+<div data-strefa="9" style="border: 1.5px solid #000000; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 10.5px">
+<span style="font-weight: 600; font-size: 12px">Czego te dane nie mówią</span>
+<span>Zdarzenia liczy algorytm aparatu, nie polisomnografia; podział na centralne i&nbsp;obturacyjne jest przybliżony. Spłycenia oddechu aparat liczy bez desaturacji i&nbsp;wybudzeń, więc inaczej niż w&nbsp;zasadach AASM. Bezdechy centralne aparat oznacza także w&nbsp;czuwaniu. Aparat nie mierzy snu ani pozycji ciała. Bez oksymetru: brak oceny natlenienia krwi. Glasgow Index nie ma walidacji klinicznej. Norma to własne 30&nbsp;nocy pacjenta, nie norma populacyjna. <b>Panel nie ostrzega o&nbsp;nagłych stanach. Przy duszności lub bólu w&nbsp;klatce wezwij pomoc.</b> Wskazanie i&nbsp;bezpieczeństwo leczenia ASV, w&nbsp;tym ocenę chorób serca, weryfikuje lekarz prowadzący.</span>
+</div>
+
+<div data-strefa="10" style="margin-top: auto; border-top: 1px solid #000000; padding-top: 5px; display: flex; justify-content: space-between; font-size: 10px">
+<span>Panel CPAP 1.0.0 · AirBridge 2.3.0 · wygenerowano 27.12.2026 06:04</span>
+<span>Zestawienie danych z&nbsp;aparatu, nie dokumentacja medyczna. Ocena należy do lekarza.</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":794,"height":1123}}'>
+class Component extends DCLogic {
+renderVals() {
+const CFG = { mode: 'asv', seed: 11, unc: [12, 40, 63], short: [27], none: [55], ch: 46, chDate: '14.11', k: 0.135 };
+return gen(CFG);
+}
+}
+function gen(CFG) {
+let seed = CFG.seed;
+const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+const N = 90, D0 = Date.UTC(2026, 8, 29);
+const dd = (i) => { const d = new Date(D0 + i * 86400000); return String(d.getUTCDate()).padStart(2, '0') + '.' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
+const f1 = (x) => x.toFixed(1).replace('.', ',');
+const asv = CFG.mode === 'asv';
+const st = [], ca = [], oa = [], ua = [], hy = [], ahi = [], hrs = [], leak = [], pm = [], p95 = [], psm = [], ps95 = [], brk = [];
+for (let i = 0; i < N; i++) {
+  const s = CFG.unc.indexOf(i) >= 0 ? 'unc' : CFG.short.indexOf(i) >= 0 ? 'short' : CFG.none.indexOf(i) >= 0 ? 'none' : 'ok';
+  st.push(s);
+  let c, o, u, h;
+  if (asv) {
+    c = i < CFG.ch ? 0.8 + rnd() * 1.6 : Math.min(6.6, 1.6 + (i - CFG.ch) * CFG.k) + (rnd() - 0.5) * 0.8;
+    o = 0.5 + rnd() * 0.7; u = 0.1 + rnd() * 0.2; h = 0.6 + rnd() * 0.8;
+  } else {
+    const t = Math.max(0, i - CFG.rise);
+    c = 0.3 + rnd() * 0.6; u = 0.2 + rnd() * 0.3;
+    o = Math.min(4.6, 1.0 + rnd() * 1.0 + t * CFG.k * 0.4); h = Math.min(7.6, 2.2 + rnd() * 1.4 + t * CFG.k * 0.6);
+  }
+  ca.push(+Math.max(0.1, c).toFixed(1)); oa.push(+o.toFixed(1)); ua.push(+u.toFixed(1)); hy.push(+h.toFixed(1));
+  ahi.push(+(ca[i] + oa[i] + ua[i] + hy[i]).toFixed(1));
+  hrs.push(s === 'none' ? 0 : s === 'short' ? 2.2 : +(6.0 + rnd() * 1.6).toFixed(2));
+  leak.push(+(s === 'unc' ? 30 + rnd() * 6 : 8 + rnd() * 10).toFixed(1));
+  if (asv) {
+    const m = 6.8 + rnd() * 0.8; pm.push(+m.toFixed(1)); p95.push(+Math.min(10, m + 1.2 + rnd() * 0.8).toFixed(1));
+    const q = i < CFG.ch ? 4.2 + rnd() * 0.8 : 4.8 + rnd() * 1.2; psm.push(+q.toFixed(1)); ps95.push(+Math.min(i < CFG.ch ? 13 : 15, q + 3 + rnd() * 1.5).toFixed(1));
+  } else {
+    const t = Math.max(0, i - CFG.rise);
+    const m = 8.5 + rnd() * 0.8 + t * 0.06; pm.push(+m.toFixed(1)); p95.push(+Math.min(13, m + 2.2 + rnd() * 0.6).toFixed(1));
+  }
+  brk.push(Math.floor(rnd() * 2.4));
+}
+const ther = (i) => st[i] !== 'none';
+const vL = (i) => st[i] === 'ok';
+const idx = (a, b, fn) => { const r = []; for (let i = a; i <= b; i++) if (fn(i)) r.push(i); return r; };
+const lastV = (end, n) => { const r = []; for (let i = end; i >= 0 && r.length < n; i--) if (vL(i)) r.unshift(i); return r; };
+const mean = (a, ix) => ix.reduce((x, i) => x + a[i], 0) / ix.length;
+const med = (a, ix) => { const v = ix.map((i) => a[i]).sort((x, y) => x - y); const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+const pct = (a, ix, p) => { const v = ix.map((i) => a[i]).sort((x, y) => x - y); const r = (v.length - 1) * p, lo = Math.floor(r); return v[lo] + (v[Math.min(lo + 1, v.length - 1)] - v[lo]) * (r - lo); };
+// norma osobista i stan odchylenia (4.4, 4.5, 4.6, R-NOR-22), noc po nocy
+// valid(i): noc ważna oceniana dla metryki; reset: indeks zerowania normy (R-NOR-07) albo -1
+const sim = (a, delta, valid, reset) => {
+  const inS = [], res = { norm: null, entry: -1, n: 0, frozen: null, dev: [] };
+  let state = false, frozen = null, hist = [];
+  for (let i = 0; i < N; i++) {
+    inS.push(false);
+    if (i === reset) { hist = []; state = false; frozen = null; }
+    if (!valid(i)) continue;
+    let nm = null;
+    if (state) nm = frozen; else {
+      const h = hist.filter((j) => !inS[j] && i - j <= 90).slice(-30);
+      if (h.length >= 14) nm = { p10: pct(a, h, 0.1), p50: pct(a, h, 0.5), p90: pct(a, h, 0.9) };
+    }
+    const dev = nm ? (a[i] > nm.p90 && a[i] - nm.p50 >= delta) : false;
+    res.dev.push([i, dev]);
+    if (nm && !state) {
+      const last5 = res.dev.slice(-5);
+      if (last5.length === 5 && last5.filter((d) => d[1]).length >= 3) { state = true; frozen = nm; res.entry = i; }
+    } else if (state) {
+      const last3 = res.dev.slice(-3).map((d) => d[0]);
+      if (last3.length === 3 && last3.every((j) => Math.abs(a[j] - frozen.p50) <= delta / 2) && last3[0] > res.entry) { state = false; frozen = null; res.entry = -1; }
+    }
+    inS[i] = state;
+    hist.push(i);
+    if (!state) res.norm = nm;
+  }
+  res.state = state; res.frozen = frozen;
+  res.n = state ? res.dev.filter((d) => d[0] >= res.entry).length : 0;
+  return res;
+};
+const wazna = (i) => st[i] === 'ok' || st[i] === 'unc';
+const pewna = (i) => st[i] === 'ok';
+// wejście wzorca
+let entry = -1;
+for (let i = (asv ? CFG.ch + 7 : 20); i < N; i++) {
+  if (asv) {
+    const w = lastV(i, 7); if (w.length < 7 || w[0] <= CFG.ch) continue;
+    if (mean(ca, w) >= 5 && w.filter((j) => ca[j] >= 5).length >= 3) { entry = i; break; }
+  } else {
+    const w = lastV(i, 14); if (w.length < 14) continue;
+    if (med(ahi, w) >= 10 && w.filter((j) => ahi[j] >= 10).length >= 10) { entry = i; break; }
+  }
+}
+const key = asv ? ca : ahi;
+const sKey = sim(key, asv ? 1 : 3, pewna, -1);
+const kn = sKey.frozen || sKey.norm;
+const nP10 = kn.p10, nP50 = kn.p50, nP90 = kn.p90;
+// R-NOR-20: metryki zdrowotne w stanie odchylenia od >= 21 nocy ważnych
+const unit = (v, u) => f1(v) + '\u00a0' + u;
+const x5 = (a, s) => med(a, s.dev.slice(-5).map((d) => d[0]));
+const cand = [
+  ['AHI', sim(ahi, 3, pewna, -1), ahi, '/\u00a0h'],
+  ['CA/h', sim(ca, 1, pewna, -1), ca, '/\u00a0h'],
+  [asv ? 'EPAP P95' : 'Ciśnienie P95', sim(p95, 2, wazna, asv ? CFG.ch : -1), p95, 'cmH2O']
+];
+const nor20 = cand.filter((c) => c[1].state && c[1].n >= 21).map((c) => ({ t: c[0] + ' poza normą osobistą od ' + c[1].n + '\u00a0nocy: ' + unit(x5(c[2], c[1]), c[3]) + ', zwykle ' + unit(c[1].frozen.p50, c[3]) + '.' }));
+
+const l7 = lastV(N - 1, 7), l14 = lastV(N - 1, 14);
+const before = idx(Math.max(0, entry - 30), entry - 1, vL), since = idx(entry, N - 1, vL);
+const out = { dbg: { entry, entryDate: dd(entry), n: entry - CFG.ch, odch: cand.map((c) => [c[0], c[1].state, c[1].entry >= 0 ? dd(c[1].entry) : '-', c[1].n, c[1].frozen ? [c[1].frozen.p10, c[1].frozen.p50, c[1].frozen.p90].map(f1).join('/') : '-']) } };
+out.nor20 = nor20;
+out.h = { okres: dd(0) + '–' + dd(N - 1) + '.2026', wazne: String(idx(0, N - 1, (i) => ther(i) && hrs[i] >= 4).length) };
+const ca7 = mean(ca, l7), ahi14 = med(ahi, l14), ca14 = med(ca, l14);
+out.s = {
+  x: asv ? f1(ca7) : f1(ahi14), norma: f1(nP50), n: String(entry - CFG.ch), ch: CFG.chDate, start: dd(entry),
+  y: asv ? '' : f1(med(oa.map((v, i) => v + ua[i] + hy[i]), l7)),
+  t1: f1(mean(key, before)), t2: f1(mean(key, since)), t3: f1(mean(key, l7)),
+  a1: asv ? f1(mean(ahi, before)) : f1(mean(leak, before)), a2: asv ? f1(mean(ahi, since)) : f1(mean(leak, since)), a3: asv ? f1(mean(ahi, l7)) : f1(mean(leak, l7)),
+  p: String(Math.round(ca14 / ahi14 * 100)), ca7: f1(ca7), ca7f: ca7 >= 5 ? ', powyżej 5 / h' : '', ahi14: f1(ahi14), ahi14f: ahi14 >= 10 ? ', powyżej 10 / h' : ''
+};
+// L-04 (AutoSet): sprawdzenie warunku
+if (!asv) out.dbg.l04 = { p95ok: l7.filter((i) => p95[i] >= 12.5).length, obstr: out.s.y };
+// strefa 7
+const per = (a, b) => {
+  const all = idx(a, b, () => true), th = idx(a, b, ther);
+  const g4 = all.filter((i) => hrs[i] >= 4).length, avg = all.reduce((x, i) => x + hrs[i], 0) / all.length;
+  const hm = (v) => Math.floor(v) + ' h ' + String(Math.round((v % 1) * 60)).padStart(2, '0');
+  return { g4: Math.round(g4 / all.length * 100) + '%', avg: hm(avg), ok: g4 / all.length >= 0.7,
+    p: f1(mean(pm, th)) + ' / ' + f1(mean(p95, th)), ps: asv ? f1(mean(psm, th)) + ' / ' + f1(mean(ps95, th)) : '',
+    lk: f1(mean(leak, th)) + ' L/min', ahi: f1(mean(ahi, th)) + ' (' + [oa, ca, ua, hy].map((s) => f1(mean(s, th))).join(' / ') + ')',
+    br: String(Math.round(med(brk, th))) };
+};
+out.t30 = per(N - 30, N - 1); out.t90 = per(0, N - 1);
+out.kryt = out.t30.ok && out.t90.ok ? 'spełnione' : 'niespełnione';
+// strefa 8
+const nu = st.filter((s) => s === 'unc').length, ns = st.filter((s) => s === 'short').length, nn = st.filter((s) => s === 'none').length;
+out.q = { n: String(nu + ns + nn), unc: String(nu), short: String(ns), none: String(nn) };
+// wykres kluczowy
+const segs = (ix) => { const r = [[]]; let prev = -1; for (const i of ix) { if (prev >= 0 && idx(prev + 1, i - 1, (j) => st[j] === 'none').length) r.push([]); r[r.length - 1].push(i); prev = i; } return r.filter((s) => s.length); };
+const X0 = 34, W = 672, Y0 = 124, H = 112, MAX = asv ? 8 : 16;
+const xm = (i) => +(X0 + i * W / (N - 1)).toFixed(1);
+const ym = (v) => +(Y0 - Math.min(v, MAX) / MAX * H).toFixed(1);
+const okI = idx(0, N - 1, vL);
+out.m = {
+  bandY: ym(nP90), bandH: +(ym(nP10) - ym(nP90)).toFixed(1), tY: ym(asv ? 5 : 10),
+  ticks: (asv ? [0, 2, 5, 8] : [0, 5, 10, 15]).map((v) => ({ y: ym(v) + 3, l: String(v) })),
+  chX: xm(CFG.ch), chXt: xm(CFG.ch) - 4, stX: xm(entry), stXt: xm(entry) - 4,
+  segs: segs(okI).map((s) => ({ p: s.map((i) => xm(i) + ',' + ym(key[i])).join(' ') })),
+  dots: okI.map((i) => ({ x: xm(i), y: ym(key[i]) })).concat(CFG.unc.map((i) => ({ x: xm(i), y: ym(key[i]), e: 1 }))),
+  xs: CFG.short.map((i) => ({ d: 'M ' + (xm(i) - 3) + ' ' + (ym(key[i]) - 3) + ' l 6 6 m 0 -6 l -6 6' })),
+  d0: dd(0), d1: dd(N - 1)
+};
+out.m.full = out.m.dots.filter((d) => !d.e); out.m.empty = out.m.dots.filter((d) => d.e);
+// małe wykresy
+const sw = asv ? 226 : 165;
+const mk = (a, b, lo, hi, lines, w, h) => {
+  const xs = (i) => (i * w / (N - 1)).toFixed(1);
+  const ys = (v) => (h - 2 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (h - 6)).toFixed(1);
+  const th = idx(0, N - 1, ther);
+  return { s1: segs(th).map((s) => ({ p: s.map((i) => xs(i) + ',' + ys(a[i])).join(' ') })), s2: b ? segs(th).map((s) => ({ p: s.map((i) => xs(i) + ',' + ys(b[i])).join(' ') })) : [],
+    l1: lines[0] != null ? ys(lines[0]) : -10, l2: lines[1] != null ? ys(lines[1]) : -10, l3: lines[2] != null ? ys(lines[2]) : -10, chX: asv ? xs(CFG.ch) : -10 };
+};
+out.g1 = mk(ahi, ca, 0, asv ? 12 : 16, [10, 5, null], sw, 50);
+out.g2 = asv ? mk(pm, p95, 4, 12, [6, 10], sw, 32) : mk(pm, p95, 4, 14, [5, 13], sw, 50);
+out.g3 = asv ? mk(psm, ps95, 0, 16, [3, 15], sw, 32) : null;
+out.g4 = mk(leak, null, 0, 40, [24, null], sw, 50);
+if (!asv) { let s2 = 3; const r2 = () => { s2 = (s2 * 1103515245 + 12345) % 2147483648; return s2 / 2147483648; };
+  const fl = []; for (let i = 0; i < N; i++) fl.push(+(0.08 + r2() * 0.08 + Math.max(0, i - CFG.rise) * 0.004).toFixed(2));
+  out.g5 = mk(fl, null, 0, 0.5, [null, null], sw, 50); }
+return out;
+}
+
+</script>
+</body>
+</html>

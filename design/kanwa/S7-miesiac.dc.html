@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Podsumowanie miesiąca</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 800px; height: 480px; box-sizing: border-box; background: #FFFFFF; color: #000000; font-family: 'Public Sans', Arial, sans-serif; display: flex; flex-direction: column">
+<div style="height: 52px; padding: 0 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; font-size: 20px">
+<span style="font-weight: 600">wt 01.12 · 6 h 55 · 0,9 / h</span>
+<span>dane 05:49</span>
+</div>
+<div style="flex: 1; padding: 24px 28px 20px; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-size: 18px; letter-spacing: 2px; text-transform: uppercase">Twój listopad</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 72px; line-height: 1">29<span style="font-size: 36px">/30</span></span><span style="font-size: 20px">nocy z terapią</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 72px; line-height: 1">1,0</span><span style="font-size: 20px">bezdechy na godzinę</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 72px; line-height: 1">198 h</span><span style="font-size: 20px">na masce</span></div>
+</div>
+<div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 34px; border-top: 2px solid #000000; padding-top: 16px">Wyciek niższy niż w październiku.</div>
+</div>
+<div style="height: 46px; padding: 0 28px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000000; font-size: 18px">
+<span>Katowice 0° · szron</span>
+<span>sypialnia 20° · 40% · CO2 850</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

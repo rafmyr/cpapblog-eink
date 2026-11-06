@@ -1,0 +1,397 @@
+id_tekstu;rola;limit;tekst
+L-01.tytul;tytul;30;Bezdechy centralne utrwalone
+L-01.powod;powod;70;Centralne średnio {x} / h z {prog:L-01.okno} nocy, zwykle {norma}.
+L-01.krok;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
+L-01.zdanie_po_zmianie;raport;120;Początek wzorca {n} nocy po zmianie ustawień {data}.
+L-02.tytul;tytul;30;Urządzenie oznaczyło wzorzec
+L-02.powod_a;powod;70;Oddychanie okresowe w {n} z {prog:L-02.a_okno} nocy, razem {min} min.
+L-02.powod_b;powod;70;Oddychanie okresowe {x}% czasu nocy, zwykle {norma}%.
+L-02.krok;krok;60;→ Omów wynik z lekarzem w najbliższych tygodniach.
+L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport z K2.
+L-03.tytul;tytul;30;Bezdechy utrzymują się wyżej
+L-03.powod;powod;70;Mediana z {prog:L-03.okno} nocy {x} / h, wyciek mały.
+L-03.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
+L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport z K2.
+L-04.tytul_asvauto;tytul;30;EPAP przy górnej granicy
+L-04.powod_asvauto;powod;70;EPAP blisko maksimum {max}, bezdechy obturacyjne {y} / h.
+L-04.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
+L-05.tytul;tytul;30;Zmiana oddechu od kilku nocy
+L-05.powod;powod;70;Oddechy {x} / min, zwykle {norma}, od {n} nocy.
+L-05.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
+L-07.tytul_asv;tytul;30;EPAP rośnie
+L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport z K2.
+L-08.tytul_szybki;tytul;30;Dużo mniej nocy z maską
+L-08.powod_szybki;powod;70;Ponad 4 h w {n} z 30 nocy, miesiąc temu {m} z 30.
+L-08.krok_szybki;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
+L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport z K2.
+L-09.tytul;tytul;30;Wyciek nie ustępuje
+L-09.powod;powod;70;Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.
+L-09.krok;krok;60;→ Zapytaj dostawcę sprzętu o inną maskę.
+L-09.linia;linia;60;Wyciek nie ustępuje od {n} nocy. Pokaż na kontroli.
+L-11.tytul;tytul;30;Senność mimo terapii
+L-11.powod;powod;70;Senność w {n} z {prog:L-11.wariant_2tyg_okno} tygodni, urządzenie liczy {x} / h.
+L-11.krok;krok;60;→ Pokaż to lekarzowi, sama liczba nie wystarczy.
+L-12.tytul;tytul;30;Gorzej od zmiany ustawień
+L-12.powod;powod;70;{metryka} {x}, przed zmianą {y} ({data}).
+L-12.krok;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
+L.etykieta_a;etykieta;60;Skontaktuj się w ciągu kilku dni
+L.etykieta_b;etykieta;60;Warto skonsultować · w najbliższych tygodniach
+L.wciaz;linia;60;Wciąż: {tytuł}.
+L.wciaz_kontrola;linia;60;Wciąż: {tytuł}. Pokaż na kontroli.
+L.wciaz_omowione;linia;60;Wciąż: {tytuł}. Omówione {data}.
+L.trwa_po_wizycie;linia;60;{nazwa}: trwa 8 tyg. po wizycie.
+L.pytanie_ogolne;pytanie;200;{tytuł}: czy to wymaga korekty leczenia albo dalszej diagnostyki?
+H-02.linia_asvauto;ramka;60;Najpewniej do poprawy: zakres EPAP
+H-02.zdanie;ramka;60;Obszar do omówienia z lekarzem.
+H-02.pytanie_asvauto;pytanie;200;EPAP przy maksimum {max} ze zdarzeniami {y} / h: czy zakres EPAP może mieć z tym związek, czy szukać innej przyczyny?
+H-05.linia;ramka;60;Przyczynę oceni lekarz.
+H-05.pytanie;pytanie;200;Wyniki gorsze od zmiany ustawień {data}: czy ustawienia mogą mieć z tym związek, czy szukać innej przyczyny?
+H-08.linia;ramka;60;Przyczynę oceni lekarz.
+H-09.linia;ramka;60;Najpewniej do poprawy: czas z maską
+H-09.pytanie;pytanie;200;Senność przy medianie {czas} z maską na noc: czy czas z maską może mieć z tym związek, czy szukać innej przyczyny?
+L-04.tytul;tytul;30;Ciśnienie przy górnej granicy
+L-04.powod;powod;70;Ciśnienie blisko maksimum {max}, bezdechy obturacyjne {y} / h.
+L-07.tytul;tytul;30;Ciśnienie rośnie od tygodni
+L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport z K2.
+L-10.tytul;tytul;30;Spłaszczone wdechy i senność
+L-10.powod;powod;70;Od {n} tygodni więcej spłaszczonych wdechów i senność.
+L-10.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
+L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport z K2.
+H-01.linia;ramka;60;Najpewniej do poprawy: minimalne ciśnienie
+H-01.zdanie;ramka;60;Obszar do omówienia z lekarzem.
+H-01.pytanie;pytanie;200;Zdarzenia skupiają się przy niskim ciśnieniu ({a} / h wobec {b} / h): czy minimalne ciśnienie może mieć z tym związek, czy szukać innej przyczyny?
+H-02.linia;ramka;60;Najpewniej do poprawy: maksymalne ciśnienie
+H-02.linia_tryb;ramka;60;Najpewniej do poprawy: tryb terapii
+H-02.pytanie;pytanie;200;Ciśnienie przy maksimum {max} ze zdarzeniami {y} / h: czy zakres ciśnienia albo tryb terapii mogą mieć z tym związek, czy szukać innej przyczyny?
+H-03.linia;ramka;60;Najpewniej do poprawy: start terapii (rampa)
+H-03.pytanie;pytanie;200;Zdarzenia skupione w pierwszych {prog:H-03.start_min} min sesji: czy start terapii (rampa) może mieć z tym związek, czy szukać innej przyczyny?
+H-04.linia;ramka;60;Najpewniej do poprawy: ustawienia ciśnienia lub EPR
+H-04.pytanie;pytanie;200;Centralne {x} / h od zmiany ustawień {data}: czy ustawienia ciśnienia lub EPR mogą mieć z tym związek, czy szukać innej przyczyny?
+H-06.linia;ramka;60;Najpewniej do poprawy: szczelność przy ustach (typ maski)
+H-06.pytanie;pytanie;200;Wyciek falami: czy typ maski albo drożność nosa mogą mieć z tym związek?
+H-07.linia;ramka;60;Do sprawdzenia z dostawcą: typ maski w aparacie
+E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
+E-10.linia;linia;60;Noc {data} bez terapii.
+E-10.tytul;tytul;30;Noce bez terapii: {n}
+E-10.powod;powod;70;Ostatnia terapia: {data}.
+E-10.krok;krok;60;→ Wróć do terapii dziś w nocy.
+E-10.podpis_lewo;podpis_lewo;40;czas z maską · 30 nocy
+E-10.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-10.noc_bez_terapii_m01} min
+E-11.linia;linia;60;Krótka noc: {czas}. Liczby mniej pewne.
+E-12.tytul;tytul;30;Terapia nieregularna
+E-12.powod;powod;70;Ponad {prog:E-12.noc_min} h tylko w {n} z {d} nocy, cel: {ceil(0,7·d)}.
+E-12.krok;krok;60;→ Najwięcej daje każda pełna noc.
+E-12.podpis_lewo;podpis_lewo;40;czas z maską · 30 nocy
+E-12.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-12.noc_min} h
+E-13.tytul;tytul;30;Noce krótsze niż zwykle
+E-13.powod;powod;70;Średnio {x}, zwykle {norma} (ostatnie 5 nocy).
+E-13.krok;krok;60;→ Jeśli budzi cię maska, sprawdź jej dopasowanie.
+E-13.podpis_lewo;podpis_lewo;40;czas z maską · 30 nocy
+E-13.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-14.tytul;tytul;30;Częściej zdejmujesz maskę
+E-14.powod;powod;70;Przerwy w nocy: {x}, zwykle {norma}.
+E-14.krok;krok;60;→ Sprawdź, co budzi: toaleta, wyciek, ucisk, suchość.
+E-14.podpis_lewo;podpis_lewo;40;przerwy w nocy · 30 nocy
+E-14.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-21.tytul;tytul;30;Sprawdź maskę
+E-21.powod;powod;70;Wyciek rośnie od {n} nocy: {x} L/min, zwykle {norma}.
+E-21.krok;krok;60;→ Umyj lub wymień poduszkę, sprawdź paski.
+E-23.tytul;tytul;30;Wyciek od {prog:E-23.przeciek_p95} l/min w nocy
+E-23.powod;powod;70;Przez co najmniej 5% czasu terapii.
+E-23.krok;krok;60;→ Sprawdź maskę. Gdy wraca, pokaż lekarzowi.
+E-23.podpis_lewo;podpis_lewo;40;wyciek l/min · 30 nocy
+E-23.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-23.przeciek_p95} l/min
+E-30.tytul;tytul;30;Noce z AHI powyżej {prog:E-30.ahi}
+E-30.powod;powod;70;AHI powyżej {prog:E-30.ahi} w {n} z {prog:E-30.okno} nocy, ostatnio {x}.
+E-30.krok;krok;60;→ Sprawdź wyciek i obserwuj kolejne noce.
+E-30.podpis_lewo;podpis_lewo;40;AHI · 30 nocy
+E-30.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-30.ahi} / h
+E-31.tytul;tytul;30;Bezdechów więcej niż zwykle
+E-31.powod;powod;70;Średnio {x} / h, zwykle {norma}.
+E-31.krok;krok;60;→ Sprawdź wyciek i pozycję snu, obserwuj kolejne noce.
+E-31.krok_lekarz;krok;60;→ Obserwuj kolejne noce.
+E-31.podpis_lewo;podpis_lewo;40;AHI · 30 nocy
+E-31.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-33.tytul;tytul;30;Więcej bezdechów centralnych
+E-33.powod;powod;70;{x} / h, zwykle {norma}.
+E-33.krok;krok;60;→ Obserwuj kolejne noce.
+E-33.podpis_lewo;podpis_lewo;40;bezdechy centralne / h · 30 nocy
+E-33.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-36.tytul;tytul;30;{prog:E-36.slowo_cisnienia} wyższe niż zwykle
+E-36.powod;powod;70;{prog:E-36.slowo_cisnienia} w szczytach nocy {x}, zwykle {norma}.
+E-36.krok;krok;60;→ Obserwuj kolejne noce.
+E-36.krok_lekarz;krok;60;→ Obserwuj kolejne noce.
+E-36.podpis_lewo;podpis_lewo;40;{prog:E-36.slowo_cisnienia} w szczytach nocy · 30 nocy
+E-36.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-05.linia;linia;60;Ekran: bateria {x}%, naładuj w tym tygodniu.
+E-05.tytul;tytul;30;Naładuj ekran
+E-05.powod;powod;70;Bateria {x}%.
+E-05.krok;krok;60;→ Podłącz kabel USB-C.
+E-05.linia_krytyczna;linia;60;Naładuj ekran: bateria {x}%.
+E-07.linia;linia;60;Czujnik sypialni nie odpowiada od {prog:E-07.noce_bez_czujnika} nocy.
+E-08.linia;linia;60;Brak odczytu CO2 od {czas}.
+E-08.linia_bez_czasu;linia;60;Brak odczytu CO2.
+E-20.linia;linia;60;Wczoraj duży wyciek: {min} min. Bezdechy mniej pewne.
+E-21.linia;linia;60;Powietrze w sypialni suche: {w}%.
+E-21.podpis_lewo;podpis_lewo;40;wyciek l/min · 30 nocy
+E-21.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+E-22.tytul;tytul;30;Maska nieszczelna
+E-22.powod;powod;70;Duży wyciek w {n} z 5 nocy, średnio {min} min.
+E-22.krok;krok;60;→ Sprawdź dopasowanie lub zapytaj o inny rozmiar.
+E-22.podpis_lewo;podpis_lewo;40;duży wyciek, min na noc · 30 nocy
+E-22.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-20.minuty} min
+S-K-03.etykieta;etykieta;30;Przed snem
+S-K-03.tytul;tytul;;Chłodna sypialnia
+S-K-03.powod;powod;;W sypialni {t} °C. W zimnej rurze para skrapla się w wodę.
+S-K-03.krok;krok;;→ Owiń rurę otuliną.
+S-K-04.etykieta;etykieta;30;Przed snem
+S-K-04.tytul;tytul;;Suche powietrze w sypialni
+S-K-04.powod;powod;;Wilgotność {w}%. Suche powietrze wysusza nos i usta.
+S-K-04.krok;krok;;→ Włącz nawilżacz pokojowy na noc.
+S-K-05.etykieta;etykieta;30;Przed snem
+S-K-05.tytul;tytul;;Gorąca noc przed tobą
+S-K-05.powod;powod;;Dziś {t} °C. W upały noce z maską bywają krótsze.
+S-K-05.powod_sypialnia;powod;;W sypialni {t} °C. W upały noce z maską bywają krótsze.
+S-K-05.krok;krok;;→ Schłodź sypialnię przed snem.
+S-K-06.etykieta;etykieta;30;Przed snem
+S-K-06.tytul;tytul;;Dużo pyłku {rodzaj}
+S-K-06.powod;powod;;Dziś dużo pyłku. Zatkany nos utrudnia oddychanie przez maskę.
+S-K-06.krok;krok;;→ Zatkany nos? Powiedz lekarzowi.
+S-K-07.etykieta;etykieta;30;Przed snem
+S-K-07.tytul;tytul;;Stała pora sprzyja masce
+S-K-07.powod;powod;;Przez 7 dni maska o różnych porach, rozrzut {min} min.
+S-K-07.krok;krok;;→ Maska dziś około {hh:mm}.
+S-K-08.etykieta;etykieta;30;Przed snem
+S-K-08.tytul;tytul;;Dziś znowu z maską
+S-K-08.powod;powod;;Wczoraj noc bez maski. Każda noc z terapią się liczy.
+S-K-08.krok;krok;;→ Przygotuj maskę już teraz.
+S-K-09.etykieta;etykieta;30;Przed weekendem
+S-K-09.tytul;tytul;;Weekend przed tobą
+S-K-09.powod;powod;;W weekendy masz maskę średnio o {min} min krócej.
+S-K-09.krok;krok;;→ W sobotę maska o zwykłej porze.
+S-K-10.etykieta;etykieta;30;Ostatnia noc
+S-K-10.tytul;tytul;;Maska przeciekała
+S-K-10.powod;powod;;Wyciek ponad {próg} l/min przez {min} min. AHI mniej pewne.
+S-K-10.powod_p95;powod;;W części nocy wyciek {x} l/min. AHI mniej pewne.
+S-K-10.krok;krok;;→ Sprawdź poduszkę i paski.
+S-K-10.kilka.etykieta;etykieta;30;Maska · od kilku nocy
+S-K-10.kilka.tytul;tytul;;Maska przecieka od {n} nocy
+S-K-10.kilka.powod;powod;;Wyciek ponad {próg} l/min w {n} z 7 nocy.
+S-K-10.kilka.powod_od;powod;;Wyciek powyżej {próg} l/min w {n} z 7 nocy.
+S-K-10.kilka.krok;krok;;→ Dopasuj maskę, sprawdź poduszkę.
+S-K-10.opisowy.etykieta;etykieta;30;Ostatnia noc
+S-K-10.opisowy.tytul;tytul;;Wyciek widoczny
+S-K-10.opisowy.powod;powod;;W części nocy wyciek {x} l/min, bez dużego wycieku.
+S-K-10.opisowy.krok;krok;;→ Obserwuj kolejne noce.
+S-K-10.opisowy_kilka.etykieta;etykieta;30;Ostatnie noce
+S-K-10.opisowy_kilka.tytul;tytul;;Wyciek widoczny od {n} nocy
+S-K-10.opisowy_kilka.powod;powod;;Wyciek od {próg} l/min w {n} z 7 nocy.
+S-K-10.opisowy_kilka.krok;krok;;→ Obserwuj kolejne noce.
+S-K-11.etykieta;etykieta;30;Ostatnia noc
+S-K-11.tytul;tytul;;Wyciek pojawiał się falami
+S-K-11.powod;powod;;Taki wzór pasuje do otwierania ust we śnie. To częsta sprawa.
+S-K-11.krok;krok;;→ Zapytaj dostawcę o inną maskę lub pasek pod brodę.
+S-K-12.etykieta;etykieta;30;Ostatnia noc
+S-K-12.tytul;tytul;;Ta noc jest mało czytelna
+S-K-12.powod;powod;;Duży wyciek albo krótka noc. Liczby z tej nocy są mniej pewne.
+S-K-12.krok;krok;;→ Patrz na trend z całego tygodnia, nie na tę noc.
+S-K-14.etykieta;etykieta;30;Ostatnia noc
+S-K-14.tytul;tytul;;Sucha noc i wyższy wyciek
+S-K-14.powod_norma;powod;;W nocy wilgotność {w}%, wyciek wyższy niż zwykle. Suche usta?
+S-K-14.powod;powod;;W nocy wilgotność {w}%, wyciek {x} l/min. Suche usta?
+S-K-14.krok;krok;;→ Suchość co rano? Powiedz o tym dostawcy sprzętu.
+S-K-15.etykieta;etykieta;30;Ostatnia noc
+S-K-15.tytul;tytul;;Gorąca noc, krótsza maska
+S-K-15.powod_norma;powod;;W sypialni {t}°C, maska {ile} krócej niż zwykle. W upał to częste.
+S-K-15.powod;powod;;W sypialni {t}°C, maska tylko {czas}. W upał to częste.
+S-K-15.krok;krok;;→ Dziś schłodź pokój, zanim założysz maskę.
+S-K-16.etykieta;etykieta;30;Ostatnia noc
+S-K-16.tytul;tytul;;Maska zdejmowana {n} razy
+S-K-16.powod_norma;powod;;Zwykle {m}. Coś mogło przeszkadzać w nocy.
+S-K-16.powod;powod;;Coś mogło przeszkadzać w nocy.
+S-K-16.krok;krok;;→ Sprawdź, co budziło w nocy.
+S-K-17.etykieta;etykieta;30;Ostatnie 2 noce
+S-K-17.tytul;tytul;;Noc inna niż zwykle
+S-K-17.oddech;powod;;Oddech szybszy o {x} na minutę
+S-K-17.cisnienie;powod;;ciśnienie wyższe niż zwykle
+S-K-17.epap;powod;;EPAP wyższe niż zwykle
+S-K-17.wyciek;powod;;wyciek wyższy niż zwykle
+S-K-17.krok;krok;;→ Czujesz się gorzej? Skonsultuj się z lekarzem.
+S-K-18.etykieta;etykieta;30;Twój tydzień
+S-K-18.tytul;tytul;;Twój tydzień: {n} z 7 nocy
+S-K-18.powod;powod;;Ponad 4 h w {n} nocach, średnio {czas} z maską.
+S-K-18.krok_sennosc;krok;;→ Za kierownicą nie ryzykuj.
+S-K-18.krok_wyciek;krok;;→ Sprawdź szczelność maski.
+S-K-18.krok_przerwy;krok;;→ Sprawdź, co budzi w nocy.
+S-K-18.krok_pora;krok;;→ Stała pora, także w weekend.
+S-K-18.krok_czas;krok;;→ Każda godzina z maską się liczy.
+S-K-18.krok_nic;krok;;→ Nic do zrobienia. Tak trzymaj.
+S-K-18.krok_linia;krok;;→ Sprawa z linii wyżej wciąż otwarta.
+S-K-18.krok_sprawy;krok;;→ Otwarte sprawy: strona 3 / 6.
+S-K-18.krok_oceny;krok;;→ Część ocen wyłączona: zobacz K1.
+S-K-18.krok_reguly;krok;;→ Część reguł nie działa: zobacz Test sprzętu.
+S-K-18.krok_dane;krok;;→ Część ocen jeszcze nie działa: za mało nocy.
+S-K-19.etykieta;etykieta;30;Twój tydzień
+S-K-19.tytul;tytul;;Więcej spłaszczonych wdechów
+S-K-19.powod;powod;;W tym tygodniu więcej wdechów o płaskim kształcie niż zwykle u ciebie.
+S-K-19.krok;krok;;→ Senność w dzień? Pokaż te dane lekarzowi.
+S-K-20.etykieta;etykieta;30;Twój trend
+S-K-20.tytul;tytul;;Ciśnienie rośnie od tygodni
+S-K-20.powod;powod;;Urządzenie dobiera średnio o {x} cmH2O więcej niż zwykle.
+S-K-20.krok;krok;;→ Przy najbliższej wizycie pokaż ten trend lekarzowi.
+S-K-20.asv.tytul;tytul;;EPAP rośnie od tygodni
+S-K-20.asv.powod;powod;;Aparat dobiera EPAP średnio o {x} cmH2O wyżej niż zwykle.
+S-K-21.etykieta;etykieta;30;Odkrycie
+S-K-21.co2.tytul;tytul;;Odkrycie: twoje noce i CO2
+S-K-21.co2.powod;powod;;Przy nocach z dusznym powietrzem maska krócej o {min} min.
+S-K-21.co2.krok;krok;;→ Spróbuj z uchylonym oknem.
+S-K-21.upal.tytul;tytul;;Odkrycie: twoje noce i upał
+S-K-21.upal.powod;powod;;Przy upalnych nocach maska krócej o {min} min.
+S-K-21.upal.krok;krok;;→ Chłodź sypialnię przed snem.
+S-K-21.pylek.tytul;tytul;;Odkrycie: twoje noce i pyłek
+S-K-21.pylek.powod;powod;;Przy dużym pyłku maska krócej o {min} min.
+S-K-21.pylek.krok;krok;;→ Zatkany nos? Powiedz lekarzowi.
+S-K-21.weekend.tytul;tytul;;Odkrycie: twoje noce i weekend
+S-K-21.weekend.powod;powod;;W weekendy maska krócej o {min} min.
+S-K-21.weekend.krok;krok;;→ Weekend o zwykłej porze.
+S-K-27.etykieta;etykieta;30;Kamień milowy
+S-K-27.tytul;tytul;;30 dni: próg osiągnięty
+S-K-27.powod;powod;;Maska 4 h lub dłużej na {n} z 30 nocy.
+S-K-27.krok;krok;;→ Kolejny cel: 90 dni.
+S-K-29.etykieta;etykieta;30;Kamień milowy
+S-K-29.tytul;tytul;;Wracasz do rytmu
+S-K-29.powod;powod;;Po {n} nocach przerwy dziś {czas} z maską.
+S-K-29.krok;krok;;→ Dziś wieczorem znowu z maską.
+S-K-30.etykieta;etykieta;30;Rano · noc inna niż zwykle
+S-K-30.tytul;tytul;;Oddychasz szybciej niż zwykle
+S-K-30.powod;powod;;Oddechy {x} / min, zwykle {norma}. Organizm mógł być obciążony.
+S-K-30.pytanie;pytanie;;Katar albo infekcja?
+S-K-31.etykieta;etykieta;30;Rano · sprzęt
+S-K-31.tytul;tytul;;Maska się zużywa
+S-K-31.powod;powod;;Ma {m} mies., wyciek rośnie od {t} tyg.
+S-K-31.krok;krok;;→ Wymień i przytrzymaj ◀.
+S-K-32.etykieta;etykieta;30;Sprzęt
+S-K-32.tytul;tytul;;Nowa maska działa
+S-K-32.powod;powod;;Wyciek {x} l/min, przed wymianą {y}.
+S-K-32.krok;krok;;→ Wymiana co {m} mies. się opłaca.
+R-MAS-12.etykieta;etykieta;30;Sprzęt
+R-MAS-12.tytul;tytul;;Wymieniona maska?
+R-MAS-12.opis;powod;;Wyciek spadł z {y} do {x} l/min od {data}.
+R-MAS-12.stopka;linia;;Bez odpowiedzi do 11:00 = nie zapisuję wymiany.
+R-MAS-11.linia;linia;;Nowy model maski. Uczę się normy.
+R-MAS-14.tytul;tytul;;Nowy model maski zapisany.
+R-MAS-14.powod;powod;;Uczę się normy wycieku od nowa: 14 nocy.
+R-MAS-01.tytul;tytul;;Wymiana zapisana.
+R-MAS-01.maska;powod;;Maska: wymieniona dziś.
+R-MAS-01.filtr;powod;;Filtr: wymieniony dziś.
+R-INF-10.linia;linia;;Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.
+O-03.tytul;tytul;30;Rekordowy tydzień
+O-03.ahi.powod;powod;70;AHI {x} / h, najniżej od {miesiąc}.
+O-03.wyciek.powod;powod;70;Wyciek {x} l/min, najniżej od {miesiąc}.
+O-03.krok;krok;60;→ Nic do zmiany. Tak trzymaj.
+O-04.tytul;tytul;30;Lepszy tydzień niż miesiąc
+O-04.powod;powod;70;{Metryka} {x}, w ostatnim miesiącu {y}.
+O-04.krok;krok;60;→ Trzymaj obecny rytm.
+O-05.tytul;tytul;30;Zdarzenia nad ranem
+O-05.powod;powod;70;{p}% zdarzeń w ostatniej części nocy.
+O-05.krok;krok;60;→ Pokaż to na kontroli.
+O-06.tytul;tytul;30;W duszne noce {zmiana}
+O-06.powod;powod;70;{Metryka} {x} przy CO2 ponad {prog:O-06.co2}, {y} niżej. Z {n} nocy.
+O-06.krok;krok;60;→ Wietrz przed snem.
+O-07.tytul;tytul;30;Suche noce, większy wyciek
+O-07.powod;powod;70;Wyciek wyższy o {dx} l/min przy wilgotności poniżej {prog:O-07.wilgotnosc}%.
+O-07.krok;krok;60;→ Nawilżacz pokojowy na noc.
+O-08.tytul;tytul;30;Weekendy inne niż tydzień
+O-08.powod;powod;70;W weekendy {metryka} {różnica}. Z {n} nocy.
+O-08.krok;krok;60;→ Weekend o zwykłej porze.
+O-09.tytul;tytul;30;Pora startu a twoje noce
+O-09.powod;powod;70;Po 00:30 {metryka} {różnica}. Z {n} nocy.
+O-09.krok;krok;60;→ Maska przed 00:30, gdy możesz.
+O-10.tytul;tytul;30;Opór oddechu a ciśnienie
+O-10.powod;powod;70;Opór oddechu rośnie, gdy ciśnienie w nocy jest niskie.
+O-10.krok;krok;60;→ Pokaż to lekarzowi.
+O-11.tytul;tytul;30;Zmienił się kształt wdechów
+O-11.powod;powod;70;Najczęściej: {cecha}. Wcześniej: inny.
+O-11.krok;krok;60;→ Senność? Pokaż to lekarzowi.
+O-12.tytul;tytul;40;{Odmiana}: {zmiana}
+O-12.tytul_skrot;tytul;30;Odkrycie: {czynnik}
+O-12.tytul_ukryty;tytul;30;Odkrycie o czynniku nocy
+O-12.powod;powod;80;{Metryka} {x} {odmiana}, {y} bez. Z {n}/{m} nocy.
+O-12.powod_ukryty;powod;70;Wynik z twoich odpowiedzi rano. Szczegóły: ▶ kokpit.
+O-12.przypadek;powod;70;Może to przypadek.
+O-12.krok;krok;60;→ Sam zdecyduj, co z tym zrobisz.
+O-12.krok_leki;krok;60;→ Powiedz o tym lekarzowi.
+S2D.G01.warunek.tytul;tytul;90;Zegar przestawił się sam.
+S2D.G01.warunek.powod;powod;100;Maska też zmieniła pozycję, niestety bez konsultacji. Efekty widać w raporcie.
+S2D.G01.neutralna.tytul;tytul;90;Czas zmienił się w nocy.
+S2D.G01.neutralna.powod;powod;100;Podobno zyskaliśmy godzinę. Księgowość snu nie potwierdza.
+S2D.G01.neutralna_marzec.tytul;tytul;90;Dzisiaj śpisz godzinę krócej.
+S2D.G02.warunek.tytul;tytul;90;Poniedziałek i tak ma fatalną reputację.
+S2D.G02.warunek.powod;powod;100;Na szczęście twoje wyniki postanowiły nie pogarszać sytuacji.
+S2D.G02.neutralna.tytul;tytul;90;Poniedziałek.
+S2D.G02.neutralna.powod;powod;100;Dzień, w którym nawet budzik zastanawia się nad zmianą zawodu.
+S2D.G03.warunek.tytul;tytul;90;Tydzień zamknięty, terapia pod kontrolą.
+S2D.G03.warunek.powod;powod;100;Przynajmniej jeden projekt obył się bez spotkania kryzysowego.
+S2D.G03.neutralna.tytul;tytul;90;Piątek.
+S2D.G03.neutralna.powod;powod;100;Oficjalnie można już udawać, że wszystkie problemy poczekają do poniedziałku.
+S2D.G04.warunek.tytul;tytul;90;Nowy rok, stare bezdechy.
+S2D.G04.warunek.powod;powod;100;Na szczęście aparat nadal skutecznie studzi ich ambicje.
+S2D.G04.neutralna.tytul;tytul;90;Nowy rok, nowe możliwości.
+S2D.G04.neutralna.powod;powod;100;Większość z nich tradycyjnie odłożymy na przyszły poniedziałek.
+S2D.G05.warunek.tytul;tytul;90;AHI w celu.
+S2D.G05.warunek.powod;powod;100;Mikołaj najwyraźniej uznał, że w tym roku zasługujesz na coś praktycznego.
+S2D.G05.neutralna.tytul;tytul;90;Święta to czas spokoju, refleksji i udawania, że trzeci kawałek sernika się nie liczy.
+S2D.G06.warunek.tytul;tytul;90;Maska została na twarzy do rana.
+S2D.G06.warunek.powod;powod;100;Nie nazywajmy tego cudem, ale okoliczności są sprzyjające.
+S2D.G06.neutralna.tytul;tytul;90;Wielkanoc.
+S2D.G06.neutralna.powod;powod;100;Jedyny okres w roku, kiedy poszukiwanie jajek uchodzi za poważną aktywność dorosłych.
+S2D.G07.warunek.tytul;tytul;90;Wiosenne porządki warto zacząć od maski.
+S2D.G07.warunek.powod;powod;100;Sypialnia ma już wystarczającą wentylację.
+S2D.G07.neutralna.tytul;tytul;90;Wiosna.
+S2D.G07.neutralna.powod;powod;100;Przyroda budzi się do życia. Ja, jako profesjonalny budzik, czuję się nieco zagrożony.
+S2D.G08.warunek.tytul;tytul;90;Liście spadają, temperatura spada, AHI pozostaje niskie.
+S2D.G08.warunek.powod;powod;100;Wreszcie odrobina stabilności w tym świecie.
+S2D.G08.neutralna.tytul;tytul;90;Jesień.
+S2D.G08.neutralna.powod;powod;100;Dni coraz krótsze, wieczory coraz dłuższe. Natura najwyraźniej też nie przepada za poniedziałkami.
+S2D.G09.warunek.tytul;tytul;90;AHI powyżej celu.
+S2D.G09.warunek.powod;powod;100;Zachowuję zimną krew, choć przyznam, że liczyłem na lepszy raport.
+S2D.G09.neutralna.tytul;tytul;90;Ulepiłem bałwana.
+S2D.G09.neutralna.powod;powod;100;Nie narzeka, nie spóźnia się i świetnie znosi chłód. Idealny współpracownik.
+S2D.G10.warunek.tytul;tytul;90;Owce policzone.
+S2D.G10.warunek.powod;powod;100;Zdarzenia oddechowe również. Przyznam, że ta druga statystyka mniej mnie uspokaja.
+S2D.G10.neutralna.tytul;tytul;90;Liczenie owiec przeszło audyt.
+S2D.G10.neutralna.powod;powod;100;Owce odmówiły dalszej współpracy bez dodatku za pracę nocną.
+S2D.G11.warunek.tytul;tytul;90;Maska zdjęta przed czasem.
+S2D.G11.warunek.powod;powod;100;Bezdechy z pewnością doceniają tak uprzejme pozostawienie im wolnego wieczoru.
+S2D.G11.neutralna.tytul;tytul;90;Pięć minut drzemki.
+S2D.G11.neutralna.powod;powod;100;Najbardziej optymistyczna jednostka czasu znana ludzkości.
+S2D.G12.warunek.tytul;tytul;90;Przy takich wyciekach maska kwalifikuje się raczej do wentylacji pomieszczeń.
+S2D.G12.warunek.powod;powod;100;Proponuję wrócić do jej pierwotnej funkcji.
+S2D.G12.neutralna.tytul;tytul;90;Pod wodą podobno panuje cisza.
+S2D.G12.neutralna.powod;powod;100;Kusząca perspektywa, zwłaszcza przed pierwszą kawą.
+S2D.G13.warunek.tytul;tytul;90;Bezdechy próbowały dziś rozegrać partię.
+S2D.G13.warunek.powod;powod;100;Sądząc po AHI, nie zdołały nawet wyprowadzić pionków.
+S2D.G13.neutralna.tytul;tytul;90;Szachy uczą cierpliwości.
+S2D.G13.neutralna.powod;powod;100;Szczególnie kiedy przeciwnik zastanawia się nad pionkiem przez dwadzieścia minut.
+S2D.G14.warunek.tytul;tytul;90;Komfort przede wszystkim.
+S2D.G14.warunek.powod;powod;100;Szkoda tylko, że bezdechy mają na ten temat dokładnie takie samo zdanie.
+S2D.G14.neutralna.tytul;tytul;90;Kapcie to niedoceniany wynalazek.
+S2D.G14.neutralna.powod;powod;100;Cała godność dorosłego człowieka kończy się na zimnej podłodze.
+S2D.G15.warunek.tytul;tytul;90;AHI niskie, wycieki niewielkie, czas terapii odpowiedni.
+S2D.G15.warunek.powod;powod;100;Rzadki przypadek, gdy wszyscy grają z jednej partytury.
+S2D.G15.neutralna.tytul;tytul;90;Dyrygowanie ciszą wymaga szczególnego talentu.
+S2D.G15.neutralna.powod;powod;100;Zwłaszcza gdy publiczność uparcie oczekuje muzyki.
+S2D.G16.warunek.tytul;tytul;90;To była dobra noc.
+S2D.G16.neutralna.tytul;tytul;90;Trening zaliczony.
+S2D.G16.neutralna.powod;powod;100;Nie mam mięśni, ale przynajmniej nie muszę martwić się zakwasami.
+S2D.G17.warunek.tytul;tytul;90;Poranny prysznic odświeży samopoczucie.
+S2D.G17.warunek.powod;powod;100;Niestety nie poprawi statystyk nocnych wycieków. Sprawdzałem.
+S2D.G17.neutralna.tytul;tytul;90;Poranny prysznic.
+S2D.G17.neutralna.powod;powod;100;Próba przekonania organizmu, że rozpoczęcie dnia było świadomą decyzją.
+S2D.G18.warunek.tytul;tytul;90;Wyniki terapii bez zarzutu.
+S2D.G18.warunek.powod;powod;100;Teraz pozostaje tylko nie zepsuć dnia. Zacząłbym od porządnego śniadania.
+S2D.G18.neutralna.tytul;tytul;90;Śniadanie do łóżka brzmi luksusowo.
+S2D.G18.neutralna.powod;powod;100;Dopóki ktoś nie przypomni, kto będzie zmieniał pościel.
+R-NOR-14.linia;linia;60;Nowe ustawienia aparatu. Uczę się normy.
+R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
+R-DANE-29.linia_nieznany;linia;60;Nie znam trybu aparatu: tej nocy nie oceniam.

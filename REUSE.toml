@@ -1,0 +1,32 @@
+# Informacje o prawach i licencjach dla plików bez własnego nagłówka (specyfikacja REUSE 3.3,
+# https://reuse.software/). Pliki z nagłówkiem SPDX mają pierwszeństwo (precedence = "closest").
+# Sprawdzenie: reuse lint. Szczegóły i wyjątki: NOTICE.
+version = 1
+
+# Domyślnie: kod, narzędzia, dokumentacja, dane i makiety na GPL-3.0-or-later.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Rafał Myrta"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Grafiki postaci budzika: poza GPL (NOTICE pkt 1).
+[[annotations]]
+path = "assets/budzik/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Rafał Myrta"
+SPDX-License-Identifier = "LicenseRef-cpapblog-eink-budzik"
+
+# Makiety i podglądy ekranów z wbudowanymi scenami budzika (NOTICE pkt 1): układ na GPL, sceny poza GPL.
+[[annotations]]
+path = ["design/kanwa/*.dc.html", "design/png/*.png", "docs/design/**/*.png"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Rafał Myrta"
+SPDX-License-Identifier = "GPL-3.0-or-later AND LicenseRef-cpapblog-eink-budzik"
+
+# Dokumenty, które w treści cytują znacznik SPDX jako przykład: informacja tylko stąd, bez czytania treści.
+[[annotations]]
+path = ["CONTRIBUTING.md", "NOTICE", "docs/spec/specyfikacja-techniczna.md"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Rafał Myrta"
+SPDX-License-Identifier = "GPL-3.0-or-later"

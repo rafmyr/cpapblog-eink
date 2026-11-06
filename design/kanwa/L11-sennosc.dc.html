@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>L-11 Senność mimo terapii</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'lekarz', hl: 'pon 23.11 · 6 h 55 · 1,1 / h', hr: 'dane 05:50',
+label: 'Warto skonsultować · w najbliższych tygodniach', title: 'Senność mimo terapii',
+reason: 'Senność w 3 z 4 tygodni, urządzenie liczy 1,1 / h.',
+viz: 'checks', checks: [{ l: 'tydz. 1: senny', ok: false }, { l: 'tydz. 2: senny', ok: false }, { l: 'tydz. 3: bez senności', ok: true }, { l: 'tydz. 4: senny', ok: false }, { l: 'regularność 93%', ok: true }, { l: 'przeciek w normie', ok: true }],
+caps: ['Twoje odpowiedzi z niedzielnego pytania', ''],
+step: 'Pokaż to lekarzowi, sama liczba nie wystarczy.',
+hint: 'Najpewniej poza ustawieniami aparatu', fr: '▶ raport'
+} };
+}
+}
+</script>
+</body>
+</html>

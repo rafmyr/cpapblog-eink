@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Dowód spokoju: seria</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 800px; height: 480px; box-sizing: border-box; background: #FFFFFF; color: #000000; font-family: 'Public Sans', Arial, sans-serif; display: flex; flex-direction: column">
+<div style="height: 52px; padding: 0 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; font-size: 20px">
+<span style="font-weight: 600">śr 21.10 · 7 h 02 · 0,9 / h</span>
+<span>dane 05:52</span>
+</div>
+<div style="flex: 1; padding: 26px 28px 24px; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-size: 18px; letter-spacing: 2px; text-transform: uppercase">Seria</div>
+<div style="display: flex; align-items: baseline; gap: 18px">
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 120px; line-height: 1">17.</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 40px; line-height: 1.15">noc z rzędu<br>ponad 4 h</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="30">
+<div style="{{d.style}}"></div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 18px"><span>30 nocy temu</span><span>dziś</span></div>
+</div>
+</div>
+<div style="height: 46px; padding: 0 28px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000000; font-size: 18px">
+<span>Katowice 9° · pogodnie</span>
+<span>sypialnia 20° · 47% · CO2 790</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+const dots = [];
+for (let i = 0; i < 30; i++) {
+const full = i !== 12;
+dots.push({ style: 'width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box; border: 2px solid #000000; background: ' + (full ? '#000000' : '#FFFFFF') });
+}
+return { dots };
+}
+}
+</script>
+</body>
+</html>

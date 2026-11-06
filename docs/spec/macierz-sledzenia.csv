@@ -1,0 +1,2451 @@
+wymaganie,id_odwolania,rodzina_odwolania,ekran,sekcja_wymagania,zrodlo_powiazania,przypadek_testowy
+R-DANE-01,R-DANE-31,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-01
+R-DANE-02,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-02; przypadki 7.8: 19
+R-DANE-19,R-DANE-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-19,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-20,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-20,R-DANE-35,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-20,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-20,M-19,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-20,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-20,R-DANE-21,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
+R-DANE-21,R-DANE-20,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,S-K-08,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,R-NOR-17,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,M-19,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-21,R-DANE-06,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-21; przypadki 7.8: 20
+R-DANE-22,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-22; przypadki 7.8: 19
+R-DANE-22,M-19,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-22; przypadki 7.8: 19
+R-DANE-22,R-EKR-39,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-22; przypadki 7.8: 19
+R-DANE-22,R-EKR-57,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-22; przypadki 7.8: 19
+R-DANE-23,E-20,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-23,M-08,M,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-23,M-07,M,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-23,E-23,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-23,R-KONF-42,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-23,S-K-10,S-K,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-24,R-AW-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-24,R-NOR-17,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-24,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-24,M-17,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-24,R-EKR-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-24,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-24
+R-DANE-25,R-DANE-15,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-25,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-25,R-DANE-21,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-25,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-25,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-25,R-DANE-13,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-05,R-AW-23,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-05
+R-DANE-06,R-DANE-20,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
+R-DANE-06,E-10,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
+R-DANE-06,R-DANE-21,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
+R-DANE-06,R-DANE-26,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
+R-DANE-26,R-KONF-27,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-26
+R-DANE-26,R-NOR-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-26
+R-DANE-26,R-DANE-06,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-26
+R-DANE-36,R-NF-30,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-36
+R-DANE-36,R-DANE-06,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-36
+R-DANE-36,R-AW-28,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-36
+R-DANE-37,R-DANE-36,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-37
+R-DANE-37,R-DANE-26,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-37
+R-DANE-37,R-NF-22,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-37
+R-DANE-37,U-02,U,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-37
+R-DANE-37,R-AW-16,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-37
+R-DANE-27,M-17,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-27,M-18,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-27,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-27,E-14,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-27,S-K-16,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-27,R-KON-09,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-27
+R-DANE-28,R-NOR-13,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,R-NOR-21,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,R-CZY-01,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,R-LEK-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,R-PIE-08,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-07,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,E-21,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,S-K-10,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,L-09,L,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,S-K-17,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-13,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-15,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-14,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-05p,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,M-02,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,L-03,L,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,E-30,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,E-31,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,L-01,L,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,R-EKR-41,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-29,E-30,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-29; przypadki 7.8: 50
+R-DANE-29,R-NOR-14,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-29; przypadki 7.8: 50
+R-DANE-31,R-DANE-32,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-31,M-09,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-31,L-04,L,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-31,H-02,H,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-31,R-DANE-34,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-31,WY16,inne,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-31; przypadki 7.8: 53
+R-DANE-34,R-DANE-31,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-34
+R-DANE-34,M-28,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-34
+R-DANE-34,M-28p,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-34
+R-DANE-32,M-28,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-32; przypadki 7.8: 59
+R-DANE-32,M-28p,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-32; przypadki 7.8: 59
+R-DANE-32,R-NOR-08,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-32; przypadki 7.8: 59
+R-DANE-35,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-35; przypadki 7.8: 54
+R-DANE-35,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-35; przypadki 7.8: 54
+R-DANE-35,R-DANE-06,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-35; przypadki 7.8: 54
+R-DANE-35,R-DANE-25,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-35; przypadki 7.8: 54
+R-DANE-35,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-35; przypadki 7.8: 54
+R-DANE-07,E-03,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-07
+R-DANE-09,R-KON-09,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-09
+R-DANE-09,R-KON-17,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-09
+R-DANE-10,R-KON-09,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-10
+R-DANE-10,R-KON-17,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-10
+R-DANE-13,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-13
+R-DANE-13,R-DANE-29,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-13
+R-DANE-14,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-02,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-03,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-04,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-05,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-06,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-07,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-08,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-09,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-10,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-11,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-12,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-13,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-14,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-15,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-16,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-17,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-18,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-19,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-20,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-21,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-22,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-23,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-24,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-25,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-26,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-14,M-27,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-14
+R-DANE-15,E-04,E,tak,5.1.2 Wymagania,katalog+wymaganie,weryfikacja R-DANE-15
+R-DANE-15,R-AW-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-15
+R-DANE-16,R-KONF-24,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,M-26,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,M-27,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,R-DANE-33,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,S-K-05,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,S-K-02,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-16,S-K-06,S-K,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-16
+R-DANE-33,M-26,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,M-27,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,M-23,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-NF-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-DANE-16,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-DANE-09,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-DANE-10,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-NF-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-33,R-AW-26,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-33
+R-DANE-17,M-23,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-17
+R-DANE-17,M-22,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-17
+R-DANE-18,E-01,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-DANE-20,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-DANE-15,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-DANE-25,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-AW-32,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-AW-34,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-AW-03,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,E-04,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-DANE-21,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-DANE-18,R-AW-24,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-18; przypadki 7.8: 20, 38, 42"
+R-NOR-01,R-NOR-06,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-01
+R-NOR-02,E-20,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-02
+R-NOR-02,E-22,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-02
+R-NOR-02,E-21,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-02
+R-NOR-05,M-02,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-05
+R-NOR-05,M-03,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-05
+R-NOR-05,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-05
+R-NOR-05,E-30,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-05
+R-NOR-05,S-K-12,S-K,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-05
+R-NOR-05,E-33,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-05
+R-NOR-05,E-20,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-05
+R-NOR-05,E-31,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-05
+R-NOR-06,M-01,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-06; przypadki 7.8: 21
+R-NOR-06,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-06; przypadki 7.8: 21
+R-NOR-06,M-17,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-06; przypadki 7.8: 21
+R-NOR-06,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-06; przypadki 7.8: 21
+R-NOR-06,R-NOR-20,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-06; przypadki 7.8: 21
+R-NOR-07,M-21,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-05,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-06,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-06p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-10,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-28,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,M-28p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,E-36,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-07
+R-NOR-07,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,S-K-19,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,R-KON-30,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-08,M-05,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,M-06,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,M-06p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,M-28,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,M-28p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-08
+R-NOR-08,E-36,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-08
+R-NOR-09,R-NOR-06,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-09
+R-NOR-10,R-NOR-09,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-NOR-22,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-CZY-05,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-NOR-11,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-11,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-11
+R-NOR-11,E-13,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-11
+R-NOR-11,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-11
+R-NOR-12,M-01,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-12
+R-NOR-13,R-NOR-06,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-13
+R-NOR-13,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-13
+R-NOR-13,R-NOR-21,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-13
+R-NOR-20,M-02,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-03,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-14,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-15,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,M-06p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,L-01,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,E-33,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-20,R-NOR-04,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-21,M-03,M,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-21; przypadki 7.8: 21, 33"
+R-NOR-21,L-01,L,tak,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-21; przypadki 7.8: 21, 33"
+R-NOR-21,M-13,M,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-21; przypadki 7.8: 21, 33"
+R-NOR-21,R-PIE-08,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-21; przypadki 7.8: 21, 33"
+R-NOR-22,R-NOR-03,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,R-NOR-09,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,R-NOR-10,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,L-05,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-22,L-07,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-22; przypadki 7.8: 21
+R-NOR-23,E-31,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,M-02,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,E-33,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,M-03,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,E-36,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,M-06p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,R-NOR-20,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,E-30,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,R-KON-14,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,R-NOR-21,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-23,L-01,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-23; przypadki 7.8: 33
+R-NOR-24,R-NOR-17,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-24
+R-NOR-24,R-NOR-03,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-24
+R-NOR-14,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-14; przypadki 7.8: 50, 52"
+R-NOR-25,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,R-NOR-18,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-05,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-06,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-10,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,E-36,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-25,R-DANE-06,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-25
+R-NOR-26,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-26,R-NOR-18,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-26,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-26,S-K-31,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-26,L-09,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-15,M-21,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
+R-NOR-15,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
+R-NOR-15,R-NOR-18,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
+R-NOR-18,M-21,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-18
+R-NOR-18,R-NOR-14,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-18
+R-NOR-18,R-NOR-15,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-18
+R-NOR-16,R-NOR-01,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-16
+R-NOR-16,R-NOR-03,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-16
+R-NOR-16,R-DANE-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-16
+R-NOR-19,M-02,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,M-03,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,E-20,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-19,S-K-12,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-19
+R-NOR-17,R-AW-03,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-17; przypadki 7.8: 20, 46"
+R-NOR-17,R-NOR-03,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-17; przypadki 7.8: 20, 46"
+R-NOR-17,R-NOR-04,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-17; przypadki 7.8: 20, 46"
+R-NOR-17,R-NOR-06,R,nie,5.2.3 Wymagania,wymaganie,"weryfikacja R-NOR-17; przypadki 7.8: 20, 46"
+R-AW-01,R-AW-14,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-01
+R-AW-01,R-AW-15,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-01
+R-AW-14,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-14
+R-AW-15,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-15
+R-AW-15,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-15
+R-AW-02,E-03,E,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-02
+R-AW-02,R-AW-22,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-02
+R-AW-05,R-AW-28,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-05; przypadki 7.8: 12, 34"
+R-AW-05b,L-06,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,R-BUZ-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,R-AW-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,R-SKI-22,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,M-07,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,M-13,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,R-DANE-06,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,E-21,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-05b,R-AW-28,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-05b; przypadki 7.8: 12
+R-AW-16,R-DANE-37,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-DANE-06,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-AW-05b,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-DANE-36,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-KONF-20,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-AW-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,U-02,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-16,R-KONF-07,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-17,R-AW-16,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-17,R-LEK-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-17,L-01,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-17,R-DANE-37,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-17,R-LEK-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-07,M-26,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-07
+R-AW-25,R-NF-27,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
+R-AW-25,R-AW-26,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
+R-AW-26,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-26
+R-AW-27,E-08,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-27
+R-AW-19,R-AW-20,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-19
+R-AW-20,R-AW-08,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-20,R-AW-18,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-20,R-AW-19,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-20,U-04,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-20
+R-AW-20,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-20,R-AW-08b,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-20,R-KON-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-20
+R-AW-23,R-AW-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-23; przypadki 7.8: 40
+R-AW-23,R-PIE-09,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-23; przypadki 7.8: 40
+R-AW-23,R-AW-28,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-23; przypadki 7.8: 40
+R-AW-24,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-24; przypadki 7.8: 42
+R-AW-24,R-AW-32,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-24; przypadki 7.8: 42
+R-AW-24,R-BUZ-07,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-24; przypadki 7.8: 42
+R-AW-24,R-DANE-18,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-24; przypadki 7.8: 42
+R-AW-28,R-DANE-36,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,L-06,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,R-BUZ-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,M-07,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,M-13,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,R-AW-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-28,E-21,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-28; przypadki 7.8: 55
+R-AW-29,R-DANE-36,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-29; przypadki 7.8: 55
+R-AW-29,R-AW-16,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-29; przypadki 7.8: 55
+R-AW-29,R-AW-05,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-29; przypadki 7.8: 55
+R-AW-29,R-PIE-08,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-29; przypadki 7.8: 55
+R-AW-30,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,U-04,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,L-03,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,L-01,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,L-11,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,L-04,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,R-NF-30,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,R-AW-33,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-30,WY16,inne,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-30; przypadki 7.8: 56
+R-AW-31,R-KONF-32,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-31
+R-AW-31,L-01,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,S-K-18,S-K,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,R-HUM-17,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,R-NF-30,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,S-K-01,S-K,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-31,R-KON-06,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-32,E-01,E,tak,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-32,R-EKR-57,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-32,R-DANE-18,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-32,R-AW-24,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-32,R-BUZ-07,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-33,R-DANE-37,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-33
+R-AW-33,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-33
+R-AW-33,R-NF-30,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-33
+R-AW-33,R-AW-30,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-33
+R-AW-33,E-30,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-33
+R-AW-21,R-AW-19,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-21
+R-AW-21,U-04,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-21
+R-AW-21,R-AW-20,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-21
+R-AW-08b,R-AW-18,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-08b
+R-AW-08b,R-AW-19,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-08b
+R-AW-08b,R-AW-20,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-08b
+R-AW-08b,E-01,E,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-08b
+R-AW-08b,U-04,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-08b
+R-AW-09,M-21,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-09
+R-AW-09,E-03,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-09
+R-AW-09,L-04,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-09
+R-AW-10,E-03,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-10
+R-AW-11,R-DANE-11,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-11
+R-AW-12,R-AW-34,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,R-AW-37,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,R-AW-38,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,E-03,E,tak,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,R-DANE-02,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-12,R-DANE-11,R,nie,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-12; przypadki 7.8: 59, 62"
+R-AW-34,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-34; przypadki 7.8: 57
+R-AW-34,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-34; przypadki 7.8: 57
+R-AW-34,R-DANE-18,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-34; przypadki 7.8: 57
+R-AW-34,R-AW-12,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-34; przypadki 7.8: 57
+R-AW-35,R-AW-34,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-EKR-57,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-HUM-08,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-AW-24,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-AW-32,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-BUZ-07,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,U-01,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,U-02,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-PRZ-18,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-35,R-KON-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-36,R-AW-08,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-36; przypadki 7.8: 58
+R-AW-36,R-PIE-08,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-36; przypadki 7.8: 58
+R-AW-36,M-18,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-36; przypadki 7.8: 58
+R-AW-37,R-DANE-32,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,M-28,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,M-28p,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-AW-04,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-HIP-03,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,S-K-10,S-K,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-DANE-23,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,E-03,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-AW-12,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,E-20,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-37,R-NOR-17,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-37; przypadki 7.8: 59
+R-AW-38,E-03,E,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-38; przypadki 7.8: 62
+R-AW-38,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-38; przypadki 7.8: 62
+R-AW-38,E-01,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-38; przypadki 7.8: 62
+R-AW-38,R-AW-12,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-38; przypadki 7.8: 62
+R-AW-39,U-06,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
+R-AW-39,R-NF-29,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-39
+R-AW-39,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
+R-AW-22,R-AW-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-22,R-DANE-07,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-22,E-03,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-22,M-10,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-22,M-09,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-22,L-02,L,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-AW-13,R-DANE-09,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-13
+R-EKR-03,E-31,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-03
+R-EKR-03,E-21,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-03
+R-EKR-04,R-EKR-39,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-04
+R-EKR-39,R-EKR-04,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-39; przypadki 7.8: 19
+R-EKR-06,E-21,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-06
+R-EKR-07,R-EKR-05,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-07
+R-EKR-10,M-26,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,M-22,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,M-23,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,S-K-01,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-11,E-01,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-11
+R-EKR-12,E-04,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-12
+R-EKR-12,E-05,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-12
+R-EKR-13,R-NOR-13,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-13
+R-EKR-13,R-NOR-14,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-13
+R-EKR-13,E-05,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-13
+R-EKR-16,M-20,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-16; przypadki 7.8: 39
+R-EKR-17,R-AW-06,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-17
+R-EKR-54,S-K-01,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-54
+R-EKR-45,R-EKR-21,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-45
+R-EKR-45,R-EKR-53,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-45
+R-EKR-46,R-EKR-04,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,R-EKR-39,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,R-DANE-28,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,E-23,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,S-K-10,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,R-KON-14,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,M-07,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,M-08,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,R-EKR-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,E-20,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-47,R-EKR-48,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,R-EKR-50,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,R-PRZ-18,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,L-03,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,E-21,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,S8,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-48,L-09,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,L-01,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,R-SKI-44,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,E-30,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,R-KON-14,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,M-13,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,L-03,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,E-21,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,R-SKI-24,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,L-04,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-49,R-EKR-48,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,E-21,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,M-02,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,L-03,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,L-01,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,M-13,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,M-05p,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-50,R-EKR-48,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,R-DANE-28,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,M-07,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,M-13,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,M-14,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,M-15,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,R-SKI-24,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-51,R-PRZ-02,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-51
+R-EKR-51,R-EKR-47,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-51
+R-EKR-51,S8,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-51
+R-EKR-52,E-05,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-52,R-INF-10,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-52,E-04,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-52,R-EKR-42,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-53,E-36,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,L-04,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,M-05p,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,M-06p,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,R-NOR-21,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-22,E-21,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-22
+R-EKR-40,L-09,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-40; przypadki 7.8: 49
+R-EKR-40,E-21,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-40; przypadki 7.8: 49
+R-EKR-40,R-EKR-22,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-40; przypadki 7.8: 49
+R-EKR-41,R-EKR-32,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,R-EKR-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,R-CZY-01,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,E-30,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,R-KON-14,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,L-03,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,R-NOR-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-55,R-NOR-19,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,M-01,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,R-SKI-27,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,M-22,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,M-23,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,R-EKR-56,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,R-DANE-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,R-NOR-10,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-56,R-EKR-55,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-56,R-NOR-10,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-56,R-DANE-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-56,R-EKR-54,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-59,M-07,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,R-EKR-55,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,R-EKR-56,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,R-KOK-03,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,R-KONF-42,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,S-K-10,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-42,R-SKI-22,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-42,R-LEK-24,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-42,L-06,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-42,R-SKI-38,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-42,E-04,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-43,E-30,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,S-K-33,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,M-05p,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,R-NOR-21,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,R-EKR-51,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,S8,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-23,E-21,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-23
+R-EKR-24,E-22,E,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-24
+R-EKR-24,R-PRZ-03,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-24
+R-EKR-25,O-03,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-04,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-05,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-06,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-07,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-08,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-09,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-10,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-11,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,O-12,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,S-K-21,S-K,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-25
+R-EKR-25,S-K-32,S-K,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-25
+R-EKR-26,S-K-21,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-26
+R-EKR-26,M-01,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-06,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-07,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-08,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-09,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-10,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-26,O-12,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-26
+R-EKR-27,O-08,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-27
+R-EKR-28,O-08,O,tak,5.4.11 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-EKR-28
+R-EKR-30,R-EKR-25,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-30
+R-EKR-31,R-EKR-27,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-31
+R-EKR-32,R-SKI-44,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-30,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-31,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-33,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-36,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-37,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,S-K-17,S-K,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,E-23,E,tak,5.4.11 Wymagania,katalog+wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,R-DANE-28,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,R-AW-31,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,S-K-18,S-K,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,O-03,O,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,R-EKR-41,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,L-06,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,L-07,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,L-09,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,L-04,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,L-03,L,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,M-02,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,R-KON-14,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,M-13,M,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,O-05,O,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-33,R-NOR-01,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-33; przypadki 7.8: 32, 35"
+R-EKR-33,S-K-28,S-K,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-33; przypadki 7.8: 32, 35"
+R-EKR-33,R-PIE-04,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-33; przypadki 7.8: 32, 35"
+R-EKR-33,S8,stan,tak,5.4.11 Wymagania,katalog+wymaganie,"weryfikacja R-EKR-33; przypadki 7.8: 32, 35"
+R-EKR-34,M-02,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,M-07,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,M-01,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,M-03,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,R-EKR-36,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,R-NOR-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-34,S8,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-34; przypadki 7.8: 32
+R-EKR-35,R-PRZ-02,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-35,S8,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-36,M-02,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,M-03,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,R-SKI-44,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,L-09,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,R-EKR-35,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,E-30,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,L-01,L,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,S8,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-37,R-KON-31,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-37,R-EKR-57,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-37,R-EKR-39,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-37,S-K-01,S-K,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-57,E-01,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,E-03,E,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-AW-34,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-AW-35,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-AW-32,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-DANE-35,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-AW-15,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-HUM-10,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-EKR-37,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,R-PRZ-06,R,nie,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-38,R-KONF-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-38
+R-EKR-38,R-DANE-26,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-38
+R-EKR-38,R-AW-10,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-38
+R-EKR-38,R-PIE-08,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-38
+R-EKR-60,R-KON-09,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-KON-17,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-KON-41,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-KON-42,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-EKR-10,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-PRZ-02,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-NF-03,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,M-22,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,M-26,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,M-23,M,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-EKR-04,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-AW-07,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,E-01,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-DANE-18,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,U-04,U,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-AW-20,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,E-08,E,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,R-NF-02,R,nie,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-KOK-01,R-KOK-15,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-01,M-01,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-01,M-02,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-01,M-05,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-01,M-07,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-01,M-06,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
+R-KOK-02,R-DANE-07,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-02
+R-KOK-06,R-KOK-15,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-06
+R-KOK-07,E-30,E,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-07
+R-KOK-07,S-K-10,S-K,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-07
+R-KOK-09,R-NOR-04,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-09
+R-KOK-10,E-10,E,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-10
+R-KOK-10,R-DANE-07,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-10
+R-KOK-11,R-AW-10,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-11
+R-KOK-12,M-05p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-12
+R-KOK-12,L-04,L,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-12
+R-KOK-12,M-06p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-12
+R-KOK-13,L-07,L,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-13
+R-KOK-15,M-06,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,M-05,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,M-28,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,M-06p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,M-05p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-16,R-KOK-02,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,R-DANE-29,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,R-NOR-19,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,M-05,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,M-05p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,M-06,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,M-06p,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,M-28,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,R-KOK-05,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-KOK-16,R-KOK-03,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-PRZ-02,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
+R-PRZ-02,S8,stan,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-02
+R-PRZ-03,E-21,E,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-03
+R-PRZ-03,R-EKR-22,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-03
+R-PRZ-04,R-PRZ-10,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,R-PRZ-15,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,R-MAS-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,R-PRZ-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S-K-31,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,R-LEK-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,U-02,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S8,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-06,E-01,E,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-06
+R-PRZ-06,R-PRZ-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-06
+R-PRZ-14,R-PRZ-06,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-14
+R-PRZ-15,R-PRZ-03,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-15
+R-PRZ-15,E-21,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-15
+R-PRZ-15,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-15
+R-PRZ-15,R-PRZ-10,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-15
+R-PRZ-16,E-21,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-16
+R-PRZ-16,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-16
+R-PRZ-16,R-BUZ-04,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-16
+R-PRZ-17,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-17
+R-PRZ-17,E-21,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-17
+R-PRZ-17,R-PRZ-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-17
+R-PRZ-18,R-PRZ-02,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-PRZ-12,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-PRZ-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-KONF-05,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-CZY-16,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-MAS-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,U-02,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-PRZ-05,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-EKR-37,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-PRZ-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,R-LEK-11,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-19,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-19,R-MAS-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-19,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-19,R-PRZ-16,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-19,R-PRZ-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-10,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-10,S-K-18,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-11,R-PRZ-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-11,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-11,R-PIE-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-12,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-12; przypadki 7.8: 28
+R-PRZ-12,R-PRZ-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-12; przypadki 7.8: 28
+R-PRZ-13,L-02,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,L-05,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-SKI-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-INF-05,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-NOR-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-SKI-35,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-SKI-36,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-MAS-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-CZY-23,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,M-07,M,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,S-K-10,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,R-PRZ-11,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-KONF-01,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-01
+R-KONF-01,U-02,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-01
+R-KONF-01,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-01
+R-KONF-01,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-01
+R-KONF-01,R-LEK-08,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-01
+R-KONF-02,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-02
+R-KONF-03,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-03
+R-KONF-04,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-04
+R-KONF-05,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-05
+R-KONF-05,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-05
+R-KONF-05,R-PRZ-02,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-05
+R-KONF-05,R-KONF-33,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-05
+R-KONF-33,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-33
+R-KONF-34,R-MAS-06,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-34
+R-KONF-30,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-30
+R-KONF-30,R-KONF-04,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-30
+R-KONF-30,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-30
+R-KONF-31,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-31
+R-KONF-31,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-31
+R-KONF-32,S-K-01,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,S-K-04,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,O-03,O,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,S-K-18,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,L-05,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,L-06,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-06,R-HUM-03,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-06
+R-KONF-07,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-07
+R-KONF-07,E-01,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-07
+R-KONF-08,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-08
+R-KONF-09,R-KONF-39,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-09,R-NF-22,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-09,R-KONF-37,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-09,R-KONF-25,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-09,R-KONF-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-09,R-KONF-27,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-09
+R-KONF-25,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-25; przypadki 7.8: 30
+R-KONF-26,R-KONF-25,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-26; przypadki 7.8: 30
+R-KONF-26,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-26; przypadki 7.8: 30
+R-KONF-27,R-KONF-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-27; przypadki 7.8: 30
+R-KONF-27,R-DANE-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-27; przypadki 7.8: 30
+R-KONF-27,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-27; przypadki 7.8: 30
+R-KONF-10,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-10
+R-KONF-10,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-10
+R-KONF-11,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-11
+R-KONF-11,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-11
+R-KONF-40,R-AW-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-40
+R-KONF-40,R-KONF-11,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-40
+R-KONF-37,R-KONF-27,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-AW-34,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-KONF-38,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-KONF-25,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-KONF-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-DANE-26,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-37,R-KONF-09,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-37
+R-KONF-38,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-38
+R-KONF-38,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-38
+R-KONF-38,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-38
+R-KONF-38,R-KONF-35,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-38
+R-KONF-39,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-39
+R-KONF-39,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-39
+R-KONF-39,R-KONF-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-39
+R-KONF-28,U-01,U,tak,5.6.7 Wymagania,katalog+wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,U-05,U,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,R-KONF-25,R,nie,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,R-KONF-26,R,nie,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,R-KONF-27,R,nie,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,U-03,U,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-28,R-KONF-07,R,nie,5.6.7 Wymagania,wymaganie,"weryfikacja R-KONF-28; przypadki 7.8: 30, 57"
+R-KONF-29,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-29; przypadki 7.8: 30
+R-KONF-29,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-29; przypadki 7.8: 30
+R-KONF-29,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-29; przypadki 7.8: 30
+R-KONF-29,R-KONF-28,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-29; przypadki 7.8: 30
+R-KONF-12,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-12
+R-KONF-12,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-12
+R-KONF-12,R-KONF-16,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-12
+R-KONF-12,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-12
+R-KONF-13,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-13
+R-KONF-13,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-13
+R-KONF-13,R-LEK-03,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-13
+R-KONF-14,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-14
+R-KONF-14,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-14
+R-KONF-14,U-02,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-14
+R-KONF-14,R-LEK-03b,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-14
+R-KONF-15,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-15
+R-KONF-15,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-15
+R-KONF-15,R-LEK-04,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-15
+R-KONF-16,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-16
+R-KONF-16,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-16
+R-KONF-16,R-LEK-11,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-16
+R-KONF-17,U-03,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-17
+R-KONF-18,R-KONF-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-18
+R-KONF-20,R-KONF-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-20
+R-KONF-20,R-DANE-37,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-20
+R-KONF-20,U-02,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-20
+R-KONF-21,R-KONF-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-21
+R-KONF-22,R-KONF-19,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-22
+R-KONF-22,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-22
+R-KONF-22,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-22
+R-KONF-23,R-AW-05,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-23
+R-KONF-23,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-23
+R-KONF-23,R-KONF-22,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-23
+R-KONF-24,R-DANE-33,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-24
+R-KONF-24,R-KON-06,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-24
+R-KONF-24,S-K-06,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-24
+R-KONF-35,R-DANE-33,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-35,R-NF-27,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-35,R-DANE-16,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-35,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-35,R-KONF-17,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-35,R-NF-22,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-35
+R-KONF-36,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-36
+R-KONF-36,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-36
+R-KONF-36,U-05,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-36
+R-KONF-36,R-NF-29,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-36
+R-KONF-36,R-PRZ-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-36
+R-KONF-41,U-05,U,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-41
+R-KONF-41,R-NF-29,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-41
+R-KONF-41,M-25,M,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-41
+R-KONF-41,R-KONF-38,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-41
+R-KONF-41,R-KONF-35,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-41
+R-KONF-41,R-KONF-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-41
+R-KONF-42,S-K-10,S-K,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-KONF-42
+R-KONF-42,M-07,M,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,R-KON-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,R-DANE-23,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,E-20,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,M-08,M,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,E-23,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,S-K-14,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,S-K-39,S-K,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,R-KOK-07,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,E-22,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,L-09,L,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,R-EKR-59,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-KONF-42,R-KON-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-HUM-01,L-06,L,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-01
+R-HUM-02,R-HUM-23,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-02
+R-HUM-02,R-HUM-10,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-02
+R-HUM-02,R-HUM-20,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-02
+R-HUM-23,R-HUM-14,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-23
+R-HUM-23,R-HUM-02,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-23
+R-HUM-04,R-HUM-24,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-04
+R-HUM-24,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-24
+R-HUM-24,R-HUM-04,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-24
+R-HUM-25,O-05,O,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-25,O-10,O,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-25,O-11,O,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-25,O-12,O,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-25,O-03,O,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-25,S-K-21,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-25
+R-HUM-26,R-SKI-09,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,L-11,L,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,R-HUM-09,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,R-HUM-14,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-27,S-K-18,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-27,S-K-07,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-27,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-27,R-HUM-07,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-27,R-HUM-09,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-28,M-01,M,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-28,E-23,E,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-28,E-30,E,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-28,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-28,R-DANE-13,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-29,R-HUM-22,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-29
+R-HUM-29,R-HUM-26,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-29
+R-HUM-05,R-HUM-01,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-05
+R-HUM-06,S-K-18,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-06
+R-HUM-06,S-K-01,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-06
+R-HUM-06,S-K-28,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-06
+R-HUM-07,S-K-10,S-K,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-07
+R-HUM-07,S-K-16,S-K,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-07
+R-HUM-07,S-K-31,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-07
+R-HUM-07,S-K-01,S-K,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-07
+R-HUM-08,E-01,E,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-08
+R-HUM-08,E-03,E,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-08
+R-HUM-08,E-05,E,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-08
+R-HUM-09,R-HUM-19,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-09; przypadki 7.8: 44
+R-HUM-09,R-HUM-10,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-09; przypadki 7.8: 44
+R-HUM-10,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-10
+R-HUM-10,S-K-18,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-10
+R-HUM-11,E-01,E,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-11
+R-HUM-11,R-HUM-10,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-11
+R-HUM-13,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-13
+R-HUM-14,R-HUM-10,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-14
+R-HUM-15,E-21,E,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-15
+R-HUM-15,R-HUM-14,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-15
+R-HUM-17,E-04,E,tak,5.7.7 Wymagania,wymaganie,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-HUM-17,S-K-28,S-K,tak,5.7.7 Wymagania,wymaganie,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-HUM-17,E-05,E,tak,5.7.7 Wymagania,wymaganie,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-HUM-18,R-EKR-10,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-18
+R-HUM-18,S-K-01,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-18
+R-HUM-18,S-K-10,S-K,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-18
+R-HUM-21,R-HUM-28,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-21
+R-HUM-21,M-18,M,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-21
+R-HUM-22,E-05,E,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-22
+R-HUM-22,R-HUM-17,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-22
+R-HUM-22,R-HUM-15,R,nie,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-22
+R-KON-01,S-K-01,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-02,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-03,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-04,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-05,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-06,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-07,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-08,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-09,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,R-DANE-16,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,R-KON-02,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,S-K-13,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-01,R-KON-09,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-01; przypadki 7.8: 29
+R-KON-02,R-KON-31,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-02; przypadki 7.8: 29
+R-KON-02,R-KON-35,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-02; przypadki 7.8: 29
+R-KON-02,R-PRZ-01,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-02; przypadki 7.8: 29
+R-KON-04,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-04
+R-KON-05,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-02,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-03,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-04,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-05,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-06,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-10,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-11,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-12,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-13,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-14,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-15,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-16,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-07,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-09,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-17,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-19,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-20,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-21,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,S-K-08,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-05,R-KON-24,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-05
+R-KON-06,S-K-01,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-02,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-13,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-21,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-03,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-04,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-06
+R-KON-06,S-K-14,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-06
+R-KON-07,S-K-10,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-11,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-12,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-13,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-14,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-15,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-16,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-17,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-27,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-28,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-29,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-30,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-31,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-07
+R-KON-07,S-K-32,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-07
+R-KON-08,S-K-18,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-08
+R-KON-08,S-K-19,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-08
+R-KON-08,S-K-20,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-08
+R-KON-08,S-K-21,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-08
+R-KON-08,O-12,O,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-08
+R-KON-08,R-KON-26,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-08
+R-KON-08,R-KON-27,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-08
+R-KON-26,S-K-18,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-26
+R-KON-26,R-KON-08,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-26
+R-KON-27,S-K-19,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-27
+R-KON-27,S-K-20,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-27
+R-KON-27,S-K-21,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-27
+R-KON-27,O-12,O,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-27
+R-KON-27,S-K-18,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-27
+R-KON-27,R-KON-08,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-27
+R-KON-30,R-GI-10,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-30
+R-KON-30,M-10,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-30
+R-KON-30,S-K-19,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-30
+R-KON-30,E-03,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-30
+R-KON-30,R-AW-22,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-30
+R-KON-09,M-18,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-09; przypadki 7.8: 29
+R-KON-09,S-K-07,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-09; przypadki 7.8: 29
+R-KON-10,S-K-01,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-10
+R-KON-10,S-K-02,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-10
+R-KON-11,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-02,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-03,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-04,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-05,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-06,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-07,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-08,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-09,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-10,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-11,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-12,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-13,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-14,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-15,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-16,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-17,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-18,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-19,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-20,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-11,S-K-21,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-11
+R-KON-12,S-K-10,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-12,S-K-31,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-12,E-20,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-12,E-23,E,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-12,R-DANE-23,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-12,R-NOR-26,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-13,S-K-10,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-13; przypadki 7.8: 60
+R-KON-13,R-KON-14,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-13; przypadki 7.8: 60
+R-KON-13,E-23,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-13; przypadki 7.8: 60
+R-KON-13,R-KONF-42,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-13; przypadki 7.8: 60
+R-KON-14,L-09,L,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-31,S-K,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-30,S-K,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-10,S-K,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-16,S-K,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,E-21,E,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,R-EKR-32,R,nie,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-15,S-K-03,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-15
+R-KON-15,R-KON-06,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-15
+R-KON-16,S-K-27,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-16
+R-KON-16,S-K-28,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-16
+R-KON-16,S-K-29,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-16
+R-KON-17,M-18,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-17
+R-KON-17,R-KON-09,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-17
+R-KON-18,M-07,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-18
+R-KON-18,S-K-06,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-18
+R-KON-29,S-K-01,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-29
+R-KON-29,S-K-03,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-29
+R-KON-29,S-K-04,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-29
+R-KON-29,R-KON-01,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-29
+R-KON-29,M-07,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-29
+R-KON-29,M-01,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-29
+R-KON-29,R-KON-18,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-29
+R-KON-19,S-K-07,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-19
+R-KON-20,S-K-13,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-20
+R-KON-20,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-20
+R-KON-21,S-K-27,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-21
+R-KON-22,M-01,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-22
+R-KON-22,O-06,O,tak,5.8.9 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-KON-22
+R-KON-22,O-08,O,tak,5.8.9 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-KON-22
+R-KON-22,S-K-21,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-22
+R-KON-22,M-02,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-22
+R-KON-23,S-K-18,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,R-SKI-28,R,nie,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,M-01,M,nie,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,R-EKR-32,R,nie,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,L-06,L,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,E-31,E,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-24,S-K-08,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-18,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-27,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-28,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-29,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-30,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-31,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-32,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-24,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-24
+R-KON-28,S-K-14,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-28
+R-KON-28,S-K-15,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-28
+R-KON-28,M-07,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-28
+R-KON-28,M-01,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-28
+R-KON-25,E-21,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-25
+R-KON-25,S-K-14,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-25
+R-KON-31,R-KON-32,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-31; przypadki 7.8: 29
+R-KON-31,R-EKR-37,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-31; przypadki 7.8: 29
+R-KON-31,R-KON-35,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-31; przypadki 7.8: 29
+R-KON-31,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-31; przypadki 7.8: 29
+R-KON-34,R-DANE-25,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-34
+R-KON-35,R-PRZ-18,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,U-04,U,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,R-KON-02,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,E-01,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,L-03,L,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,L-04,L,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,L-05,L,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,R-PIE-02,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,R-SKI-22,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-36,R-HUM-04,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-36
+R-KON-36,E-05,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-36
+R-KON-37,R-PRZ-18,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-37
+R-KON-38,R-HUM-23,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-38
+R-KON-38,R-HUM-20,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-38
+R-KON-38,R-HUM-10,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-38
+R-KON-39,R-HUM-03,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-39
+R-KON-40,R-KON-39,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-40
+R-KON-40,R-HUM-11,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-40
+R-KON-40,R-HUM-27,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-40
+R-KON-40,WY15,inne,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-40
+R-KON-41,R-KON-09,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-41
+R-KON-41,R-PRZ-02,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-41
+R-KON-42,R-KON-56,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-42,R-KON-57,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-42,S-K-37,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-42,S-K-38,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-42,R-DANE-16,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-42,R-KON-52,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-42
+R-KON-43,S-K-33,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-43
+R-KON-43,M-26,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-43
+R-KON-43,M-27,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-43
+R-KON-43,M-22,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-43
+R-KON-44,S-K-01,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-44
+R-KON-44,S-K-33,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-44
+R-KON-45,S-K-06,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-45
+R-KON-45,S-K-36,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-45
+R-KON-45,S-K-33,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-45
+R-KON-46,S-K-34,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-46
+R-KON-46,S-K-33,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-46
+R-KON-47,S-K-34,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-47
+R-KON-48,S-K-35,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-48
+R-KON-48,R-MAS-06,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-48
+R-KON-49,S-K-37,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-49
+R-KON-50,R-KON-41,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-33,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-34,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-35,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-36,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-37,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-50
+R-KON-50,S-K-39,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-58,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-44,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-PIE-02,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-54,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-59,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-60,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-61,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-50,R-KON-62,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-50
+R-KON-51,R-EKR-39,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-51
+R-KON-51,R-KON-57,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-51
+R-KON-51,R-DANE-07,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-51
+R-KON-52,R-KONF-24,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-52
+R-KON-52,M-26,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-52
+R-KON-52,M-27,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-52
+R-KON-52,R-DANE-16,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-52
+R-KON-52,R-KON-53,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-52
+R-KON-53,S-K-33,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-53
+R-KON-53,S-K-34,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-53
+R-KON-53,S-K-36,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-53
+R-KON-53,S-K-35,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-53
+R-KON-53,S-K-37,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-53
+R-KON-53,S-K-38,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-53
+R-KON-54,S-K-37,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-54
+R-KON-54,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-54
+R-KON-55,S-K-33,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-34,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-35,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-36,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-37,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-39,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-55
+R-KON-55,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-55
+R-KON-56,R-KON-42,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-56
+R-KON-56,R-KON-57,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-56
+R-KON-57,S-K-12,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-57
+R-KON-57,M-07,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-57
+R-KON-57,R-DANE-04,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-57
+R-KON-57,R-DANE-27,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-57
+R-KON-57,R-KON-51,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-57
+R-KON-58,M-07,M,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-58,R-KON-57,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-58,S-K-10,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-58,R-KONF-42,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-58,S-K-39,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-58
+R-KON-58,S-K-33,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-58,E-21,E,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-58
+R-KON-59,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-59
+R-KON-59,L-03,L,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-59
+R-KON-60,R-KON-52,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-60
+R-KON-60,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-60
+R-KON-60,R-KON-61,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-60
+R-KON-61,S-K-38,S-K,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-61
+R-KON-61,R-KON-42,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-61
+R-KON-62,R-KON-61,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-62
+R-KON-62,S-K-37,S-K,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-62
+R-KON-62,R-KON-54,R,nie,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-62
+R-MAS-01,S-K-31,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-01
+R-MAS-01,R-MAS-14,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-01
+R-MAS-01,R-MAS-06,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-01
+R-MAS-01,R-PRZ-19,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-01
+R-MAS-02,S-K-31,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-02
+R-MAS-03,S-K-31,S-K,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-03
+R-MAS-03,L-09,L,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-03
+R-MAS-04,S-K-32,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-04
+R-MAS-06,S-K-31,S-K,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-06
+R-MAS-06,L-09,L,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-06
+R-MAS-08,L-09,L,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-08
+R-MAS-09,M-07,M,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-09
+R-MAS-09,S-K-32,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-09
+R-MAS-09,R-MAS-04,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-09
+R-MAS-09,R-EKR-26,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-09
+R-MAS-10,S-K-31,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-10
+R-MAS-10,L-09,L,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-10
+R-MAS-10,R-MAS-08,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-10
+R-MAS-11,M-07,M,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-11
+R-MAS-11,R-NOR-26,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-11
+R-MAS-11,E-21,E,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-11
+R-MAS-12,M-07,M,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-12
+R-MAS-12,R-MAS-11,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-12
+R-MAS-12,R-NOR-26,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-12
+R-MAS-13,S-K-32,S-K,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-13,R-MAS-08,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-13,R-MAS-04,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-13,R-PRZ-11,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-14,R-MAS-11,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-14
+R-MAS-14,M-07,M,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-14
+R-MAS-14,R-PRZ-18,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-14
+R-MAS-14,R-PRZ-19,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-14
+R-INF-01,M-13,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-01
+R-INF-01,S-K-30,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-01
+R-INF-01,M-15,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-01
+R-INF-02,L-03,L,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-02
+R-INF-02,L-09,L,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-10,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-11,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-14,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-16,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-17,S-K,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-02
+R-INF-02,S-K-31,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-02
+R-INF-02,E-20,E,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-02
+R-INF-02,E-21,E,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-02
+R-INF-02,E-22,E,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-02
+R-INF-03,L-06,L,tak,5.10.4 Wymagania,katalog+wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,L-05,L,tak,5.10.4 Wymagania,katalog+wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,L-02,L,tak,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,R-SKI-21,R,nie,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,M-13,M,nie,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,R-SKI-23,R,nie,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-03,R-SKI-44,R,nie,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-04,M-13,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-04
+R-INF-04,S-K-17,S-K,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-04
+R-INF-04,R-INF-02,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-04
+R-INF-04,L-05,L,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-04
+R-INF-05,S-K-30,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-05; przypadki 7.8: 38
+R-INF-06,M-13,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-06
+R-INF-07,M-13,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-07; przypadki 7.8: 17
+R-INF-07,R-INF-04,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-07; przypadki 7.8: 17
+R-INF-07,L-06,L,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-07; przypadki 7.8: 17
+R-INF-07,R-PIE-06,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-07; przypadki 7.8: 17
+R-INF-08,R-PIE-13,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-08; przypadki 7.8: 38
+R-INF-08,S-K-30,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-08; przypadki 7.8: 38
+R-INF-08,S-K-10,S-K,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-08; przypadki 7.8: 38
+R-INF-10,R-PIE-08,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-10; przypadki 7.8: 38
+R-INF-10,S-K-30,S-K,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-10; przypadki 7.8: 38
+R-INF-10,R-PRZ-13,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-10; przypadki 7.8: 38
+R-INF-10,R-LEK-28,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-10; przypadki 7.8: 38
+R-INF-10,U-02,U,tak,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-10; przypadki 7.8: 38
+R-INF-09,S-K-30,S-K,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-09
+R-INF-09,M-13,M,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-09
+R-INF-09,R-INF-01,R,nie,5.10.4 Wymagania,wymaganie,weryfikacja R-INF-09
+R-CZY-01,M-02,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,M-07,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,M-13,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,M-01,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,R-CZY-17,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,L-06,L,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-02,R-CZY-17,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,M-02,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,M-07,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,M-13,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,M-01,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-02,R-CZY-04,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-02
+R-CZY-03,R-PIE-13,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-03; przypadki 7.8: 27
+R-CZY-04,O-12,O,tak,5.11.8 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-CZY-04
+R-CZY-04,R-CZY-24,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-04
+R-CZY-21,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-21
+R-CZY-21,R-CZY-20,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-21
+R-CZY-24,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,R-CZY-17,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,M-02,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,M-07,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,M-13,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,M-01,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,R-CZY-02,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,R-CZY-08,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-24,R-CZY-07,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-06,R-CZY-19,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-06
+R-CZY-07,S-K-17,S-K,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-07
+R-CZY-07,R-PIE-10,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-07,R-CZY-17,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-07,R-KON-14,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-07,R-CZY-08,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-12,S-K-13,S-K,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-12
+R-CZY-12,S-K-14,S-K,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-12
+R-CZY-13,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-13
+R-CZY-13,R-CZY-08,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-13
+R-CZY-14,R-CZY-10,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-14
+R-CZY-16,R-PRZ-18,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-16
+R-CZY-16,R-PRZ-02,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-16
+R-CZY-15,S-K-30,S-K,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-15
+R-CZY-15,M-13,M,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-15
+R-CZY-17,R-DANE-18,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-CZY-01,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-CZY-02,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-CZY-07,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-PIE-13,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,E-21,E,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-PIE-10,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-PIE-11,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-PRZ-03,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,R-CZY-08,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-19,R-CZY-05,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,S-K-13,S-K,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,S-K-14,S-K,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,R-CZY-12,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,M-22,M,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,M-23,M,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,O-12,O,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-19,R-CZY-04,R,nie,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-19; przypadki 7.8: 42, 46"
+R-CZY-20,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-20
+R-CZY-20,R-HUM-25,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-20
+R-CZY-20,R-CZY-06,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-20
+R-CZY-22,R-CZY-19,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-PRZ-10,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-PRZ-11,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-PRZ-12,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-PRZ-13,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-PIE-13,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,R-CZY-23,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,L-06,L,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,O-12,O,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-23,R-CZY-22,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,R-CZY-05,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,R-CZY-06,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,R-NOR-17,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,S-K-13,S-K,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,S-K-14,S-K,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-CZY-23,R-PRZ-11,R,nie,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-SKI-01,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-04,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-05,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-10,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,R-SKI-23,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,E-20,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,R-SKI-21,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-09,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,R-SKI-27,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-08,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-01,L-12,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-01
+R-SKI-27,L-08,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-27,L-09,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-27,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-27,L-12,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-27,M-01,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-27,E-20,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-27; przypadki 7.8: 18
+R-SKI-21,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-21; przypadki 7.8: 11, 47"
+R-SKI-21,M-01,M,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-21; przypadki 7.8: 11, 47"
+R-SKI-21,R-BUZ-01,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-21; przypadki 7.8: 11, 47"
+R-SKI-21,R-SKI-20,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-21; przypadki 7.8: 11, 47"
+R-SKI-21,E-10,E,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-21; przypadki 7.8: 11, 47"
+R-SKI-42,M-24,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-42,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-42,R-KOK-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-42,R-PIE-08,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-42,R-EKR-38,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-22,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,R-SKI-10,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,R-AW-05,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,E-05,E,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,R-HUM-17,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,E-01,E,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,R-LEK-24,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-23,L-05,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,M-01,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,M-13,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,R-INF-07,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,R-SKI-01,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,R-DANE-07,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-24,E-20,E,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-24; przypadki 7.8: 17, 26"
+R-SKI-40,S-K-19,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-40,R-KON-30,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-40,R-GI-10,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-40,L-10,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-40
+R-SKI-40,M-10,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-40,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-39,R-SKI-16,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-39,R-SKI-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-39,R-SKI-25,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-39,R-PRZ-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-39,R-SKI-24,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-02,L-09,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-02,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-03,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-04,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-05,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-06,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-08,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-10,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-02,L-12,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-02; przypadki 7.8: 53
+R-SKI-03,L-04,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-03; przypadki 7.8: 37
+R-SKI-03,M-05p,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-03; przypadki 7.8: 37
+R-SKI-03,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-03; przypadki 7.8: 37
+R-SKI-04,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-04,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-09,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,R-SKI-29,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-04,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-05,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-05
+R-SKI-05,L-03,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-05
+R-SKI-05,L-04,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-05
+R-SKI-05,L-12,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-05
+R-SKI-05,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-05
+R-SKI-05,R-HIP-08,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-05
+R-SKI-06,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-04,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-05,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-06,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-08,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-10,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-12,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,L-09,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,R-SKI-15,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-06,R-LEK-26,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-06
+R-SKI-08,R-SKI-43,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-08; przypadki 7.8: 37
+R-SKI-08,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-08; przypadki 7.8: 37
+R-SKI-43,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-43; przypadki 7.8: 37
+R-SKI-43,R-SKI-08,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-43; przypadki 7.8: 37
+R-SKI-43,R-SKI-04,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-43; przypadki 7.8: 37
+R-SKI-43,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-43; przypadki 7.8: 37
+R-SKI-44,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,L-10,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,R-EKR-32,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,R-EKR-48,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,L-04,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,E-36,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,L-05,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,M-13,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,R-NOR-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,R-SKI-18,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,R-SKI-36,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-09,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-09
+R-SKI-09,R-SKI-33,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-09
+R-SKI-09,R-SKI-13,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-09
+R-SKI-09,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-09
+R-SKI-10,R-LEK-27,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-10; przypadki 7.8: 11, 22, 36, 44"
+R-SKI-10,L-06,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-SKI-10; przypadki 7.8: 11, 22, 36, 44"
+R-SKI-11,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-11
+R-SKI-12,R-SKI-41,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-12,R-SKI-33,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-12,L-07,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-12,L-08,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-12,S-K-18,S-K,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-12,R-HUM-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-SKI-41,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,R-SKI-12,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,L-12,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,R-SKI-33,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,L-08,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-41,L-10,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-13,R-SKI-09,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-13
+R-SKI-13,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-13
+R-SKI-13,E-21,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-13
+R-SKI-33,R-SKI-09,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-33,R-SKI-12,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-33,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-33,L-07,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-33,S-K-18,S-K,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-33
+R-SKI-33,R-HUM-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-14,S-K-20,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-14
+R-SKI-14,L-07,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-14
+R-SKI-14,R-KOK-13,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-14
+R-SKI-15,L-09,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-15,E-22,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-15,S-K-11,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-15,H-06,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-15,M-07,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-15,H-07,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-16,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-16,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-16,R-SKI-22,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-16,R-SKI-28,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-16,R-SKI-29,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-17,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-17
+R-SKI-17,L-03,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-17
+R-SKI-17,L-10,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-17
+R-SKI-17,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-17
+R-SKI-17,R-SKI-29,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-17
+R-SKI-28,S-K-18,S-K,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-28; przypadki 7.8: 24, 25, 34"
+R-SKI-28,R-HUM-17,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-28; przypadki 7.8: 24, 25, 34"
+R-SKI-29,R-SKI-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-29; przypadki 7.8: 25
+R-SKI-29,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-29; przypadki 7.8: 25
+R-SKI-29,M-19,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-29; przypadki 7.8: 25
+R-SKI-25,E-01,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-25
+R-SKI-26,R-SKI-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-26
+R-SKI-18,L-02,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,L-05,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,R-PIE-06,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,R-SKI-19,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-19,L-05,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,L-02,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,R-INF-03,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,R-SKI-23,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,R-SKI-36,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,R-PIE-13,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-19,L-01,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-34,M-01,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,E-10,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PRZ-10,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PRZ-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PRZ-12,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PRZ-13,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PIE-13,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,S-K-29,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,M-19,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,E-12,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,R-PIE-04,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-35,R-SKI-34,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,M-19,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,L-08,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,E-12,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,R-PRZ-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,S-K-29,S-K,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-36,L-05,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,R-SKI-19,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,R-PRZ-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-37,R-SKI-09,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-37,L-11,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-37,R-HUM-17,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-37,R-SKI-33,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-38,L-06,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-38
+R-SKI-38,R-SKI-22,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-38
+R-SKI-38,R-LEK-24,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-38
+R-SKI-38,R-SKI-11,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-38
+R-SKI-20,L-06,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-20
+R-SKI-20,R-AW-10,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-20
+R-SKI-30,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,M-03,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,R-SKI-08,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,E-33,E,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,R-SKI-43,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-30,R-SKI-31,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-30
+R-SKI-31,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-31; przypadki 7.8: 37
+R-SKI-31,R-LEK-01,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-31; przypadki 7.8: 37
+R-SKI-32,R-SKI-20,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-32
+R-SKI-32,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-32
+R-SKI-32,M-24,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-32
+R-LEK-09,R-LEK-24,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-09; przypadki 7.8: 22
+R-LEK-09,R-LEK-25,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-09; przypadki 7.8: 22
+R-LEK-09,L-03,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-09; przypadki 7.8: 22
+R-LEK-09,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-09; przypadki 7.8: 22
+R-LEK-24,R-PIE-08,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,R-PIE-06,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,R-SKI-16,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,R-AW-05,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,R-PIE-09,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,R-SKI-28,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,E-05,E,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,L-03,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-25,R-LEK-26,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-25; przypadki 7.8: 22, 36"
+R-LEK-25,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-25; przypadki 7.8: 22, 36"
+R-LEK-25,R-LEK-24,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-25; przypadki 7.8: 22, 36"
+R-LEK-26,R-LEK-14,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-26; przypadki 7.8: 22, 36"
+R-LEK-26,R-PRZ-05,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-26; przypadki 7.8: 22, 36"
+R-LEK-26,R-LEK-25,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-26; przypadki 7.8: 22, 36"
+R-LEK-26,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-26; przypadki 7.8: 22, 36"
+R-LEK-27,R-SKI-10,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-27; przypadki 7.8: 36
+R-LEK-27,R-LEK-24,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-27; przypadki 7.8: 36
+R-LEK-27,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-27; przypadki 7.8: 36
+R-LEK-27,R-LEK-10,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-27; przypadki 7.8: 36
+R-LEK-10,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-10
+R-LEK-10,L-02,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-10
+R-HIP-01,L-09,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,R-SKI-15,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,L-12,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,H-08,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,R-HIP-10,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,H-04,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,H-05,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,R-HIP-08,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,L-06,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,L-03,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-01,H-03,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-HIP-02,U-01,U,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-02
+R-HIP-02,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-02
+R-HIP-02,R-HIP-07,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-02
+R-HIP-03,H-03,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-03
+R-HIP-03,H-01,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-03
+R-HIP-03,L-03,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-03
+R-HIP-04,L-02,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-04
+R-HIP-04,L-05,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-04
+R-HIP-04,L-06,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-04
+R-HIP-04,L-04,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-01,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-02,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-03,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-04,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-09,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-04,H-08,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-04
+R-HIP-05,L-12,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-05; przypadki 7.8: 15
+R-HIP-07,U-01,U,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-07
+R-HIP-07,L-01,L,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-07
+R-HIP-07,H-04,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-07
+R-HIP-08,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,L-12,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,R-SKI-05,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,H-05,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,H-08,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,R-HIP-10,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,H-04,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-08,R-HIP-02,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-08; przypadki 7.8: 15, 52"
+R-HIP-06,H-07,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-06
+R-HIP-06,L-09,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-06
+R-HIP-09,L-11,L,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-HIP-09
+R-HIP-09,M-01,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,R-SKI-27,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,H-09,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,H-08,H,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,M-19,M,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,R-HIP-02,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-09,R-HIP-07,R,nie,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-09
+R-HIP-10,L-01,L,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,L-12,L,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,R-HIP-08,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,H-08,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,H-05,H,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,R-HIP-02,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-HIP-10,R-SKI-44,R,nie,5.12.10 Wymagania,wymaganie,"weryfikacja R-HIP-10; przypadki 7.8: 15, 52"
+R-LEK-01,L-01,L,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-LEK-01,R-SKI-31,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-LEK-01,L-02,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-LEK-02,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-02
+R-LEK-02,R-LEK-11,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-02
+R-LEK-04,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-04
+R-LEK-13,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-13
+R-LEK-14,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-14
+R-LEK-16,L-03,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-16
+R-LEK-17,L-03,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-17
+R-LEK-17,L-06,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-17
+R-LEK-17,R-SKI-21,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-17
+R-LEK-18,R-LEK-20,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-18
+R-LEK-18,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-18
+R-LEK-19,R-DANE-28,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-19
+R-LEK-19,M-02,M,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-19
+R-LEK-19,M-05p,M,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-19
+R-LEK-20,R-LEK-32,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-20
+R-LEK-23,R-DANE-36,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-23
+R-LEK-23,R-LEK-20,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-23
+R-LEK-28,U-02,U,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-28
+R-LEK-28,L-06,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-28
+R-LEK-28,L-03,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-28
+R-LEK-29,R-LEK-20,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-29
+R-LEK-30,L-09,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-30
+R-LEK-30,L-07,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-30
+R-LEK-30,L-08,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-30
+R-LEK-30,L-06,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-30
+R-LEK-30,L-03,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-30
+R-LEK-31,M-01,M,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-31
+R-LEK-32,R-LEK-33,R,nie,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-32
+R-LEK-34,L-11,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-34
+R-LEK-35,L-01,L,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-35
+R-BUZ-01,L-06,L,tak,5.14.2 Wymagania,katalog+wymaganie,"weryfikacja R-BUZ-01; przypadki 7.8: 11, 47"
+R-BUZ-01,E-01,E,tak,5.14.2 Wymagania,wymaganie,"weryfikacja R-BUZ-01; przypadki 7.8: 11, 47"
+R-BUZ-01,R-BUZ-07,R,nie,5.14.2 Wymagania,wymaganie,"weryfikacja R-BUZ-01; przypadki 7.8: 11, 47"
+R-BUZ-07,E-01,E,tak,5.14.2 Wymagania,wymaganie,"weryfikacja R-BUZ-07; przypadki 7.8: 30, 42, 57"
+R-BUZ-07,R-BUZ-01,R,nie,5.14.2 Wymagania,wymaganie,"weryfikacja R-BUZ-07; przypadki 7.8: 30, 42, 57"
+R-BUZ-02,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-02
+R-BUZ-02b,R-BUZ-01,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-02b; przypadki 7.8: 11
+R-BUZ-02b,R-BUZ-07,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-02b; przypadki 7.8: 11
+R-BUZ-02b,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-02b; przypadki 7.8: 11
+R-BUZ-03,U-01,U,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-03
+R-BUZ-03,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-03
+R-BUZ-03,E-01,E,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-03
+R-BUZ-04,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-04
+R-BUZ-04,E-01,E,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-04
+R-BUZ-05,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-05
+R-BUZ-05,R-AW-03,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-05
+R-BUZ-05,R-BUZ-02b,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-05
+R-BUZ-06,R-BUZ-01,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-06
+R-BUZ-06,R-BUZ-07,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-06
+R-BUZ-06,L-06,L,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-06
+R-BUZ-06,E-01,E,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-06
+R-BUZ-06,R-BUZ-04,R,nie,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-06
+R-GI-01,M-12,M,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-01
+R-GI-01,R-DANE-08,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-01
+R-GI-02,R-AW-04,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-02
+R-GI-03,E-37,E,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-03
+R-GI-03,O-11,O,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-03
+R-GI-04,E-37,E,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-04
+R-GI-05,E-37,E,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-05
+R-GI-06,E-37,E,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,S-K-19,S-K,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,L-10,L,tak,5.15.6 Wymagania,katalog+wymaganie,weryfikacja R-GI-06
+R-GI-06,O-10,O,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,O-11,O,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,H-01,H,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,R-GI-10,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,M-10,M,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,R-KON-30,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,R-SKI-40,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,E-03,E,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-06,R-AW-04,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-GI-07,O-10,O,tak,5.15.6 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-GI-07
+R-GI-08,O-11,O,tak,5.15.6 Wymagania,katalog-zbiorczy+wymaganie,weryfikacja R-GI-08
+R-GI-08,R-GI-03,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-08
+R-GI-09,H-01,H,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-09
+R-GI-09,L-10,L,tak,5.15.6 Wymagania,katalog+wymaganie,weryfikacja R-GI-09
+R-GI-10,S-K-19,S-K,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-10
+R-GI-10,L-10,L,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-10
+R-GI-10,R-DANE-07,R,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-10
+R-GI-10,M-10,M,nie,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-10
+R-PIE-02,L-03,L,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-02; przypadki 7.8: 8, 14"
+R-PIE-02,S-K-01,S-K,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-02; przypadki 7.8: 8, 14"
+R-PIE-02,S-K-18,S-K,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-02; przypadki 7.8: 8, 14"
+R-PIE-03,R-PIE-01,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-03; przypadki 7.8: 4
+R-PIE-04,L-03,L,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-04; przypadki 7.8: 6, 43"
+R-PIE-04,S-K-28,S-K,tak,7.7 Wymagania,katalog+wymaganie,"weryfikacja R-PIE-04; przypadki 7.8: 6, 43"
+R-PIE-04,E-12,E,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-04; przypadki 7.8: 6, 43"
+R-PIE-05,R-HUM-01,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-05
+R-PIE-05,R-PIE-01,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-05
+R-PIE-06,R-CZY-17,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,L-06,L,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,R-SKI-10,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,R-SKI-22,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-07,E-05,E,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-07; przypadki 7.8: 13
+R-PIE-07,R-SKI-10,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-07; przypadki 7.8: 13
+R-PIE-07,L-06,L,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-07; przypadki 7.8: 13
+R-PIE-07,R-SKI-22,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-07; przypadki 7.8: 13
+R-PIE-09,R-AW-05,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,R-AW-23,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,R-AW-30,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,R-AW-31,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,R-KONF-21,R,nie,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,L-11,L,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,L-06,L,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-08,L-06,L,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-08
+R-PIE-08,E-01,E,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-08
+R-PIE-08,S-K-01,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-08
+R-PIE-10,R-SKI-34,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,R-CZY-22,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,S-K-10,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,R-CZY-01,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,L-06,L,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,R-PIE-02,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,E-21,E,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-11,R-PIE-10,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,R-PIE-12,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,R-PIE-08,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,R-CZY-03,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,E-21,E,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,S-K-04,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-11,R-CZY-02,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-12,S-K-01,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-12; przypadki 7.8: 31
+R-PIE-12,S-K-03,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-12; przypadki 7.8: 31
+R-PIE-12,S-K-04,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-12; przypadki 7.8: 31
+R-PIE-13,R-DANE-18,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-DANE-19,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,S-K-30,S-K,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-CZY-22,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-MAS-12,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-CZY-03,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-INF-08,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-SKI-19,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,R-CZY-17,R,nie,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-NF-01,E-05,E,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-01
+R-NF-02,R-DANE-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-03,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-19,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-09,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-10,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-15,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-16,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-18,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-24,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-25,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-AW-11,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-AW-20,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-01,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-08,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-31,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-EKR-60,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-41,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-42,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-52,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-BUZ-02b,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-05,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-07,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-12,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-17,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-19,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-MAS-14,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-CZY-03,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-CZY-16,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-INF-08,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-SKI-17,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PIE-13,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-LEK-04,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KONF-05,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KONF-15,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KONF-29,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-NF-29,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,U-01,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,U-03,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,S-K-30,S-K,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,U-05,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-09,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-KON-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-PRZ-18,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-03,R-DANE-33,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-03
+R-NF-03,U-05,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-03
+R-NF-03,R-NF-29,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-03
+R-NF-03,R-LEK-04,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-03
+R-NF-03,R-KONF-15,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-03
+R-NF-04,R-DANE-04,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-04
+R-NF-05,R-PRZ-01,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-05
+R-NF-05,R-LEK-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-05
+R-NF-05,R-KONF-12,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-05
+R-NF-06,R-DANE-05,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-06,R-LEK-23,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-06,R-DANE-36,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-06,U-05,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-06,R-KON-05,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-07,R-DANE-01,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-07
+R-NF-07,R-KONF-24,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-07
+R-NF-08,R-DANE-36,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-08,R-CZY-06,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-08,R-LEK-16,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-08,L-01,L,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-09,R-LEK-03,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-09
+R-NF-09,R-LEK-03b,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-09
+R-NF-09,R-KONF-08,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-09
+R-NF-09,R-KONF-13,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-09
+R-NF-09,R-KONF-14,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-09
+R-NF-10,R-LEK-20,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-10
+R-NF-10,R-KONF-18,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-10
+R-NF-10,R-KONF-01,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-10
+R-NF-11,R-DANE-04,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-11
+R-NF-11,R-DANE-37,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-11
+R-NF-12,R-DANE-36,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-12
+R-NF-12,R-DANE-04,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-12
+R-NF-12,R-AW-05,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-12
+R-NF-13,R-EKR-09,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-13
+R-NF-14,R-EKR-08,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-14
+R-NF-14,R-LEK-12,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-14
+R-NF-15,R-SKI-07,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-15
+R-NF-16,R-KONF-06,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-16
+R-NF-17,E-03,E,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-17
+R-NF-17,R-AW-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-17
+R-NF-18,E-03,E,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-18
+R-NF-19,R-NF-29,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-19
+R-NF-19,R-NF-30,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-19
+R-NF-19,R-NF-11,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-19
+R-NF-20,R-DANE-20,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-20
+R-NF-22,R-KONF-35,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-22
+R-NF-22,R-DANE-36,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-22
+R-NF-22,R-KONF-19,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-22
+R-NF-22,R-DANE-37,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-22
+R-NF-22,U-02,U,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-22
+R-NF-23,R-EKR-41,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-23
+R-NF-23,L-06,L,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-23
+R-NF-24,O-03,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-04,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-05,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-06,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-07,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-08,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-09,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-10,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-11,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,O-12,O,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,S-K-21,S-K,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,R-CZY-24,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,R-EKR-26,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-24,R-CZY-21,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-24
+R-NF-26,R-EKR-39,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-26
+R-NF-26,R-NF-23,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-26
+R-NF-27,R-AW-25,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-27
+R-NF-27,R-KONF-18,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-27
+R-NF-27,R-KONF-21,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-27
+R-NF-27,R-NF-07,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-27
+R-NF-27,R-KONF-35,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-27
+R-NF-28,R-AW-05b,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-28
+R-NF-28,U-05,U,tak,8.2 Wymagania,katalog+wymaganie,weryfikacja R-NF-28
+R-NF-28,R-DANE-06,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-28
+R-NF-29,U-05,U,tak,8.2 Wymagania,katalog+wymaganie,weryfikacja R-NF-29
+R-NF-29,R-PRZ-18,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-29
+R-NF-31,R-NF-29,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-31
+R-NF-31,R-NF-27,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-31
+R-NF-31,R-NF-07,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-31
+R-NF-30,U-05,U,tak,8.2 Wymagania,katalog+wymaganie,weryfikacja R-NF-30; przypadki 7.8: 56
+R-NF-30,R-AW-30,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-30; przypadki 7.8: 56
+R-NF-30,E-30,E,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-30; przypadki 7.8: 56
+R-NF-30,L-09,L,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-30; przypadki 7.8: 56
+R-NF-30,R-AW-33,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-30; przypadki 7.8: 56
+R-DANE-23,pytanie „gorzej”,nazwany,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-23; przypadki 7.8: 26, 59, 60"
+R-DANE-05,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-05
+R-DANE-28,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,K2,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-28,S2a,stan,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-28
+R-DANE-29,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-29; przypadki 7.8: 50
+R-DANE-29,K2,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-29; przypadki 7.8: 50
+R-DANE-32,K2,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-32; przypadki 7.8: 59
+R-DANE-07,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-07
+R-DANE-12,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-12
+R-NOR-07,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-10,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-20,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-AW-02,K1,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-02
+R-AW-16,S6,stan,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
+R-AW-17,K2,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-17,raport (QR),nazwany,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
+R-AW-06,S2c,stan,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-06
+R-AW-24,S5,stan,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-24; przypadki 7.8: 42
+R-AW-31,S2a,stan,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-31
+R-AW-32,S5,stan,tak,5.3.2 Wymagania,wymaganie,"weryfikacja R-AW-32; przypadki 7.8: 42, 54"
+R-AW-09,K2,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-09
+R-AW-10,K2,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-10
+R-AW-35,S5,stan,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-35; przypadki 7.8: 57
+R-AW-22,K2,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
+R-EKR-06,S3,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-06
+R-EKR-09,S9,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-09
+R-EKR-09,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-09
+R-EKR-09,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-09
+R-EKR-10,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,S2c,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,S6,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,S7,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-10,S9,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-10
+R-EKR-11,S5,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-11
+R-EKR-14,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-14
+R-EKR-15,S2a,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-15; przypadki 7.8: 39
+R-EKR-15,S2b,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-15; przypadki 7.8: 39
+R-EKR-15,S2c,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-15; przypadki 7.8: 39
+R-EKR-15,S2d,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-15; przypadki 7.8: 39
+R-EKR-16,S2b,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-16; przypadki 7.8: 39
+R-EKR-16,S2c,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-16; przypadki 7.8: 39
+R-EKR-17,S2c,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-17
+R-EKR-54,S2c,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-54
+R-EKR-18,S7,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-18; przypadki 7.8: 6
+R-EKR-19,S7,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-19
+R-EKR-20,S7,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-20
+R-EKR-21,S6,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-21
+R-EKR-45,S6,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-45
+R-EKR-46,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,S2c,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,S2b,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-46,S6,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-46; przypadki 7.8: 49
+R-EKR-47,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-47,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-47; przypadki 7.8: 48
+R-EKR-48,S3,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,potwierdzenie „Omówione”,nazwany,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-48,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,katalog+wymaganie,"weryfikacja R-EKR-48; przypadki 7.8: 48, 49"
+R-EKR-49,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,potwierdzenie „Omówione”,nazwany,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-49,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,katalog+wymaganie,"weryfikacja R-EKR-49; przypadki 7.8: 48, 49"
+R-EKR-50,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-50
+R-EKR-50,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-50
+R-EKR-51,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-51
+R-EKR-51,„Sprzęt”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-51
+R-EKR-51,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-51
+R-EKR-51,„Co znaczą te liczby”,nazwany,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-51
+R-EKR-52,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-52,pytanie „Co było inaczej?”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-52; przypadki 7.8: 55
+R-EKR-53,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,S6,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-53,S7,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-53
+R-EKR-41,S2a,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,S2c,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-41,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-41; przypadki 7.8: 49
+R-EKR-55,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-55,S2c,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-55
+R-EKR-56,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-56,S2c,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-56; przypadki 7.8: 61
+R-EKR-59,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-59,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-59; przypadki 7.8: 61
+R-EKR-42,potwierdzenie „Omówione”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-42
+R-EKR-43,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,S6,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,S7,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-43,strona A4,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-43
+R-EKR-32,S2a,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,S2c,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,potwierdzenie „Omówione”,nazwany,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-32,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-32; przypadki 7.8: 14, 23, 33, 60"
+R-EKR-35,K2,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-35,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-35,„Sprzęt”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-35,„Co znaczą te liczby”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-35; przypadki 7.8: 32
+R-EKR-36,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-36,„Otwarte sprawy”,nazwany,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-36; przypadki 7.8: 35
+R-EKR-37,S9,stan,tak,5.4.11 Wymagania,katalog+wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-37,S2a,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-37; przypadki 7.8: 54
+R-EKR-57,S5,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,S2a,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,S2b,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-57,S2c,stan,tak,5.4.11 Wymagania,wymaganie,"weryfikacja R-EKR-57; przypadki 7.8: 42, 54, 57"
+R-EKR-38,S6,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-38
+R-EKR-60,S5,stan,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-EKR-60,K1,kokpit,tak,5.4.11 Wymagania,wymaganie,weryfikacja R-EKR-60
+R-KOK-01,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-01
+R-KOK-02,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-02
+R-KOK-02,K2,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-02
+R-KOK-03,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-03
+R-KOK-04,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-04
+R-KOK-05,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-05
+R-KOK-05,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-05
+R-KOK-06,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-06
+R-KOK-07,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-07
+R-KOK-08,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-08
+R-KOK-09,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-09
+R-KOK-11,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-11
+R-KOK-12,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-12
+R-KOK-13,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-13
+R-KOK-14,K1,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-14
+R-KOK-14,K2,kokpit,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-14
+R-KOK-15,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,S2a,stan,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-15,K2,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15
+R-KOK-16,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
+R-PRZ-02,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
+R-PRZ-02,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
+R-PRZ-02,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-02
+R-PRZ-02,„Otwarte sprawy”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
+R-PRZ-02,„Co znaczą te liczby”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-02
+R-PRZ-04,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S3,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S5,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,S2a,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,„Otwarte sprawy”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-04,„Co znaczą te liczby”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-04
+R-PRZ-05,potwierdzenie „Omówione”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-05
+R-PRZ-06,S5,stan,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-06
+R-PRZ-07,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-07
+R-PRZ-08,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-08
+R-PRZ-08,pytanie „Co było inaczej?”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-08
+R-PRZ-09,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-09
+R-PRZ-09,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-09
+R-PRZ-09,S5,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-09
+R-PRZ-14,S5,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-14
+R-PRZ-15,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-15
+R-PRZ-17,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-17
+R-PRZ-18,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-18,potwierdzenie „Omówione”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-18
+R-PRZ-19,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-19
+R-PRZ-10,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-10,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-10,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-10,pytanie o przerwę,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
+R-PRZ-11,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-11,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-11,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-11,pytanie o przerwę,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
+R-PRZ-12,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-12; przypadki 7.8: 28
+R-PRZ-12,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-12; przypadki 7.8: 28
+R-PRZ-12,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,weryfikacja R-PRZ-12; przypadki 7.8: 28
+R-PRZ-13,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-PRZ-13,pytanie o przerwę,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-KONF-02,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-02
+R-KONF-02,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-02
+R-KONF-03,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-03
+R-KONF-04,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-04
+R-KONF-05,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-05
+R-KONF-33,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-33
+R-KONF-34,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-34
+R-KONF-30,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-30
+R-KONF-32,S1,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-32,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-32
+R-KONF-42,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-KONF-42
+R-HUM-26,S2a,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,S2c,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,S2d,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-26,S2b,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-26; przypadki 7.8: 44
+R-HUM-27,S2a,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-27,S2c,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-27
+R-HUM-28,S2d,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-28,S3,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-28
+R-HUM-29,S3,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-29
+R-HUM-08,S5,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-08
+R-HUM-09,S2a,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-09; przypadki 7.8: 44
+R-HUM-09,S2c,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-09; przypadki 7.8: 44
+R-HUM-09,S2b,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-09; przypadki 7.8: 44
+R-HUM-10,S2b,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-10
+R-HUM-14,S2d,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-14
+R-HUM-17,S2b,stan,tak,5.7.7 Wymagania,katalog+wymaganie,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-HUM-18,K1,kokpit,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-18
+R-HUM-19,S2b,stan,tak,5.7.7 Wymagania,katalog+wymaganie,weryfikacja R-HUM-19
+R-HUM-19,S2a,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-19
+R-HUM-19,S2c,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-19
+R-HUM-22,S2a,stan,tak,5.7.7 Wymagania,wymaganie,weryfikacja R-HUM-22
+R-KON-02,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-02; przypadki 7.8: 29
+R-KON-02,S5,stan,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-02; przypadki 7.8: 29
+R-KON-12,K2,kokpit,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-12; przypadki 7.8: 26
+R-KON-14,K2,kokpit,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-23,pytanie o senność,nazwany,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-23,„Otwarte sprawy”,nazwany,tak,5.8.9 Wymagania,wymaganie,"weryfikacja R-KON-23; przypadki 7.8: 14, 24, 33"
+R-KON-31,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-31; przypadki 7.8: 29
+R-KON-32,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-32
+R-KON-33,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-33
+R-KON-34,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-34
+R-KON-35,S5,stan,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-35,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-35
+R-KON-35,K1,kokpit,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-35
+R-KON-36,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-36
+R-KON-37,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-37
+R-KON-37,K1,kokpit,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-37
+R-KON-37,K2,kokpit,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-37
+R-KON-38,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-38
+R-KON-39,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-39
+R-KON-40,S9,stan,tak,5.8.9 Wymagania,katalog+wymaganie,weryfikacja R-KON-40
+R-KON-41,K1,kokpit,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-41
+R-KON-54,pytanie „Co było inaczej?”,nazwany,tak,5.8.9 Wymagania,wymaganie,weryfikacja R-KON-54
+R-MAS-01,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-01
+R-MAS-02,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-02
+R-MAS-05,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-05
+R-MAS-06,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-06
+R-MAS-11,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-11
+R-MAS-13,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-13,potwierdzenie „Zapisano”,nazwany,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-13
+R-MAS-14,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-14
+R-INF-03,pytanie „gorzej”,nazwany,tak,5.10.4 Wymagania,wymaganie,"weryfikacja R-INF-03; przypadki 7.8: 11, 17"
+R-INF-07,pytanie „gorzej”,nazwany,tak,5.10.4 Wymagania,katalog+wymaganie,weryfikacja R-INF-07; przypadki 7.8: 17
+R-CZY-01,S2a,stan,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-01,potwierdzenie „Omówione”,nazwany,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-01; przypadki 7.8: 27
+R-CZY-02,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-02
+R-CZY-21,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-21
+R-CZY-24,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-24
+R-CZY-06,strona A4,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-06
+R-CZY-07,S2a,stan,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-07,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-07
+R-CZY-07,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-07
+R-CZY-08,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-08
+R-CZY-08,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-08
+R-CZY-09,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-09
+R-CZY-13,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-13
+R-CZY-16,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-16
+R-CZY-16,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-16
+R-CZY-15,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-15
+R-CZY-15,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-15
+R-CZY-17,S2a,stan,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-17,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,"weryfikacja R-CZY-17; przypadki 7.8: 27, 31"
+R-CZY-18,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-18; przypadki 7.8: 27
+R-CZY-18,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog+wymaganie,weryfikacja R-CZY-18; przypadki 7.8: 27
+R-CZY-20,K1,kokpit,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-20
+R-CZY-22,pytanie „gorzej”,nazwany,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-22,potwierdzenie „Zapisano”,nazwany,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-22; przypadki 7.8: 46
+R-CZY-23,potwierdzenie „Zapisano”,nazwany,tak,5.11.8 Wymagania,wymaganie,weryfikacja R-CZY-23; przypadki 7.8: 46
+R-SKI-42,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-42; przypadki 7.8: 47
+R-SKI-22,S5,stan,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-22,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-22; przypadki 7.8: 1, 11, 12, 13, 14, 16"
+R-SKI-23,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-23,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-23; przypadki 7.8: 17
+R-SKI-40,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-40,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-40
+R-SKI-39,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-39
+R-SKI-03,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-03; przypadki 7.8: 37
+R-SKI-04,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-04
+R-SKI-44,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-44,„Otwarte sprawy”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-44
+R-SKI-09,S7,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-09
+R-SKI-09,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-09
+R-SKI-10,S7,stan,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-10; przypadki 7.8: 11, 22, 36, 44"
+R-SKI-10,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-10; przypadki 7.8: 11, 22, 36, 44"
+R-SKI-11,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-11
+R-SKI-41,S5,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-41; przypadki 7.8: 45
+R-SKI-13,S7,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-13
+R-SKI-13,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-13
+R-SKI-33,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-33
+R-SKI-14,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-14
+R-SKI-15,S3,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-15; przypadki 7.8: 18
+R-SKI-16,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-SKI-17,pytanie o senność,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-17
+R-SKI-28,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-SKI-28; przypadki 7.8: 24, 25, 34"
+R-SKI-29,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-29; przypadki 7.8: 25
+R-SKI-25,S5,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-25
+R-SKI-25,pytanie o senność,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-25
+R-SKI-26,S5,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-26
+R-SKI-26,pytanie o senność,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-26
+R-SKI-18,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-18,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-18; przypadki 7.8: 16
+R-SKI-19,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-SKI-19; przypadki 7.8: 16, 28"
+R-SKI-34,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,potwierdzenie „Zapisano”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-34,pytanie o przerwę,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-34; przypadki 7.8: 43
+R-SKI-35,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,S3,stan,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,potwierdzenie „Zapisano”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-35,pytanie o przerwę,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-35; przypadki 7.8: 43
+R-SKI-36,K2,kokpit,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-36,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-SKI-36
+R-SKI-36,potwierdzenie „Zapisano”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-36
+R-SKI-37,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-37,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-SKI-38,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-38
+R-SKI-31,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-SKI-31; przypadki 7.8: 37
+R-LEK-09,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-LEK-09; przypadki 7.8: 22
+R-LEK-24,pytanie o senność,nazwany,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-24,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,wymaganie,"weryfikacja R-LEK-24; przypadki 7.8: 16, 22, 34, 36, 40, 56"
+R-LEK-25,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-LEK-25; przypadki 7.8: 22, 36"
+R-LEK-26,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,"weryfikacja R-LEK-26; przypadki 7.8: 22, 36"
+R-LEK-27,potwierdzenie „Omówione”,nazwany,tak,5.12.10 Wymagania,katalog+wymaganie,weryfikacja R-LEK-27; przypadki 7.8: 36
+R-LEK-10,pytanie „gorzej”,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-LEK-10
+R-HIP-05,strona A4,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-05; przypadki 7.8: 15
+R-HIP-07,strona A4,nazwany,tak,5.12.10 Wymagania,wymaganie,weryfikacja R-HIP-07
+R-LEK-01,pytanie „gorzej”,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-LEK-01,strona A4,nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-LEK-02,K2,kokpit,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-02
+R-LEK-02,K1,kokpit,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-02
+R-LEK-02,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-02
+R-LEK-02,„Otwarte sprawy”,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-02
+R-LEK-05,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-05
+R-LEK-06,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-06
+R-LEK-07,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-07
+R-LEK-12,strona A4,nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-12
+R-LEK-15,strona A4,nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-15
+R-LEK-16,potwierdzenie „Omówione”,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-16
+R-LEK-18,K2,kokpit,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-18
+R-LEK-18,ekran-ściąga,nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-18
+R-LEK-18,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-18
+R-LEK-20,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-20
+R-LEK-21,strona A4,nazwany,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-21
+R-LEK-29,K2,kokpit,tak,5.13.8 Wymagania,wymaganie,weryfikacja R-LEK-29
+R-LEK-33,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog+wymaganie,weryfikacja R-LEK-33
+R-BUZ-04,potwierdzenie „Omówione”,nazwany,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-04
+R-BUZ-05,potwierdzenie „Omówione”,nazwany,tak,5.14.2 Wymagania,wymaganie,weryfikacja R-BUZ-05
+R-GI-06,K2,kokpit,tak,5.15.6 Wymagania,wymaganie,weryfikacja R-GI-06
+R-PIE-02,S5,stan,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-02; przypadki 7.8: 8, 14"
+R-PIE-06,K1,kokpit,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,pytanie „Co było inaczej?”,nazwany,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,pytanie „gorzej”,nazwany,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-06,potwierdzenie „Omówione”,nazwany,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-06; przypadki 7.8: 2, 16"
+R-PIE-07,S5,stan,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-07; przypadki 7.8: 13
+R-PIE-09,pytanie o senność,nazwany,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-09,potwierdzenie „Omówione”,nazwany,tak,7.7 Wymagania,wymaganie,"weryfikacja R-PIE-09; przypadki 7.8: 34, 40, 56"
+R-PIE-08,S5,stan,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-08
+R-PIE-10,S5,stan,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,S2a,stan,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,pytanie o senność,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,pytanie „gorzej”,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-10,pytanie o przerwę,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-10; przypadki 7.8: 31
+R-PIE-11,S2a,stan,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-11; przypadki 7.8: 31
+R-PIE-13,pytanie „Co było inaczej?”,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,pytanie „gorzej”,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-PIE-13,pytanie o przerwę,nazwany,tak,7.7 Wymagania,wymaganie,weryfikacja R-PIE-13; przypadki 7.8: 38
+R-NF-02,K1,kokpit,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,S9,stan,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,potwierdzenie „Omówione”,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,potwierdzenie „Zapisano”,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-06,K1,kokpit,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-06
+R-NF-08,potwierdzenie „Omówione”,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-08,strona A4,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-08
+R-NF-14,strona A4,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-14
+R-NF-23,S2a,stan,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-23
+R-NF-23,S2c,stan,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-23
+R-NF-23,S3,stan,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-23
+R-NF-25,K1,kokpit,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-25
+R-NF-25,K2,kokpit,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-25
+R-NF-25,„Sprzęt”,nazwany,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-25
+R-NF-26,S2a,stan,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-26
+R-EKR-25,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-25
+R-EKR-26,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-26
+R-EKR-27,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-27
+R-EKR-28,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-28
+R-EKR-29,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-29
+R-EKR-30,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-30
+R-EKR-31,S1,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-31
+R-HUM-01,S1,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-01
+R-EKR-12,S2a,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-12
+R-EKR-42,S2a,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-42
+R-HUM-17,S2a,stan,tak,5.7.7 Wymagania,katalog,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-SKI-37,S2a,stan,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-37; przypadki 7.8: 44
+R-EKR-40,S2a,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-40; przypadki 7.8: 49
+R-HUM-17,S2c,stan,tak,5.7.7 Wymagania,katalog,"weryfikacja R-HUM-17; przypadki 7.8: 14, 24, 27"
+R-HUM-15,S2d,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-15
+R-HUM-16,S2d,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-16
+R-HUM-21,S2d,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-21
+R-HUM-22,S2d,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-22
+R-EKR-03,S3,stan,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-03
+R-PRZ-03,S3,stan,tak,5.6.7 Wymagania,katalog,weryfikacja R-PRZ-03
+R-HUM-07,S3,stan,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-KOK-10,K2,kokpit,tak,5.5.5 Wymagania,katalog,weryfikacja R-KOK-10
+R-KONF-06,U-01,U,tak,5.6.7 Wymagania,katalog,weryfikacja R-KONF-06
+R-KONF-09,U-02,U,tak,5.6.7 Wymagania,katalog,weryfikacja R-KONF-09
+R-KONF-18,U-03,U,tak,5.6.7 Wymagania,katalog,weryfikacja R-KONF-18
+R-NF-31,U-05,U,tak,8.2 Wymagania,katalog,weryfikacja R-NF-31
+R-AW-25,U-05,U,tak,5.3.2 Wymagania,katalog,weryfikacja R-AW-25
+R-NF-27,U-05,U,tak,8.2 Wymagania,katalog,weryfikacja R-NF-27
+R-NF-29,U-06,U,tak,8.2 Wymagania,katalog,weryfikacja R-NF-29
+R-CZY-03,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog,weryfikacja R-CZY-03; przypadki 7.8: 27
+R-CZY-10,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog,weryfikacja R-CZY-10
+R-CZY-11,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog,weryfikacja R-CZY-11
+R-CZY-13,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog,weryfikacja R-CZY-13
+R-CZY-14,pytanie „Co było inaczej?”,nazwany,tak,5.11.8 Wymagania,katalog,weryfikacja R-CZY-14
+R-KON-09,S-K-01,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-09; przypadki 7.8: 29
+R-HUM-07,S-K-03,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-HUM-07,S-K-04,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-KON-10,S-K-05,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-10
+R-HUM-07,S-K-05,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-KON-06,S-K-06,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-06
+R-HUM-07,S-K-07,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-HUM-07,S-K-08,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-HUM-07,S-K-09,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-07
+R-KON-14,S-K-11,S-K,tak,5.8.9 Wymagania,katalog,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-14,S-K,tak,5.8.9 Wymagania,katalog,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-KON-14,S-K-17,S-K,tak,5.8.9 Wymagania,katalog,"weryfikacja R-KON-14; przypadki 7.8: 33, 48, 49, 60"
+R-HUM-01,S-K-18,S-K,tak,5.7.7 Wymagania,katalog,weryfikacja R-HUM-01
+R-PIE-04,S-K-27,S-K,tak,7.7 Wymagania,katalog,"weryfikacja R-PIE-04; przypadki 7.8: 6, 43"
+R-KON-42,S-K-33,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-42
+R-KON-52,S-K-33,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-52
+R-KON-52,S-K-34,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-52
+R-KON-62,S-K-38,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-62
+R-KON-56,S-K-39,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-56
+R-KON-57,S-K-39,S-K,tak,5.8.9 Wymagania,katalog,weryfikacja R-KON-57
+R-EKR-43,„Co znaczą te liczby”,nazwany,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-43
+R-EKR-12,E-07,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-12
+R-EKR-05,E-10,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-PIE-01,E-10,E,tak,7.7 Wymagania,katalog,weryfikacja R-PIE-01; przypadki 7.8: 1
+R-EKR-12,E-11,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-12
+R-EKR-05,E-12,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-PIE-01,E-12,E,tak,7.7 Wymagania,katalog,weryfikacja R-PIE-01; przypadki 7.8: 1
+R-EKR-05,E-13,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-EKR-05,E-14,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-PIE-01,E-14,E,tak,7.7 Wymagania,katalog,weryfikacja R-PIE-01; przypadki 7.8: 1
+R-EKR-12,E-20,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-12
+R-EKR-40,E-23,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-40; przypadki 7.8: 49
+R-EKR-05,E-31,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-EKR-05,E-33,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-AW-04,E-37,E,tak,5.3.2 Wymagania,katalog,weryfikacja R-AW-04
+R-EKR-05,E-37,E,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-05
+R-SKI-44,L-01,L,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-44
+R-SKI-12,L-02,L,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-HIP-01,L-04,L,tak,5.12.10 Wymagania,katalog,"weryfikacja R-HIP-01; przypadki 7.8: 15, 51"
+R-SKI-14,L-08,L,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-14
+R-SKI-12,L-10,L,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-12; przypadki 7.8: 45
+R-LEK-01,L-12,L,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-01; przypadki 7.8: 37
+R-SKI-16,pytanie o senność,nazwany,tak,5.12.10 Wymagania,katalog,weryfikacja R-SKI-16; przypadki 7.8: 14
+R-PRZ-13,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog,weryfikacja R-PRZ-13; przypadki 7.8: 28
+R-LEK-03,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-03
+R-LEK-04,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-04
+R-LEK-06,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-06
+R-LEK-11,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-11
+R-LEK-21,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-21
+R-LEK-22,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-22
+R-LEK-32,raport (QR),nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-32
+R-LEK-13,strona A4,nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-13
+R-LEK-14,strona A4,nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-14
+R-LEK-16,strona A4,nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-16
+R-LEK-17,strona A4,nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-17
+R-LEK-19,strona A4,nazwany,tak,5.13.8 Wymagania,katalog,weryfikacja R-LEK-19
+R-HUM-12,,brak,nie,5.7.7 Wymagania,brak powiązania,weryfikacja R-HUM-12
+R-NF-21,,brak,nie,8.2 Wymagania,brak powiązania,weryfikacja R-NF-21

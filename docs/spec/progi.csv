@@ -1,0 +1,403 @@
+id_progu,regula,miejsce,wartosc,jednostka,opis,zrodlo,pochodzenie,tryb,status
+R-DANE-13.m01_min,R-DANE-13,,4,h,definicja: noc ważna: czas terapii M-01 co najmniej tyle (4.2),"CMS, próg adherencji 4 h",spec 1.2,wszystkie,definicja
+R-DANE-27.start_nocy,R-DANE-27,M-17;M-18,18:00,godzina,M-17 i M-18 liczą tylko sesje zaczęte od tej godziny dnia day,brak,spec 1.2,wszystkie,do kalibracji
+R-DANE-27.wczesny_sen_min,R-DANE-27,,4,h,"wyjątek wczesnego snu: najdłuższa sesja przed 18:00 co najmniej tyle, gdy po 18:00 nie ma takiej sesji",brak,spec 1.2,wszystkie,do kalibracji
+R-DANE-23.przeciek_nosowa,R-DANE-23,4.9|duży wyciek: warunek zdarzenia E-20 (≥ 1,24,L/min,"próg dużego wycieku dla każdej maski, bez względu na tag MSK (decyzja 01.11.2026; ID z historii nazwy); stała firmware AirBridge (M-08 zawsze przy 24 L/min); 04.11.2026 rano obniżony do 15, tego samego dnia cofnięty na stałe bez ustawienia (wariant A, konsultacja kliniczna); wyciek od 10 do 24 L/min opisuje ustawienie R-KONF-42, które tego progu nie zmienia","ResMed Therapy Handbook, C; ATS 2013, W; próg AirBridge",spec 1.2,wszystkie,stała AirBridge
+E-23.przeciek_p95,E-23,§1.4;S-K-10,27,L/min,"wyciek od 27 L/min (do 04.11.2026 „bardzo duży wyciek”): M-07 P95 ostatniej nocy co najmniej tyle, każda maska; wyklucza tego ranka S-K-10, S-K-14 i linię E-20 (S-K-11 nie: 6.4 i 7.2) (decyzja 01.11.2026; kalibracja)","brak; obserwacja własna, 1 osoba",spec 1.2,wszystkie,do kalibracji
+R-SKI-32.spo2_min_proba,R-SKI-32,M-24,50,%,próbka SpO2 poniżej tej wartości to artefakt oksymetru,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-32.spadek_max,R-SKI-32,M-24,4,pkt proc./s,spadek SpO2 szybszy niż tyle to artefakt,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-32.odcinek_min,R-SKI-32,M-24,10,s,T88 i T90 liczą tylko odcinki poniżej progu trwające co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-20.pokrycie_spo2,R-SKI-20,L-06;R-SKI-21;§5.12.3,70,%,"noc liczy się do L-06, gdy pomiar SpO2 pokrywa co najmniej tyle czasu terapii",brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-27.noc_z_terapia_m01,R-SKI-27,1.5|Noc z terapią;§5.12.3;R-SKI-21;R-SKI-23;R-SKI-34;5.12.8|Przerwa planowana,15,min,"noc z terapią dla L-08, L-09, L-11 i L-12: M-01 co najmniej tyle (słownik 1.5)",brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-24.noce_nieczytelne,R-SKI-24,§5.12.3,4/7,noce (k z n),"linia „Noce mało czytelne”, gdy tyle z 7 ostatnich nocy z terapią nie jest ważnych dla L",brak,spec 1.2,wszystkie,do kalibracji
+R-DANE-29.tryb_obslugiwany,R-DANE-29,4.11|tryb (MOP),CPAP;AutoSet;ASV;ASVAuto,tag MOP,tryby oceniane w wydaniu 1.x (ADR-0030); noce strojenia tylko w ASVAuto (w STR.edf Mode = 8); inne tryby i tryb nieznany: R-DANE-29,ADR-0016; ADR-0030,spec 1.2,wszystkie,definicja
+M-21.pola_ustawien,M-21,4.11|ustawienia (M-21),EAI;EAX;ANS;AXS,tagi,"pola ustawień M-21 w ASVAuto: min. i maks. EPAP, min. i maks. wsparcie PS; tag EPR pomijany",AirBridge settings_defs.h (MODE_LAYOUT 8),spec 1.2,ASVAuto,definicja
+M-21.pola_ustawien,M-21,4.11|ustawienia (M-21),IPC;EPR,tagi,pola ustawień M-21 w CPAP: ciśnienie i EPR; bez nocy strojenia w tym trybie (ADR-0030),AirBridge settings_defs.h; spec 4.11,spec 1.2,CPAP,definicja
+M-21.pola_ustawien,M-21,4.11|ustawienia (M-21),MPI;MPA;EPR,tagi,"pola ustawień M-21 w AutoSet: min. i maks. ciśnienie, EPR; bez nocy strojenia w tym trybie (ADR-0030)",AirBridge settings_defs.h; spec 4.11,spec 1.2,AutoSet,definicja
+M-21.pola_ustawien,M-21,4.11|ustawienia (M-21),EEP;MNS;MXS,tagi,"pola ustawień M-21 w ASV ze stałym EPAP: EPAP, min. i maks. wsparcie PS; tag EPR pomijany; bez nocy strojenia w tym trybie (ADR-0030)",AirBridge settings_defs.h; spec 4.11,spec 1.2,ASV,definicja
+M-21.maksimum_cisnienia,M-21,,EAX,cmH2O (wzór),"maksimum dla L-04, H-02, znacznika K2 w ASVAuto: maksymalne EPAP, porównywane z P95 EPAP; EAX+AXS tylko do opisu",brak,spec 1.2,ASVAuto,definicja
+M-21.maksimum_cisnienia,M-21,,MPA,cmH2O (wzór),"maksimum dla L-04, H-02, znacznika K2 w AutoSet, porównywane z M-05p; w CPAP i ASV ze stałym EPAP L-04, H-02 i znacznik nie działają (4.11); bez nocy strojenia w tym trybie (ADR-0030)",spec 4.11,spec 1.2,AutoSet,definicja
+H-01.minimum_cisnienia,H-01,,EAI,tag,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: minimum ciśnienia dla H-01 w ASVAuto",brak,spec 1.2,ASVAuto,definicja
+H-01.minimum_cisnienia,H-01,,MPI,tag,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: minimum ciśnienia dla H-01 w AutoSet; w CPAP, ASV i ASVAuto H-01 nie działa (4.11); bez nocy strojenia w tym trybie (ADR-0030)",spec 4.11,spec 1.2,AutoSet,definicja
+H-01.cisnienie,H-01,,M-06,metryka,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: w ASVAuto „ciśnienie” w H-01 to EPAP (M-06)",brak,spec 1.2,ASVAuto,definicja
+E-36.sygnal_cisnienia,E-36,,M-06p,metryka,"w trybie ASV sygnał ciśnienia dla użytkownika (E-36, L-07, S-K-17, S-K-20, S-K-30, R-NOR-20, R-NOR-21, R-NOR-23) to EPAP P95 (M-06p), nie ciśnienie wdechowe M-05p (4.11); decyzja 29.10.2026; w ASV bez nocy strojenia (ADR-0030)",brak,spec 1.2,ASV;ASVAuto,definicja
+E-36.sygnal_cisnienia,E-36,,M-05p,metryka,"poza trybem ASV sygnał ciśnienia E-36 to ciśnienie P95 (M-05p, 4.11: wiersz „E-36 … | ciśnienie (M-05p)”)",brak,spec 1.2,CPAP;AutoSet,definicja
+E-36.slowo_cisnienia,E-36,,EPAP,słowo,"słowo sygnału ciśnienia w tekstach E-36 w trybie ASV: `EPAP wyższe niż zwykle`, `EPAP w szczytach nocy …` (4.11)",brak,spec 1.2,ASV;ASVAuto,definicja
+E-36.slowo_cisnienia,E-36,,Ciśnienie,słowo,"słowo sygnału ciśnienia w tekstach E-36 poza trybem ASV: `Ciśnienie wyższe niż zwykle`, `Ciśnienie w szczytach nocy …` (6.4)",brak,spec 1.2,CPAP;AutoSet,definicja
+R-NOR-07.zmiana_ustawien,R-NOR-07,"4.11|zmiana ustawień (4.8, R-HIP-10);4.11|zmiana trybu (MOP)",MOP;EAI;EAX;ANS;AXS,tagi,"zmiana któregokolwiek pola między nocami w trybie obsługiwanym zeruje normę ciśnienia (M-05, M-05p, M-06, M-06p), wsparcia (M-28, M-28p), wycieku, M-10 i M-11 (4.8); wiersz dla ASVAuto, pozostałe tryby w kolejnych wierszach R-NOR-07.zmiana_ustawien z tym samym id_progu i innym trybem (ADR-0030)",brak,spec 1.2,ASVAuto,definicja
+R-NOR-07.zmiana_ustawien,R-NOR-07,"4.11|zmiana ustawień (4.8, R-HIP-10);4.11|zmiana trybu (MOP)",MOP;IPC;EPR,tagi,zmiana któregokolwiek pola między nocami w trybie obsługiwanym zeruje normę metryk z 4.8; tryb CPAP; bez nocy strojenia w tym trybie (ADR-0030),spec 4.11,spec 1.2,CPAP,definicja
+R-NOR-07.zmiana_ustawien,R-NOR-07,"4.11|zmiana ustawień (4.8, R-HIP-10);4.11|zmiana trybu (MOP)",MOP;MPI;MPA;IPC;EPR,tagi,zmiana któregokolwiek pola między nocami w trybie obsługiwanym zeruje normę metryk z 4.8; tryb AutoSet; bez nocy strojenia w tym trybie (ADR-0030),spec 4.11,spec 1.2,AutoSet,definicja
+R-NOR-07.zmiana_ustawien,R-NOR-07,"4.11|zmiana ustawień (4.8, R-HIP-10);4.11|zmiana trybu (MOP)",MOP;EEP;MNS;MXS,tagi,zmiana któregokolwiek pola między nocami w trybie obsługiwanym zeruje normę metryk z 4.8; tryb ASV ze stałym EPAP; bez nocy strojenia w tym trybie (ADR-0030),spec 4.11,spec 1.2,ASV,definicja
+L-04.wariant,L-04,,EPAP (wariant 2),wariant,w ASVAuto L-04 działa w wariancie EPAP: P95 EPAP przy maksymalnym EPAP (EAX) ze zdarzeniami obturacyjnymi (decyzja 25.10.2026),brak,spec 1.2,ASVAuto,do kalibracji
+WY16.data_zamrozenia,WY16,,brak,data,data zamrożenia progów; wpisywana razem z tagiem progi-RRRRMMDD,brak,spec 1.2,wszystkie,do zadeklarowania
+R-NOR-12.delta.M-01,R-NOR-12,M-01,-1.5,h,"Δ minimalnego efektu, czas na masce (alarm w dół, P10)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-02,R-NOR-12,M-02,3,/h,"Δ minimalnego efektu, AHI (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-03,R-NOR-12,M-03,1,/h,"Δ minimalnego efektu, CA/h (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-05p,R-NOR-12,M-05p,2,cmH2O,"Δ minimalnego efektu, ciśnienie P95 (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-06p,R-NOR-12,M-06p,2,cmH2O,"Δ minimalnego efektu, EPAP P95 (w górę, P90); w trybie ASV zamiast M-05p w E-36, L-07, S-K-17, S-K-20, S-K-30 (4.11); wartość przeniesiona z M-05p decyzją właściciela 29.10.2026; w ASV bez nocy strojenia (ADR-0030)",brak,spec 1.2,ASV;ASVAuto,do kalibracji
+R-NOR-12.delta.M-07,R-NOR-12,M-07,10,L/min,"Δ minimalnego efektu, wyciek P95 (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-11,R-NOR-12,M-11,0.3,GI,"Δ minimalnego efektu, GI (w górę, P90); moduł GI zablokowany do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-13,R-NOR-12,M-13,2,/min,"Δ minimalnego efektu, oddechy na minutę (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-17,R-NOR-12,M-17,2,przerwy,"Δ minimalnego efektu, przerwy w nocy (w górę, P90)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-14,R-NOR-12,M-14,60,mL,"Δ minimalnego efektu, objętość oddechowa (w górę i w dół, P90 albo P10; decyzja)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-12.delta.M-15,R-NOR-12,M-15,1.0,L/min,"Δ minimalnego efektu, wentylacja minutowa (w górę, P90; decyzja)",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-03.wejscie,R-NOR-03,§4.6,3/5,noce (k z n),wejście w stan odchylenia: odchylenie w tylu z 5 ostatnich nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-04.wyjscie_noce,R-NOR-04,§4.6,3,noce,wyjście ze stanu odchylenia: tyle kolejnych nocy ważnych w granicy połowy Δ,brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-04.wyjscie_ulamek_delta,R-NOR-04,,0.5,× Δ,wyjście: wartość nie dalej od mediany normy niż ta część Δ,brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-06.nowy_poziom,R-NOR-06,§4.7,21,noce,"metryka techniczna (M-01, M-07, M-17) w stanie odchylenia tyle kolejnych nocy ważnych: nowa norma",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-20.metryka_zdrowotna,R-NOR-20,§4.7,21,noce,"metryka zdrowotna w stanie odchylenia tyle kolejnych nocy ważnych: zdanie w raporcie dla lekarza, stan trwa",brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-21.linia_od_nocy,R-NOR-21,,=R-NOR-20.metryka_zdrowotna,noce,linia „Od {n} tyg.” od tylu kolejnych nocy stanu odchylenia metryki zdrowotnej,brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-21.linia_co_dni,R-NOR-21,§4.7,7,dni,"linia „Od {n} tyg.” metryki zdrowotnej najwyżej raz na tyle dni (okno kroczące)",brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-36.p90_ahi,R-EKR-36,5.4.8|Krok,5,/h,"S8 w tonie „informacja”, gdy P90 normy AHI co najmniej tyle",brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-36.p90_ca,R-EKR-36,5.4.8|Krok,2,/h,"S8 w tonie „informacja”, gdy P90 normy CA/h co najmniej tyle; tylko poza trybem ASV (od 04.11.2026) i po zaliczeniu testu kalibracji; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,CPAP;AutoSet,do kalibracji
+E-05.bateria_linia,E-05,,15,%,linia o baterii ekranu przy tym poziomie i niżej,brak,spec 1.2,wszystkie,do kalibracji
+E-05.bateria_krytyczna,E-05,,5,%,krytyczny poziom baterii ekranu (stan brak danych),brak,spec 1.2,wszystkie,do kalibracji
+E-05.bateria_koniec,E-05,,20,%,"zdarzenie znika, gdy bateria powyżej tego poziomu",brak,spec 1.2,wszystkie,do kalibracji
+E-07.noce_bez_czujnika,E-07,,3,noce,czujnik sypialni nie odpowiada tyle nocy z rzędu,brak,spec 1.2,wszystkie,do kalibracji
+E-10.noc_bez_terapii_m01,E-10,,=R-SKI-27.noc_z_terapia_m01,min,noc kompletna z M-01 poniżej tego to noc bez terapii,brak,spec 1.2,wszystkie,do kalibracji
+E-10.noce_problem,E-10,,2,noce,tyle kolejnych nocy bez terapii daje poziom „problem”,brak,spec 1.2,wszystkie,do kalibracji
+E-11.terapia_min,E-11,,=R-SKI-27.noc_z_terapia_m01,min,krótka noc: terapia co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-55.terapia_min,R-EKR-55,,=R-SKI-27.noc_z_terapia_m01,min,"kolumna `czas z maską` paska S2a: noc z terapią co najmniej tyle",brak,spec 1.2,wszystkie,do kalibracji
+E-11.krotka_noc_max,E-11,,4,h,krótka noc: terapia poniżej tego,"CMS, próg adherencji 4 h",spec 1.2,wszystkie,do kalibracji
+E-12.noc_min,E-12,,4,h,noc liczona do regularności: M-01 co najmniej tyle,"ATS 2013 i CMS, W",spec 1.2,wszystkie,do kalibracji
+E-12.odsetek_min,E-12,,70,%,terapia nieregularna przy mniej niż tylu nocach ≥ 4 h w ostatnich d dniach,"ATS 2013 i CMS, W",spec 1.2,wszystkie,do kalibracji
+E-12.historia_min,E-12,,14,dni,zdarzenie działa od tylu dni historii,własna bramka,spec 1.2,wszystkie,do kalibracji
+E-12.okno_po_przerwie,E-12,R-SKI-35;5.12.8|Przerwa planowana,30,dni,tyle dni po przerwie planowanej liczone bez nocy tej przerwy (R-SKI-35),brak,spec 1.2,wszystkie,do kalibracji
+E-12.wyjscie_dni,E-12,,3,dni,zdarzenie znika po tylu kolejnych dniach z odsetkiem ≥ 70%,brak,spec 1.2,wszystkie,do kalibracji
+E-20.odsetek_czasu,E-20,4.9|duży wyciek: warunek zdarzenia E-20 (≥ 1,10,%,duży wyciek: powyżej progu maski przez co najmniej tyle czasu terapii; też warunek nocy niepewnej (4.9),brak,spec 1.2,wszystkie,do kalibracji
+E-20.minuty,E-20,4.9|duży wyciek: warunek zdarzenia E-20 (≥ 1,30,min,duży wyciek: albo co najmniej tyle minut powyżej progu maski; też warunek nocy niepewnej (4.9),brak,spec 1.2,wszystkie,do kalibracji
+E-21.wilgotnosc_linia,E-21,5.8.6|linia przy E-21,35,%,"dodatkowa linia o suchym powietrzu, gdy minimum wilgotności sypialni poniżej tego",brak,spec 1.2,wszystkie,do kalibracji
+E-22.wejscie,E-22,,3/5,noce (k z n),maska nieszczelna: E-20 w tylu z 5 ostatnich nocy,brak,spec 1.2,wszystkie,do kalibracji
+E-22.wyjscie,E-22,,3,noce,znika po tylu kolejnych nocach bez E-20,brak,spec 1.2,wszystkie,do kalibracji
+E-30.ahi,E-30,,5,/h,E-30: mediana AHI z 7 ostatnich nocy ważnych co najmniej tyle (od 04.11.2026 zamiast nocy z AHI ≥ 5 w 3 z 7); wyjście: mediana poniżej tego,"brak (cel leczenia, źródło do dopisania: pytanie otwarte); mediana: propozycja z konsultacji klinicznej, 04.11.2026",spec 1.2,wszystkie,do kalibracji
+E-30.okno,E-30,,7,noce,"E-30: okno mediany AHI, tyle ostatnich nocy ważnych (od 04.11.2026)","propozycja z konsultacji klinicznej, 04.11.2026; nie granica choroby",spec 1.2,wszystkie,do kalibracji
+E-31.krok_lekarz,E-31,,=R-NOR-20.metryka_zdrowotna,noce,"krok „Obserwuj kolejne noce” (od 04.11.2026 zamiast „Pokaż lekarzowi”, konsultacja kliniczna) od rana po tylu nocach stanu odchylenia M-02 (R-NOR-23)",brak,spec 1.2,wszystkie,do kalibracji
+E-33.krok_lekarz,E-33,,=R-NOR-20.metryka_zdrowotna,noce,"krok „Obserwuj kolejne noce” (od 04.11.2026 zamiast „Pokaż lekarzowi”, konsultacja kliniczna) od rana po tylu nocach stanu odchylenia M-03 (R-NOR-23)",brak,spec 1.2,wszystkie,do kalibracji
+E-33.mediana_ca,E-33,,3,/h,E-33 wymaga też mediany CA/h z 5 ostatnich nocy ważnych co najmniej tyle; wyjście poniżej,"propozycja z konsultacji klinicznej, 04.11.2026; nie granica choroby",spec 1.2,wszystkie,do kalibracji
+E-33.okno,E-33,,5,noce,"E-33: okno mediany CA/h, tyle ostatnich nocy ważnych (od 04.11.2026)","propozycja z konsultacji klinicznej, 04.11.2026; nie granica choroby",spec 1.2,wszystkie,do kalibracji
+E-36.noce,E-36,,5/7,noce (k z n),odchylenie M-05p w tylu z 7 ostatnich nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+E-36.krok_lekarz,E-36,,=R-NOR-20.metryka_zdrowotna,noce,"krok „Obserwuj kolejne noce” (od 04.11.2026 zamiast „Pokaż lekarzowi”, konsultacja kliniczna) od rana po tylu nocach stanu odchylenia M-05p (R-NOR-23)",brak,spec 1.2,wszystkie,do kalibracji
+E-37.bilans_roznica,E-37,§5.15.4;R-GI-05,20,%,"wariant „bilans”: różnica objętości wdechu i wydechu powyżej tego (R-GI-05); eksperymentalne, zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+E-37.bilans_minuty,E-37,§5.15.4;R-GI-05,30,min,"wariant „bilans”: różnica trwa co najmniej tyle w nocy; eksperymentalne, zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+E-37.bilans_noce,E-37,§5.15.4;R-GI-05,3/5,noce (k z n),"wariant „bilans”: w tylu z 5 nocy ważnych; eksperymentalne, zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+L-01.srednia_ca,L-01,,5,/h,wejście: średnia CA/h z 7 nocy ważnych dla L co najmniej tyle,"Liu, Chest 2017, A",spec 1.2,wszystkie,do kalibracji
+L-01.noce_ca,L-01,,3/7,noce (k z n),wejście: CA ≥ 5 / h w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-01.wyjscie_max,L-01,,3,/h,"wyjście: średnia CA/h z 7 nocy ważnych dla L poniżej tego (od 04.11.2026 jedyna droga, droga udziału CA w AHI wycofana)",brak,spec 1.2,wszystkie,do kalibracji
+L-01.wyjscie_noce,L-01,,7,noce,wyjście: tyle kolejnych nocy ważnych dla L poniżej progu wyjścia,brak,spec 1.2,wszystkie,do kalibracji
+L-01.ponowne_wejscie,L-01,R-SKI-31;§5.12.12;5.12.12|aktywny (dowolna pilność),28,noce,ponowne wejście w tylu nocach od wyjścia przywraca poprzedni stan (R-SKI-31),brak,spec 1.2,wszystkie,do kalibracji
+L-01.karencja_okno,L-01,R-SKI-08,56,dni,"karencja (tryby CPAP i AutoSet; w trybie ASV wycofana, zob. L-01.asv_noce_po_zmianie): w tylu dniach kalendarzowych (8 tygodni) od znanej daty rozpoczęcia leczenia z ustawienia „Początek leczenia”; data nieznana = bez karencji; od 04.11.2026 nie od pierwszej nocy w panelu ani od zmiany ustawień (konsultacja kliniczna; R-SKI-08); bez nocy strojenia w tym trybie (ADR-0030)","Javaheri 2009, Cassel 2011, B (przemijanie do 8 tygodni)",spec 1.2,CPAP;AutoSet,do kalibracji
+L-01.karencja_noc,L-01,R-SKI-08,14,noc trwania,w karencji pilność B dopiero w tej nocy trwania warunku (R-SKI-08); bez nocy strojenia w tym trybie (ADR-0030),brak,spec 1.2,CPAP;AutoSet,do kalibracji
+L-01.karencja_ca,L-01,R-SKI-08,10,/h,karencja nie obowiązuje przy średniej CA/h co najmniej tyle (R-SKI-08); bez nocy strojenia w tym trybie (ADR-0030),brak,spec 1.2,CPAP;AutoSet,do kalibracji
+L-01.asv_noce_po_zmianie,L-01,R-SKI-43,7,noce,"w trybie ASV po zmianie ustawień L-01 wchodzi dopiero, gdy tyle nocy ważnych dla L jest po zmianie (okno 7 nocy tylko z nocy po zmianie); w ASV bez nocy strojenia (ADR-0030)","brak; decyzja 04.11.2026: 7 nocy = długość okna L-01, więc ocena zaczyna się od pierwszego okna złożonego wyłącznie z nocy po zmianie; konsultacja kliniczna mówiła o „kilku kolejnych ważnych nocach”",spec 1.2,ASV;ASVAuto,do kalibracji
+L-02.a_noce,L-02,,3/14,noce (k z n),(a) csr_seconds co najmniej L-02.a_minuty_noc w tylu z 14 nocy (od 04.11.2026),brak,spec 1.2,wszystkie,do kalibracji
+L-02.a_minuty_noc,L-02,,20,min,"(a) noc liczy się, gdy csr_seconds co najmniej tyle minut (1200 s)","propozycja z konsultacji klinicznej, 04.11.2026, nie zwalidowany próg",spec 1.2,wszystkie,do kalibracji
+L-02.a_wyjscie,L-02,,2/14,noce (k z n),(a) wyjście: noce z csr_seconds co najmniej L-02.a_minuty_noc w mniej niż tylu z 14 nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-02.b_mnoznik,L-02,,2,× norma,(b) mediana CSR% z 7 nocy co najmniej tyle razy mediana normy,brak,spec 1.2,wszystkie,do kalibracji
+L-02.b_roznica,L-02,,1,pkt proc.,(b) i co najmniej o tyle punktów procentowych więcej,brak,spec 1.2,wszystkie,do kalibracji
+L-02.b_wyjscie_mnoznik,L-02,,1.25,× norma,(b) wyjście: mediana CSR% najwyżej tyle razy mediana normy,brak,spec 1.2,wszystkie,do kalibracji
+L-02.b_wyjscie_noce,L-02,,7,noce,(b) wyjście: przez tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-03.okno,L-03,,14,noce,(≥ 10) mediana AHI z tylu nocy ważnych dla L,brak,spec 1.2,wszystkie,do kalibracji
+L-03.ahi_wysokie,L-03,,10,/h,(≥ 10) mediana AHI co najmniej tyle,"ATS 2013 wg Rotty 2019, W/B; Kushida 2008, W",spec 1.2,wszystkie,do kalibracji
+L-03.min_noce,L-03,,10,noce,(≥ 10) przy co najmniej tylu takich nocach,brak,spec 1.2,wszystkie,do kalibracji
+L-03.wyjscie_wysokie,L-03,,7,/h,(≥ 10) wyjście: mediana poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+L-03.okno_srednie,L-03,,28,noce,(5–10) mediana 5–10 / h przez tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-03.ahi_srednie_dol,L-03,,5,/h,(5–10) dolna granica mediany; wyjście poniżej niej,brak,spec 1.2,wszystkie,do kalibracji
+L-03.ahi_srednie_gora,L-03,,10,/h,(5–10) górna granica mediany,brak,spec 1.2,wszystkie,do kalibracji
+L-03.sennosc,L-03,,2/4,tygodnie (k z n),(5–10 + senność) senność = tak w tylu z 4 tygodni,brak,spec 1.2,wszystkie,do kalibracji
+L-04.margines_max,L-04,,0.5,cmH2O,"M-05p co najmniej maksimum minus tyle; wariant AutoSet, w ASVAuto zob. L-04.wariant; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.noce,L-04,,5/7,noce (k z n),"M-05p przy maksimum w tylu z 7 nocy; wariant AutoSet, w ASVAuto zob. L-04.wariant; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.zdarzenia_obturacyjne,L-04,,5,/h,"i mediana OA na godzinę co najmniej tyle (od 04.11.2026 tylko OA, wcześniej OA + UA + H; konsultacja kliniczna, propozycja z konsultacji klinicznej); wariant AutoSet, w ASVAuto zob. L-04.wariant; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.wyjscie_noce,L-04,,3/7,noce (k z n),"wyjście: przy maksimum w mniej niż tylu z 7 nocy; wariant AutoSet, w ASVAuto zob. L-04.wariant; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.wyjscie_zdarzenia,L-04,,3,/h,"albo OA na godzinę poniżej tego przez 7 nocy (od 04.11.2026 tylko OA); wariant AutoSet, w ASVAuto zob. L-04.wariant; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.margines_max,L-04,,0.5,cmH2O,P95 EPAP co najmniej EAX minus tyle,brak,spec 1.2,ASVAuto,do kalibracji
+L-04.noce,L-04,,5/7,noce (k z n),P95 EPAP przy maksimum w tylu z 7 nocy ważnych dla L,brak,spec 1.2,ASVAuto,do kalibracji
+L-04.zdarzenia_obturacyjne,L-04,,5,/h,"i mediana OA na godzinę co najmniej tyle (od 04.11.2026 tylko OA, wcześniej OA + UA + H; konsultacja kliniczna)",brak,spec 1.2,ASVAuto,do kalibracji
+L-04.wyjscie_noce,L-04,,3/7,noce (k z n),wyjście: przy maksimum w mniej niż tylu z 7 nocy,brak,spec 1.2,ASVAuto,do kalibracji
+L-04.wyjscie_zdarzenia,L-04,,3,/h,albo OA na godzinę poniżej tego przez 7 nocy (od 04.11.2026 tylko OA),brak,spec 1.2,ASVAuto,do kalibracji
+L-05.wzrost,L-05,,3,/min,M-13 co najmniej mediana normy plus tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-05.noce,L-05,,3,noce,"w tylu kolejnych nocach ważnych dla L (w okresie infekcji po „gorzej”: z terapią, bez nocy niepewnych od 04.11.2026)",brak,spec 1.2,wszystkie,do kalibracji
+L-05.wyjscie_wzrost,L-05,,1.5,/min,wyjście: M-13 poniżej mediany normy plus tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-05.wyjscie_noce,L-05,,3,noce,wyjście: przez tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-06.terapia_min,L-06,,=R-SKI-27.noc_z_terapia_m01,min,noc liczona do L-06: terapia co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-06.spo2_88,L-06,,88,%,próg T88,"Kushida 2008, W; CMS",spec 1.2,wszystkie,do kalibracji
+L-06.spo2_90,L-06,,90,%,próg T90,"Kushida 2008, W",spec 1.2,wszystkie,do kalibracji
+L-06.a_t88,L-06,,5,min,(a) T88 łącznie co najmniej tyle,"AASM, Kushida 2008, W; CMS (orientacyjnie z oksymetru konsumenckiego)",spec 1.2,wszystkie,do kalibracji
+L-06.a_noce,L-06,,3/7,noce (k z n),(a) w tylu z 7 nocy z pomiarem,brak,spec 1.2,wszystkie,do kalibracji
+L-06.b_t88,L-06,,30,min,(b) T88 co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-06.b_noce,L-06,,2/3,noce (k z n),(b) w tylu z 3 ostatnich nocy z pomiarem,brak,spec 1.2,wszystkie,do kalibracji
+L-06.c_mnoznik,L-06,,2,× mediana,(c) T90 co najmniej tyle razy mediana T90 z 14 poprzednich nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-06.c_roznica,L-06,,10,min,(c) i co najmniej o tyle minut więcej,brak,spec 1.2,wszystkie,do kalibracji
+L-06.c_noce,L-06,,3/7,noce (k z n),(c) w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-06.wyjscie,L-06,,2/7,noce (k z n),"(a), (b) i (c): wyjście przy warunku w mniej niż tylu z 7 nocy z pomiarem; noc bez pomiaru się nie liczy (zamknięte 04.11.2026)",brak,spec 1.2,wszystkie,do kalibracji
+L-07.wzrost_m05p,L-07,,2,cmH2O,mediana M-05p z 7 nocy co najmniej mediana normy plus tyle; ten sam próg w S-K-20,brak,spec 1.2,wszystkie,do kalibracji
+L-07.czas,L-07,,14,noce,przez co najmniej tyle nocy; ten sam próg w S-K-20,brak,spec 1.2,wszystkie,do kalibracji
+L-08.e12_dni,L-08,,28,dni,E-12 aktywne co najmniej tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+L-08.szybki_m19,L-08,,50,%,wariant szybki: M-19 poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+L-08.szybki_m19_wczesniej,L-08,,90,%,wariant szybki: przy M-19 co najmniej tyle 30 dni wcześniej,brak,spec 1.2,wszystkie,do kalibracji
+L-08.wyjscie_m19,L-08,,70,%,wyjście: M-19 co najmniej tyle,CMS,spec 1.2,wszystkie,do kalibracji
+L-08.wyjscie_dni,L-08,,14,dni,wyjście: przez tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+L-09.e22_noce,L-09,,21,noce,E-22 aktywne co najmniej tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-09.sk10_noce,L-09,,10/14,noce (k z n),"albo M-07 P95 powyżej progu R-DANE-23 (24 L/min, niezależnie od ustawienia R-KONF-42) w tylu z 14 nocy (do 04.11.2026: „S-K-10 spełnione”, gdy S-K-10 miał ten sam próg)",brak,spec 1.2,wszystkie,do kalibracji
+L-09.wyjscie_noce,L-09,,7,noce,wyjście: tyle kolejnych nocy z terapią bez warunku E-20,brak,spec 1.2,wszystkie,do kalibracji
+L-10.tygodnie,L-10,,2,tygodnie,S-K-19 w tylu kolejnych tygodniach i senność = tak w obu,brak,spec 1.2,wszystkie,do kalibracji
+L-10.wyjscie_tygodnie,L-10,,2,tygodnie,wyjście: S-K-19 niespełnione albo senność „nie” przez tyle tygodni,brak,spec 1.2,wszystkie,do kalibracji
+L-10.pilnosc_b_tygodnie,L-10,,4,tygodnie,pilność B po tylu tygodniach trwania (nie w wariancie tymczasowym),brak,spec 1.2,wszystkie,do kalibracji
+L-11.sennosc,L-11,,3/4,tygodnie (k z n),senność = tak w tylu z 4 tygodni,brak,spec 1.2,wszystkie,do kalibracji
+L-11.okno_ahi,L-11,,28,noce,mediana AHI z tylu nocy,brak,spec 1.2,wszystkie,do kalibracji
+L-11.ahi_max,L-11,,5,/h,mediana AHI poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+L-11.m19_min,L-11,,70,%,M-19 co najmniej tyle,CMS,spec 1.2,wszystkie,do kalibracji
+L-11.wariant_2tyg,L-11,R-SKI-29,2,tygodnie,wariant „2 tygodnie”: senność = tak w tylu kolejnych tygodniach z odpowiedzią (R-SKI-29),brak,spec 1.2,wszystkie,do kalibracji
+L-11.wariant_2tyg_okno,L-11,R-SKI-29,4,tygodnie,wariant „2 tygodnie”: oba tygodnie w ostatnich tylu tygodniach,brak,spec 1.2,wszystkie,do kalibracji
+L-11.wyjscie,L-11,,1/4,tygodnie (k z n),wyjście: senność = tak najwyżej w tylu z 4 tygodni,brak,spec 1.2,wszystkie,do kalibracji
+L-12.okno,L-12,,14,noce,porównanie tylu nocy z terapią po zmianie ustawień z tyloma przed,brak,spec 1.2,wszystkie,do kalibracji
+L-12.ahi,L-12,,3,/h,AHI wzrosło co najmniej o tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-12.m01,L-12,,-1,h,albo czas z maską krótszy co najmniej o tyle,brak,spec 1.2,wszystkie,do kalibracji
+L-12.m07_p95,L-12,,10,L/min,albo M-07 P95 wyższy co najmniej o tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-10.delta_ahi,R-LEK-10,§5.12.4,3,/h,Δ powrotu wyciszonego wzorca L: AHI,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-10.delta_ca,R-LEK-10,§5.12.4,2,/h,Δ powrotu wzorca L: CA/h,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-10.delta_t88,R-LEK-10,§5.12.4,10,min,Δ powrotu wzorca L: T88,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-10.delta_csr,R-LEK-10,§5.12.4,1,pkt proc.,Δ powrotu wzorca L: CSR%,brak,spec 1.2,wszystkie,do kalibracji
+H-01.margines_min,H-01,,1,cmH2O,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: czas przy ciśnieniu najwyżej minimum plus tyle",brak,spec 1.2,wszystkie,do kalibracji
+H-01.mnoznik,H-01,,2,× częstość,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: zdarzenia obturacyjne przy niskim ciśnieniu co najmniej tyle razy częstsze",brak,spec 1.2,wszystkie,do kalibracji
+H-01.noce,H-01,,8/14,noce (k z n),"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: w tylu z 14 nocy",brak,spec 1.2,wszystkie,do kalibracji
+H-02.maksimum_tryb,H-02,,15,cmH2O,"wariant „tryb terapii” H-02 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: wariant przy maksimum co najmniej tyle w AutoSet; w ASV i ASVAuto wariantu nie ma (4.11)","Kushida 2008, W",spec 1.2,wszystkie,do kalibracji
+H-03.odsetek,H-03,,40,%,co najmniej tyle zdarzeń obturacyjnych na starcie sesji,brak,spec 1.2,wszystkie,do kalibracji
+H-03.start_min,H-03,,20,min,start sesji = pierwsze tyle minut,brak,spec 1.2,wszystkie,do kalibracji
+H-03.noce,H-03,,6/14,noce (k z n),w tylu z 14 nocy,brak,spec 1.2,wszystkie,do kalibracji
+H-08.okno,H-08,R-HIP-10;H-04,56,noce,"przy L-01: L-01 weszło w tylu nocach po zmianie ustawień (4.8) → H-08 i zdanie R-HIP-10 we wszystkich trybach; do scalenia main 05.11.2026 próg H-04.okno, H-04 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna), ta sama wartość",brak,spec 1.2,wszystkie,do kalibracji
+H-06.noce,H-06,,4/7,noce (k z n),wzór fal wycieku (S-K-11) w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+H-09.m01,H-09,R-HIP-09,6,h,mediana M-01 w oknie L-11 poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-26.grupa_min,R-EKR-26,§5.4.10,5,noce,odkrycie z porównania grup: co najmniej tyle nocy ważnych w każdej grupie,brak,spec 1.2,wszystkie,do kalibracji
+O-03.historia,O-03,,30,dni,przy historii co najmniej tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+O-05.odsetek,O-05,,60,%,co najmniej tyle zdarzeń w ostatniej 1/3 nocy,brak,spec 1.2,wszystkie,do kalibracji
+O-05.noce,O-05,,5/7,noce (k z n),w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+O-06.co2,O-06,,1200,ppm,granica grup: CO2 nocy powyżej i najwyżej tyle,brak,spec 1.2,wszystkie,do kalibracji
+O-07.wilgotnosc,O-07,,35,%,granica grup: wilgotność poniżej i co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+O-09.start,O-09,,00:30,godzina,granica grup: start terapii M-18 po tej godzinie i wcześniej,brak,spec 1.2,wszystkie,do kalibracji
+O-10.okno,O-10,,30,min,"GI w oknach tej długości; eksperymentalne, zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+O-10.noce,O-10,,5,noce,"w co najmniej tylu nocach; eksperymentalne, zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+O-12.grupa_min,O-12,,5,noce,co najmniej tyle nocy z czynnikiem i tyle „nic szczególnego”,brak,spec 1.2,wszystkie,do kalibracji
+O-12.efektywna_min,O-12,§5.11.6;R-CZY-24,5,noce,efektywna liczebność każdej grupy co najmniej tyle (R-CZY-24),brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-24.waga_kontrolna,R-CZY-24,,=R-CZY-02.grupa_kontrolna,prawdopodobieństwo,p dla warstwy „kontrolnej” w wadze 1 / (p × r),brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-24.okno_odpowiedzi,R-CZY-24,§5.11.6,90,dni,odsetek odpowiedzi r liczony z tylu ostatnich dni,brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-21.mala_grupa,R-CZY-21,§5.11.6;§6.5,10,noce,grupa O-12 poniżej tylu nocy: zdanie „Może to przypadek.”,brak,spec 1.2,wszystkie,do kalibracji
+S-K-01.co2,S-K-01,,1000,ppm,CO2 sypialni zeszłej nocy powyżej tego,"ASHRAE 2021, B (efekty od ok. 1004 ppm); 1000 ppm: P",spec 1.2,wszystkie,do kalibracji
+S-K-01.czas,S-K-01,,2,h,przez co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-01.co2_biezacy,S-K-01,,1000,ppm,albo bieżący odczyt co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-54.co2_mediana,R-EKR-54,,1000,ppm,"S2c: czarne pole CO2 `ponad 1000` i bez zdania `Dobre warunki do snu.`, gdy mediana CO2 sypialni ostatniej nocy powyżej tego; ta sama liczba co S-K-01.co2, inna statystyka (mediana nocy, nie czas ponad progiem), kalibracja osobno","jak S-K-01: ASHRAE 2021, B (efekty od ok. 1004 ppm); 1000 ppm: P",spec 1.2,wszystkie,do kalibracji
+S-K-02.pm25,S-K-02,,15,µg/m³,PM2.5 za oknem powyżej tego,"WHO, średnia dobowa, W (użyte poza kontekstem)",spec 1.2,wszystkie,do kalibracji
+S-K-03.temperatura,S-K-03,,16,°C,temperatura sypialni teraz najwyżej tyle,"Nilius 2018, B (skraplanie przy 15 °C); 16 °C: P",spec 1.2,wszystkie,do kalibracji
+S-K-04.wilgotnosc,S-K-04,,35,%,wilgotność sypialni teraz poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+S-K-05.prognoza_max,S-K-05,,29,°C,prognoza maksimum dziś co najmniej tyle,"Vidal 2025, A",spec 1.2,wszystkie,do kalibracji
+S-K-05.sypialnia,S-K-05,,26,°C,albo sypialnia teraz co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-06.pylek,S-K-06,,10,% górnych wartości sezonu,prognoza pyłku w górnych tylu procentach sezonu,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-18.grupa_min,R-KON-18,,5,noce,S-K-06 od drugiego sezonu: co najmniej tyle nocy ważnych w każdej grupie,brak,spec 1.2,wszystkie,do kalibracji
+S-K-07.sd_startu,S-K-07,5.8.4|3,60,min,odchylenie standardowe M-18 z 7 ostatnich nocy z terapią powyżej tego,brak,spec 1.2,wszystkie,do kalibracji
+S-K-08.m01,S-K-08,,30,min,ostatnia noc z M-01 poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+S-K-09.weekendy,S-K-09,,4,weekendy,porównanie z tylu ostatnich weekendów,brak,spec 1.2,wszystkie,do kalibracji
+S-K-09.roznica,S-K-09,,30,min,mediana M-01 weekendów krótsza co najmniej o tyle,"Vidal 2025, A (minimalna istotna różnica)",spec 1.2,wszystkie,do kalibracji
+S-K-09.grupa_min,S-K-09,,5,noce,co najmniej tyle nocy w każdej grupie,brak,spec 1.2,wszystkie,do kalibracji
+S-K-10.przeciek_nosowa,S-K-10,,=R-DANE-23.przeciek_nosowa,L/min,"M-07 P95 ostatniej nocy powyżej tego, każda maska; S-K-10 w tonie „problem” z powodem `Wyciek ponad 24 l/min przez {min} min.` i „od kilku nocy” wykluczającym E-23 (od 06.11.2026 ton „problem” wchodzi już od S-K-10.problem_p95); od 04.11.2026 wariant opisowy od wartości ustawienia (S-K-10.uwaga_o_masce)","ResMed Therapy Handbook, C; ATS 2013, W",spec 1.2,wszystkie,stała AirBridge
+S-K-10.problem_p95,S-K-10,,=R-NOR-05.niepewna_p95,L/min,"S-K-10 w tonie „problem” (sprawdź maskę) od M-07 P95 ostatniej nocy co najmniej tyle, każda maska; „od kilku nocy” w paśmie od tej wartości do 24 L/min (≥ 3 z 7 nocy) z limitem R-KON-14 i bez wykluczania E-23; powyżej S-K-10.przeciek_nosowa powód z minutami ponad 24 L/min","decyzja 06.11.2026 (model pasm wycieku: „powyżej 15 AHI może już być zafałszowane i to jest duży wyciek”); bez źródła",spec 1.2,wszystkie,do kalibracji
+S-K-10.uwaga_o_masce,S-K-10,§1.4;R-KONF-42;5.6.4|Uwaga o masce od,10,L/min,"domyślna wartość ustawienia „Uwaga o masce od” (R-KONF-42, 5.6.4): wariant opisowy S-K-10 `Wyciek widoczny` (ton „informacja”) przy M-07 P95 co najmniej tyle i poniżej S-K-10.problem_p95 (15 L/min); nie steruje S-K-10 w tonie „problem”, S-K-14, S-K-39, K2 ani dużym wyciekiem (R-DANE-23)","propozycja z konsultacji klinicznej, 04.11.2026 (konsultacja kliniczna: wyciek od 10–15 L/min opisać neutralnie jako widoczny); decyzja 04.11.2026 (wariant A, 15); decyzja 06.11.2026 (model pasm wycieku: 10, zakres 10–15); bez źródła",spec 1.2,wszystkie,do kalibracji
+R-KONF-42.zakres_min,R-KONF-42,§1.4;5.6.4|Uwaga o masce od,10,L/min,"najniższa wartość ustawienia „Uwaga o masce od”","konsultacja kliniczna: wyciek od 10 L/min można opisać jako widoczny; opinia eksperta",spec 1.2,wszystkie,do kalibracji
+R-KONF-42.zakres_max,R-KONF-42,§1.4;5.6.4|Uwaga o masce od,=R-NOR-05.niepewna_p95,L/min,"najwyższa wartość ustawienia „Uwaga o masce od”: od progu nocy niepewnej wyciek jest duży i należy do S-K-10 w tonie „problem” (do 06.11.2026: 24 L/min, R-DANE-23.przeciek_nosowa)","decyzja 06.11.2026 (model pasm wycieku)",spec 1.2,wszystkie,do kalibracji
+R-KON-13.kilka_nocy,R-KON-13,,3/7,noce (k z n),wariant S-K-10 „od kilku nocy” przy warunku w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-11.epizody,S-K-11,,5,epizody,co najmniej tyle krótkich epizodów wycieku w nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-11.wzrost,S-K-11,,20,% tła,epizod: wzrost co najmniej o tyle ponad wyciek tła,"Matsumura 2025, B",spec 1.2,wszystkie,do kalibracji
+S-K-12.mediana_przecieku,S-K-12,4.9|duży wyciek przez znaczną część nocy: me,30,L/min,mediana wycieku nocy M-07 powyżej tego; ten warunek czyni noc niepewną (4.9),"prezentacja ResMed, C (0,5 L/s); mediana nocy: P",spec 1.2,wszystkie,do kalibracji
+S-K-12.terapia_min,S-K-12,,=R-SKI-27.noc_z_terapia_m01,min,albo terapia co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-12.terapia_max,S-K-12,,2,h,i krócej niż tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-13.co2,S-K-13,,1000,ppm,CO2 sypialni ostatniej nocy powyżej tego,"ASHRAE 2021, B",spec 1.2,wszystkie,do kalibracji
+S-K-13.czas,S-K-13,,4,h,przez co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-13.co2_max,S-K-13,,2000,ppm,albo maksimum powyżej tego,brak,spec 1.2,wszystkie,do kalibracji
+S-K-14.wilgotnosc,S-K-14,,35,%,minimum wilgotności sypialni ostatniej nocy poniżej tego; wyciek: progi S-K-10,brak,spec 1.2,wszystkie,do kalibracji
+S-K-15.sypialnia,S-K-15,,26,°C,mediana temperatury sypialni w nocy co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-15.za_oknem,S-K-15,,29,°C,albo maksimum za oknem poprzedniego dnia co najmniej tyle,"Vidal 2025, A",spec 1.2,wszystkie,do kalibracji
+S-K-15.m01,S-K-15,,4,h,i M-01 poniżej tego,"ATS 2013 i CMS, W",spec 1.2,wszystkie,do kalibracji
+S-K-16.m17,S-K-16,,3,przerwy,M-17 co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-17.sygnaly,S-K-17,,2/5,sygnały (k z n),co najmniej tyle z 5 sygnałów z odchyleniem w nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-17.noce,S-K-17,,2,noce,przez co najmniej tyle kolejnych nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+S-K-18.rekordy,S-K-18,,5/7,noce (k z n),"ekran tygodnia, gdy w 7 ostatnich nocach co najmniej tyle rekordów",brak,spec 1.2,wszystkie,do kalibracji
+S-K-19.gi_mnoznik,S-K-19,,1.5,× mediana,wariant GI: mediana M-11 z 7 nocy co najmniej tyle razy mediana z 30 poprzednich; zablokowane do pomiaru na egzemplarzu referencyjnym,brak,spec 1.2,wszystkie,do kalibracji
+S-K-19.gi_baza,S-K-19,,14,noce,wariant GI: baza co najmniej tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-19.gi_okno,S-K-19,,30,noce,wariant GI: baza z tylu poprzednich nocy; zablokowane do pomiaru na egzemplarzu referencyjnym,brak,spec 1.2,wszystkie,do kalibracji
+S-K-19.tymczasowy_dodatek,S-K-19,R-KON-30,0.1,FlowLim,wariant tymczasowy: mediana M-10 P95 z 7 nocy co najmniej mediana normy plus tyle (R-KON-30),brak,spec 1.2,wszystkie,do kalibracji
+R-KON-30.po_zmianie,R-KON-30,,14,noce,wariant tymczasowy S-K-19 milczy przez tyle nocy po zmianie ustawień,brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.okno,S-K-21,,60,noce,porównanie grup z tylu ostatnich nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.grupa_min,S-K-21,,5,noce,co najmniej tyle nocy ważnych w każdej grupie,brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.roznica,S-K-21,,30,min,różnica median M-01 co najmniej tyle,"Vidal 2025, A",spec 1.2,wszystkie,do kalibracji
+S-K-27.odsetek,S-K-27,,70,%,w ostatnich 30 dniach co najmniej tyle nocy z M-01 ≥ 4 h,"ATS 2013 i CMS, W",spec 1.2,wszystkie,do kalibracji
+S-K-27.okres,S-K-27,,90,dni,tylko w pierwszych tylu dniach od pierwszej nocy,brak,spec 1.2,wszystkie,do kalibracji
+S-K-28.kamienie,S-K-28,,7;30;100;180;365,noce,"liczba nocy z M-01 ≥ 4 h, przy których jest ekran",brak,spec 1.2,wszystkie,do kalibracji
+S-K-29.noce_bez,S-K-29,,3,noce,noc ≥ 4 h po co najmniej tylu kolejnych nocach bez terapii,brak,spec 1.2,wszystkie,do kalibracji
+S-K-30.wzrost,S-K-30,5.10.2|Wyzwalacz;R-INF-01,2,/min,M-13 co najmniej mediana normy plus tyle (R-INF-01),brak,spec 1.2,wszystkie,do kalibracji
+S-K-30.noce,S-K-30,5.10.2|Wyzwalacz,2,noce,w tylu kolejnych nocach ważnych,brak,spec 1.2,wszystkie,do kalibracji
+S-K-30.m05p,S-K-30,5.10.2|Wyzwalacz,=R-NOR-12.delta.M-05p,cmH2O,sygnał towarzyszący: M-05p co najmniej mediana normy plus tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-30.puls,S-K-30,5.10.2|Wyzwalacz,5,/min,sygnał towarzyszący: puls co najmniej mediana normy plus tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-06.koniec_wzrost,R-INF-06,5.10.3|Koniec,1,/min,koniec okresu infekcji: M-13 poniżej mediany normy plus tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-06.koniec_noce,R-INF-06,5.10.3|Koniec,2,noce,przez tyle kolejnych nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-04.maks_noce,R-INF-04,5.10.3|Koniec,14,noce,okres infekcji kończy się najpóźniej po tylu nocach,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-04.karencja,R-INF-04,5.10.3|Po 14 nocach,14,noce,po okresie infekcji zakończonym limitem nocy S-K-30 nie wraca i „tak” nie otwiera nowego okresu przez tyle dni,brak (równe R-INF-04.maks_noce),spec 1.2,wszystkie,do kalibracji
+R-INF-07.wzrost,R-INF-07,5.10.3|Pytanie „gorzej”;5.12.8|„Gorzej”,3,/min,"pytanie „gorzej” ponawiane, gdy M-13 co najmniej mediana normy plus tyle",brak,spec 1.2,wszystkie,do kalibracji
+S-K-31.delta,S-K-31,5.9.4|Wyzwalacz,=R-NOR-12.delta.M-07,L/min,mediana M-07 P95 z 7 nocy co najmniej mediana normy plus tyle (Δ M-07),brak,spec 1.2,wszystkie,do kalibracji
+S-K-31.noce_wzrostu,S-K-31,5.9.4|Wyzwalacz,14,noce,wyciek rośnie od co najmniej tylu nocy ważnych (nachylenie > 0),brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-03.pokazania,R-MAS-03,§5.9.6,4,pokazania,"L-09 zablokowane, dopóki S-K-31 nie pokazano tyle razy bez zapisu wymiany",brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-08.po_wymianie,R-MAS-08,§5.9.6,14,noce,L-09 wraca po tylu nocach ważnych od wymiany,brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-12.noce,R-MAS-12,5.9.5|Kiedy,3,noce,pytanie „Wymieniona poduszka?”: mediana M-07 P95 z tylu ostatnich nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-12.spadek,R-MAS-12,5.9.5|Kiedy,8,L/min,niższa co najmniej o tyle od mediany z 14 nocy przed nimi,brak,spec 1.2,wszystkie,do kalibracji
+S-K-32.delta,S-K-32,5.9.5|Warunek,=R-NOR-12.delta.M-07,L/min,mediana M-07 P95 po wymianie niższa co najmniej o tyle (Δ M-07),brak,spec 1.2,wszystkie,do kalibracji
+WY16.zrodlo_nocy,WY16,,do zadeklarowania,źródło,"jedno źródło nocy strojenia i testu (karta SD albo raport AirBridge), deklarowane przy zamrożeniu",brak,spec 1.2,wszystkie,do zadeklarowania
+WY16.dlugosc_okresu_nocy,WY16,,30,noce,"długość okresu testowego zapisana przy zamrożeniu; WY3, WY4, WY6 liczone raz, po jego końcu",brak,spec 1.2,wszystkie,do zadeklarowania
+WY16.skrypt_commit,WY16,,do zadeklarowania,commit,commit skryptu tools/kalibracja objęty zamrożeniem (tag progi-RRRRMMDD),brak,spec 1.2,wszystkie,do zadeklarowania
+R-NOR-01.okno_nocy,R-NOR-01,,30,noce,definicja: norma z tylu ostatnich nocy ważnych,ADR-0003,spec 1.2,wszystkie,definicja
+R-NOR-09.okno_dni,R-NOR-09,,90,dni,definicja: noce do normy najwyżej tyle dni kalendarzowych wstecz,ADR-0003,spec 1.2,wszystkie,definicja
+R-NOR-10.min_noce,R-NOR-10,,14,noce,definicja: metryka bez normy przy mniej niż tylu nocach w oknie 90 dni (rozruch metryki),ADR-0003,spec 1.2,wszystkie,definicja
+R-NOR-07.rozruch_po_zmianie,R-NOR-07,,14,noce,"definicja: po zmianie ustawień norma ciśnienia, wycieku, M-10 i M-11 od nowa, bez oceny przez tyle nocy",brak,spec 1.2,wszystkie,definicja
+R-NOR-05.niepewna_odsetek,R-NOR-05,4.9|duży wyciek: warunek zdarzenia E-20 (≥ 1,=E-20.odsetek_czasu,%,definicja nocy niepewnej (4.9): warunek dużego wycieku jak E-20,brak,spec 1.2,wszystkie,definicja
+R-NOR-05.niepewna_minuty,R-NOR-05,4.9|duży wyciek: warunek zdarzenia E-20 (≥ 1,=E-20.minuty,min,definicja nocy niepewnej (4.9): albo minuty dużego wycieku jak E-20,brak,spec 1.2,wszystkie,definicja
+R-NOR-05.niepewna_mediana,R-NOR-05,4.9|duży wyciek przez znaczną część nocy: me,=S-K-12.mediana_przecieku,L/min,definicja nocy niepewnej (4.9): mediana wycieku jak S-K-12,brak,spec 1.2,wszystkie,definicja
+R-NOR-05.niepewna_p95,R-NOR-05,4.9|wyciek od 15 L/min w części nocy: M-07 P;R-DANE-23,15,L/min,"definicja nocy niepewnej (4.9, R-DANE-23): M-07 P95 nocy co najmniej tyle (każda maska); dochodzi jako „albo” do warunku dużego wycieku 24 L/min i mediany; brak P95 = tylko pozostałe warunki; nie zmienia E-20, S-K-14, S-K-31, L-09, K2 ani E-23 (wariant C, 06.11.2026); od 06.11.2026 ta sama wartość progu S-K-10 w tonie „problem” (S-K-10.problem_p95)","decyzja 06.11.2026 (wariant C: „od tej wartości AirSense pokazuje głupoty (nie rozpoznaje bezdechów)”); świadome odejście od konsultacji klinicznej; bez źródła",spec 1.2,wszystkie,do kalibracji
+R-CZY-19.przerwa,R-CZY-19,5.11.2|spanie poza domem,2,doby,"AirBridge bez odpowiedzi co najmniej tyle: noce przerwy z czynnikiem „spanie poza domem”, poza normą",brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-19.okno_ostatniej_nocy,R-CZY-19,,23:30,godzina,"ostatnia noc po przerwie dostaje „spanie poza domem”, gdy pierwsza odpowiedź AirBridge przyszła między 11:00 a tą godziną",brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-02.grupa_kontrolna,R-CZY-02,1.5|Grupa kontrolna;5.11.3|grupa kontrolna: losowa 1 na 7 [PRÓG] no;§5.11.6,1/7,prawdopodobieństwo,losowanie nocy bez odchylenia do grupy kontrolnej O-12,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-23.przeciek_noce,R-KON-23,5.8.4|1,3/7,noce (k z n),krok S-K-18 „wyciek”: M-07 P95 powyżej P90 normy w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-23.przerwy_noce,R-KON-23,5.8.4|2,3/7,noce (k z n),krok S-K-18 „przerwy”: M-17 powyżej mediany normy w tylu z 7 nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-23.m01,R-KON-23,5.8.4|3a,=H-09.m01,h,krok S-K-18 „czas z maską”: mediana M-01 z 7 nocy z terapią poniżej tego,brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-09.grupa_min,R-MAS-09,,5,noce,S-K-32 tylko przy co najmniej tylu nocach ważnych przed i po wymianie,brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-12.odstep,R-MAS-12,"5.9.5|„nie”, pominięcie, brak odpowiedzi do 11",30,dni,kolejne pytanie „Wymieniona poduszka?” najwcześniej po tylu dniach,brak,spec 1.2,wszystkie,do kalibracji
+R-MAS-10.pokazania,R-MAS-10,,=R-MAS-03.pokazania,pokazania,blokada L-09 kończy się po tylu pokazaniach S-K-31 bez zapisu wymiany,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-34.noce_bez,R-SKI-34,5.12.8|Przerwa planowana,3,noce,pytanie o przerwę planowaną po co najmniej tylu nocach bez terapii,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-34.czekanie_dni,R-SKI-34,5.12.8|Przerwa planowana,7,dni,pytanie o przerwę planowaną czeka najdłużej tyle dni od nocy powrotu,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-39.pytania,R-SKI-39,§5.12.8,4,pytania,linia o braku odpowiedzi po tylu kolejnych pytaniach o senność bez odpowiedzi,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-07.od_nocy,R-INF-07,5.10.3|Pytanie „gorzej”,3,noc okresu,pytanie „gorzej” od tej nocy okresu infekcji,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-07.co_dni,R-INF-07,5.10.3|Pytanie „gorzej”;5.12.8|„Gorzej”,3,dni,pytanie „gorzej” ponawiane co tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-18.gorzej_odstep,R-SKI-18,,=R-INF-07.co_dni,dni,"pytanie „gorzej” przy L-02(b), L-05, L-06(c) najwcześniej po tylu dniach od poprzedniego",brak,spec 1.2,wszystkie,do kalibracji
+R-KON-14.pokazania,R-KON-14,,2/7,pokazania w dniach,ekran „problem” bez wariantu „od kilku nocy” najwyżej tyle razy w 7 dniach,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-18.limit_dni,R-KON-18,,7,dni,S-K-06 w pierwszym sezonie najwyżej raz na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-19.limit_dni,R-KON-19,,7,dni,S-K-07 najwyżej raz na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-20.limit_dni,R-KON-20,,7,dni,S-K-13 najwcześniej tyle dni od poprzedniego pokazania,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-21.okres,R-KON-21,,=S-K-27.okres,dni,S-K-27 tylko w tylu pierwszych dniach od pierwszej nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-29.sezon,R-KON-29,,1 października–30 kwietnia,daty,"sezon grzewczy dla limitów S-K-01, S-K-03, S-K-04",brak,spec 1.2,wszystkie,do kalibracji
+R-KON-29.limit_dni,R-KON-29,,7,dni,"w sezonie grzewczym S-K-01, S-K-03, S-K-04 najwyżej raz na tyle dni",brak,spec 1.2,wszystkie,do kalibracji
+R-KON-29.pokazania,R-KON-29,,4,pokazania,po tylu pokazaniach w sezonie ekran tylko przy osobistym związku z wyciekiem albo czasem z maską,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-29.grupa_min,R-KON-29,,=R-EKR-26.grupa_min,noce,porównanie grup w sezonie: co najmniej tyle nocy ważnych w każdej grupie,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-09.b_dni,R-SKI-09,,28,dni,wzorzec B po tylu dniach bez zmian schodzi z pełnego ekranu do S-K-18 i S7,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-10.a_co_dni,R-SKI-10,,3,dni,wzorzec A: pełny ekran co tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-10.po_omowione,R-SKI-10,,=R-LEK-27.pelny_ekran,noce,wzorzec A po trzecim „Omówione” bez poprawy: pełny ekran co tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-11.po_omowione,R-SKI-11,,56,noce,po tylu nocach od „Omówione” przy trwającym warunku wzorzec wraca,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-09.wyciszenie,R-LEK-09,5.12.7|„Omówione z lekarzem”,56,noce,„Omówione z lekarzem” wycisza wzorzec na tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-25.drugie,R-LEK-25,5.12.7|„Omówione z lekarzem”;§5.12.2,28,noce,drugie „Omówione” bez poprawy przy pilności A wycisza pełny ekran na tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-27.pelny_ekran,R-LEK-27,5.12.7|„Omówione z lekarzem”;§5.12.7;5.12.2|A;§5.12.2,14,noce,trzecie i kolejne „Omówione” bez poprawy: pełny ekran co tyle nocy,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-25.odkrycia,R-EKR-25,§5.4.10;§6.5;7.9|D3,7,dni,"najwyżej jedno odkrycie (O, S-K-21, S-K-32) na tyle dni",brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-27.powrot,R-EKR-27,§5.4.10,30,dni,"to samo odkrycie nie wraca przez tyle dni, chyba że zmiana o Δ",brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-18.noce_miesiaca,R-EKR-18,§5.4.7;5.4.7|Warunek zdania,20,noce,podsumowanie miesiąca S7 przy co najmniej tylu nocach ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-20.noce_miesiaca,R-EKR-20,,=R-EKR-18.noce_miesiaca,noce,zdanie porównania miesięcy w S7 tylko przy tylu nocach ważnych w obu miesiącach,brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-33.noce,R-EKR-33,,=R-NOR-01.okno_nocy,noce,ekran S8 „Twoja norma” po tylu nocach ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-KOK-12.margines,R-KOK-12,5.5.4|P95 przy maksimum bez zdarzeń,=L-04.margines_max,cmH2O,"znacznik K2: M-05p co najmniej maksimum minus tyle; w ASVAuto zob. wiersz R-KOK-12.margines z trybem ASVAuto",brak,spec 1.2,wszystkie,do kalibracji
+R-KOK-12.margines,R-KOK-12,,=L-04.margines_max,cmH2O,znacznik K2 w ASVAuto: M-06p (P95 EPAP) co najmniej EAX minus tyle (4.11),brak,spec 1.2,ASVAuto,do kalibracji
+R-KOK-12.noce,R-KOK-12,5.5.4|P95 przy maksimum bez zdarzeń,3/7,noce (k z n),znacznik K2 w tylu z 7 nocy ważnych,brak,spec 1.2,wszystkie,do kalibracji
+R-KOK-16.trend_delta,R-KOK-16,,0.5,× Δ,"słowo K1 `rośnie`/`spada`: mediana ostatnich 7 nocy okna 30 nocy różni się od mediany 23 wcześniejszych co najmniej o tę część Δ metryki z 4.5 (ciśnienie: Δ M-05p, EPAP: Δ M-06p)","decyzja 04.11.2026, wariant A",spec 1.2,wszystkie,do kalibracji
+R-KOK-16.noce_7,R-KOK-16,,4,noce,"słowo trendu K1: najmniej tyle nocy z wartością w oknie 7 ostatnich nocy, inaczej `uczę się`","propozycja, 04.11.2026",spec 1.2,wszystkie,do kalibracji
+R-KOK-16.noce_23,R-KOK-16,,14,noce,"słowo trendu K1: najmniej tyle nocy z wartością w oknie 23 wcześniejszych nocy, inaczej `uczę się` (14 jak minimum normy, ADR-0003)","propozycja, 04.11.2026",spec 1.2,wszystkie,do kalibracji
+R-KOK-16.delta_ps,R-KOK-16,,2,cmH2O,"słowo trendu K1 w wierszu `Wsparcie` (M-28, bez Δ w 4.5): Δ do reguły R-KOK-16 (próg różnicy median = R-KOK-16.trend_delta × ta wartość), taka sama jak Δ M-06p dla EPAP","decyzja 04.11.2026",spec 1.2,ASV;ASVAuto,do kalibracji
+R-AW-04.pokrycie_przeplywu,R-AW-04,,80,%,GI nocy tylko przy surowym przepływie pokrywającym co najmniej tyle czasu terapii; zablokowane do pomiaru na egzemplarzu referencyjnym,brak,spec 1.2,wszystkie,do kalibracji
+H-01.gi_okno,H-01,R-GI-09,30,min,"H-01 wycofane w wydaniu 1.x 04.11.2026 (konsultacja kliniczna); dawniej: wariant H-01 dla L-10: GI w oknach tej długości (R-GI-09); zablokowane do pomiaru na egzemplarzu referencyjnym",brak,spec 1.2,wszystkie,do kalibracji
+S-K-20.wzrost_m05p,S-K-20,,=L-07.wzrost_m05p,cmH2O,ten sam próg co L-07 (S-K-20 to ekran tygodniowy L-07),brak,spec 1.2,wszystkie,do kalibracji
+S-K-20.czas,S-K-20,,=L-07.czas,noce,ten sam próg co L-07,brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.co2,S-K-21,,=S-K-01.co2,ppm,granica grupy CO2 (jak S-K-01),brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.temperatura,S-K-21,,=S-K-05.sypialnia,°C,granica grupy temperatury sypialni (jak S-K-05),brak,spec 1.2,wszystkie,do kalibracji
+S-K-21.pylek,S-K-21,,=S-K-06.pylek,% górnych wartości sezonu,granica grupy pyłku (jak S-K-06),brak,spec 1.2,wszystkie,do kalibracji
+R-NOR-23.krok_lekarz,R-NOR-23,,=R-NOR-20.metryka_zdrowotna,noce,"krok „Obserwuj kolejne noce” (od 04.11.2026 zamiast „Pokaż lekarzowi”, konsultacja kliniczna) od tylu nocy stanu odchylenia metryki zdrowotnej",brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-24.linia_co_dni,R-LEK-24,1.5|Niewyciszony wzorzec A;1.5|„Omówione z lekarzem”;5.12.2|A;§5.12.2;5.12.5|wzorzec A po „Omówione”;5.12.7|„Omówione z lekarzem”,3,dni,wzorzec A po „Omówione”: linia `Wciąż: {tytuł}. Omówione {data}.` najwyżej raz na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-37.linia_co_dni,R-SKI-37,7.4|L z pilnością B;§5.4.6,3,dni,wzorzec B bez pełnego ekranu: linia `Wciąż: {tytuł}.` co tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-09.b_co_dni,R-SKI-09,7.4|L z pilnością B,7,dni,"wzorzec B: pełny ekran w dniu wejścia, potem co tyle dni (7.4)",brak,spec 1.2,wszystkie,do kalibracji
+R-SKI-36.linia_dni,R-SKI-36,,3,dni,linia „Gorsze samopoczucie…” po „gorzej” = tak bez L-05 przez tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-INF-10.linia_co_dni,R-INF-10,5.10.3|Linia w czasie okresu,3,dni,okres infekcji: linia `Gorączka? …` najwyżej raz na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+S-K-31.limit_dni,S-K-31,5.9.4|Limit,7,dni,"S-K-31 najwyżej raz na tyle dni, dopóki warunek trwa",brak,spec 1.2,wszystkie,do kalibracji
+R-PRZ-03.wiem_problem,R-PRZ-03,§5.4.9;5.12.7|„Wiem”,7,dni,"„wiem” na problemie porannym (E, S-K „problem”, L-09) i wzorcu B wycisza sprawę na tyle dni",brak,spec 1.2,wszystkie,do kalibracji
+R-PRZ-03.wiem_a,R-PRZ-03,§5.4.9;5.12.7|„Wiem”,3,dni,„wiem” na wzorcu z pilnością A wycisza na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-PIE-10.prosby_dziennie,R-PIE-10,7.4|prośby: pytania i ekrany z krokiem (defi,1,prośby,najwyżej tyle próśb dziennie (budżet WY6),brak,spec 1.2,wszystkie,do kalibracji
+R-PIE-12.wieczory,R-PIE-12,7.4|wieczory z krokiem (ekran W1–W3 na ekran,4,wieczory,najwyżej tyle wieczorów z krokiem w oknie 7 dni (budżet WY6),brak,spec 1.2,wszystkie,do kalibracji
+R-PIE-12.okno,R-PIE-12,7.4|wieczory z krokiem (ekran W1–W3 na ekran,7,dni,okno kroczące limitu wieczorów z krokiem,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-02.karty_dobe,R-HUM-02,,2,karty na dobę,najwyżej tyle kart z budzikiem na dobę (budżet WY6),brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-23.udzial_kart,R-HUM-23,,0.5,× wyświetlenia,karty najwyżej taki ułamek wyświetleń w oknie 7 dni (budżet WY6: ≤ 50%),brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-23.min_wyswietlen,R-HUM-23,,7,wyświetlenia (minimum w max),mianownik limitu kart najmniej tyle wyświetleń,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-27.pula_min,R-HUM-27,§5.7.3;§5.7.5,3,zdania,pula zdań budzika krótsza niż tyle: zamiast karty ekran danych,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-20.zdanie_powrot,R-HUM-20,§5.7.5,30,dni,to samo zdanie budzika najwyżej raz na tyle dni (preferencja),brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-09.dowod_spokoju,R-HUM-09,"5.7.3|Dowód spokoju S2a, S2c;§5.4.6",co trzecie,wyświetlenie,co które wyświetlenie S2a albo S2c jest kartą,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-07.karta_1_na_2,R-HUM-07,"5.7.3|Wieczór: S-K-01, S-K-02, S-K-03, S-K-04,;5.7.3|Wieczór: S-K-07 (stała pora);5.7.3|Wieczór: S-K-08 (dziś znowu z maską);5.7.3|Wieczór: S-K-09 (piątek);5.7.3|Rano: S-K-10 wyciek",1/2,wyświetlenia (k z n),karta przy co drugim wyświetleniu tej samej sprawy,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-10.sceny_dni,R-HUM-10,,6,dni,scena karty bez scen pokazanych w tylu poprzednich dniach,brak,spec 1.2,wszystkie,do kalibracji
+R-HUM-14.przerywnik_dni,R-HUM-14,§5.7.6;§5.4.6,7,dni,przerywnik S2d najwyżej raz na tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+R-DANE-09.odczyt,R-DANE-09,M-22,15,min,"odczyt czujnika panelu (temperatura, wilgotność) co tyle minut",brak,spec 1.2,wszystkie,do kalibracji
+R-DANE-10.odczyt,R-DANE-10,M-23,15,min,"odczyt Qingping (CO2, PM2.5, temperatura, wilgotność) co tyle minut",brak,spec 1.2,wszystkie,do kalibracji
+WY3.falszywe_max,WY3,,1,ekrany,najwyżej tyle fałszywych ekranów problemu,brak,spec 1.2,wszystkie,kryterium
+WY3.okno,WY3,,14,noce,na tyle nocy okresu testowego,brak,spec 1.2,wszystkie,kryterium
+WY3.tryb_strojenia,WY3,,ASVAuto,tag MOP,"tryb nocy strojenia i okresu testowego (WY3, WY16 (b)); jedyny tryb z nocami referencyjnymi; pozostałe tryby obsługiwane bez nocy strojenia (ADR-0030)","ADR-0030",spec 1.2,ASVAuto,definicja
+WY4.odkrycia_nieuzyteczne,WY4,,1,odkrycia,najwyżej tyle odkryć ocenionych jako nieużyteczne,brak,spec 1.2,wszystkie,kryterium
+WY4.odrzucone_uzyteczne,WY4,,1,kandydaci,"najwyżej tyle odrzuconych kandydatów, których pokazanie byłoby użyteczne",brak,spec 1.2,wszystkie,kryterium
+WY5.przypadki_grupa,WY5,,5,przypadki,co najmniej tyle przypadków syntetycznych w każdej z trzech grup,brak,spec 1.2,wszystkie,kryterium
+WY6.wzorce_ab,WY6,,2,miesiące,wzorzec L z pilnością A albo B nie częściej niż raz na tyle miesięcy,brak,spec 1.2,wszystkie,kryterium
+WY9.noce,WY9,,10,noce,porównanie skryptu z AirBridge i z OSCAR na co najmniej tylu nocach,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-02,WY9,,0.5,/h,tolerancja porównania WY9 (propozycja): M-02 i indeksy M-03,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.cisnienia,WY9,,0.5,cmH2O,tolerancja porównania WY9 (propozycja): ciśnienia,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-07,WY9,,2,L/min,tolerancja porównania WY9 (propozycja): M-07,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-08_M-09,WY9,,2,min,tolerancja porównania WY9 (propozycja): M-08 i M-09,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-01,WY9,,1,min,tolerancja porównania WY9 (propozycja): M-01,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-10,WY9,,0.02,FlowLim,tolerancja porównania WY9 (propozycja): M-10,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-13,WY9,,0.5,/min,tolerancja porównania WY9 (propozycja): M-13,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-14,WY9,,20,mL,tolerancja porównania WY9 (propozycja): M-14,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-15,WY9,,0.3,L/min,tolerancja porównania WY9 (propozycja): M-15,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-16,WY9,,10,%,tolerancja porównania WY9 (propozycja): M-16 (część wartości),brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-18,WY9,,5,min,tolerancja porównania WY9 (propozycja): M-18,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.M-24,WY9,,1,pkt proc.,tolerancja porównania WY9 (propozycja): M-24 mediana,brak,spec 1.2,wszystkie,kryterium
+WY9.tol.T88_T90,WY9,,2,min,tolerancja porównania WY9 (propozycja): T88 i T90,brak,spec 1.2,wszystkie,kryterium
+WY11.tryb_probny,WY11,5.6.4|Tryb próbny ekranów kontekstowych;§5.8.8,2–3,miesiące,tryb próbny ekranów kontekstowych przez tyle miesięcy,brak,spec 1.2,wszystkie,kryterium
+WY15.pula_min,WY15,,3,zdania,w każdej puli typu ekranu co najmniej tyle zaakceptowanych zdań,brak,spec 1.2,wszystkie,kryterium
+R-DANE-08.tolerancja_gi,R-DANE-08,,0.05,GI,zgodność GI z narzędziem autora (test wydania); zablokowane do pomiaru na egzemplarzu referencyjnym,brak,spec 1.2,wszystkie,kryterium
+R-GI-01.tolerancja_cech,R-GI-01,,0.05,GI,zgodność 9 cech GI z narzędziem autora (test wydania); zablokowane do pomiaru na egzemplarzu referencyjnym,brak,spec 1.2,wszystkie,kryterium
+R-EKR-16.seria_min,R-EKR-16,5.4.2|S2b;6.2|S2b;§5.4.6,7,noce,"S2b (seria) w rotacji dowodu spokoju dopiero od serii M-20 co najmniej tylu nocy (decyzja 01.11.2026, wcześniej 2)","brak; obserwacja własna, 1 osoba",spec 1.2,wszystkie,do kalibracji
+S-K-33.pm25_czysta,S-K-33,5.8.12|Czysta godzina,35,µg/m3,czysta godzina: prognoza PM2.5 za oknem najwyżej tyle (reguła wietrzenia),"indeks jakości powietrza GIOŚ, górna granica kategorii dobry dla stężeń 1-godzinnych PM2.5 (W, poza kontekstem)",spec 1.2,wszystkie,do kalibracji
+S-K-33.zima_roznica,S-K-33,5.8.12|Tryb zimowy,8,°C,tryb zimowy: temperatura przy łóżku wyższa od maksimum za oknem w horyzoncie co najmniej o tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-33.zima_szczyt,S-K-33,5.8.12|Tryb zimowy,2,°C,tryb zimowy: okno obejmuje czyste godziny najwyżej o tyle chłodniejsze od najcieplejszej czystej godziny,brak,spec 1.2,wszystkie,do kalibracji
+S-K-33.lato_dom,S-K-33,5.8.12|Tryb letni,24,°C,tryb letni i upał: temperatura przy łóżku co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-33.lato_roznica,S-K-33,5.8.12|Tryb letni,2,°C,tryb letni: za oknem chłodniej niż przy łóżku co najmniej o tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-43.horyzont,R-KON-43,5.8.12|Horyzont,23:00,godzina,reguła wietrzenia i S-K-36 patrzą na godziny do tej godziny,brak,spec 1.2,wszystkie,do kalibracji
+S-K-34.okno_od,S-K-34,,06:00,godzina,S-K-34: początek godzin porannych jutra,brak,spec 1.2,wszystkie,do kalibracji
+S-K-34.okno_do,S-K-34,,09:00,godzina,S-K-34: koniec godzin porannych jutra,brak,spec 1.2,wszystkie,do kalibracji
+S-K-34.slisko_opad,S-K-34,,50,%,S-K-34 ślisko: prawdopodobieństwo opadu co najmniej tyle przy temperaturze do 0 °C,brak,spec 1.2,wszystkie,do kalibracji
+S-K-34.deszcz_opad,S-K-34,,60,%,S-K-34 deszcz: prawdopodobieństwo opadu co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-34.wiatr,S-K-34,,60,km/h,S-K-34 wiatr: porywy co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+S-K-35.przed_terminem,S-K-35,R-KON-48,7,dni,S-K-35 od tylu dni przed terminem wymiany,brak,spec 1.2,wszystkie,do kalibracji
+S-K-35.co_ile,S-K-35,R-KON-48,2,dni,S-K-35 nie częściej niż co tyle dni,brak,spec 1.2,wszystkie,do kalibracji
+S-K-36.pylek,S-K-36,,=S-K-06.pylek,% górnych wartości sezonu,S-K-36: godzina z pyłkiem w górnych tylu procentach sezonu (jak S-K-06),brak,spec 1.2,wszystkie,do kalibracji
+R-KON-46.od_godziny,R-KON-46,,16:00,godzina,po tej godzinie S-K-34 przed S-K-33,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-46.okno_wkrotce,R-KON-46,,60,min,"S-K-33 zostaje przed S-K-34, gdy okno zaczyna się w ciągu tylu minut",brak,spec 1.2,wszystkie,do kalibracji
+R-KON-50.blok_obrazka,R-KON-50,,120,min,"pierwszy blok slotu dziennego, w którym S-K-38 stoi przed S-K-33…S-K-37 (od startu slotu)","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-KON-60.zimno,R-KON-60,5.8.12|pogoda,5,°C,tag obrazka zimno: maksimum temperatury za oknem w horyzoncie najwyżej tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-60.brzydka_zachmurzenie,R-KON-60,5.8.12|pogoda,90,%,tag obrazka brzydka: godzina z zachmurzeniem co najmniej tyle,brak,spec 1.2,wszystkie,do kalibracji
+R-KON-60.brzydka_udzial,R-KON-60,5.8.12|pogoda,50,% godzin horyzontu,tag obrazka brzydka: opad albo pełne zachmurzenie w ponad tylu procentach godzin,brak,spec 1.2,wszystkie,do kalibracji
+R-LEK-35.ca_bezwzgledne,R-LEK-35,,5,/h,"raport, strefa 5: średnia CA/h z 7 nocy ważnych dla L (jak L-01) z oznaczeniem przekroczenia od tej wartości, bez pilności","propozycja z konsultacji klinicznej, 04.11.2026",spec 1.2,wszystkie,do kalibracji
+R-LEK-35.ahi_bezwzgledne,R-LEK-35,,10,/h,"raport, strefa 5: mediana AHI z 14 nocy ważnych dla L z oznaczeniem przekroczenia od tej wartości, bez pilności","propozycja z konsultacji klinicznej, 04.11.2026",spec 1.2,wszystkie,do kalibracji
+L-01.okno,L-01,,7,noce,"wejście i wyjście: średnia CA/h z tylu ostatnich nocy ważnych dla L (5.12.4, „z 7 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+L-02.b_okno,L-02,,7,noce,"(b) mediana CSR% z tylu ostatnich nocy ważnych dla L (5.12.4, „z 7 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+L-04.okno,L-04,,7,noce,"P95 przy maksimum i mediana zdarzeń z tylu ostatnich nocy ważnych dla L; wyjście: zdarzenia poniżej progu przez tyle nocy wariant AutoSet (5.12.4, „z 7 nocy”), bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,AutoSet,do kalibracji
+L-04.okno,L-04,,7,noce,"P95 przy maksimum i mediana zdarzeń z tylu ostatnich nocy ważnych dla L; wyjście: zdarzenia poniżej progu przez tyle nocy w ASVAuto (4.11, „z 7 nocy”)",brak,spec 1.2,ASVAuto,do kalibracji
+L-07.okno,L-07,,7,noce,"mediana M-05p (w ASV M-06p) z tylu ostatnich nocy ważnych dla L (5.12.4, „z 7 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+S-K-19.tymczasowy_okno,S-K-19,R-KON-30,7,noce,"wariant tymczasowy: mediana M-10 P95 z tylu ostatnich nocy ważnych dla L (R-KON-30, „z 7 ostatnich nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+L-02.a_okno,L-02,,14,noce,"(a) okno oddychania okresowego: tyle ostatnich nocy ważnych dla L (5.12.4, „z 14 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+L-11.wyjscie_odpowiedzi,L-11,,3,tygodnie z odpowiedzią,"wyjście „≤ 1 z 4” liczone tylko przy co najmniej tylu tygodniach z odpowiedzią o senność; mniej = nie oceniam (R-SKI-17, „brak odpowiedzi” to nie „nie”)",brak,spec 1.2,wszystkie,do kalibracji
+O-03.noce,O-03,,7,noce,O-03: mediana z tylu ostatnich nocy ważnych (kroczące okno),brak,spec 1.2,wszystkie,do kalibracji
+O-04.tydzien,O-04,,7,noce,O-04: mediana z tylu ostatnich nocy ważnych (tydzień),brak,spec 1.2,wszystkie,do kalibracji
+O-04.miesiac,O-04,,30,noce,O-04: mediana porównawcza z tylu ostatnich nocy ważnych (miesiąc),brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-26.okno,R-EKR-26,§5.4.10,90,noce,"odkrycia z porównania grup (O-06…O-10) i O-12: grupy z tylu ostatnich nocy ważnych (propozycja; O-12, 9.3 „do 90 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
+R-CZY-24.warstwa_min,R-CZY-24,,1,noce,"O-12: co najmniej tyle nocy z każdej warstwy w każdej grupie („noce z obu warstw w każdej grupie”, R-CZY-24)",brak,spec 1.2,wszystkie,definicja
+R-NOR-14.oczekiwanie,R-NOR-14,,14,dni,"linia `Nowe ustawienia aparatu. Uczę się normy.` czeka na pokazanie najwyżej tyle dni od pierwszej nocy z nowymi ustawieniami (stara zmiana w historii nie wraca po aktualizacji)","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.ahi_bardzo_niskie,R-HUM-28,,1,AHI/h,"warunek karty przerywnika `Bardzo niskie AHI` (G13): AHI ostatniej nocy poniżej tej wartości","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.ahi_duzo_zdarzen,R-HUM-28,,10,AHI/h,"warunek karty przerywnika `Dużo zdarzeń` (G10): AHI ostatniej nocy co najmniej tyle","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.terapia_dluga,R-HUM-28,,7,h,"warunek karty przerywnika `Długi czas terapii` (G06, G16): M-01 ostatniej nocy co najmniej tyle","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.terapia_w_celu,R-HUM-28,,6,h,"warunek karty przerywnika `Wszystkie parametry w celu` (G15) i `Wyniki bez zarzutu` (G18): dobra terapia i M-01 co najmniej tyle","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.tydzien_noce,R-HUM-28,,5,noce,"warunek karty przerywnika `Dobry wynik tygodnia` (G03): co najmniej tyle nocy ważnych i ocenionych z 7, mediana AHI poniżej 5, ostatnia noc AHI poniżej 5 i żadna noc z AHI od progu `R-HUM-28.ahi_duzo_zdarzen`","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.wyciek_niewielki,R-HUM-28,5.7.6|Wszystkie parametry w celu,10,L/min,"warunek karty przerywnika `Wszystkie parametry w celu` (G15, tekst „wycieki niewielkie”): M-07 P95 ostatniej nocy nie więcej niż tyle, a M-08 poniżej progu dużego wycieku E-20","propozycja autora (16 L/min); decyzja 06.11.2026: 10 L/min (pkt 11)",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.poprawa_m01,R-HUM-28,,1,h,"warunek karty przerywnika `Długi czas terapii` (G06, G16): M-01 ostatniej nocy co najmniej o tyle dłuższe od mediany M-01 z 7 poprzednich nocy ważnych (oprócz M-01 co najmniej `R-HUM-28.terapia_dluga`)","decyzja 05.11.2026: ma oznaczać wyraźną poprawę, nie sam próg",spec 1.2,wszystkie,do kalibracji
+R-HUM-28.poprawa_noce,R-HUM-28,,5,noce,"warunek karty przerywnika `Długi czas terapii` (G06, G16): co najmniej tyle poprzednich nocy ważnych z 7 do mediany M-01; mniej albo brak historii = warunek niespełniony, karta neutralna","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji

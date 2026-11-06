@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-02 Smog za oknem</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'czw 15.01 · wieczór', hr: 'sypialnia 21:30 · CO2 1180',
+label: 'Przed snem', title: 'Smog za oknem',
+reason: 'PM2.5 za oknem 80 µg/m³, w pokoju 12. Długie wietrzenie wpuści pył.',
+viz: 'pairs', pairs: [{ v: '80', l: 'PM2.5 za oknem' }, { v: '12', l: 'PM2.5 w pokoju' }, { v: '1180', l: 'CO2 w pokoju' }],
+caps: ['µg/m³ · prognoza CAMS dla Katowic', 'WHO, średnia dobowa: 15'],
+step: 'Wietrz kilka minut, potem zamknij okno na noc.',
+fl: 'Katowice −3° · bezwietrznie', fr: 'sypialnia 20° · 41%'
+} };
+}
+}
+</script>
+</body>
+</html>

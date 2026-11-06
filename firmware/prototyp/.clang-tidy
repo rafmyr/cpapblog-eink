@@ -1,0 +1,17 @@
+# Profil clang-tidy rdzenia. Bramka: zero nowych ostrzeżeń
+# wobec tools/jakosc/clang-tidy-baza.txt (tools/jakosc/sprawdz.sh tidy). Wyjątek w kodzie tylko z
+# NOLINT(nazwa-reguły) i powodem w tym samym komentarzu.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cert-err34-c,
+  performance-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions
+WarningsAsErrors: ''
+# int8_t w stanie RTC (np. procent baterii) to mała liczba, nie znak.
+CheckOptions:
+  - key: bugprone-signed-char-misuse.CharTypdefsToIgnore
+    value: 'int8_t'
+HeaderFilterRegex: '.*/firmware/prototyp/src/.*'

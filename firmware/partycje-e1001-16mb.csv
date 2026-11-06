@@ -1,0 +1,11 @@
+# Wariant zapasowy tablicy partycji: ten sam układ co partycje-e1001.csv, ale partycja plików
+# kończy się na granicy 16 MB (0x1000000, 7,9 MB plików), gdy dostęp powyżej 16 MB nie działa na egzemplarzu.
+# Wybór wariantu przy wgraniu wersji pełnej, po teście: `board_build.partitions` w platformio.ini.
+# Inny identyfikator układu niż partycje-e1001.csv, więc przejście między wariantami to też wgranie kablem i 8.9.
+# Name,   Type, SubType,  Offset,   Size
+nvs,      data, nvs,      0x9000,   0x5000
+otadata,  data, ota,      0xE000,   0x2000
+app0,     app,  ota_0,    0x10000,  0x400000
+app1,     app,  ota_1,    0x410000, 0x400000
+coredump, data, coredump, 0x810000, 0x10000
+spiffs,   data, spiffs,   0x820000, 0x7E0000

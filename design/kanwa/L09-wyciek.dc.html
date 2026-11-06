@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>L-09 Wyciek nie ustępuje (ekran problem, do dostawcy)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@600;700&amp;family=Source+Serif+4:wght@600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position: relative; width: 800px; height: 480px; box-sizing: border-box; overflow: hidden; background: #000000; color: #FFFFFF; font-family: 'Public Sans', Arial, sans-serif">
+
+<div style="position: absolute; left: 0px; top: 0; width: 800px; height: 54px; box-sizing: border-box; padding: 0px 28px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFFFFF; font-size: 24px; font-weight: 700; white-space: nowrap">
+<span>{{hl}}</span>
+<span>{{hr}}</span>
+</div>
+<div style="position: absolute; left: 28px; top: 54px; width: 744px; height: 380px; box-sizing: border-box; padding: 12px 0 8px; display: flex; flex-direction: column">
+<div style="height: 28px; line-height: 28px; font-size: 22px; font-weight: 600; letter-spacing: 2px; white-space: nowrap">{{label}}</div>
+<div style="height: 8px"></div>
+<div style="height: 52px; display: flex; align-items: center; gap: 14px"><div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 44px; font-weight: 700; line-height: 52px; white-space: nowrap">{{title}}</div></div>
+<div style="height: 6px"></div>
+<div style="height: 36px; font-size: 28px; font-weight: 700; line-height: 36px">{{reason}}</div>
+<div style="height: 12px"></div>
+<div style="height: 84px"><svg width="744" height="84" viewBox="0 0 744 84" style="display: block" aria-hidden="true"><line x1="0" x2="744" y1="30.0" y2="30.0" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="8 6"></line><line x1="0" x2="744" y1="83" y2="83" stroke="#FFFFFF" stroke-width="2"></line><polyline fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round" points="{{viz.pts}}"></polyline><rect x="0.0" y="38.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="56.6" y="12.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="113.2" y="16.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="169.8" y="6.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="226.5" y="30.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="283.1" y="14.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="339.7" y="8.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="396.3" y="18.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="452.9" y="4.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="509.5" y="32.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="566.2" y="10.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="622.8" y="14.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="679.4" y="2.0" width="8" height="8" fill="#FFFFFF"></rect><rect x="736.0" y="12.0" width="8" height="8" fill="#FFFFFF"></rect></svg></div>
+<div style="margin-top: 4px; height: 28px; line-height: 28px; display: flex; justify-content: space-between; gap: 24px; font-size: 22px; font-weight: 600; white-space: nowrap"><span>{{capL}}</span><span>{{capR}}</span></div>
+<div style="height: 0px; flex: none"></div>
+<div style="margin-top: 10px; height: 44px; box-sizing: border-box; border: 2px solid #FFFFFF; padding: 0 14px; display: flex; align-items: center; font-size: 24px; font-weight: 700; white-space: nowrap">{{hyp}}</div>
+<div style="margin-top: 12px; height: 36px; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 700; line-height: 36px; white-space: nowrap"><svg width="26" height="20" viewBox="0 0 26 20" style="flex: none; margin-top: -3px" aria-hidden="true"><line x1="0" y1="10" x2="16" y2="10" stroke="#FFFFFF" stroke-width="3"></line><path d="M13 2 L25 10 L13 18 Z" fill="#FFFFFF"></path></svg><span>{{step}}</span></div>
+
+</div>
+<div style="position: absolute; left: 0px; top: 434px; width: 800px; height: 46px; box-sizing: border-box; padding: 0 28px; border-top: 2px solid #FFFFFF; display: flex; align-items: center; gap: 26px; font-size: 22px; font-weight: 600; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 10px"><svg width="24" height="24" viewBox="0 0 24 24" style="flex: none" aria-hidden="true"><rect x="0" y="0" width="24" height="24" fill="#FFFFFF"></rect><path d="M17.6 8.8 A6.5 6.5 0 1 1 11 5.6" fill="none" stroke="#000000" stroke-width="2.6"></path><path d="M16.4 5.6 L10.4 1.6 L10.4 9.6 Z" fill="#000000"></path></svg><span>{{f0}}</span></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return {"hl": "pt 18.12", "hr": "dane 05:43", "label": "[DO USTALENIA: MASKA · 14\u00a0NOCY]", "title": "Wyciek nie ustępuje", "reason": "Duży wyciek w\u00a011 z\u00a014 nocy. Bezdechy mniej pewne.", "capL": "wyciek l/min · 14\u00a0nocy", "capR": "linia przerywana = 24\u00a0l/min", "step": "Zapytaj dostawcę sprzętu o\u00a0inną maskę.", "viz": {"pts": "4.0,42.0 60.6,16.0 117.2,20.0 173.8,10.0 230.5,34.0 287.1,18.0 343.7,12.0 400.3,22.0 456.9,8.0 513.5,36.0 570.2,14.0 626.8,18.0 683.4,6.0 740.0,16.0"}, "hyp": "Najpewniej do poprawy: szczelność przy ustach (typ maski)", "f0": "2\u00a0s wiem"};
+}
+}
+</script>
+</body>
+</html>

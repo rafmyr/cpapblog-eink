@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-12 Noc mało czytelna</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'sob 14.11 · 1 h 50', hr: 'dane 06:10',
+label: 'Ostatnia noc', title: 'Ta noc jest mało czytelna',
+reason: 'Duży przeciek albo krótka noc. Liczby z tej nocy są mniej pewne.',
+viz: 'pairs', pairs: [{ v: '1 h 50', l: 'z maską' }, { v: '34', l: 'przeciek P95, l/min' }, { v: '(1,0)', l: 'bezdechy / h, mało pewne' }],
+caps: ['ta noc nie wchodzi do Twojej normy', ''],
+step: 'Patrz na trend z całego tygodnia, nie na tę noc.',
+fl: 'Katowice 6° · deszcz', fr: 'sypialnia 21° · 46% · CO2 830'
+} };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>L-06 Saturacja, pilność A</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'lekarz', hl: 'czw 10.12 · 6 h 10 · 2,4 / h', hr: 'dane 05:40 · pulsoksymetr',
+label: 'Skontaktuj się w ciągu kilku dni', title: 'Saturacja poniżej 88%',
+reason: '42 min poniżej 88% w 2 z 3 ostatnich nocy.',
+viz: 'line', line: { v: [94, 93, 90, 86, 85, 88, 84, 86, 89, 85, 87, 91, 92, 90, 93], t: 88, cl: 'SpO2 ostatniej nocy', cr: 'linia przerywana = 88%' },
+step: 'Skontaktuj się z lekarzem w ciągu kilku dni.',
+hint: 'Najpewniej poza ustawieniami aparatu', fr: '▶ raport'
+} };
+}
+}
+</script>
+</body>
+</html>

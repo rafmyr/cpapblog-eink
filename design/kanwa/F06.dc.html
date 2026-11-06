@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>F06 Przeciek: ekran danych</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="EkranD" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {"ton": "problem", "hl": "pn 09.11 · 6 h 10 · 2,8 / h", "hr": "dane 05:44", "label": "Maska · trzecia noc", "title": "Maska przecieka od trzech nocy.", "reason": "Przeciek P95 31, 28, 34 l/min. Zwykle 9.", "viz": "line", "line": {"v": [8, 9, 10, 8, 9, 11, 9, 10, 8, 9, 10, 31, 28, 34], "t": 24, "cl": "przeciek P95, 14 nocy", "cr": "linia przerywana = 24 l/min"}, "step": "Dopasuj maskę, sprawdź poduszkę.", "fl": "↻ 2 s wiem", "fr": "▶ kokpit"} };
+}
+}
+</script>
+</body>
+</html>

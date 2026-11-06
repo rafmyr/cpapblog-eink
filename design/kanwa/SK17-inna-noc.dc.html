@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-17 Noc inna niż zwykle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'problem', hl: 'wt 17.11 · 6 h 30 · 1,9 / h', hr: 'dane 05:52',
+label: 'Ostatnie 2 noce', title: 'Noc inna niż zwykle',
+reason: 'Oddech szybszy o 4 na minutę, ciśnienie wyższe niż zwykle.',
+viz: 'checks', checks: [{ l: 'oddechy / min', ok: false }, { l: 'ciśnienie', ok: false }, { l: 'przeciek', ok: true }, { l: 'wentylacja', ok: true }, { l: 'objętość', ok: true }, { l: 'bezdechy', ok: true }],
+caps: ['pełne kółko = jak zwykle, puste = odbiega', ''],
+step: 'Czujesz się gorzej? Skonsultuj się z lekarzem.',
+fl: 'Katowice 3° · deszcz', fr: 'sypialnia 21° · 46% · CO2 850'
+} };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-01 Przewietrz sypialnię</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'śr 21.10 · wieczór', hr: 'sypialnia 21:30 · CO2 1240',
+label: 'Przed snem', title: 'Przewietrz sypialnię',
+reason: 'Zeszłej nocy CO2 przez 5 h powyżej 1000 ppm. Powietrze było zastałe.',
+viz: 'line', line: { v: [620, 700, 820, 940, 1050, 1160, 1260, 1340, 1420, 1480, 1520, 1550, 1560, 1540, 1500], t: 1000, cl: 'CO2 zeszłej nocy, 23:00–06:00', cr: 'linia przerywana = 1000 ppm' },
+step: 'Uchyl okno na noc. Same otwarte drzwi dają mniej.',
+fl: 'Katowice 7° · PM2.5 za oknem 9', fr: 'sypialnia 21° · 44%'
+} };
+}
+}
+</script>
+</body>
+</html>

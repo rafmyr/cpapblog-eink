@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Raport dla lekarza: kod QR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 800px; height: 480px; box-sizing: border-box; background: #FFFFFF; color: #000000; font-family: 'Public Sans', Arial, sans-serif; display: flex; flex-direction: column">
+<div style="height: 48px; padding: 0 26px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; font-size: 20px">
+<span style="font-weight: 600">sob 05.12 · raport gotowy</span>
+<span>Wi-Fi włączone</span>
+</div>
+<div style="flex: 1; display: flex; gap: 30px; padding: 22px 26px 16px">
+<div style="width: 330px; height: 330px; flex: none; box-sizing: border-box; padding: 18px; border: 2px solid #000000; display: grid; grid-template-columns: repeat(25, 1fr); grid-template-rows: repeat(25, 1fr)" role="img" aria-label="Kod QR z adresem raportu">
+<sc-for list="{{qr}}" as="q" hint-placeholder-count="625"><div style="{{q}}"></div></sc-for>
+</div>
+<div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-size: 18px; letter-spacing: 2px; text-transform: uppercase">Raport dla lekarza</div>
+<div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 38px; line-height: 1.05">Więcej bezdechów centralnych</div>
+<div style="font-size: 20px">Okres: 07.09–05.12 · 1 strona A4</div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 21px; line-height: 1.25">
+<span>1. Zeskanuj kod telefonem w domowym Wi-Fi.</span>
+<span>2. Pobierz PDF, wydrukuj lub wyślij.</span>
+<span>3. Weź wydruk na wizytę.</span>
+</div>
+<div style="font-size: 22px; font-weight: 600">Kod ważny do 08:21.</div>
+</div>
+</div>
+<div style="height: 42px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000000; font-size: 18px">
+<span>albo wpisz: 192.168.1.47/r/7KQ2</span>
+<span>◀ wróć   ▶ kokpit</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+const n = 25, on = 'background: #000000', off = 'background: transparent';
+let s = 7;
+const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
+const finder = (r, c, r0, c0) => {
+const y = r - r0, x = c - c0;
+if (y < 0 || y > 6 || x < 0 || x > 6) return null;
+const edge = y === 0 || y === 6 || x === 0 || x === 6;
+const core = y >= 2 && y <= 4 && x >= 2 && x <= 4;
+return edge || core;
+};
+const qr = [];
+for (let r = 0; r < n; r++) {
+for (let c = 0; c < n; c++) {
+let v = finder(r, c, 0, 0);
+if (v === null) v = finder(r, c, 0, n - 7);
+if (v === null) v = finder(r, c, n - 7, 0);
+if (v === null) {
+const nearFinder = (r < 8 && c < 8) || (r < 8 && c > n - 9) || (r > n - 9 && c < 8);
+v = nearFinder ? false : (r === 6 || c === 6) ? (r + c) % 2 === 0 : rnd() > 0.52;
+}
+qr.push(v ? on : off);
+}
+}
+return { qr };
+}
+}
+</script>
+</body>
+</html>

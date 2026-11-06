@@ -1,0 +1,42 @@
+id;wariant;slot;grupa;rodzaj;stan;wymaga_normy;teksty;implementacja;powod_blokady;zrodlo
+S-K-01;;wieczor;W1;sk_co2;aktywna;nie;;src/kontekst.cpp ocenWieczor;;5.8.3 S-K-01
+S-K-02;;wieczor;W1;sk_co2;aktywna;nie;;src/kontekst.cpp ocenWieczor;;5.8.3 S-K-02
+S-K-03;;wieczor;W1;sk_wieczor;aktywna;nie;S-K-03.etykieta,S-K-03.tytul,S-K-03.powod,S-K-03.krok;src/kontekst_sk.cpp sk03;;5.8.3 S-K-03, R-KON-29
+S-K-04;;wieczor;W1;sk_wieczor;aktywna;nie;S-K-04.etykieta,S-K-04.tytul,S-K-04.powod,S-K-04.krok;src/kontekst_sk.cpp sk04;;5.8.3 S-K-04, R-KON-29
+S-K-05;;wieczor;W1;sk_wieczor;aktywna;nie;S-K-05.etykieta,S-K-05.tytul,S-K-05.powod,S-K-05.powod_sypialnia,S-K-05.krok;src/kontekst_sk.cpp sk05;;5.8.3 S-K-05
+S-K-06;;wieczor;W1;sk_wieczor;aktywna;nie;S-K-06.etykieta,S-K-06.tytul,S-K-06.powod,S-K-06.krok;src/kontekst_sk.cpp sk06;;5.8.3 S-K-06, R-KON-18 (od drugiego sezonu milczy: brak historii pyłku)
+S-K-07;;wieczor;W3;sk_wieczor;aktywna;nie;S-K-07.etykieta,S-K-07.tytul,S-K-07.powod,S-K-07.krok;src/kontekst_sk.cpp sk07;;5.8.3 S-K-07, R-KON-19 (milczy bez M-18 w rekordzie nocy)
+S-K-08;;wieczor;W2;sk_wieczor;aktywna;nie;S-K-08.etykieta,S-K-08.tytul,S-K-08.powod,S-K-08.krok;src/kontekst_sk.cpp sk08;;5.8.3 S-K-08
+S-K-09;;wieczor;W3;sk_wieczor;aktywna;nie;S-K-09.etykieta,S-K-09.tytul,S-K-09.powod,S-K-09.krok;src/kontekst_sk.cpp sk09;;5.8.3 S-K-09
+S-K-10;;rano;R5c;sk_rano;aktywna;nie;S-K-10.etykieta,S-K-10.tytul,S-K-10.powod,S-K-10.powod_p95,S-K-10.krok;src/kontekst_sk.cpp sk10;;5.8.3 S-K-10, R-KON-13, R-KON-14
+S-K-10;kilka;rano;R5c;sk_rano;aktywna;nie;S-K-10.kilka.etykieta,S-K-10.kilka.tytul,S-K-10.kilka.powod,S-K-10.kilka.powod_od,S-K-10.kilka.krok;src/kontekst_sk.cpp sk10;;R-KON-13
+S-K-10;opisowy;rano;R8;sk_rano;aktywna;nie;S-K-10.opisowy.etykieta,S-K-10.opisowy.tytul,S-K-10.opisowy.powod,S-K-10.opisowy.krok;src/kontekst_sk.cpp sk10;;R-KONF-42, 5.8.4 S-K-10 wariant opisowy (ton „informacja”, zawsze ekran danych, typ dziennika SK10W)
+S-K-10;opisowy_kilka;rano;R8;sk_rano;aktywna;nie;S-K-10.opisowy_kilka.etykieta,S-K-10.opisowy_kilka.tytul,S-K-10.opisowy_kilka.powod,S-K-10.opisowy_kilka.krok;src/kontekst_sk.cpp sk10;;R-KONF-42, R-KON-13 (wariant opisowy „od kilku nocy”)
+S-K-11;;rano;R5c;sk_rano;zablokowana;nie;S-K-11.etykieta,S-K-11.tytul,S-K-11.powod,S-K-11.krok;;przebieg wycieku w czasie niedostępny (źródło techniczne: etap 3) i detektor fal niezwalidowany na danych ResMed (5.8.3);5.8.3 S-K-11
+S-K-12;;rano;R4;sk_rano;aktywna;nie;S-K-12.etykieta,S-K-12.tytul,S-K-12.powod,S-K-12.krok;src/kontekst_sk.cpp sk12;;5.8.3 S-K-12
+S-K-13;;rano;R8;sk_co2;aktywna;nie;;src/kontekst.cpp ocenRano;;5.8.3 S-K-13
+S-K-14;;rano;R5c;sk_rano;aktywna;nie;S-K-14.etykieta,S-K-14.tytul,S-K-14.powod_norma,S-K-14.powod,S-K-14.krok;src/kontekst_sk.cpp sk14;;5.8.3 S-K-14, R-KON-25, R-KON-28 (minimum wilgotności zastąpione medianą nocy z rekordu sypialni)
+S-K-15;;rano;R8;sk_rano;aktywna;nie;S-K-15.etykieta,S-K-15.tytul,S-K-15.powod_norma,S-K-15.powod,S-K-15.krok;src/kontekst_sk.cpp sk15;;5.8.3 S-K-15, R-KON-28
+S-K-16;;rano;R5d;sk_rano;aktywna;nie;S-K-16.etykieta,S-K-16.tytul,S-K-16.powod_norma,S-K-16.powod,S-K-16.krok;src/kontekst_sk.cpp sk16;;5.8.3 S-K-16
+S-K-17;;rano;R5b;sk_rano;aktywna;tak;S-K-17.etykieta,S-K-17.tytul,S-K-17.oddech,S-K-17.cisnienie,S-K-17.epap,S-K-17.wyciek,S-K-17.krok;src/kontekst_sk.cpp sk17;;5.8.3 S-K-17 (M-14 i M-15 poza rekordem nocy: 3 z 5 sygnałów)
+S-K-18;;tydzien;T2;sk_tydzien;aktywna;nie;S-K-18.etykieta,S-K-18.tytul,S-K-18.powod,S-K-18.krok_sennosc,S-K-18.krok_wyciek,S-K-18.krok_przerwy,S-K-18.krok_pora,S-K-18.krok_czas,S-K-18.krok_nic,S-K-18.krok_linia,S-K-18.krok_sprawy,S-K-18.krok_oceny,S-K-18.krok_reguly;src/kontekst_sk.cpp tydzien;;5.8.4 Krok S-K-18, R-KON-23
+S-K-19;gi;tydzien;R8;sk_tydzien;zablokowana;tak;S-K-19.etykieta,S-K-19.tytul,S-K-19.powod,S-K-19.krok;;wariant GI zablokowany do pomiaru na egzemplarzu referencyjnym (5.8.3, 5.15.1);5.8.3 S-K-19
+S-K-19;tymczasowy;tydzien;R8;sk_tydzien;aktywna;tak;S-K-19.etykieta,S-K-19.tytul,S-K-19.powod,S-K-19.krok;src/kontekst_sk.cpp trendyTygodnia;;R-KON-30
+S-K-20;;tydzien;R8;sk_tydzien;aktywna;tak;S-K-20.etykieta,S-K-20.tytul,S-K-20.powod,S-K-20.krok,S-K-20.asv.tytul,S-K-20.asv.powod;src/kontekst_sk.cpp trendyTygodnia;;5.8.3 S-K-20 (ekran L-07 tylko przy L-07 w stanie aktywna)
+S-K-21;co2;tydzien;R8;sk_tydzien;aktywna;nie;S-K-21.etykieta,S-K-21.co2.tytul,S-K-21.co2.powod,S-K-21.co2.krok;src/kontekst_sk.cpp trendyTygodnia;;5.8.3 S-K-21
+S-K-21;upal;tydzien;R8;sk_tydzien;aktywna;nie;S-K-21.etykieta,S-K-21.upal.tytul,S-K-21.upal.powod,S-K-21.upal.krok;src/kontekst_sk.cpp trendyTygodnia;;5.8.3 S-K-21
+S-K-21;pylek;tydzien;R8;sk_tydzien;aktywna;nie;S-K-21.etykieta,S-K-21.pylek.tytul,S-K-21.pylek.powod,S-K-21.pylek.krok;src/kontekst_sk.cpp trendyTygodnia;;5.8.3 S-K-21 (milczy: panel nie zapisuje pyłku nocy)
+S-K-21;weekend;tydzien;R8;sk_tydzien;aktywna;nie;S-K-21.etykieta,S-K-21.weekend.tytul,S-K-21.weekend.powod,S-K-21.weekend.krok;src/kontekst_sk.cpp trendyTygodnia;;5.8.3 S-K-21
+S-K-27;;rano;R7;sk_rano;aktywna;nie;S-K-27.etykieta,S-K-27.tytul,S-K-27.powod,S-K-27.krok;src/kontekst_sk.cpp sk27;;5.8.3 S-K-27, R-KON-21
+S-K-28;;rano;R7;kamien;aktywna;nie;;src/humor.cpp wybierzEkranDnia (typ KM);;5.8.3 S-K-28
+S-K-29;;rano;R7;sk_rano;aktywna;nie;S-K-29.etykieta,S-K-29.tytul,S-K-29.powod,S-K-29.krok;src/kontekst_sk.cpp sk29;;5.8.3 S-K-29
+S-K-30;;rano;R5a;sk_infekcja;aktywna;tak;S-K-30.etykieta,S-K-30.tytul,S-K-30.powod,S-K-30.pytanie;src/infekcja.cpp ocenSK30;;5.10.2
+S-K-31;;rano;R5c;sk_sprzet;aktywna;tak;S-K-31.etykieta,S-K-31.tytul,S-K-31.powod,S-K-31.krok;src/sprzet.cpp ocenSK31;;5.9.4
+S-K-32;;rano;R8;sk_sprzet;aktywna;nie;S-K-32.etykieta,S-K-32.tytul,S-K-32.powod,S-K-32.krok;src/sprzet.cpp ocenSK32;;5.9.5
+S-K-33;;dzien;D1;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12
+S-K-34;;dzien;D2;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12
+S-K-35;;dzien;D3;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12
+S-K-36;;dzien;D4;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12
+S-K-37;;dzien;D5;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12
+S-K-38;;dzien;D5;sk_dzien;aktywna;nie;;src/obrazki.cpp;;5.8.12
+S-K-39;;dzien;D0a;sk_dzien;aktywna;nie;;src/slot_dzienny.cpp;;5.8.12

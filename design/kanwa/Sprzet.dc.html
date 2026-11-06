@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Sprzęt: wiek elementów</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 800px; height: 480px; box-sizing: border-box; background: #FFFFFF; color: #000000; font-family: 'Public Sans', Arial, sans-serif; display: flex; flex-direction: column">
+<div style="height: 48px; padding: 0 26px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; font-size: 20px">
+<span style="font-weight: 600">Sprzęt</span>
+<span>z kokpitu: ↻ 2 s</span>
+</div>
+<div style="flex: 1; padding: 16px 26px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: grid; grid-template-columns: 1fr 150px 150px; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; padding: 0 12px">
+<span>element</span><span>wiek</span><span>wymiana co</span>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="{{r.st}}"><span>{{r.l}}</span><span>{{r.a}}</span><span>{{r.p}}</span></div>
+</sc-for>
+<div style="margin-top: auto; font-size: 18px">Negatyw = po terminie. Ekran o wymianie pojawi się dopiero, gdy rośnie też przeciek.</div>
+</div>
+<div style="height: 42px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000000; font-size: 18px; font-weight: 600">
+<span>↻ następny   ◀ 2 s: wymienione dziś</span>
+<span>▶ wróć</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+const data = [
+{ l: 'Poduszka (silikon)', a: '7 mies.', p: '6 mies.', over: true, cur: true },
+{ l: 'Maska: rama i uprząż', a: '7 mies.', p: '6 mies.', over: true },
+{ l: 'Filtr', a: '3 tyg.', p: '2 mies.' },
+{ l: 'Rura', a: '9 mies.', p: '12 mies.' },
+{ l: 'Komora nawilżacza', a: '–', p: '12 mies.' }
+];
+const rows = data.map((x) => ({
+l: x.l, a: x.a, p: x.p,
+st: 'display: grid; grid-template-columns: 1fr 150px 150px; align-items: center; height: 50px; padding: 0 12px; box-sizing: border-box; font-size: 24px; ' +
+(x.over ? 'background: #000000; color: #FFFFFF; ' : '') + (x.cur ? 'outline: 3px solid #000000; outline-offset: 3px; font-weight: 600' : 'border-bottom: 1px solid #000000')
+}));
+return { rows };
+}
+}
+</script>
+</body>
+</html>

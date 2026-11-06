@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-05 Upalny dzień</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'pt 17.07 · wieczór', hr: 'sypialnia 21:40 · 26°',
+label: 'Przed snem', title: 'Upalny dzień',
+reason: 'Dziś 31°C. W upały noce z maską bywają krótsze.',
+viz: 'pairs', pairs: [{ v: '31°', l: 'dziś maks. za oknem' }, { v: '26°', l: 'teraz w sypialni' }, { v: '−40 min', l: 'Twoje upalne noce, średnio' }],
+caps: ['dane: Open-Meteo i czujnik ekranu', 'na podstawie 6 upalnych nocy'],
+step: 'Schłodź sypialnię, zanim założysz maskę.',
+fl: 'Katowice 31° · w nocy 21°', fr: 'sypialnia 55% · CO2 900'
+} };
+}
+}
+</script>
+</body>
+</html>

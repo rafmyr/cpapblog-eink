@@ -1,0 +1,14 @@
+nazwa;typ;parametry
+rekord_tygodnia;rodzaj;metryka,n,min,delta
+tydzien_miesiac;rodzaj;metryka,okno_a,okno_b,delta,por
+grupy_nocy;rodzaj;metryka,cecha,granica,por_cechy,n,min,delta,por
+czynnik_nocy;rodzaj;czynnik,metryka,delta,min,efektywna,warstwa_min,mala,okno,waga,n
+zmiana_cechy_gi;rodzaj;
+granica;parametr_prog;
+por_cechy;parametr_slowny;
+czynnik;parametr_slowny;
+efektywna;parametr_prog;
+warstwa_min;parametr_prog;
+mala;parametr_prog;
+okno;parametr_prog;
+waga;parametr_prog;

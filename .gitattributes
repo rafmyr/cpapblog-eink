@@ -1,0 +1,7 @@
+# Pliki generowane: GitHub nie liczy ich jako kodu i zwija je w różnicach.
+# Źródła i generatory: tools/prototyp/generuj.py, tools/prototyp/generuj_slot.py, tools/zestaw/buduj_zestaw.py.
+firmware/prototyp/include/fonty.h linguist-generated=true
+firmware/prototyp/include/fonty_slot.h linguist-generated=true
+firmware/prototyp/include/obrazy.h linguist-generated=true
+firmware/prototyp/src/zestaw_wbudowany.h linguist-generated=true
+docs/spec/macierz-*.csv linguist-generated=true

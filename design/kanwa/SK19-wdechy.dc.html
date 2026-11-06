@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-19 Spłaszczone wdechy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'nd 22.11 · podsumowanie tygodnia', hr: 'dane 18:00',
+label: 'Twój tydzień', title: 'Więcej spłaszczonych wdechów',
+reason: 'W tym tygodniu więcej wdechów o płaskim kształcie niż zwykle u Ciebie.',
+viz: 'line', line: { v: [0.38, 0.41, 0.36, 0.4, 0.39, 0.42, 0.37, 0.4, 0.48, 0.55, 0.62, 0.66], t: null, cl: 'Glasgow Index, ostatnie 6 tygodni', cr: 'tylko Twój trend, bez normy' },
+step: 'Senny w dzień? Pokaż te dane lekarzowi.',
+fl: 'na podstawie 7 nocy wobec 30', fr: 'FlowLim ResMed: bez zmian'
+} };
+}
+}
+</script>
+</body>
+</html>

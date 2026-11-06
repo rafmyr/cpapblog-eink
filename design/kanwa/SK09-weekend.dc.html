@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>S-K-09 Weekend przed Tobą</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&amp;family=Source+Serif+4:wght@400;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="Ekran" cfg="{{cfg}}" hint-size="800px,480px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cfg: {
+ton: 'spokoj', hl: 'pt 20.11 · wieczór', hr: 'sypialnia 21:30',
+label: 'Przed weekendem', title: 'Weekend przed Tobą',
+reason: 'Ostatnio noce weekendowe miałeś krótsze o 45 min.',
+viz: 'bars', bars: [{ v: '6 h 50', l: 'noce w tygodniu', h: 0.9, full: false }, { v: '6 h 05', l: 'noce w weekend', h: 0.62, full: true }],
+caps: ['ostatnie 6 tygodni', 'na podstawie 42 nocy'],
+step: 'Zaplanuj maskę w sobotę o zwykłej porze.',
+fl: 'Katowice 3° · pochmurno', fr: 'sypialnia 20° · 44% · CO2 840'
+} };
+}
+}
+</script>
+</body>
+</html>

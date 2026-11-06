@@ -1,0 +1,13 @@
+nazwa;typ;parametry
+noc_czesciowa;rodzaj;
+przedzial_nocy;rodzaj;metryka,min,max
+regularnosc_okna;rodzaj;prog,odsetek,min,przerwa,wyjscie
+odchylenie_nocy_normy;rodzaj;
+noce_bez_terapii;rodzaj;
+duzy_wyciek;rodzaj;
+prog_biezacy_wyjscie;rodzaj;
+odsetek;parametr_prog;
+przerwa;parametr_prog;
+wyjscie;parametr_prog;
+stan_odchylenia_n;rodzaj;
+nie_reguly;rodzaj;
