@@ -4,7 +4,7 @@ A bedside e-ink panel for people treated with CPAP or ASV. In the morning it sho
 
 You need a ResMed Series 10 device with an AirBridge module and a Seeed reTerminal E1001; you build and flash the firmware yourself from a computer (see [Build and flash](#build-and-flash)).
 
-Author: Rafał Myrta ([drcpap.pl](https://drcpap.pl)). Status: beta (`1.0.0-beta.1`). Polish version below. The repository is `cpapblog-eink`; in code, network names and file names the internal prefix `cpap-eink` is used. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Specification: [docs/spec/](docs/spec/README.md).
+Author: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Status: beta (`1.0.0-beta.1`). Polish version below. The repository is `cpapblog-eink`; in code, network names and file names the internal prefix `cpap-eink` is used. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Specification: [docs/spec/](docs/spec/README.md).
 
 > **Not a medical device.** The panel does not diagnose, does not change or suggest therapy device settings and does not replace a doctor. It summarises data the device already records and, when something keeps differing from your usual nights, it says that it is worth talking to your doctor. See [Disclaimer](#disclaimer).
 
