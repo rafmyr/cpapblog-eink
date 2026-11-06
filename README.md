@@ -135,7 +135,7 @@ Ekran e-ink przy łóżku dla osób leczonych CPAP albo ASV. Rano jednym spojrze
 
 Potrzebujesz aparatu ResMed serii 10 z modułem AirBridge i Seeed reTerminal E1001; firmware budujesz i wgrywasz sam z komputera (zob. [Budowa i wgranie](#budowa-i-wgranie)).
 
-Autor: Rafał Myrta ([drcpap.pl](https://drcpap.pl)). Stan: beta (`1.0.0-beta.1`). Repozytorium nazywa się `cpapblog-eink`; w kodzie, nazwach sieci i plików jest wewnętrzny prefiks `cpap-eink`. Współtworzenie: [CONTRIBUTING.md](CONTRIBUTING.md). Specyfikacja: [docs/spec/](docs/spec/README.md).
+Autor: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Stan: beta (`1.0.0-beta.1`). Repozytorium nazywa się `cpapblog-eink`; w kodzie, nazwach sieci i plików jest wewnętrzny prefiks `cpap-eink`. Współtworzenie: [CONTRIBUTING.md](CONTRIBUTING.md). Specyfikacja: [docs/spec/](docs/spec/README.md).
 
 > **To nie jest wyrób medyczny.** Panel nie diagnozuje, nie zmienia i nie podpowiada ustawień aparatu i nie zastępuje lekarza. Zestawia dane, które aparat już zapisuje, a gdy coś przez dłuższy czas odbiega od Twoich zwykłych nocy, mówi, że warto porozmawiać z lekarzem. Zobacz [Zastrzeżenie](#zastrzeżenie).
 
