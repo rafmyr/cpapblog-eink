@@ -477,6 +477,7 @@ bool scenaJest(const std::string& id) { return scena(id) != nullptr; }
 
 std::vector<std::string> sceny() {
   std::vector<std::string> v;
+  v.reserve(SCENY_N);
   for (int i = 0; i < SCENY_N; i++) v.push_back(SCENY[i].id);
   return v;
 }
@@ -1026,6 +1027,7 @@ void rysujDobranoc(Plotno& p, const DaneNocy& d) {
     case WariantNocy::A1: {  // karta według anatomii ADR-0009
       naglowekKarty(p, {t.naglowekLewo, t.naglowekPrawo});
       std::vector<Fakt> f;
+      f.reserve(t.fakty.size());
       for (auto& e : t.fakty) f.push_back({e.first, e.second});
       trescKarty(p, t.etykieta, t.tytul, t.linie, f, t.krok);
       if (s) p.bitmapa(s->bmp, 800 - 26 - 14 - 125 - s->w / 2, 418 - s->h, s->w, s->h);

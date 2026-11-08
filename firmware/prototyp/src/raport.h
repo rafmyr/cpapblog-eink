@@ -57,6 +57,7 @@ struct Wejscie {
   std::string model;               // `pna` aparatu (np. `AirCurve_10_CS_PaceWave`); "" = nieznany
   std::string wersjaPanelu, wersjaAirBridge;
   std::set<std::string> niewalidowane;  // `Metryki niewalidowane` (R-LEK-19), np. "M-02"
+  bool edf = false;  // paczka EDF z panelu dostępna; false = strefa 8 bez zdania o paczce
 };
 
 // Wykres nocy (strefy 4 i 5): jedna wartość na datę poranka od najstarszej; NAN = brak (luka, R-KOK-02).

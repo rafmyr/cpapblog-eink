@@ -7,8 +7,8 @@
 
 // 4.9: duży wyciek jak E-20 (M-08 ≥ 30 min [PRÓG E-20.minuty] albo ≥ 10% czasu terapii [PRÓG E-20.odsetek_czasu],
 // od wersji beta) albo mediana wycieku > 30 L/min [PRÓG S-K-12.mediana_przecieku], a także (wariant C)
-// M-07 P95 nocy ≥ 15 L/min [PRÓG R-NOR-05.niepewna_p95]: od tego wycieku aparat gorzej rozpoznaje
-// bezdechy. Warunek dochodzi jako „albo”, więc noc niepewna przy 24 L/min zostaje niepewna także bez P95. Brak M-08 albo
+// M-07 P95 nocy ≥ 15 L/min [PRÓG R-NOR-05.niepewna_p95]: ostrożny próg wiarygodności AHI (bez źródła; za duży wyciek
+// producent aparatu uznaje 24 L/min). Warunek dochodzi jako „albo”, więc noc niepewna przy 24 L/min zostaje niepewna także bez P95. Brak M-08 albo
 // brak P95 = tylko pozostałe warunki (brak danych nie znaczy „szczelna”, ADR-0029 pkt 7).
 bool nocNiepewna(const Noc& n) {
   if (!std::isnan(n.wp95) && n.wp95 >= NIEPEWNA_P95 - 1e-4f) return true;
@@ -93,7 +93,8 @@ Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std
     if (r->data <= dzis) noce.push_back(r);
   Bieg bieg[N_DEFS];
   // ostatnie noce ważne do E-30 (AHI, bez niepewnych) i E-36 (odchylenie EPAP P95)
-  std::vector<bool> ahi5, ep95odch;
+  std::vector<float> ahi7;
+  std::vector<bool> ep95odch;
   for (const Noc* n : noce) {
     bool niepewna = nocNiepewna(*n);
     if (niepewna) {  // R-NOR-19
@@ -161,9 +162,9 @@ Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std
         }
       }
     }
-    if (!niepewna && !std::isnan(n->ahi)) {
-      ahi5.push_back(n->ahi >= 5.0f - 1e-4f);
-      if (ahi5.size() > 7) ahi5.erase(ahi5.begin());
+    if (!niepewna && !std::isnan(n->ahi)) {  // E-30: AHI nocy ważnych bez niepewnych, ostatnie E30_OKNO
+      ahi7.push_back(n->ahi);
+      if (ahi7.size() > (size_t)E30_OKNO) ahi7.erase(ahi7.begin());
     }
   }
   auto ostatnie = [](const std::vector<bool>& v, int k) {
@@ -171,8 +172,29 @@ Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std
     for (int i = (int)v.size() - 1, j = 0; i >= 0 && j < k; i--, j++) c += v[i];
     return c;
   };
-  s.e30 = ostatnie(ahi5, 7) >= 3;
+  // E-30 jak w katalogu reguł (E.csv: stat=mediana, n=E-30.okno, prog=E-30.ahi): mediana AHI z 7 ostatnich nocy
+  // ważnych bez niepewnych ≥ 5 / h; mniej niż 7 takich nocy = warunek niespełniony (silnik: „nie oceniam”, pkt 7)
+  if (ahi7.size() == (size_t)E30_OKNO) {
+    std::vector<float> v = ahi7;
+    std::sort(v.begin(), v.end());
+    s.e30 = v[E30_OKNO / 2] >= E30_AHI - 1e-4f;
+  }
   s.e36 = ostatnie(ep95odch, 7) >= 5;
+  // R-SKI-24 i brak ocen z powodu wycieku: noce z terapią od najnowszej
+  {
+    int zTerapia = 0, nieczytelne = 0, wazne = 0, pewne = 0;
+    for (auto it = noce.rbegin(); it != noce.rend() && zTerapia < WYCIEK_OKNO; ++it) {
+      const Noc& n = **it;
+      if (n.m01 < NOC_Z_TERAPIA_MIN) continue;
+      bool niep = nocNiepewna(n);
+      if (zTerapia < SKI24_OKNO && (!n.wazna || niep)) nieczytelne++;
+      if (n.wazna) wazne++;
+      if (n.wazna && !niep) pewne++;
+      zTerapia++;
+    }
+    s.nocyNieczytelne = nieczytelne >= SKI24_NOCE;
+    s.bezOcenZWycieku = wazne >= WYCIEK_MIN_NOCE && pewne < WYCIEK_MIN_NOCE;
+  }
   s.norma = liczNorme(hp, dzis, wykluczone, &s.wyl);
   if (!noce.empty()) {
     s.ostatnia = noce.back()->data;

@@ -559,7 +559,15 @@ static void testSkrotTestu() {
   SPRAWDZ(ekran(p) == Ekran::K1);
 }
 
+// ekran z pamięci RTC z kontrolą zakresu
+static void testEkranZRtc() {
+  SPRAWDZ(ekranZRtc(0) == Ekran::DZIEN && ekranZRtc(9) == Ekran::RAPORT);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU) == Ekran::SIEC_PANELU);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
+}
+
 int main() {
+  testEkranZRtc();
   testCiagStron();
   testZielonyDom();
   testPrzytrzymaniaToZapis();

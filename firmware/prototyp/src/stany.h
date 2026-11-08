@@ -26,6 +26,15 @@
 // tylko drugi warunek) albo mediana wycieku nocy > 30 L/min [PRÓG], albo (wariant C) M-07 P95
 // nocy ≥ NIEPEWNA_P95 L/min [PRÓG R-NOR-05.niepewna_p95]; brak P95 = tylko pozostałe warunki.
 const float NIEPEWNA_P95 = 15.0f;
+// E-30 (6.4, katalog E.csv): mediana AHI z E30_OKNO ostatnich nocy ważnych bez niepewnych co najmniej E30_AHI
+// [PRÓG E-30.okno], [PRÓG E-30.ahi]; ta sama definicja co w silniku reguł (warunek uspokojenia 5.4.13 pkt 2)
+const int E30_OKNO = 7;
+const float E30_AHI = 5.0f;
+// R-SKI-24: linia `Noce mało czytelne: bezdechów nie oceniam.` przy SKI24_NOCE z SKI24_OKNO ostatnich nocy z terapią
+// [PRÓG R-SKI-24.noce_nieczytelne] (noc z terapią: M-01 ≥ 15 min [PRÓG R-SKI-27.noc_z_terapia_m01])
+const int SKI24_NOCE = 4, SKI24_OKNO = 7, NOC_Z_TERAPIA_MIN = 15;
+// brak ocen z powodu wycieku (5.4.13 pkt 7): okno i liczba nocy jak L-03 [PRÓG L-03.okno], [PRÓG L-03.min_noce]
+const int WYCIEK_OKNO = 14, WYCIEK_MIN_NOCE = 10;
 bool nocNiepewna(const Noc& n);
 // Warunek E-20 nocy (6.4): M-08 ≥ 30 min [PRÓG E-20.minuty] albo ≥ 10% czasu terapii [PRÓG E-20.odsetek_czasu];
 // brak M-08 = false (wariant opisowy S-K-10 ustępuje E-20 tego samego dnia, R-KONF-42).
@@ -57,8 +66,15 @@ struct Stany {
   bool ostatniaNiepewna = false;
   OdchylenieNocy odchylenie;   // ostatniej nocy, z jej normą
   // zdarzenia z grupy R5b, które da się sprawdzić na danych panelu (6.4)
-  bool e30 = false;            // AHI ≥ 5 w ≥ 3 z 7 nocy ważnych bez nocy niepewnych
+  bool e30 = false;            // mediana AHI z 7 ostatnich nocy ważnych bez niepewnych ≥ 5 / h (jak E-30 w katalogu)
   bool e36 = false;            // odchylenie ciśnienia trybu (ASV: EPAP P95, CPAP i AutoSet: M-05p) w ≥ 5 z 7 nocy ważnych
+  // R-SKI-24: co najmniej 4 z 7 ostatnich nocy z terapią (M-01 ≥ 15 min) nie są nocami ważnymi dla L (nieważne albo
+  // niepewne, 5.12.3); przy mniej niż 7 nocach z terapią z dostępnych (linia dopiero przy 4 takich nocach)
+  bool nocyNieczytelne = false;
+  // 5.4.13 pkt 7: brak ocen bezdechów z powodu wycieku, nie liczby nocy. W ostatnich 14 nocach z terapią co najmniej
+  // 10 nocy ważnych (tyle wymaga L-03), ale mniej niż 10 ważnych bez niepewnych: bez nocy niepewnych (wyciek, 4.9)
+  // reguła AHI miałaby z czego liczyć. Krok zamienny `S-K-18.krok_dane_wyciek` zamiast `… za mało nocy.`
+  bool bezOcenZWycieku = false;
   // 5.4.13: warunek uspokojenia. Panel liczy pkt 2 w części (E-30, E-31, E-36) i pkt 3 w części (stan AHI, EPAP P95).
   // Punkty, których nie ocenia (wzorce L, E-33, E-37, S-K-17, stany M-03, M-11, M-13–M-15, linie „zdrowie”, lista
   // `Metryki niewalidowane`), są w `nieoceniane` (nieocenianeUspokojenia()); dopóki lista nie jest pusta, ocena jest
@@ -77,7 +93,8 @@ struct Stany {
   // Test sprzętu.`, tylko przy awarii zestawu, R-AW-31); OCENY = tylko punkty, których panel nie liczy (pkt 3 w części, pkt 5: `→ Część ocen wyłączona:
   // zobacz K1.`). Ustawia kolejka::zastosujUspokojenie(); bez wyników silnika SPRAWA.
   // DANE = jakaś reguła „nie oceniam” z braku danych (za mało nocy, brak metryki), bez
-  // awarii zestawu: `→ Część ocen jeszcze nie działa: za mało nocy.`; REGULY = awaria zestawu albo powód nierozpoznany.
+  // awarii zestawu: `→ Część ocen jeszcze nie działa: za mało nocy.` (przy bezOcenZWycieku `→ Bezdechów nie oceniam: noce
+  // z wyciekiem.`); REGULY = awaria zestawu albo powód nierozpoznany.
   enum class Niespokoj : unsigned char { BRAK, SPRAWA, REGULY, OCENY, DANE };
   Niespokoj niespokoj = Niespokoj::SPRAWA;
 };

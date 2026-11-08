@@ -955,7 +955,7 @@ def main():
     a.add_argument("--bez-prognozy", action="store_true", help="panel bez współrzędnych miasta: bez prognozy i S-K-37")
     a.add_argument("--obrazki", help="katalog obrazków dnia (pliki .pbm z przygotuj.py albo obrazy źródłowe)")
     a.add_argument("--scenariusz", action="append", default=[],
-                   help="noce syntetyczne po zrzucie: " + ", ".join(scen.KOLEJNOSC) + " (można kilka, po kolei)")
+                   help="noce syntetyczne po zrzucie: " + ", ".join(scen.SCENARIUSZE) + " (można kilka, po kolei; nowy-… tylko osobno, bez --pokaz-wszystko)")
     a.add_argument("--pokaz-wszystko", action="store_true",
                    help="wszystkie scenariusze po kolei, każdy w scenariusz-NAZWA/, plus spis.txt")
     a.add_argument("--lista-scenariuszy", action="store_true", help="wypisz scenariusze i zakończ")

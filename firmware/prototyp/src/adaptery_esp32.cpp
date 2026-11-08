@@ -14,6 +14,7 @@
 #include <SPI.h>
 #include <time.h>
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <new>
 #include <esp_sleep.h>
@@ -203,6 +204,16 @@ bool PlikiEsp32::czytajWiersze(const char* nazwa, std::vector<std::string>& w) {
 
 static void utworzKatalogi(const char* nazwa);  // niżej; LittleFS.open(…, "w") nie zakłada katalogów (R4 raportu na sprzęcie)
 
+// Rozmiar pliku na flash po close(): write() liczy bajty przyjęte do bufora, a brak miejsca może wyjść dopiero przy
+// zrzucie bufora w close(). Brak pliku = SIZE_MAX (nigdy równe oczekiwanemu rozmiarowi).
+static size_t rozmiarNaFlash(const char* nazwa) {
+  File f = LittleFS.open(nazwa, "r");
+  if (!f) return SIZE_MAX;
+  size_t n = f.size();
+  f.close();
+  return n;
+}
+
 bool PlikiEsp32::zapiszAtomowo(const char* nazwa, const std::string& tresc) {
   if (!montowane_) return false;
   utworzKatalogi(nazwa);
@@ -211,6 +222,7 @@ bool PlikiEsp32::zapiszAtomowo(const char* nazwa, const std::string& tresc) {
   if (!f) return false;
   size_t zapisane = f.write((const uint8_t*)tresc.data(), tresc.size());
   f.close();
+  if (zapisane == tresc.size()) zapisane = rozmiarNaFlash(tmp.c_str());  // przed rename: plik naprawdę cały
   if (zapisane != tresc.size()) {  // pełna pamięć albo błąd zapisu: stary plik zostaje nietknięty
     Serial.printf("zapis %s: %u z %u bajtów, zostaje stary plik\n", nazwa, (unsigned)zapisane, (unsigned)tresc.size());
     LittleFS.remove(tmp);
@@ -311,6 +323,13 @@ size_t PlikiEsp32::zapisz(const char* nazwa, const std::string& tresc) {
   if (!f) return 0;
   size_t n = tresc.empty() ? 0 : f.write((const uint8_t*)tresc.data(), tresc.size());
   f.close();
+  if (n == tresc.size() && n) {  // wołający porównuje wynik z rozmiarem (np. `.tmp` przed rename w magazynie)
+    size_t naFlash = rozmiarNaFlash(nazwa);
+    if (naFlash != n) {
+      Serial.printf("zapis %s: na flash %d z %u bajtów\n", nazwa, naFlash == SIZE_MAX ? -1 : (int)naFlash, (unsigned)n);
+      return naFlash == SIZE_MAX ? 0 : naFlash;
+    }
+  }
   return n;
 }
 
@@ -607,6 +626,12 @@ OdpowiedzHttp SiecEsp32::get(const ZadanieHttp& z) {
 
 bool SiecEsp32::otworzOknoSerwisowe() {
   if (!k_.hasloOkna || okno_ || WiFi.status() != WL_CONNECTED) return okno_;
+  // puste albo krótkie hasło zna albo zgadnie każdy w sieci domowej: okno się nie otwiera (main.cpp sprawdza to
+  // też przy kompilacji, tu zostaje zabezpieczenie dla hasła podanego inną drogą)
+  if (strlen(k_.hasloOkna) < HASLO_OKNA_MIN) {
+    Serial.printf("OTA: okno wgrywania wyłączone: słabe hasło (krótsze niż %u znaków)\n", (unsigned)HASLO_OKNA_MIN);
+    return false;
+  }
   MDNS.end();  // ArduinoOTA uruchamia mDNS od nowa z nazwą cpap-eink i usługą _arduino._tcp
   ArduinoOTA.setHostname(OTA_HOST);
   ArduinoOTA.setPassword(k_.hasloOkna);

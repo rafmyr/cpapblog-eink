@@ -65,6 +65,8 @@ PARAMETRY = {
     "prog_nocy": True, "por_nocy": False,
     # dopisane przez (rodzaje fali 3, opis w src/reguly_rodzaje.cpp)
     "metryki": False, "delta_z": False, "rocznica": False, "prog_udzial": True, "cecha": False,
+    # dopisane 08.11.2026: noc bez wartości metryki w `prog_nocy` i `k_z_n_nocy` (L-09, ADR-0034)
+    "brak": False,
 }
 # Słowa z przeglądu granicy ADR-0002 (9.3): tekst z trafieniem tylko ostrzeżenie (tekst i tak musi stać dosłownie
 # w spec funkcjonalnej, np. `EPAP wyższe niż zwykle` z 4.11 jest dozwolony); przegląd ręczny według 9.3.

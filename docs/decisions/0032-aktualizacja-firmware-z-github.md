@@ -28,3 +28,7 @@ Panel można dziś zaktualizować tylko kablem albo w oknie serwisowym w sieci l
 - Wydania: proces budowania i publikacji obrazu ze skrótem (później z podpisem), numer wersji rosnący; opis w specyfikacji technicznej 8.8 i 8.10 przy wdrożeniu.
 - ADR-0025 (klasa B): każde wydanie nadal przechodzi bramki i przegląd; automat nie skraca drogi wydania, tylko dostarczenie.
 - Prywatność: instrukcja dla osób testujących i spec 1.3 mówią wprost, że panel raz na dobę pyta GitHub o nową wersję.
+
+## Zmiana 2026-11-08
+
+Repozytorium wydań z pkt 1 to publiczne `rafmyr/cpapblog-eink` (od 06.11.2026). Wydania z gotowym obrazem (`.bin`, SHA-256 do pobrania przez panel) dopiero po opinii prawnika od wyrobów medycznych, zob. [ADR-0033](0033-licencja-i-dwa-repozytoria.md) pkt 6 (decyzja właściciela projektu 08.11.2026). Do tego czasu panele aktualizuje się kablem albo w oknie serwisowym w sieci lokalnej (ADR-0024 wariant A); kod sprawdzania wersji może powstać, ale bez wydania z obrazem panel nie ma czego zainstalować. Pozostałe warunki pierwszego wydania (obraz bez sekretów, adres repozytorium w firmware, podpis przed panelem poza dwoma egzemplarzami) bez zmian.

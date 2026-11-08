@@ -78,6 +78,8 @@ const int SK16_M17 = 3;
 const int SK17_NOCE = 2;
 // próg: S-K-18.rekordy = 5/7
 const int SK18_REKORDY = 5;
+// próg: R-KON-23.n4 = 5/7
+const int SK18_CZAS_N4 = 5;
 // próg: S-K-19.tymczasowy_dodatek = 0.1
 const double SK19_DODATEK = 0.1;
 // próg: R-KON-30.po_zmianie = 14
@@ -178,6 +180,7 @@ struct Wejscie {
   // (R-EKR-32): uspokojenie niespełnione tylko przez punkty bez oceny: pkt 7 (reguły) albo pkt 3/5
   bool tylkoRegulyBezOceny = false, tylkoOcenyWylaczone = false;
   bool tylkoBrakDanych = false;                     // „nie oceniam” tylko z braku danych, bez awarii zestawu
+  bool brakDanychWyciek = false;                    // … i przyczyną są noce niepewne z wycieku (Stany::bezOcenZWycieku)
   int uwagaOMasce = UWAGA_O_MASCE_DOMYSLNIE;        // R-KONF-42 „Uwaga o masce od” (10–15 L/min): wariant opisowy S-K-10
   bool giTymczasowy = true;                         // ustawienie `GI` = `tymczasowy` (5.6.4; bez jedyny wariant)
   // limity 7.4 (wieczór)

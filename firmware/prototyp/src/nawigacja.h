@@ -25,6 +25,11 @@ enum class Ekran : unsigned char { DZIEN = 0, K1 = 1, K2 = 2, PYTANIE = 3, TEST 
                                    SPRZET = 12, SPRZET_ZAPISANO = 13,  // „Sprzęt” (5.9.3), `Nowy model maski zapisany.` (R-MAS-14)
                                    USTAWIENIA = 14, FORMULARZ = 15,  // U-01 „Ustawienia”, U-03 formularz z kodem QR
                                    SIEC_PANELU = 16 };  // U-02, sieć panelu z formularzem (tylko ręcznie)
+// Ekran zapisany w pamięci RTC (StanRtc::ekran) z kontrolą zakresu: bajt spoza listy (zepsuta pamięć RTC,
+// stary obraz z innym wyliczeniem) daje ekran dnia zamiast wartości spoza `Ekran`. Przykład: 9 → RAPORT, 200 → DZIEN.
+inline Ekran ekranZRtc(unsigned char b) {
+  return b <= static_cast<unsigned char>(Ekran::SIEC_PANELU) ? static_cast<Ekran>(b) : Ekran::DZIEN;
+}
 enum class Przycisk : unsigned char { BRAK = 0, LEWY = 1, SRODEK = 2, PRAWY = 3 };
 
 // Przerwanie długiego pobierania (↻ na S5, partie historii) naciśnięciem przycisku: liczy się tylko naciśnięcie po

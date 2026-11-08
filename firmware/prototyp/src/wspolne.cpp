@@ -22,8 +22,11 @@ bool dataOk(const std::string& d) {
   if (d.size() != 10 || d[4] != '-' || d[7] != '-') return false;
   for (int i : {0, 1, 2, 3, 5, 6, 8, 9})
     if (!isdigit((unsigned char)d[i])) return false;
-  int m = pole(d, 5, 2), dz = pole(d, 8, 2);
-  return m >= 1 && m <= 12 && dz >= 1 && dz <= 31;
+  int r = pole(d, 0, 4), m = pole(d, 5, 2), dz = pole(d, 8, 2);
+  if (m < 1 || m > 12 || dz < 1) return false;
+  static const int DNI[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  bool przestepny = (r % 4 == 0 && r % 100 != 0) || r % 400 == 0;
+  return dz <= DNI[m - 1] + (m == 2 && przestepny ? 1 : 0);  // 2026-02-29 i 2026-04-31 odrzucone
 }
 
 // days_from_civil, H. Hinnant

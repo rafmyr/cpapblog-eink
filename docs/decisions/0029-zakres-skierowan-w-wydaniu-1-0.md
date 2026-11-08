@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Data | 04.11.2026 |
-| Status | przyjęta (decyzja właściciela projektu 04.11.2026); uzupełnia ADR-0004 (skierowania i hipotezy) i ADR-0016 (tryb ASV); ADR-0002, ADR-0012 i ADR-0015 bez zmian |
+| Status | przyjęta (decyzja właściciela projektu 04.11.2026); zmiana spec w kodzie wersji beta od 04.11.2026; uzupełnia ADR-0004 (skierowania i hipotezy) i ADR-0016 (tryb ASV); ADR-0002, ADR-0012 i ADR-0015 bez zmian |
 | Źródło | uwagi z konsultacji klinicznej 04.11.2026; decyzja 04.11.2026, w wariancie „tylko K2 i raport” |
 
 ## Kontekst

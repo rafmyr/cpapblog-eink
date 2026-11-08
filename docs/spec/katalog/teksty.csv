@@ -218,12 +218,13 @@ S-K-17.epap;powod;;EPAP wyższe niż zwykle
 S-K-17.wyciek;powod;;wyciek wyższy niż zwykle
 S-K-17.krok;krok;;→ Czujesz się gorzej? Skonsultuj się z lekarzem.
 S-K-18.etykieta;etykieta;30;Twój tydzień
-S-K-18.tytul;tytul;;Twój tydzień: {n} z 7 nocy
-S-K-18.powod;powod;;Ponad 4 h w {n} nocach, średnio {czas} z maską.
+S-K-18.tytul;tytul;;{n} z 7 nocy ponad 4 h
+S-K-18.powod;powod;;Noc z maską: średnio {czas}.
+S-K-18.powod_bez;powod;;W tym tygodniu bez nocy z maską.
 S-K-18.krok_sennosc;krok;;→ Za kierownicą nie ryzykuj.
 S-K-18.krok_wyciek;krok;;→ Sprawdź szczelność maski.
 S-K-18.krok_przerwy;krok;;→ Sprawdź, co budzi w nocy.
-S-K-18.krok_pora;krok;;→ Stała pora, także w weekend.
+S-K-18.krok_pora;krok;;→ Stała pora snu, też w weekend.
 S-K-18.krok_czas;krok;;→ Każda godzina z maską się liczy.
 S-K-18.krok_nic;krok;;→ Nic do zrobienia. Tak trzymaj.
 S-K-18.krok_linia;krok;;→ Sprawa z linii wyżej wciąż otwarta.
@@ -231,6 +232,7 @@ S-K-18.krok_sprawy;krok;;→ Otwarte sprawy: strona 3 / 6.
 S-K-18.krok_oceny;krok;;→ Część ocen wyłączona: zobacz K1.
 S-K-18.krok_reguly;krok;;→ Część reguł nie działa: zobacz Test sprzętu.
 S-K-18.krok_dane;krok;;→ Część ocen jeszcze nie działa: za mało nocy.
+S-K-18.krok_dane_wyciek;krok;;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-19.etykieta;etykieta;30;Twój tydzień
 S-K-19.tytul;tytul;;Więcej spłaszczonych wdechów
 S-K-19.powod;powod;;W tym tygodniu więcej wdechów o płaskim kształcie niż zwykle u ciebie.

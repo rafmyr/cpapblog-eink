@@ -116,7 +116,9 @@ Parametr parametr(const std::string& idL, const std::string& wariant, const std:
   } else if (idL == "L-08") {
     p = {"M-01h", "Godziny z maską na noc, 90 nocy", "Godziny z maską", 4, "przerywana = 4 h", false};
   } else if (idL == "L-09") {
-    p = {"M-07", "Wyciek P95 (L/min), 90 nocy", "Wyciek P95, L/min", 24, "przerywana = 24 L/min", false};
+    // linia warunku L-09: P95 od progu nocy niepewnej (R-NOR-05.niepewna_p95, 5.12.4)
+    p = {"M-07", "Wyciek P95 (L/min), 90 nocy", "Wyciek P95, L/min", NIEPEWNA_P95,
+         "przerywana = " + std::to_string((int)std::lround(NIEPEWNA_P95)) + " L/min", false};
   } else if (idL == "L-10") {
     p = {"M-10", "Ograniczenie przepływu (M-10), 90 nocy", "Ograniczenie przepływu", NAN, "", false};
   } else {  // raport ogólny, L-12 (metryka L-12 do doprecyzowania, w raporcie): AHI
@@ -791,7 +793,8 @@ Raport zbuduj(const Wejscie& we) {
                    std::to_string(wyciek) + " × duży wyciek (P95 ≥ " + std::to_string((int)std::lround(NIEPEWNA_P95)) + " L/min albo ≥ 10% czasu terapii albo ≥ 30 min powyżej 24 L/min albo mediana > 30 L/min), " +
                    std::to_string(krotkie) + " × nieważna (krócej niż 4 h, częściowa albo bez zdarzeń), " + std::to_string(brakD) +
                    " × brak danych (noc bez terapii).");
-    r.s8.push_back("Pełne przebiegi nocy: karta SD aparatu albo paczka EDF z panelu.");
+    r.s8.push_back(we.edf ? "Pełne przebiegi nocy: karta SD aparatu albo paczka EDF z panelu."
+                          : "Pełne przebiegi nocy: karta SD aparatu.");
   }
 
   // 9 czego te dane nie mówią (stała ramka; zdania o algorytmie aparatu: domysł P, do sprawdzenia w etapie 2)

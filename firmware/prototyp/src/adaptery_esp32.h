@@ -59,6 +59,9 @@ class PlikiEsp32 : public Pliki {
   bool montowane_ = false;
 };
 
+// Najkrótsze hasło okna wgrywania (OTA_PASS); krótsze albo puste: okno się nie otwiera (src/main.cpp static_assert).
+constexpr size_t HASLO_OKNA_MIN = 16;
+
 // Konfiguracja sieci: nazwa i hasło sieci domowej z NVS (src/sekrety.h), hasło okna z include/secrets.h.
 struct KonfiguracjaSieci {
   std::string ssid;   // "" = pierwsza konfiguracja: polacz() od razu false, bez WiFi.begin()

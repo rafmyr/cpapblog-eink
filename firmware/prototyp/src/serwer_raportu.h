@@ -42,9 +42,13 @@ struct Odpowiedz {
   std::string cialo;
   std::string plik;          // ścieżka pliku z `/raporty/` do podania jako ciało (czyta wołający przez Pliki)
   std::string nazwaPobrania; // nagłówek Content-Disposition
-  bool edf = false;          // żądanie EDF (podaje wołający; w wersji beta `AirBridge nie odpowiada`)
+  bool edf = false;          // żądanie EDF (podaje wołający; bez paczki EDF odpowiedź EDF_NIEDOSTEPNA)
   bool pdfPobrany = false;   // R-LEK-21: wołający pokazuje `Pobrano o {hh:mm}.`
 };
+
+// Paczki EDF w tej wersji nie ma: strona i odpowiedź na `/edf` mówią to wprost, a nie zgłaszają awarii
+// AirBridge, której nie ma.
+constexpr const char* EDF_NIEDOSTEPNA = "Paczka EDF: niedostępna w tej wersji.";
 
 class Sesja {
  public:
@@ -64,6 +68,7 @@ class Sesja {
     liczWidoczne();
   }
   bool starsze() const { return starsze_; }
+  bool edf() const { return edf_; }  // paczka EDF dostępna w tej sesji
   uint32_t koniecMs() const { return od_ + CZAS_MS; }
   // Adres z kodu QR: strona (`http://{ip}/r/{token}/`) albo w trybie ściągi EDF (`…/edf`).
   std::string adresQr() const;

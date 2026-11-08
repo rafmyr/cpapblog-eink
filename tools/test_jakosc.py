@@ -189,3 +189,24 @@ def test_bazy_wobec_main():
     # bazy jeszcze nie ma na main: bez porównania; brak bazy w gałęzi: błąd
     assert pb.sprawdz({T: "z | r | 9\n", P: "1 2 50.00\n"}, {T: None, P: None}, [])[0] == []
     assert len(pb.sprawdz({T: None, P: main_[P]}, main_, [])[0]) == 1
+
+
+def test_bazy_galaz_bazowa_i_wpis_z_changelog():
+    # gałąź bazowa: argument, potem BAZA_GALAZ, potem origin/main
+    assert pb.galaz_bazowa(None, {}) == "origin/main"
+    assert pb.galaz_bazowa(None, {"BAZA_GALAZ": "origin/integracja"}) == "origin/integracja"
+    assert pb.galaz_bazowa("origin/x", {"BAZA_GALAZ": "origin/integracja"}) == "origin/x"
+    assert pb.galaz_bazowa(None, {"BAZA_GALAZ": ""}) == "origin/main"
+    # tylko linie dopisane w diffie CHANGELOG liczą się jako wpis (stare wpisy nie zwalniają nowych pogorszeń)
+    diff = ("--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -1,2 +1,3 @@\n # Historia zmian\n"
+            "+- zmiana bazy: tools/jakosc/clang-tidy-baza.txt — performance-* bez wpływu na działanie\n"
+            "-- zmiana bazy: pokrycie-baza.txt — stary wpis usunięty\n")
+    tekst = pb.dopisane_linie(diff)
+    assert "clang-tidy-baza.txt" in tekst and "pokrycie-baza" not in tekst and "+++" not in tekst
+    assert pb.dopisane_linie(None) == ""
+    T, P = pb.TIDY, pb.POKRYCIE
+    baza = {T: "a | r | 1\n", P: "10 20 50.00\n"}
+    b, info = pb.sprawdz({T: "a | r | 1\nc | r | 3\n", P: baza[P]}, baza, [tekst], "origin/integracja")
+    assert b == [] and "origin/integracja" in info[0]
+    b, _ = pb.sprawdz({T: baza[T], P: "9 20 45.00\n"}, baza, [tekst], "origin/integracja")
+    assert len(b) == 1 and "origin/integracja" in b[0]

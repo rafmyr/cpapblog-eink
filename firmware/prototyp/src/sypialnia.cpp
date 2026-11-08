@@ -152,6 +152,7 @@ NormaSypialni liczNormeSypialni(const std::vector<NocSypialni>& s, const std::st
   if (!dataOk(dzis)) return nm;
   std::string granica = dodajDni(dzis, -90);
   std::vector<const NocSypialni*> p;
+  p.reserve(s.size());
   for (auto& r : s) p.push_back(&r);
   std::sort(p.begin(), p.end(), [](const NocSypialni* a, const NocSypialni* b) { return a->data > b->data; });
   std::vector<double> t, w, c;

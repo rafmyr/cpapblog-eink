@@ -445,6 +445,57 @@ static void testBrakDanych() {
   // teksty kroków z zestawu
   ROWNE(sk::tekst("S-K-18.krok_dane"), "→ Część ocen jeszcze nie działa: za mało nocy.");
   ROWNE(sk::tekst("S-K-18.krok_reguly"), "→ Część reguł nie działa: zobacz Test sprzętu.");
+  ROWNE(sk::tekst("S-K-18.krok_dane_wyciek"), "→ Bezdechów nie oceniam: noce z wyciekiem.");
+}
+
+// 5.4.13 pkt 7 i R-SKI-24: przyczyna braku ocen to wyciek (noce niepewne), nie liczba nocy
+static void testBrakOcenZWycieku() {
+  auto seria = [](int ile, float wp95, int krotkich = 0) {
+    std::vector<Noc> h;
+    for (int i = ile - 1; i >= 0; i--) h.push_back(noc(dodajDni(DZIS, -i), i < krotkich ? 200 : 420, 12.0f, wp95, i >= krotkich));
+    return h;
+  };
+  {  // 14 nocy ważnych z P95 18 L/min: wszystkie niepewne → wyciek blokuje oceny, linia R-SKI-24
+    Stany s = liczStany(seria(14, 18.0f), DZIS, {});
+    SPRAWDZ(s.bezOcenZWycieku && s.nocyNieczytelne);
+  }
+  {  // 14 nocy ważnych z P95 9 L/min: noce pewne → ani jedno, ani drugie
+    Stany s = liczStany(seria(14, 9.0f), DZIS, {});
+    SPRAWDZ(!s.bezOcenZWycieku && !s.nocyNieczytelne);
+  }
+  {  // 5 nocy (nowy pacjent) z P95 18: za mało nocy ważnych w ogóle → przyczyną jest liczba nocy, nie wyciek;
+     // R-SKI-24 liczy z dostępnych nocy z terapią: 5 niepewnych ≥ 4 → linia
+    Stany s = liczStany(seria(5, 18.0f), DZIS, {});
+    SPRAWDZ(!s.bezOcenZWycieku && s.nocyNieczytelne);
+    Stany s3 = liczStany(seria(3, 18.0f), DZIS, {});  // 3 noce z terapią, wszystkie niepewne → brak linii
+    SPRAWDZ(!s3.nocyNieczytelne);
+  }
+  {  // 14 nocy, w tym 5 krótkich (nieważnych) i reszta pewna: brak ocen z liczby nocy, nie z wycieku
+    Stany s = liczStany(seria(14, 9.0f, 5), DZIS, {});
+    SPRAWDZ(!s.bezOcenZWycieku && s.nocyNieczytelne);  // 5 z 7 ostatnich nieważnych → R-SKI-24
+  }
+  {  // 14 nocy ważnych, 5 niepewnych (P95 18) na początku okna: 9 pewnych < 10 → wyciek; z 7 ostatnich 0 niepewnych
+    std::vector<Noc> h = seria(14, 9.0f);
+    for (int i = 0; i < 5; i++) h[static_cast<size_t>(i)].wp95 = 18.0f;
+    Stany s = liczStany(h, DZIS, {});
+    SPRAWDZ(s.bezOcenZWycieku && !s.nocyNieczytelne);
+    h[0].wp95 = 9.0f;  // 4 niepewne: 10 pewnych → brak blokady
+    SPRAWDZ(!liczStany(h, DZIS, {}).bezOcenZWycieku);
+  }
+  {  // krok zamienny S-K-18: przy braku ocen z wycieku przyczyna „noce z wyciekiem”, inaczej „za mało nocy”
+    std::vector<Noc> h = seria(7, 9.0f);
+    sk::Wejscie w;
+    w.dzis = DZIS;
+    w.hist = &h;
+    w.tylkoBrakDanych = true;
+    sk::Tresc t;
+    SPRAWDZ(sk::tydzien(w, t));
+    ROWNE(t.t.krok, "→ Część ocen jeszcze nie działa: za mało nocy.");
+    w.brakDanychWyciek = true;
+    sk::Tresc t2;
+    SPRAWDZ(sk::tydzien(w, t2));
+    ROWNE(t2.t.krok, "→ Bezdechów nie oceniam: noce z wyciekiem.");
+  }
 }
 
 int main(int argc, char** argv) {
@@ -455,6 +506,7 @@ int main(int argc, char** argv) {
   testWybor();
   testUklad();
   testBrakDanych();
+  testBrakOcenZWycieku();
   printf("testy_przerywniki_s2d: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

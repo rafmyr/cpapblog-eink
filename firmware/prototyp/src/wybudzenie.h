@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include "airbridge.h"
 #include "czynniki.h"
@@ -143,6 +144,8 @@ struct StanRtc {
   // (src/bateria.h wygladzProcent()); -1 = brak (po zaniku zasilania od nowa z pierwszego pomiaru).
   int8_t bateriaProc = -1, bateriaSurowy = -1;
 };
+// StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
+static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");
 
 // ---------- czas ----------
 

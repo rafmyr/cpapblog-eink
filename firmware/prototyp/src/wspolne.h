@@ -9,7 +9,7 @@
 
 // ---------- daty ----------
 // Numer dnia = dni od 1970-01-01 (kalendarz gregoriański, algorytm H. Hinnanta, bez time.h i strefy).
-bool dataOk(const std::string& d);                  // format RRRR-MM-DD, miesiąc 1–12, dzień 1–31
+bool dataOk(const std::string& d);                  // RRRR-MM-DD, dzień w granicach miesiąca (29.02 w roku przestępnym)
 long nrDnia(const std::string& d);                  // -1 dla złej daty
 std::string dataZNr(long n);
 std::string dodajDni(const std::string& d, int k);  // "" dla złej daty

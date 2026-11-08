@@ -7,8 +7,12 @@
 // „nie oceniam” z powodem `za malo nocy {jest}/{trzeba}`. Zmienne tekstów: `x` (wartość ostatniej nocy okna),
 // `data` (jej data), `n`, `z`, `wartosc`, `norma` według rodzaju.
 // prog_nocy metryka, prog, por; noc z datą `dzis` (zasada jednej nocy); próg z trybu tej nocy.
-//                      Zmienne: x, wartosc, data.
+//                      Zmienne: x, wartosc, data. Opcjonalnie `brak` (`spelnia`, `niespelnia`): noc tego rodzaju bez
+//                      wartości metryki daje ten wynik zamiast „nie oceniam” (L-09: brak P95 nie przerywa wyjścia).
 //  k_z_n_nocy          metryka, prog, por, kzn (próg tekstowy `k/n`); ostatnie n nocy. Zmienne: n (spełnione), z, x.
+//                      Opcjonalnie `brak=niespelnia`: okno to n ostatnich nocy rodzaju `liczone_noce` (także bez
+//                      wartości metryki), a noc bez wartości liczy się jako niespełniona; bez `brak` okno sięga wstecz
+//                      po n nocy z wartością (bez granicy w czasie).
 //  statystyka_okna     metryka, stat (`mediana` domyślnie, `srednia`, `suma`, `odch_std` z próby, `udzial`), prog, por,
 //                      n (liczba nocy; bez niego pole `okno`). `udzial`: odsetek nocy okna z warunkiem nocy
 //                      `{metryka} {por_nocy} {prog_nocy}` wobec `prog` w % [parametry `prog_nocy`, `por_nocy` dopisane
@@ -242,7 +246,15 @@ Wynik rProgNocy(const WierszKatalogu& w, const Kontekst& k) {
   if (!pn) return nieoceniona(w, "brak nocy " + k.dzis + " tego rodzaju");
   const Noc& n = *pn;
   double x = metryka(n, m);
-  if (std::isnan(x)) return nieoceniona(w, "brak metryki " + m + " w nocy " + n.data);
+  if (std::isnan(x)) {
+    const std::string* b = parametr(w, "brak");
+    if (b && (*b == "spelnia" || *b == "niespelnia")) {
+      Wynik r = oceniona(w, *b == "spelnia");
+      r.zmienne["data"] = n.data;
+      return r;
+    }
+    return nieoceniona(w, "brak metryki " + m + " w nocy " + n.data);
+  }
   Kontekst kn = k;
   kn.trybBiezacy = tn;
   double prog = 0;
@@ -263,6 +275,25 @@ Wynik rKZNNocy(const WierszKatalogu& w, const Kontekst& k) {
   if (!kZN(w, k, "kzn", kk, nn, powod)) return nieoceniona(w, powod);
   double prog = 0;
   if (!progMetryki(w, k, "prog", m, prog, powod)) return nieoceniona(w, powod);
+  const std::string* brak = parametr(w, "brak");
+  if (brak && *brak != "niespelnia") return nieoceniona(w, "zle brak " + *brak);
+  if (brak) {  // okno: n ostatnich nocy rodzaju, noc bez wartości = niespełniona
+    std::vector<const Noc*> wsz = noceOkna(k, w.liczoneNoce, 0);
+    if ((int)wsz.size() < nn) return nieoceniona(w, zaMalo(wsz.size(), nn));
+    int ile = 0;
+    double ost = NAN;
+    for (size_t i = wsz.size() - (size_t)nn; i < wsz.size(); i++) {
+      double x = metryka(*wsz[i], m);
+      if (!std::isnan(x) && porownaj(x, por, prog)) ile++;
+      ost = x;
+    }
+    Wynik r = oceniona(w, ile >= kk);
+    r.zmienne["n"] = std::to_string(ile);
+    r.zmienne["z"] = std::to_string(nn);
+    r.zmienne["x"] = std::isnan(ost) ? "–" : przecinek1(ost);
+    r.zmienne["data"] = wsz.back()->data;
+    return r;
+  }
   Okno o = oknoMetryki(w, k, m, nn);
   if ((int)o.v.size() < nn) return nieoceniona(w, zaMalo(o.v.size(), nn));
   int ile = 0;

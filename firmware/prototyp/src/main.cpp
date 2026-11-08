@@ -40,6 +40,8 @@ static const char* const IDENTYFIKATOR = WERSJA "+" WERSJA_BUDOWY;
 extern "C" bool verifyRollbackLater() { return true; }
 
 #ifdef OTA_PASS
+// puste albo krótkie hasło otwierałoby okno wgrywania dla każdego w sieci domowej (sizeof liczy też znak końca)
+static_assert(sizeof(OTA_PASS) > HASLO_OKNA_MIN, "OTA_PASS: co najmniej 16 znaków (np. openssl rand -hex 16)");
 static const char* const HASLO_OKNA = OTA_PASS;
 #else
 static const char* const HASLO_OKNA = nullptr;

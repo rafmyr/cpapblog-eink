@@ -13,7 +13,8 @@
 // #define AB_USER     "admin"            // logowanie HTTP Digest; bez tej linii konto „admin”
 // #define AB_PASS     "haslo-airbridge"
 // Wgrywanie przez Wi-Fi (okno serwisowe U-05). Bez tej linii jest wyłączone. Wpisz własne długie, losowe hasło
-// (np. `openssl rand -hex 16`), nigdy przykładowe ani puste: puste hasło też otwiera okno, a zna je każdy.
+// (np. `openssl rand -hex 16`, 32 znaki), nigdy przykładowe. Hasło krótsze niż 16 znaków (także puste) zatrzymuje
+// kompilację (src/main.cpp static_assert), a okno z takim hasłem i tak się nie otwiera (src/adaptery_esp32.cpp).
 // #define OTA_PASS    "wpisz-wlasne-losowe-haslo"
 // Lokalne źródło danych otoczenia (opcja, ADR-0019): dowolne urządzenie w sieci domowej, które podaje JSON według
 // spec Załącznik C (np. Home Assistant, Node-RED albo własny skrypt na serwerze domowym). Bez OTO_URL funkcja jest

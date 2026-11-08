@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-329c7c6ca956 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=144c5eaf3a3b skrot=sha256:9fd48774dfcf093c1c96c5befbc8ca9c1ef54d73723d1f24232c817d5e55365c
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:55832972444b39b1537835bfdea83848c24fec3b42e71ceff05a015264e918a1
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -273,6 +273,7 @@ R-CZY-02.grupa_kontrolna;1/7;prawdopodobieństwo;wszystkie
 R-KON-23.przeciek_noce;3/7;noce (k z n);wszystkie
 R-KON-23.przerwy_noce;3/7;noce (k z n);wszystkie
 R-KON-23.m01;6;h;wszystkie
+R-KON-23.n4;5/7;noce (k z n);wszystkie
 R-MAS-09.grupa_min;5;noce;wszystkie
 R-MAS-12.odstep;30;dni;wszystkie
 R-MAS-10.pokazania;4;pokazania;wszystkie
@@ -411,7 +412,7 @@ R-HUM-28.wyciek_niewielki;10;L/min;wszystkie
 R-HUM-28.poprawa_m01;1;h;wszystkie
 R-HUM-28.poprawa_noce;5;noce;wszystkie
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-329c7c6ca956 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=144c5eaf3a3b skrot=sha256:41502107e430e48bb72bfd28cd7d9960db6176903269fe392bbb7c1b7218e57a
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:8f5699e078953d621d446bc4fff26b88a80a699a5779fe59f830a0e60b64281a
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -513,10 +514,12 @@ L-08;szybki;zlozenie_l;op=i,skladniki=L-08/szybki.teraz+L-08/szybki.wczesniej,zm
 L-08;.wyjscie_m19;regularnosc;noc=E-12.noc_min,prog=L-08.wyjscie_m19,por=ge;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;nie;;;;;;aktywna;
 L-08;.wyjscie;trwanie;regula=L-08/.wyjscie_m19,min=L-08.wyjscie_dni,jednostka=dni;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;nie;;;;;;aktywna;
 L-09;.e22;trwanie;regula=E-22,min=L-09.e22_noce,jednostka=noce;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
-L-09;.sk10;k_z_n_nocy;metryka=M-07,prog=S-K-10.przeciek_nosowa,por=gt,kzn=L-09.sk10_noce;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
+L-09;.sk10;k_z_n_nocy;metryka=M-07,prog=R-NOR-05.niepewna_p95,por=ge,kzn=L-09.sk10_noce,brak=niespelnia;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
 L-09;;zlozenie_l;op=lub,skladniki=L-09/.e22+L-09/.sk10,zmienne=n:L-09/.sk10.n|x:L-09/.sk10.x;z_terapia;;problem;R5c;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;okres_infekcji;;L-09.tytul,L-09.powod,L-09.krok,L-09.linia;aktywna;
 L-09;.wyjscie_e20;zlozenie;op=nie,skladniki=E-20;;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
-L-09;.wyjscie;trwanie;regula=L-09/.wyjscie_e20,min=L-09.wyjscie_noce,jednostka=noce;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
+L-09;.wyjscie_p95;prog_nocy;metryka=M-07,prog=R-NOR-05.niepewna_p95,por=lt,brak=spelnia;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
+L-09;.wyjscie_noc;zlozenie;op=i,skladniki=L-09/.wyjscie_e20+L-09/.wyjscie_p95;;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
+L-09;.wyjscie;trwanie;regula=L-09/.wyjscie_noc,min=L-09.wyjscie_noce,jednostka=noce;z_terapia;;;;rano;CPAP,AutoSet,ASV,ASVAuto;nie;tak;;;;;;aktywna;
 L-10;.sk19_p90;okno_wobec_normy;metryka=M-10p,stat=mediana,wzgledem=p90,por=ge;wazne_bez_niepewnych;S-K-19.tymczasowy_okno;;;rano;CPAP,AutoSet,ASV,ASVAuto;tak;nie;;;;;;tylko_raport;
 L-10;.sk19_delta;okno_wobec_normy;metryka=M-10p,stat=mediana,wzgledem=mediana,delta=S-K-19.tymczasowy_dodatek,por=ge;wazne_bez_niepewnych;S-K-19.tymczasowy_okno;;;rano;CPAP,AutoSet,ASV,ASVAuto;tak;nie;;;;;;tylko_raport;
 L-10;.po_zmianie;od_zdarzenia;zdarzenie=zmiana_ustawien,max=R-KON-30.po_zmianie,jednostka=noce;;;;;rano;CPAP,AutoSet,ASV,ASVAuto;tak;nie;;;;;;tylko_raport;
@@ -612,7 +615,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-329c7c6ca956 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=144c5eaf3a3b skrot=sha256:27ee5e35616f2d5dcd1ec06e872fb53461bac24eafae269167e1011daf37daf7
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:6acdc5371531f470ec1eda7ec42ab73e9f0efda49e65146b9915dd7471527b77
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.
@@ -885,17 +888,19 @@ S-K-17.wyciek;powod;70;wyciek wyższy niż zwykle
 S-K-18.etykieta;etykieta;30;Twój tydzień
 S-K-18.krok_czas;krok;60;→ Każda godzina z maską się liczy.
 S-K-18.krok_dane;krok;60;→ Część ocen jeszcze nie działa: za mało nocy.
+S-K-18.krok_dane_wyciek;krok;60;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-18.krok_linia;krok;60;→ Sprawa z linii wyżej wciąż otwarta.
 S-K-18.krok_nic;krok;60;→ Nic do zrobienia. Tak trzymaj.
 S-K-18.krok_oceny;krok;60;→ Część ocen wyłączona: zobacz K1.
-S-K-18.krok_pora;krok;60;→ Stała pora, także w weekend.
+S-K-18.krok_pora;krok;60;→ Stała pora snu, też w weekend.
 S-K-18.krok_przerwy;krok;60;→ Sprawdź, co budzi w nocy.
 S-K-18.krok_reguly;krok;60;→ Część reguł nie działa: zobacz Test sprzętu.
 S-K-18.krok_sennosc;krok;60;→ Za kierownicą nie ryzykuj.
 S-K-18.krok_sprawy;krok;60;→ Otwarte sprawy: strona 3 / 6.
 S-K-18.krok_wyciek;krok;60;→ Sprawdź szczelność maski.
-S-K-18.powod;powod;70;Ponad 4 h w {n} nocach, średnio {czas} z maską.
-S-K-18.tytul;tytul;30;Twój tydzień: {n} z 7 nocy
+S-K-18.powod;powod;70;Noc z maską: średnio {czas}.
+S-K-18.powod_bez;powod;70;W tym tygodniu bez nocy z maską.
+S-K-18.tytul;tytul;30;{n} z 7 nocy ponad 4 h
 S-K-19.etykieta;etykieta;30;Twój tydzień
 S-K-19.krok;krok;60;→ Senność w dzień? Pokaż te dane lekarzowi.
 S-K-19.powod;powod;70;W tym tygodniu więcej wdechów o płaskim kształcie niż zwykle u ciebie.

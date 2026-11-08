@@ -168,9 +168,11 @@ static void testSerwer() {
   serwer::Odpowiedz o = s.obsluz("/r/tok/", 2000);
   SPRAWDZ(o.kod == 200 && o.typ.find("text/html") == 0);
   for (const char* f : {"Pobierz PDF", "Udostępnij", "Wysyłając PDF mailem, podaj w wiadomości imię, nazwisko i datę urodzenia.",
-                        "Paczka EDF dla lekarza (OSCAR/SleepHQ)", "AirBridge nie odpowiada", "2026-10-25-L-03.pdf",
-                        "2026-09-05-ogolny.pdf"})
+                        serwer::EDF_NIEDOSTEPNA, "2026-10-25-L-03.pdf", "2026-09-05-ogolny.pdf"})
     SPRAWDZ(o.cialo.find(f) != std::string::npos);
+  // bez paczki EDF ani linku do niej, ani zdania o awarii AirBridge
+  SPRAWDZ(o.cialo.find("AirBridge nie odpowiada") == std::string::npos && o.cialo.find("/edf") == std::string::npos);
+  SPRAWDZ(o.cialo.find("Paczka EDF dla lekarza") == std::string::npos && !s.edf());
   SPRAWDZ(o.cialo.find("2026-04-18-L-11.pdf") == std::string::npos);  // R-LEK-32: starszy niż 90 dni
   SPRAWDZ(o.cialo.find("192.168.1.50") == std::string::npos && o.cialo.find("/api/") == std::string::npos);  // bez AirBridge
   o = s.obsluz("/r/tok/raport.pdf", 3000);
@@ -191,7 +193,12 @@ static void testSerwer() {
   serwer::Sesja t;
   t.otworz("nowy", 0, "192.168.1.47", serwer::Tryb::PDF, "/raporty/a.pdf", {}, DZIS, "T", "", true);
   SPRAWDZ(t.aktywna(serwer::CZAS_MS - 1) && !t.aktywna(serwer::CZAS_MS));
-  SPRAWDZ(t.obsluz("/r/nowy/", serwer::CZAS_MS - 1).cialo.find("AirBridge nie odpowiada") == std::string::npos);
+  {  // z paczką EDF: link jest, zdania o niedostępności nie ma
+    std::string c = t.obsluz("/r/nowy/", serwer::CZAS_MS - 1).cialo;
+    SPRAWDZ(t.edf() && c.find("AirBridge nie odpowiada") == std::string::npos);
+    SPRAWDZ(c.find("Paczka EDF dla lekarza (OSCAR/SleepHQ)") != std::string::npos && c.find("/r/nowy/edf") != std::string::npos);
+    SPRAWDZ(c.find(serwer::EDF_NIEDOSTEPNA) == std::string::npos);
+  }
   SPRAWDZ(t.obsluz("/r/nowy/", serwer::CZAS_MS).kod == 404);
   SPRAWDZ(t.starsze() == false);  // nowa sesja: znów tylko 90 dni (R-LEK-33)
   // tylko adres prywatny; token porównywany w stałym czasie
@@ -403,6 +410,14 @@ static void testLiczby() {
   we.historia = &h;
   we.niewalidowane = {"M-02"};
   raport::Raport t = raport::zbuduj(we);
+  // strefa 8 obiecuje paczkę EDF tylko wtedy, gdy panel ją ma
+  SPRAWDZ(!t.s8.empty() && t.s8.back() == "Pełne przebiegi nocy: karta SD aparatu.");
+  {
+    raport::Wejscie z = we;
+    z.edf = true;
+    raport::Raport te = raport::zbuduj(z);
+    SPRAWDZ(!te.s8.empty() && te.s8.back() == "Pełne przebiegi nocy: karta SD aparatu albo paczka EDF z panelu.");
+  }
   ROWNE(t.s4tab.wiersze[0][1], "trend");
   SPRAWDZ(t.s7.wiersze[4][1] == "trend");
   // L-06 bez SpO2: `brak pomiaru` (fail-path R-LEK-13)
@@ -574,7 +589,7 @@ static void testDyrygent() {
     rano(p, 7, 0, PowodWybudzenia::ZEGAR);
     Dyrygent(p.adaptery(), KONF).wybudzenie();
     SPRAWDZ(wLogu(p, "ekran dnia: wzorzec L-11"));
-    g.doWyslania = {"/", "/r/zly/", "PODMIEN/", "PODMIEN/raport.pdf"};
+    g.doWyslania = {"/", "/r/zly/", "PODMIEN/", "PODMIEN/raport.pdf", "PODMIEN/edf"};
     // token z atrapy generatora (stała 0x12345678): 16 bajtów 78 56 34 12 × 4
     uint8_t b[16];
     for (int i = 0; i < 16; i++) b[i] = (uint8_t)(0x12345678u >> (8 * (i % 4)));
@@ -586,12 +601,15 @@ static void testDyrygent() {
     SPRAWDZ(p.pliki.pliki.count("/raporty/2026-11-04-L-11.pdf") == 1);
     SPRAWDZ(p.pliki.pliki["/raporty/2026-11-04-L-11.pdf"].compare(0, 8, "%PDF-1.4") == 0);
     SPRAWDZ(wLogu(p, "raport dla lekarza: serwer do 07:25"));
-    SPRAWDZ(g.odp.size() == 4 && g.odp[0].kod == 404 && g.odp[1].kod == 404 && g.odp[2].kod == 200);
-    SPRAWDZ(g.odp.size() == 4 && g.odp[3].kod == 200 && g.odp[3].cialo.compare(0, 8, "%PDF-1.4") == 0);
+    SPRAWDZ(g.odp.size() == 5 && g.odp[0].kod == 404 && g.odp[1].kod == 404 && g.odp[2].kod == 200);
+    SPRAWDZ(g.odp.size() == 5 && g.odp[3].kod == 200 && g.odp[3].cialo.compare(0, 8, "%PDF-1.4") == 0);
+    // `/edf` bez paczki mówi wprost, że jej nie ma; nigdy „AirBridge nie odpowiada”
+    SPRAWDZ(g.odp.size() == 5 && g.odp[4].kod == 501 && g.odp[4].cialo == serwer::EDF_NIEDOSTEPNA);
+    SPRAWDZ(g.odp.size() == 5 && g.odp[2].cialo.find("AirBridge nie odpowiada") == std::string::npos);
     SPRAWDZ(wLogu(p, "raport dla lekarza: minęło 15 min") && wLogu(p, "serwer wyłączony"));
     SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::DZIEN);  // R-LEK-04: wraca do ekranu, z którego otwarto
     SPRAWDZ(!g.slucha && g.stopow >= 1);
-    if (g.odp.size() == 4) zapisz("strona-telefonu.html", g.odp[2].cialo);
+    if (g.odp.size() == 5) zapisz("strona-telefonu.html", g.odp[2].cialo);
     // ponowne otwarcie tego dnia: nowy plik, stary zostaje (R-LEK-14)
     g.odp.clear();
     nacisnij(p, BIT_PRAWY, 7, 40, true);
@@ -633,8 +651,13 @@ static void testDyrygent() {
     rano(p, 7, 0, PowodWybudzenia::ZEGAR);
     p.pliki.pliki["/konfiguracja.txt"] = "raport=sciaga\n";
     Dyrygent(p.adaptery(), KONF).wybudzenie();
+    int startow = g.startow;
     nacisnij(p, BIT_PRAWY, 7, 10, true);
-    SPRAWDZ(wLogu(p, "(ściąga)") && p.pliki.pliki.count("/raporty/2026-11-04-L-11.pdf") == 0);
+    SPRAWDZ(p.pliki.pliki.count("/raporty/2026-11-04-L-11.pdf") == 0);
+    // bez paczki EDF ściąga bez Wi-Fi, serwera i kodu QR
+    SPRAWDZ(wLogu(p, "ściąga bez paczki EDF, bez Wi-Fi i serwera") && !wLogu(p, "(ściąga)"));
+    SPRAWDZ(g.startow == startow && !g.slucha);
+    SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::RAPORT);
   }
   {  // brak gniazda: jak brak sieci
     serwer::ustawGniazdo(nullptr);

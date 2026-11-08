@@ -815,6 +815,22 @@ static void testSilnik() {
   bool jestL = false;
   for (const auto& w : z.katalog) jestL = jestL || w.id == "L-03";
   SPRAWDZ(jestL);
+  {  // stałe firmware równe progom zestawu wbudowanego (ADR-0034): noc niepewna i L-09 z tej samej liczby,
+     // E-30 w stanach jak w silniku, R-SKI-24 i kryterium braku ocen z wycieku jak w progi.csv
+    auto wart = [&](const char* id) {
+      const reguly::Prog* p = z.prog(id, reguly::Tryb::ASVAUTO);
+      return p && p->tekst.empty() ? p->wartosc : NAN;
+    };
+    auto tekst = [&](const char* id) {
+      const reguly::Prog* p = z.prog(id, reguly::Tryb::ASVAUTO);
+      return p ? p->tekst : std::string();
+    };
+    SPRAWDZ(std::fabs(wart("R-NOR-05.niepewna_p95") - NIEPEWNA_P95) < 1e-6);
+    SPRAWDZ(std::fabs(wart("E-30.ahi") - E30_AHI) < 1e-6 && std::fabs(wart("E-30.okno") - E30_OKNO) < 1e-6);
+    SPRAWDZ(tekst("R-SKI-24.noce_nieczytelne") == std::to_string(SKI24_NOCE) + "/" + std::to_string(SKI24_OKNO));
+    SPRAWDZ(std::fabs(wart("R-SKI-27.noc_z_terapia_m01") - NOC_Z_TERAPIA_MIN) < 1e-6);
+    SPRAWDZ(std::fabs(wart("L-03.okno") - WYCIEK_OKNO) < 1e-6 && std::fabs(wart("L-03.min_noce") - WYCIEK_MIN_NOCE) < 1e-6);
+  }
 
   {  // L-03 (≥ 10), T-TEST-163 i 183
     auto h = seria(d0, 14, 10.0f);
@@ -905,12 +921,30 @@ static void testSilnik() {
     h[44].m01 = 420;
     SPRAWDZ(!spel(ocenDzis(h), "L-08/szybki"));
   }
-  {  // L-09 przez S-K-10 w ≥ 10 z 14 nocy z terapią, także niepewnych (T-TEST-169)
+  {  // L-09: M-07 P95 ≥ próg nocy niepewnej (R-NOR-05.niepewna_p95) w ≥ 10 z 14 nocy z terapią, także niepewnych
+     // (T-TEST-169); duży wyciek ponad 24 L/min liczy się dalej, bo jest powyżej progu nocy niepewnej
     auto h = seria(d0, 14, 2.0f);
     for (size_t i = 0; i < 10; ++i) { h[i].wp95 = 25; h[i].wmed = 35; }
     SPRAWDZ(spel(ocenDzis(h), "L-09/"));
-    h[0].wp95 = 24;
+    h[0].wp95 = 24;  // 24 L/min: do 08.11.2026 poza warunkiem (> 24), teraz w paśmie od progu nocy niepewnej
+    SPRAWDZ(spel(ocenDzis(h), "L-09/"));
+    h[0].wp95 = 14.9f;  // poniżej progu nocy niepewnej: 9 z 14
     SPRAWDZ(!spel(ocenDzis(h), "L-09/"));
+  }
+  {  // L-09 w paśmie wycieku 15–24 L/min (siatka dla nocy niepewnych bez dużego wycieku E-20)
+    auto pasmo = [&](float p95, int ile) {
+      auto h = seria(d0, 14, 12.0f);
+      for (size_t i = 0; i < h.size(); ++i) h[i].wp95 = i < static_cast<size_t>(ile) ? p95 : 9.0f;
+      return h;
+    };
+    auto a = ocenDzis(pasmo(18.0f, 10));  // (a) 10 z 14 nocy po 18 L/min → L-09
+    SPRAWDZ(spel(a, "L-09/"));
+    SPRAWDZ(a.count("L-09/.sk10") && a["L-09/.sk10"].zmienne["n"] == "10");
+    SPRAWDZ(!spel(ocenDzis(pasmo(12.0f, 10)), "L-09/"));  // (b) 10 z 14 po 12 L/min (pasmo „widoczny”) → nie
+    SPRAWDZ(!spel(ocenDzis(pasmo(18.0f, 9)), "L-09/"));   // (c) 9 z 14 po 18 L/min → nie
+    SPRAWDZ(spel(ocenDzis(pasmo(15.0f, 10)), "L-09/"));   // dokładnie na progu (≥)
+    auto e = ocenDzis(pasmo(18.0f, 14));  // 14 nocy niepewnych: L-03 nie ocenia, L-09 kieruje do dostawcy
+    SPRAWDZ(spel(e, "L-09/") && !spel(e, "L-03/ge10"));
   }
   {  // L-11 (T-TEST-171, 191) i wariant „2 tygodnie”
     std::vector<Noc> h;
@@ -1009,6 +1043,64 @@ static void testSilnik() {
     }
     SPRAWDZ(e12);
     SPRAWDZ(spel(r, "L-08/"));
+  }
+  {  // L-09 w paśmie 15–24 L/min z pamięcią: stały wyciek 18 L/min nie daje wyjścia (bez E-20), więc L-09 nie miga;
+     // wyjście dopiero po 7 kolejnych nocach z P95 poniżej progu nocy niepewnej (ADR-0034)
+    std::vector<Noc> h = seria(d0, 7, 12.0f);
+    reguly::Pamiec pam;
+    reguly::Odpowiedzi o;
+    std::map<std::string, Wynik> r;
+    int dzienWejscia = -1, wyjsc = 0;
+    for (int d = 0; d < 40; ++d) {
+      h.push_back(noc(dodajDni(d0, 7 + d), 420, 12.0f));
+      h.back().wp95 = d < 30 ? 18.0f : 9.0f;
+      r = ocenDzis(h, &o, &pam);
+      if (dzienWejscia < 0 && spel(r, "L-09/")) dzienWejscia = d;
+      if (d < 30 && spel(r, "L-09/.wyjscie")) wyjsc++;
+      if (d == 35) SPRAWDZ(!spel(r, "L-09/.wyjscie"));  // 6 nocy po 9 L/min
+      if (d == 36) SPRAWDZ(spel(r, "L-09/.wyjscie"));   // 7. noc
+      std::vector<Wynik> w;
+      for (auto& kv : r) w.push_back(kv.second);
+      reguly::aktualizujPamiec(pam, w, h.back().data);
+    }
+    SPRAWDZ(dzienWejscia == 9);  // 10. noc z P95 18 w 14
+    SPRAWDZ(wyjsc == 0);
+  }
+  {  // L-09, noce bez P95 (ADR-0034): okno = 14 ostatnich nocy z terapią, noc bez P95 = „nie
+     // spełnia”; wyjście po 7 nocach z terapią bez E-20, z których żadna nie ma P95 ≥ 15 (brak P95 nie przerywa serii)
+    std::vector<Noc> h = seria(d0, 7, 12.0f);
+    reguly::Pamiec pam;
+    reguly::Odpowiedzi o;
+    std::map<std::string, Wynik> r;
+    int dzienWyjscia = -1;
+    for (int d = 0; d < 50; ++d) {
+      h.push_back(noc(dodajDni(d0, 7 + d), 420, 12.0f));
+      h.back().wp95 = d < 20 ? 18.0f : NAN;  // od 21. nocy aparat (albo import) bez P95
+      r = ocenDzis(h, &o, &pam);
+      if (d == 19) SPRAWDZ(spel(r, "L-09/"));
+      if (d >= 20 && dzienWyjscia < 0 && spel(r, "L-09/.wyjscie")) dzienWyjscia = d;
+      if (d == 23) SPRAWDZ(spel(r, "L-09/.sk10"));    // 14 ostatnich: 10 po 18 + 4 bez P95 → 10 z 14
+      if (d == 24) SPRAWDZ(!spel(r, "L-09/.sk10") && oceniona(r, "L-09/.sk10"));  // 9 po 18 + 5 bez → nie
+      if (d == 49) SPRAWDZ(!spel(r, "L-09/") && oceniona(r, "L-09/.sk10"));  // nie trzyma się nocy sprzed tygodni
+      std::vector<Wynik> w;
+      for (auto& kv : r) w.push_back(kv.second);
+      reguly::aktualizujPamiec(pam, w, h.back().data);
+    }
+    SPRAWDZ(dzienWyjscia == 26);  // 7. noc bez P95
+    // przeplot: noc bez P95 nie przerywa serii wyjścia, noc z P95 ≥ 15 przerywa
+    std::vector<Noc> h2 = seria(d0, 14, 12.0f);
+    for (auto& n : h2) n.wp95 = 18.0f;
+    reguly::Pamiec pam2;
+    for (int d = 0; d < 9; ++d) {
+      h2.push_back(noc(dodajDni(d0, 14 + d), 420, 12.0f));
+      h2.back().wp95 = d % 2 ? NAN : 9.0f;
+      r = ocenDzis(h2, &o, &pam2);
+      if (d == 5) SPRAWDZ(!spel(r, "L-09/.wyjscie"));
+      if (d == 6) SPRAWDZ(spel(r, "L-09/.wyjscie"));
+      std::vector<Wynik> w;
+      for (auto& kv : r) w.push_back(kv.second);
+      reguly::aktualizujPamiec(pam2, w, h2.back().data);
+    }
   }
   {  // tryby CPAP i AutoSet (ADR-0030, dane syntetyczne): reguły bez wariantu działają tak samo
     auto h = seria(d0, 14, 10.0f);

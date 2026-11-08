@@ -1115,6 +1115,27 @@ static void testStaryUklad() {
   sprawy::zrodloTestowe = sprawy::ZrodloWynikow();
 }
 
+// ---------- R-SKI-24: `Noce mało czytelne: bezdechów nie oceniam.` (grupa „noc”, ostrzeżenie, przed zaproszeniem) ----------
+static void testNoceNieczytelne() {
+  Scena c;
+  c.licz();
+  kolejka::WejscieKolejki k;
+  k.dzis = DZIS;
+  k.sprawy = &c.s;
+  k.zaproszenie = "Co było inaczej? ↻ 2 s";
+  auto bez = kolejka::kolejkaLinii(k);
+  for (auto& l : bez) SPRAWDZ(l.zrodlo != "R-SKI-24");
+  k.nocyNieczytelne = true;
+  auto z = kolejka::kolejkaLinii(k);
+  ROWNE_L(z.size(), 2);
+  if (z.size() == 2) {
+    ROWNE(z[0].tekst, "Noce mało czytelne: bezdechów nie oceniam.");
+    SPRAWDZ(z[0].grupa == GrupaLinii::NOC_R_SKI_24 && z[0].zdrowie() && z[1].zrodlo == "zaproszenie");
+  }
+  // linia „zdrowie” blokuje uspokojenie (pkt 4): „nie oceniam” nigdy nie znaczy „w porządku”
+  SPRAWDZ(!kolejka::ocenUspokojenie({}, z).pkt4);
+}
+
 int main() {
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);  // strefa panelu (Europe/Warsaw), jak test/testy_plan_wybudzen.cpp
   tzset();
@@ -1135,6 +1156,7 @@ int main() {
   testS2aTryb();
   testE30Linia();
   testStaryUklad();
+  testNoceNieczytelne();
   printf("testy_kolejka_linii: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

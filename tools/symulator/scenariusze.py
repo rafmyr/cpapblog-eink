@@ -735,6 +735,22 @@ def _nawigacja(p, s, w):
         ("ekran", "raport", "▶ 2 s w K2: raport ogólny dla lekarza", ())]
 
 
+NOWY_PACJENT_NOCE = 30  # nocy scenariuszy „nowy pacjent” [stała symulatora]
+
+
+def _nowy_pacjent(oa, h, wp95, oczekiwane):
+    """Nowy pacjent bez historii (pierwsze noce na nowym panelu): bez rozbiegu, od pierwszej nocy NOWY_PACJENT_NOCE nocy
+    w trybie AutoSet ze stałym AHI = OA + CA 0,5 + H i stałym wyciekiem P95 `wp95` (bez dużego wycieku M-08, E-20).
+    Okres: od pierwszego poranka do 30. poranka, bez naciśnięć; dzień po dniu sprawdza
+    tools/test_symulator_nowy_pacjent.py."""
+    def f(p, s, w):
+        for i in range(NOWY_PACJENT_NOCE):
+            p.noce.append(noc(_dni(s, i), w, oa=oa, ca=0.5, h=h, wp95=wp95, wmed=min(wp95 / 2.0, 8.0), m08=0.0))
+        p.od, p.do = _rano(s), _rano(_dni(s, NOWY_PACJENT_NOCE - 1), 12)
+        p.oczekiwane += oczekiwane
+    return f
+
+
 # nazwa → (funkcja, opis jednym zdaniem: co ma się pojawić i kiedy; rozbieg?)
 SCENARIUSZE = {
     "zwykly-dzien": (_zwykly_dzien, "Twój ostatni poranek ze zrzutu bez wymyślonych nocy: ekran dnia, slot dzienny z prognozą "
@@ -811,8 +827,30 @@ SCENARIUSZE = {
     "nawigacja": (_nawigacja, "Nowa nawigacja: trzeciego ranka po rozbiegu ▶ przez wszystkie strony kokpitu "
                   "1 / 6 … 6 / 6, ◀ z powrotem do ekranu dnia, ↻ ze strony „Sprzęt” prosto do ekranu "
                   "dnia, ▶ 2 s w K2 raport ogólny; w spisie przy każdym obrazku przycisk, który go dał.", True),
+    "nowy-ahi12": (_nowy_pacjent(8.0, 3.5, 9.0, [
+        ("ekran", "dzien-wzorzec-L-03", "ekran „pokaż lekarzowi” L-03 (mediana AHI z 14 nocy ≥ 10/h) od 10. poranka",
+         (("regula", "L-03"),))]),
+        "Nowy pacjent bez historii (AutoSet): 30 nocy z AHI 12/h i wyciekiem P95 9 L/min. Noce 1–6 bez oceny AHI, "
+        "od 7. poranka E-30, od 10. poranka L-03 „pokaż lekarzowi”; wyciek bez ekranu.", False, _autoset_wzor),
+    "nowy-wyciek18": (_nowy_pacjent(8.0, 3.5, 18.0, [
+        ("ekran", "dzien-wzorzec-L-09", "ekran „Wyciek nie ustępuje” L-09 po 10 z 14 nocy z wyciekiem ≥ 15 L/min",
+         (("regula", "L-09"),)),
+        ("linia", "Noce mało czytelne: bezdechów nie oceniam.", "linia R-SKI-24 (noce niepewne z wycieku)", ())]),
+        "Nowy pacjent bez historii (AutoSet): 30 nocy z AHI 12/h i wyciekiem P95 18 L/min (pasmo 15–24, noce "
+        "niepewne): bezdechy nieoceniane (linia `Noce mało czytelne: bezdechów nie oceniam.`), S-K-10 „Maska "
+        "przeciekała”, od 10. poranka L-09 „Wyciek nie ustępuje” do dostawcy sprzętu (ADR-0034); nigdy „Noc w normie”.",
+        False, _autoset_wzor),
+    "nowy-ahi7": (_nowy_pacjent(4.5, 2.0, 9.0, [
+        ("ekran", "dzien-zdarzenie-E-30", "pełny ekran E-30 „Noce z AHI powyżej 5” od 7. poranka",
+         (("regula", "E-30"),))]),
+        "Nowy pacjent bez historii (AutoSet): 30 nocy z AHI 7/h i wyciekiem P95 9 L/min: od 7. poranka E-30 z krokiem "
+        "„obserwuj kolejne noce” w rytmie 2 razy w tygodniu (świadomy koszt ADR-0029), bez L-03 (mediana < 10/h).",
+        False, _autoset_wzor),
 }
-KOLEJNOSC = list(SCENARIUSZE)
+# scenariusze „nowy pacjent” (30 dób symulacji każdy, kilka minut) nie wchodzą do --pokaz-wszystko; uruchamia się je
+# osobno (--scenariusz nowy-wyciek18) i sprawdza dzień po dniu tools/test_symulator_nowy_pacjent.py
+NOWY_PACJENT = ("nowy-ahi12", "nowy-wyciek18", "nowy-ahi7")
+KOLEJNOSC = [n for n in SCENARIUSZE if n not in NOWY_PACJENT]
 
 
 OBRAZEK_DNIA = ("ekran", "dzien-SK38", "obrazek dnia z --obrazki wczytany i pokazany (S-K-38)",

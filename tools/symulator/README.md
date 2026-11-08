@@ -85,6 +85,9 @@ Obrazki dnia: `--obrazki` przyjmuje katalog `assets/obrazki-dzienne-prywatne` (s
 | `przerywniki` | zdrowe noce po rozbiegu (AHI 1,2, 7 h 30), od 28 nocy do najbliższej okazji z kartą pochwalną (23.09, 25.12, 1.01; w dniu okazji scena jest wymuszona datą, więc karta z warunkiem jest zawsze; scenariusz odpowiada ◀ nie na niedzielne pytanie o senność): co 7 dni w dniu dowodu spokoju przerywnik S2d bez etykiety nad tytułem (decyzja 05.11.2026); w spisie „przerywnik S2d G.. (warunkowa)”, gdy noc spełnia warunek wylosowanej sceny, albo „(neutralna)”. Wyciek ponad 24 L/min w scenariuszu nie występuje: ekran problemu ma pierwszeństwo przed kartą (R-HUM-29) |
 | `autoset` | Rozbieg i noce w trybie AutoSet (aparat AirSense 10 AutoSet w atrapie AirBridge): 7 nocy z AHI 13/h, 4. ranka pełny ekran E-30, o 7:30 K1, K2 i Otwarte sprawy z wierszami AutoSet, o 7:45 K2 i ▶ 2 s raport ogólny dla lekarza (kod QR, PDF). |
 | `cpap` | To samo w trybie CPAP (stałe ciśnienie, aparat AirSense 10 Elite). |
+| `nowy-ahi12` | Nowy pacjent bez rozbiegu (AutoSet, 30 nocy, AHI 12/h, wyciek 9 L/min): noce 1–6 rozruch S6, od 7. poranka E-30, od 10. L-03 „pokaż lekarzowi”. Tylko osobno (`--scenariusz nowy-ahi12`), bez `--pokaz-wszystko`; dzień po dniu sprawdza `tools/test_symulator_nowy_pacjent.py`. |
+| `nowy-wyciek18` | To samo z wyciekiem P95 18 L/min (pasmo 15–24, każda noc niepewna): S-K-10, od 4. poranka linia `Noce mało czytelne: bezdechów nie oceniam.`, od 14. poranka L-09 „Wyciek nie ustępuje” do dostawcy sprzętu (ADR-0034); bez E-30, L-03 i „Noc w normie”. Tylko osobno. |
+| `nowy-ahi7` | Nowy pacjent z AHI 7/h i wyciekiem 9 L/min: od 7. poranka E-30 w rytmie 2 razy w tygodniu z linią `Wciąż: …`, bez L-03 „pokaż lekarzowi” (świadomy koszt ADR-0029). Tylko osobno. |
 
 Jeden scenariusz na zrzucie z panelu, np. ekran „pokaż lekarzowi” L-03:
 

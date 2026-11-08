@@ -26,3 +26,7 @@ zrzuty/
 
 # Private daily pictures (not part of this repository)
 assets/obrazki-dzienne-prywatne/
+
+# Temporary files
+tmp-karta-*/
+*.tmp

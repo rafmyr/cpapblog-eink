@@ -1,22 +1,4 @@
 # Baza ostrzeżeń clang-tidy rdzenia (profil firmware/prototyp/.clang-tidy).
 # Klucz: plik | reguła | treść linii. Zapis: tools/jakosc/sprawdz.sh tidy --zapisz.
-firmware/prototyp/src/airbridge.cpp | bugprone-misplaced-widening-cast | zostaloMs >= (long)(AB_ODSTEP_PROB_MS + AB_LIMIT_ODPOWIEDZI_MS);
-firmware/prototyp/src/airbridge.cpp | bugprone-suspicious-string-compare | if ((size_t)(k - p) < n || strncmp(p, s, n)) return false;
-firmware/prototyp/src/airbridge.cpp | cert-err34-c | if (sscanf(l.c_str(), "%ld;%d;%lu;%d%c", &d, &n, &t, &st, &reszta) != 4 || d < 0 || n < 0 || (st != 0 && st != 1))
-firmware/prototyp/src/airbridge.cpp | cert-err34-c | int hh = atoi(p.substr(9, 2).c_str()), mm = atoi(p.substr(11, 2).c_str()), ss = atoi(p.substr(13, 2).c_str());
-firmware/prototyp/src/airbridge.cpp | cert-err34-c | int hh = atoi(p.substr(9, 2).c_str()), mm = atoi(p.substr(11, 2).c_str()), ss = atoi(p.substr(13, 2).c_str());
-firmware/prototyp/src/airbridge.cpp | cert-err34-c | int hh = atoi(p.substr(9, 2).c_str()), mm = atoi(p.substr(11, 2).c_str()), ss = atoi(p.substr(13, 2).c_str());
-firmware/prototyp/src/airbridge.cpp | performance-inefficient-vector-operation | for (long v : p) w.push_back(std::to_string(v));
-firmware/prototyp/src/ekrany.cpp | cert-err34-c | " " + MIESIACE_D[atoi(d.dataPoranka.substr(5, 2).c_str()) - 1]
-firmware/prototyp/src/ekrany.cpp | cert-err34-c | std::string prawo = dt >= 0 ? std::string(DNI_PELNE[dt]) + ", " + std::to_string(atoi(d.dataPoranka.substr(8, 2).c_str())) +
-firmware/prototyp/src/ekrany.cpp | performance-enum-size | enum : int { IK_LEWO = -1, IK_PRAWO = -2, IK_ODSWIEZ = -3, IK_ROMB = -4, IK_OBIE = -5, IK_GORA = -6, IK_DOL = -7 };
-firmware/prototyp/src/ekrany.cpp | performance-inefficient-string-concatenation | std::string proba = linia.empty() ? slowo : linia + " " + slowo;
-firmware/prototyp/src/ekrany.cpp | performance-inefficient-vector-operation | for (auto& e : t.fakty) f.push_back({e.first, e.second});
-firmware/prototyp/src/ekrany.cpp | performance-inefficient-vector-operation | for (int i = 0; i < SCENY_N; i++) v.push_back(SCENY[i].id);
 firmware/prototyp/src/ekrany.h | clang-analyzer-optin.performance.Padding | struct TrescEkranu {
-firmware/prototyp/src/kokpit.cpp | cert-err34-c | int liczba(const std::string& s) { return atoi(s.c_str()); }  // bez wyjątków std::stoi
-firmware/prototyp/src/kokpit.cpp | clang-analyzer-optin.performance.Padding | struct { const char* e; bool gr, wc; Metryka m; double prog; bool progRowny; } def[DaneK2::WIERSZE] = {
-firmware/prototyp/src/kokpit.cpp | performance-enum-size | enum Metryka { M_BRAK, M_M01, M_AHI, M_CMED, M_CP95, M_WP95, M_EMED, M_EP95, M_PSMED, M_OA, M_CA, M_H };
-firmware/prototyp/src/otoczenie.cpp | bugprone-misplaced-widening-cast | zostaloMs >= (long)(OTO_ODSTEP_PROB_MS + OTO_LIMIT_ODPOWIEDZI_MS);
 firmware/prototyp/src/stany.cpp | clang-analyzer-optin.performance.Padding | struct Def {
-firmware/prototyp/src/sypialnia.cpp | performance-inefficient-vector-operation | for (auto& r : s) p.push_back(&r);

@@ -23,3 +23,6 @@ Spec rozdz. 1.3 i 1.4 wymienia cztery rodzaje zapytań: pogoda, powietrze, pyłe
 
 ## Adnotacja (31.10.2026, ADR-0019)
 Gdy skonfigurowane jest lokalne źródło danych otoczenia ([ADR-0019](0019-lokalne-zrodlo-otoczenia.md)), panel bierze pogodę i powietrze z niego i nie pyta serwisu pogody w internecie. Zapytanie do serwisu zostaje dozwolone; lista ruchu wychodzącego się nie zmienia.
+
+## Adnotacja (08.11.2026, ADR-0032)
+Lista dozwolonego ruchu wychodzącego z tej decyzji (pogoda, powietrze, pyłek, czas) ma od 05.11.2026 czwarty rodzaj: sprawdzenie i pobranie firmware z wydań GitHub ([ADR-0032](0032-aktualizacja-firmware-z-github.md), zmiana ADR-0001 i ADR-0013; bez danych terapii i użytkownika). Decyzja o czasie z serwera NTP i o lekach w raporcie bez zmian.

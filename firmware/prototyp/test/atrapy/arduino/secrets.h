@@ -14,7 +14,7 @@
 #define AB_PASS "atrapa"
 #endif
 #ifndef OTA_PASS
-#define OTA_PASS "atrapa"
+#define OTA_PASS "atrapa-hasla-okna-wgrywania-32zn"  // co najmniej 16 znaków (static_assert w main.cpp)
 #endif
 #ifndef OTO_URL
 #define OTO_URL "http://192.0.2.1:8080/otoczenie"

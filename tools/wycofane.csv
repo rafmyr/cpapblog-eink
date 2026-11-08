@@ -97,7 +97,7 @@ E-03,zmienione,"teksty z kompletu; etykieta ekranu danych `Dane AirBridge`","spe
 E-05,zmienione,"krytyczne jako linia przy wzorcu A (R-PIE-07)","spec v1.0"
 S-K-05,zmienione,"tytuł „Gorąca noc przed tobą”; dane: prognoza z serwisu albo tmax ze źródła otoczenia","spec v1.0; decyzja właściciela projektu 31.10.2026"
 S-K-16,zmienione,"tytuł „Maska zdejmowana {n} razy”","spec v1.0"
-S-K-18,zmienione,"tytuł „Twój tydzień: {n} z 7 nocy”","spec v1.0"
+S-K-18,zmienione,"tytuł „Twój tydzień: {n} z 7 nocy”; 08.11.2026: tytuł `{n} z 7 nocy ponad 4 h` zamiast `Twój tydzień: {n} z 7 nocy`, powód `Średnio {czas} z maską na noc.` zamiast `Ponad 4 h w {n} nocach, średnio {czas} z maską.`, krok pory `→ Stała pora snu, też w weekend.` i tylko przy mniej niż 7 z 7 nocy ponad 4 h","spec v1.0; decyzja właściciela projektu 08.11.2026"
 S-K-31,zmienione,"tytuł „Poduszka się zużywa”; linia 24 L/min bez wariantu 36; 04.11.2026: linia przerywana 15 L/min; 04.11.2026 po południu: linia przerywana wykresu = próg S-K-10 z ustawienia R-KONF-42 (rano 15, wcześniej 24 L/min); 04.11.2026: linia przerywana znów 24 L/min","spec v1.0; zmiana spec 01.11.2026; decyzja właściciela projektu 04.11.2026; konsultacja lekarska, przegląd CPAP i AutoSet, 04.11.2026"
 R-SKI-18,zmienione,"pytanie „gorzej” przy L-02(b), L-05, L-06(c) aktywnych w dowolnej pilności; 04.11.2026: pytanie „gorzej” także przy regule w stanie „tylko raport” ze spełnionym warunkiem","spec v1.0"
 R-SKI-19,zmienione,"dopisany wyjątek L-05 (R-SKI-23)","spec v1.0"

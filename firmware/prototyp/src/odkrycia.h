@@ -113,6 +113,7 @@ struct UstawieniaTekstow {
   bool liniaZdrowia = false;     // na ekranie stoi linia grupy „zdrowie” (krok zamienny R-EKR-32)
   bool tylkoRegulyBezOceny = false, tylkoOcenyWylaczone = false;  // jak sk::Wejscie
   bool tylkoBrakDanych = false;  // jak sk::Wejscie
+  bool brakDanychWyciek = false;  // jak sk::Wejscie
 };
 struct TrescOdkrycia {
   std::string id, klucz, etykieta, tytul, powod, krok;

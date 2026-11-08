@@ -26,6 +26,7 @@ const int DNI_GORZEJ = 3;      // linia R-SKI-36 przez 3 dni [PRÓG]
 // linie z 7.5 spoza wyników silnika i rytmy według rzeczywistych pokazań (R-PIE-08)
 std::string naKontroli(const SprawaL& s) { return "Wciąż: " + s.tytul + ". Pokaż na kontroli."; }  // R-SKI-33, R-SKI-13
 const char* const BEZ_ODP_SENNOSC = "Bez odpowiedzi o senność nie oceniam części spraw.";  // R-SKI-39
+const char* const NOCE_NIECZYTELNE = "Noce mało czytelne: bezdechów nie oceniam.";  // R-SKI-24
 const char* const INFEKCJA = "Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.";  // R-INF-10
 const int CO_ILE_NOR21 = 7;    // R-NOR-21: najwyżej raz na 7 dni [PRÓG]
 const int NOCY_NOR21 = 21;     // R-NOR-21: od 21 kolejnych nocy ważnych stanu [PRÓG]
@@ -202,6 +203,9 @@ std::vector<LiniaUwagi> kolejkaLinii(const WejscieKolejki& w) {
         dataOk(x.omowione) && dataOk(w.dzis) && dniMiedzy(x.omowione, w.dzis) > 0 &&
         rytmLinii(w, x.klucz, CO_ILE_A_OM, dodajDni(x.omowione, 1)))
       dodaj(k, wciazOmowione(x), GrupaLinii::WZORCE_L, x.klucz);
+  // grupa „noc”, R-SKI-24: większość ostatnich nocy z terapią nie jest ważna dla L (także w okresie infekcji); stoi
+  // przed zaproszeniem (rangaGrupy) i jest ostrzeżeniem, bo „nie oceniam” nigdy nie znaczy „w porządku”
+  if (w.nocyNieczytelne) dodaj(k, NOCE_NIECZYTELNE, GrupaLinii::NOC_R_SKI_24, "R-SKI-24");
   // grupa 2a: zaproszenie, nie przy niewyciszonym wzorcu A (R-PIE-06)
   if (!niewyciszonyA(s, w.dzis)) dodaj(k, w.zaproszenie, GrupaLinii::PYTANIA, "zaproszenie");
   // grupa 3: dane

@@ -680,10 +680,16 @@ TrescOdkrycia trescOdkrycia(const reguly::Zestaw& z, const Wynik& w0, reguly::Tr
     if (t.ukryty) t.etA = "z czynnikiem";
   }
   if (w.id == "O-03") {
+    // krok przy braku ocen z wycieku z katalogu tekstów (ten sam klucz co S-K-18), zapas: ten sam literał
+    auto zKatalogu = [&](const char* id, const char* zapas) {
+      auto it = z.teksty.find(id);
+      return it == z.teksty.end() ? std::string(zapas) : it->second.tekst;
+    };
     if (!u.uspokojenie)  // R-EKR-32;: bez kroku na pusty ekran „Otwarte sprawy” (5.4.13 pkt 5 i 7)
       t.krok = u.liniaZdrowia          ? "→ Sprawa z linii wyżej wciąż otwarta."
                : u.tylkoRegulyBezOceny ? "→ Część reguł nie działa: zobacz Test sprzętu."
                : u.tylkoOcenyWylaczone ? "→ Część ocen wyłączona: zobacz K1."
+               : u.brakDanychWyciek    ? zKatalogu("S-K-18.krok_dane_wyciek", "→ Bezdechów nie oceniam: noce z wyciekiem.")
                : u.tylkoBrakDanych     ? "→ Część ocen jeszcze nie działa: za mało nocy."  //
                                        : "→ Otwarte sprawy: strona 3 / 6.";
     t.linia = true;

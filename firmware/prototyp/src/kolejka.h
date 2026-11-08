@@ -9,7 +9,8 @@
 // `{nazwa}: trwa 8 tyg. po wizycie.` (R-SKI-11, raz, 56. dzień po „Omówione”), linia pilności C w niedzielę z zestawu
 // (R-SKI-12), `Gorsze samopoczucie: skontaktuj się z lekarzem, jeśli trwa.` przez 3 dni po „gorzej” = tak (R-SKI-36),
 // `Wciąż: {tytuł}. Omówione {data}.` wzorca A po „Omówione” co 3 dni (R-LEK-24); grupa 5 `Wciąż: {tytuł}.` L-09 po
-// „wiem” (R-EKR-22). Reguła w stanie „tylko raport” nie daje linii nigdy (ADR-0029 pkt 3).
+// „wiem” (R-EKR-22); grupa „noc” przed zaproszeniem `Noce mało czytelne: bezdechów nie oceniam.` (R-SKI-24, ostrzeżenie).
+// Reguła w stanie „tylko raport” nie daje linii nigdy (ADR-0029 pkt 3).
 // Linie spoza silnika (zaproszenie, E-08, awaria pamięci R-AW-16) przychodzą gotowe od dyrygenta i stają w swojej grupie.
 #pragma once
 #include <set>
@@ -52,6 +53,7 @@ struct WejscieKolejki {
   const std::vector<sprawy::SprawaMetryki>* metryki = nullptr;  // R-NOR-21: metryki zdrowotne w stanie odchylenia
   const std::vector<sprawy::Odpowiedz>* odpowiedziPelne = nullptr;  // R-SKI-39: pokazane pytania o senność („brak”)
   std::string okresInfekcjiOd;  // R-INF-10: pierwszy dzień okresu infekcji (5.10.3); "" = okresu nie ma
+  bool nocyNieczytelne = false;  // R-SKI-24: Stany::nocyNieczytelne (4 z 7 nocy z terapią nie są ważne dla L)
   // przegląd: linie zdarzeń E z wyników w grupach 7.5 (E-10 `Noc {data} bez terapii.` w grupie „noc”,
   // E-04 w grupie „dane”, E-05 w „awariach”)
   const std::vector<sprawy::LiniaZdarzenia>* linieE = nullptr;

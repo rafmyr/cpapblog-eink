@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <random>
 #include <set>
 #include <cstring>
 #include "airbridge.h"
@@ -60,7 +61,11 @@ static void testDaty() {
   ROWNE(dodajDni("2028-03-01", -1), "2028-02-29");
   ROWNE(dodajDni("2026-12-31", 1), "2027-01-01");
   SPRAWDZ(dniMiedzy("2026-10-01", "2026-10-29") == 28);
-  SPRAWDZ(!dataOk("2026-13-01") && !dataOk("2026-1-01") && dataOk("2026-02-31"));
+  SPRAWDZ(!dataOk("2026-13-01") && !dataOk("2026-1-01") && !dataOk("2026-00-10") && !dataOk("2026-05-00"));
+  // liczba dni miesiąca i rok przestępny: 31 lutego nie przechodzi już po cichu jako 3 marca
+  SPRAWDZ(!dataOk("2026-02-31") && !dataOk("2026-02-29") && dataOk("2028-02-29") && !dataOk("2026-04-31"));
+  SPRAWDZ(dataOk("2026-02-28") && dataOk("2026-12-31") && dataOk("2000-02-29") && !dataOk("2100-02-29"));
+  SPRAWDZ(nrDnia("2026-02-30") == -1 && dodajDni("2026-04-31", 1).empty());
   ROWNE(ddmm("2026-10-07"), "07.10");
   ROWNE(dzienMiesiac("2026-10-07"), "7 października");
   ROWNE(przecinek1(13.55), "13,6");
@@ -1989,6 +1994,19 @@ static void testStany() {
   for (int k = 1; k <= 3; k++) h4.push_back(noc(dodajDni(d0, k), 430, 8.2f, 10));
   Stany s6 = liczStany(h4, dodajDni(d0, 3), {});
   SPRAWDZ(s6.e30 && !s6.ahi.aktywny && !s6.uspokojenie);
+  // E-30 jedna definicja (katalog E.csv: mediana AHI z 7 nocy ważnych bez niepewnych): noce 6, 6, 6, 2, 2, 2, 2
+  // → mediana 2 → nie (dawna reguła „≥ 3 z 7 nocy z AHI ≥ 5” dałaby tak); 6, 6, 6, 6, 2, 2, 2 → mediana 6 → tak
+  {
+    std::vector<Noc> h7 = histStany(d0, 30);
+    const float ahi[] = {6, 6, 6, 2, 2, 2, 2};
+    for (int k = 1; k <= 7; k++) h7.push_back(noc(dodajDni(d0, k), 420, ahi[k - 1], 11));
+    SPRAWDZ(!liczStany(h7, dodajDni(d0, 7), {}).e30);
+    h7[h7.size() - 4].ahi = 6.0f;
+    SPRAWDZ(liczStany(h7, dodajDni(d0, 7), {}).e30);
+    // noc niepewna (P95 18 L/min) wypada z okna: 6, 6, 6, [6 niepewna], 2, 2, 2 → okno sięga nocy sprzed serii
+    h7[h7.size() - 4].wp95 = 18.0f;
+    SPRAWDZ(!liczStany(h7, dodajDni(d0, 7), {}).e30);
+  }
   // R-NOR-06: wyciek (techniczna) +12 L/min przez 21 nocy → koniec stanu, noce wracają do normy (nowy poziom);
   // AHI (zdrowotna) +5 / h przez 21 nocy → stan trwa, norma sprzed stanu (R-NOR-22)
   std::vector<Noc> h5 = histStany(d0, 30);
@@ -2389,6 +2407,49 @@ static void testPrzypadkiBrzegowe() {
     Zalegle z = policzZalegle(l3, h, {}, dzis, pr2, t + 60);
     SPRAWDZ(z.gotowe == 1 && z.czekajace == 1 && z.czekajDo == t + AB_ODSTEP_DOBY_S);
     SPRAWDZ(parsujProby({"20746;2;1793600000;0", "x", "20747;1;5;1", "20748;-1;5;0", "20749;1;5;2"}).size() == 2);
+    // bez sscanf: reszta po polu, brakujące albo nadmiarowe pole, przepełnienie i znak odrzucone (cert-err34-c)
+    SPRAWDZ(parsujProby({"20750;1;5;0x", "20751;1;5", "20752;1;5;0;9", "20753;99999999999;5;0", "20754;1;4294967296;0",
+                         "20755;+1;5;0", "20756; 1;5;0", ";1;5;0", "99999999999999999999999;1;5;0"}).empty());
+    {
+      ProbyDob g = parsujProby({"20757;3;4294967295;1"});
+      SPRAWDZ(g.size() == 1 && g[20757].proby == 3 && g[20757].ostatnia == 4294967295u && g[20757].staleZrobione);
+    }
+    // brzegi: puste i ujemne pola, za długie liczby, reszta po liczbie, CR
+    SPRAWDZ(parsujProby({";1;5;0", "20750;;5;0", "20750;1;;0", "20750;1;5;"}).empty());
+    SPRAWDZ(parsujProby({"-1;1;5;0", "20750;-1;5;0", "20750;1;-5;0", "20750;1;5;-1"}).empty());
+    SPRAWDZ(parsujProby({"123456789012345678901;1;5;0", "20750;1;5;00000000000000000000001"}).empty());
+    SPRAWDZ(parsujProby({"20750x;1;5;0", "20750;1x;5;0", "20750;1;5x;0", "20750;1;5;0 ", "20750;1;5;0\r"}).empty());
+    SPRAWDZ(parsujProby({"20750;1;5", "20750;1;5;0;1", "20750;1;5;0;"}).empty());
+    {
+      ProbyDob g = parsujProby({"020750;007;0;0", "0;0;4294967295;1", "20751;2147483647;1;1"});
+      SPRAWDZ(g.size() == 3 && g[20750].proby == 7 && g[0].ostatnia == 4294967295u && g[20751].proby == 2147483647);
+      SPRAWDZ(parsujProby({"20751;2147483648;1;1"}).empty());  // ponad INT_MAX
+      ProbyDob d = parsujProby({"20750;1;5;0", "20750;2;6;1"});  // ostatni wiersz tej samej doby wygrywa
+      SPRAWDZ(d.size() == 1 && d[20750].proby == 2 && d[20750].staleZrobione);
+      std::mt19937 los(12345);  // zapis → odczyt → zapis bez zmian dla wierszy, które pisze firmware
+      bool zgodne = true;
+      for (int i = 0; i < 2000 && zgodne; i++) {
+        ProbyDob q;
+        int k = 1 + (int)(los() % 20);
+        for (int j = 0; j < k; j++) q[(long)(los() % 40000)] = ProbyDoby{(int)(los() % 1000), (uint32_t)los(), (los() & 1) != 0};
+        std::vector<std::string> w = wierszeProb(q);
+        zgodne = wierszeProb(parsujProby(w)) == w;
+      }
+      SPRAWDZ(zgodne);
+    }
+    {  // dataOk() przyjmuje dokładnie te napisy, które daje dataZNr() (kalendarz gregoriański 1900–2200)
+      std::set<std::string> prawdziwe;
+      for (long n = nrDnia("1900-01-01"); n <= nrDnia("2200-12-31"); n++) prawdziwe.insert(dataZNr(n));
+      int niezgodne = 0;
+      char b[16];
+      for (int r = 1900; r <= 2200; r++)
+        for (int m = 0; m <= 13; m++)
+          for (int dz = 0; dz <= 32; dz++) {
+            snprintf(b, sizeof b, "%04d-%02d-%02d", r, m, dz);
+            if (dataOk(b) != (prawdziwe.count(b) == 1)) niezgodne++;
+          }
+      SPRAWDZ(prawdziwe.size() > 100000 && niezgodne == 0);
+    }
   }
   // doba oznaczona `stale` jest pobierana raz jeszcze (także z rekordem A i w pominiętych), potem nie
   {

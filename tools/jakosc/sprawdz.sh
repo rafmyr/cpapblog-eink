@@ -9,7 +9,8 @@
 #   sanitizery  testy rdzenia z ASan i UBSan; każde zgłoszenie przerywa
 #   tidy        clang-tidy z firmware/prototyp/.clang-tidy; zero nowych ostrzeżeń wobec tools/jakosc/clang-tidy-baza.txt
 #   pokrycie    pokrycie linii rdzenia (gcov); nie niżej niż tools/jakosc/pokrycie-baza.txt
-#   bazy        bazy clang-tidy i pokrycia nie gorsze niż na origin/main (merge-base) albo wpis „zmiana bazy:” w karcie
+#   bazy        bazy clang-tidy i pokrycia nie gorsze niż na gałęzi bazowej (merge-base; BAZA_GALAZ, domyślnie
+#               origin/main) albo linia „zmiana bazy:” w opisie commitu lub w CHANGELOG dopisanym w gałęzi
 #   spojnosc    skrypty spójności spec i pytest narzędzi
 #   (bez kroku) wszystko po kolei
 #   --zapisz    przy tidy i pokrycie: zapisz obecny wynik jako nową bazę (tylko świadomie, z powodem w PR)
@@ -114,8 +115,8 @@ krok_pokrycie() {
 }
 
 krok_bazy() {
-  echo "== bazy bramek wobec origin/main (merge-base)"
-  python3 "$REPO/tools/jakosc/porownaj_bazy.py"
+  echo "== bazy bramek wobec ${BAZA_GALAZ:-origin/main} (merge-base)"
+  python3 "$REPO/tools/jakosc/porownaj_bazy.py"  # gałąź bazowa ze zmiennej BAZA_GALAZ
 }
 
 krok_spojnosc() {

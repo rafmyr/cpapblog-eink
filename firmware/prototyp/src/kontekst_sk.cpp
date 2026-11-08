@@ -877,7 +877,7 @@ bool tydzien(const Wejscie& w, Tresc& t) {
   if (rek < SK18_REKORDY) return false;
   t = nowa("S-K-18", "SK18", "T2", 0, false, true);
   Z z = {{"n", std::to_string(n4)}, {"czas", zt ? czasMin(suma / zt) : "–"}};
-  teksty(t, "S-K-18", z, "powod", "");
+  teksty(t, "S-K-18", z, zt ? "powod" : "powod_bez", "");  // bez nocy z terapią: bez średniej „–” (5.8.4)
   // krok: pierwszy spełniony składnik (R-KON-23); metryka bez normy pomijana
   auto kzn = [&](auto war) {
     int k = 0;
@@ -899,12 +899,15 @@ bool tydzien(const Wejscie& w, Tresc& t) {
       auto m = w.startyM18.find(dodajDni(w.dzis, -i));
       if (m != w.startyM18.end()) st.push_back(m->second);
     }
-    if (st.size() >= 2 && odchStd(st) > SK07_SD) krok = "S-K-18.krok_pora";
-    else if (!m01.empty() && mediana(m01) < 6 * 60) krok = "S-K-18.krok_czas";
+    // pora tylko przy niepełnym tygodniu: 7 z 7 nocy ponad 4 h bez pouczania o porze (5.8.4, zmiana 08.11.2026)
+    if (n4 < 7 && st.size() >= 2 && odchStd(st) > SK07_SD) krok = "S-K-18.krok_pora";
+    // czas z maską także przy mniej niż 5 z 7 nocy ponad 4 h [PRÓG]: słaby tydzień nie dostaje „Tak trzymaj”
+    else if (n4 < SK18_CZAS_N4 || (!m01.empty() && mediana(m01) < 6 * 60)) krok = "S-K-18.krok_czas";
     else if (w.uspokojenie) krok = "S-K-18.krok_nic";
     else if (w.liniaZdrowiaNaEkranie) krok = "S-K-18.krok_linia";
     else if (w.tylkoRegulyBezOceny) krok = "S-K-18.krok_reguly";  // R-EKR-32, 5.4.13 pkt 7
     else if (w.tylkoOcenyWylaczone) krok = "S-K-18.krok_oceny";   // R-EKR-32, 5.4.13 pkt 5
+    else if (w.brakDanychWyciek) krok = "S-K-18.krok_dane_wyciek";  // brak ocen z powodu wycieku, nie liczby nocy
     else if (w.tylkoBrakDanych) krok = "S-K-18.krok_dane";        // brak danych, nie awaria
     else krok = "S-K-18.krok_sprawy";
   }

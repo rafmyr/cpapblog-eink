@@ -8,17 +8,35 @@ The history of versions before this repository is not published. The specificati
 
 - Fast button presses (R-PRZ-20): presses made while the screen is being drawn are no longer lost. A 5 ms sampling task debounces the buttons (15 ms stable), beeps at the moment of the press and queues it; navigation presses (short presses on the day screen and on cockpit pages `n / 6`) are replayed with a single refresh at the end. Questions, confirmations and long presses stop the queue, so nothing is answered on a screen the user has not seen.
 - Hidden shortcut ◀ + ▶ held together for 2 s (R-PRZ-21): opens the hardware test U-05 with the Wi-Fi update window from any screen, also from sleep.
+- Line `Noce mało czytelne: bezdechów nie oceniam.` (R-SKI-24): when 4 of the last 7 nights with therapy are not valid for the L patterns, the panel says so in the attention line (warning, before the "What was different?" invitation). The threshold was already in the rule set, the line was not implemented.
+- Replacement step `→ Bezdechów nie oceniam: noce z wyciekiem.` (`S-K-18.krok_dane_wyciek`, spec 5.4.13 item 7) on the weekly card S-K-18 and on O-03 when assessments are missing because of leak (uncertain nights), not because of too few nights.
+- PlatformIO environment `e1001_dev`: the only image that sends the screen buffer to the serial port for `tools/prototyp/podglad.py` (`-DZRZUT_EKRANU=1`).
+- Simulator scenarios `nowy-ahi12`, `nowy-wyciek18`, `nowy-ahi7` (new user without history, AutoSet, 30 nights) and `tools/test_symulator_nowy_pacjent.py`, which checks the day screen and attention line of every morning.
+- Decisions [ADR-0033](docs/decisions/0033-licencja-i-dwa-repozytoria.md) (license and two repositories; no releases with a ready-to-flash image until a legal opinion on the medical device status) and [ADR-0034](docs/decisions/0034-model-pasm-wycieku-p95.md) (leak P95 bands 10 / 15 / 24 / 27 L/min).
+- README: "Intended use" section (ADR-0015 item 1).
 
 ### Changed
 
 - Day slot hourly check (R-KON-42): the footer readings (outside temperature from the hourly forecast or the local source, bedside temperature) are taken from the last displayed frame, so a forecast change of one degree no longer refreshes the e-ink every hour.
 - The button that wakes the panel beeps as the first action of the program.
+- L-09 "Wyciek nie ustępuje" (spec 5.12.4, ADR-0034): counts nights with leak P95 ≥ 15 L/min (the uncertain-night threshold `R-NOR-05.niepewna_p95`) in ≥ 10 of the last 14 nights with therapy, instead of P95 > 24 L/min. A steady leak of 15–24 L/min, which makes every night uncertain and silences L-03, now leads to the equipment supplier instead of months of "nie oceniam". Exit: 7 consecutive nights with therapy without E-20 and with P95 below 15 L/min. A night without P95 counts as "not met" for entry and does not break the exit series (new rule-engine parameter `brak`). The L-09 chart in the doctor's report has its dashed line at 15 L/min.
+- E-30 in the day-screen state (`src/stany.cpp`) uses the same definition as the rule engine: median AHI of the last 7 valid nights without uncertain nights ≥ 5 / h (was "≥ 3 of 7").
+- Weekly card S-K-18: title `{n} z 7 nocy ponad 4 h` (was `Twój tydzień: {n} z 7 nocy`, which repeated the label), reason `Noc z maską: średnio {czas}.`, without nights with therapy `W tym tygodniu bez nocy z maską.`; the bedtime step reads `→ Stała pora snu, też w weekend.` and appears only when fewer than 7 of 7 nights exceeded 4 h; with fewer than 5 of 7 nights over 4 h [PRÓG] the step is `→ Każda godzina z maską się liczy.` instead of `→ Nic do zrobienia. Tak trzymaj.`.
+- EDF package: the phone page shows `Paczka EDF: niedostępna w tej wersji.` instead of a link, `/edf` answers 501 with the same sentence (was 503 `AirBridge nie odpowiada.`), zone 8 of the A4 report ends with `Pełne przebiegi nocy: karta SD aparatu.`, and the cheat-sheet variant (`raport=sciaga`) draws no QR code for the package and starts neither Wi-Fi nor the server. Switch: `EDF_DOSTEPNA` in `src/dyrygent.cpp`.
+- Wi-Fi update password: `OTA_PASS` shorter than 16 characters (also empty) stops compilation (`static_assert` in `src/main.cpp`), and the adapter does not open the update window with such a password (log line `OTA: okno wgrywania wyłączone: słabe hasło …`). `tools/prototyp/sekrety.sh` generates 32 characters.
+- The regular images `e1001` and `e1001_ota` no longer send the screen buffer to the serial port: a button wake-up is about 1 s shorter and screen content does not leave the panel over the cable.
+- Quality gates: clang-tidy baseline reduced from 20 to 2 warnings (`sscanf` replaced by `strtoull` with end and range checks, `reserve()` in vector loops, string comparison); `tools/jakosc/porownaj_bazy.py` compares gate baselines with a base branch (`--galaz`, `BAZA_GALAZ`, default `origin/main`) and also accepts a `zmiana bazy:` line added to `CHANGELOG.md` in the branch.
+- README: the disclaimer no longer states the legal status as a fact; it says the status under medical device regulations has not been determined and that until then there are no ready-to-flash images and no certification. Code on `main` includes these changes; no new release, no new tag.
+- Specification and ADR texts updated for the above (spec 4.9, 5.4.13, 5.8.4, 5.12.4, 5.12.5, 5.13.4; technical spec 2, 3.1, 6, 7, 8, 9, 11, 12.5, 13.1, 14; ADR-0007, 0013, 0023, 0027, 0029, 0030, 0032; results of measurement 12 (clock drift) and measurement 16 (memory above 16 MB) entered).
 
 ### Fixed
 
 - Panel with a few months of night history crashed on start (`Stack canary watchpoint triggered (loopTask)` while drawing the day screen S8) and entered the safe mode U-06 after three failed starts. The loop task stack is now 48 KB (was 24 KB).
 - Internal RAM ran out with a long history: rule-engine state and night records (mostly small map and set nodes) were allocated in internal RAM although the board has 8 MB PSRAM. Ordinary allocations from 8 bytes now go to PSRAM (`heap_caps_malloc_extmem_enable(8)`); the minimum free internal RAM went from 452 B to 162 KB. The boot log has a new line `pamiec start: PSRAM …`.
 - `tools/prototyp/wgraj_pliki.py`: after `--reset` the first file could arrive truncated, because the panel does not read the serial port while drawing. The tool now waits until the screen is drawn and keeps the panel awake with `?` meanwhile.
+- Calendar dates: `dataOk()` checks the number of days in the month and leap years, so `2026-02-31` is no longer accepted silently as 3 March. After the update a date outside the calendar saved earlier by the form (for example `wymiana.maska=2026-02-31` in `/konfiguracja.txt`) is skipped with a log line and has to be entered again. Night records are not affected.
+- The screen number restored from RTC memory is range-checked (`ekranZRtc()`); an unknown value opens the day screen.
+- Atomic file write on the panel compares the size of the `.tmp` file on flash with the expected size before renaming it.
 
 ## 1.0.0-beta.1 (2026-11-06)
 

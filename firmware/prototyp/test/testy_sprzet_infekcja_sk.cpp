@@ -415,9 +415,34 @@ static void testTydzien() {
   sk::Tresc t;
   w.uspokojenie = true;
   SPRAWDZ(sk::tydzien(w, t));
-  ROWNE(t.t.tytul, "Twój tydzień: 7 z 7 nocy");
-  ROWNE(t.t.powod, "Ponad 4 h w 7 nocach, średnio 7 h 00 z maską.");
+  ROWNE(t.t.tytul, "7 z 7 nocy ponad 4 h");
+  ROWNE(t.t.powod, "Noc z maską: średnio 7 h 00.");
   ROWNE(t.t.krok, "→ Nic do zrobienia. Tak trzymaj.");
+  // pora (5.8.4, zmiana 08.11.2026): rozrzut startu > 60 min, ale 7 z 7 nocy ponad 4 h → bez kroku pory
+  for (int i = 0; i < 7; i++) w.startyM18[dodajDni(nd, -i)] = (i % 2) ? 22 * 60 : 24 * 60 + 90;
+  sk::tydzien(w, t);
+  ROWNE(t.t.krok, "→ Nic do zrobienia. Tak trzymaj.");
+  h[25].m01 = 200;  // jedna noc < 4 h: 6 z 7 → krok pory
+  sk::tydzien(w, t);
+  ROWNE(t.t.tytul, "6 z 7 nocy ponad 4 h");
+  ROWNE(t.t.krok, "→ Stała pora snu, też w weekend.");
+  h[25].m01 = 420;
+  w.startyM18.clear();
+  // słaby tydzień (2 z 7 ponad 4 h, reszta rekordów bez terapii) → krok czasu, nie „Tak trzymaj”
+  {
+    std::vector<Noc> hs = h;
+    for (int i = 20; i <= 24; i++) hs[(size_t)i].m01 = 0;  // mediana nocy z terapią 7 h: bez tej reguły byłoby „Tak trzymaj”
+    sk::Wejscie ws = w;
+    ws.hist = &hs;
+    sk::Tresc ts;
+    SPRAWDZ(sk::tydzien(ws, ts));
+    ROWNE(ts.t.tytul, "2 z 7 nocy ponad 4 h");
+    ROWNE(ts.t.krok, "→ Każda godzina z maską się liczy.");
+    for (int i = 20; i <= 26; i++) hs[(size_t)i].m01 = 0;  // 7 rekordów bez terapii
+    SPRAWDZ(sk::tydzien(ws, ts));
+    ROWNE(ts.t.powod, "W tym tygodniu bez nocy z maską.");
+    ROWNE(ts.t.krok, "→ Każda godzina z maską się liczy.");
+  }
   w.uspokojenie = false;
   sk::tydzien(w, t);
   ROWNE(t.t.krok, "→ Otwarte sprawy: strona 3 / 6.");  // numer strony kokpitu

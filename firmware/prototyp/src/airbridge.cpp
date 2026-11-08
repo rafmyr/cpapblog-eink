@@ -2,7 +2,10 @@
 #include "airbridge.h"
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <climits>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -108,7 +111,7 @@ struct Czytnik {
   }
   bool slowo(const char* s) {
     size_t n = strlen(s);
-    if ((size_t)(k - p) < n || strncmp(p, s, n)) return false;
+    if ((size_t)(k - p) < n || strncmp(p, s, n) != 0) return false;
     p += n;
     return true;
   }
@@ -825,16 +828,29 @@ NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapas
 }
 
 // ---------- próby dób ----------
+// Pole wiersza prób: same cyfry dziesiętne (bez znaku, spacji i reszty) o wartości ≤ maks; inaczej false.
+static bool poleProby(const std::string& t, unsigned long long maks, unsigned long long& v) {
+  if (t.empty() || t.size() > 20) return false;
+  for (char c : t)
+    if (c < '0' || c > '9') return false;
+  errno = 0;
+  char* e = nullptr;
+  v = strtoull(t.c_str(), &e, 10);
+  return errno != ERANGE && *e == 0 && v <= maks;
+}
+
 ProbyDob parsujProby(const std::vector<std::string>& wiersze) {
   ProbyDob p;
-  for (auto& l : wiersze) {
-    long d;
-    int n, st;
-    unsigned long t;
-    char reszta;
-    if (sscanf(l.c_str(), "%ld;%d;%lu;%d%c", &d, &n, &t, &st, &reszta) != 4 || d < 0 || n < 0 || (st != 0 && st != 1))
+  for (auto& l : wiersze) {  // day;proby;ostatnia;stale(0/1), bez sscanf
+    std::vector<std::string> f;
+    size_t od = 0;
+    for (size_t k; (k = l.find(';', od)) != std::string::npos; od = k + 1) f.push_back(l.substr(od, k - od));
+    f.push_back(l.substr(od));
+    unsigned long long d, n, t, st;
+    if (f.size() != 4 || !poleProby(f[0], LONG_MAX, d) || !poleProby(f[1], INT_MAX, n) ||
+        !poleProby(f[2], UINT32_MAX, t) || !poleProby(f[3], 1, st))
       continue;
-    p[d] = ProbyDoby{n, (uint32_t)t, st == 1};
+    p[(long)d] = ProbyDoby{(int)n, (uint32_t)t, st == 1};
   }
   return p;
 }
@@ -972,6 +988,7 @@ std::set<long> parsujPominiete(const std::vector<std::string>& wiersze) {
 
 std::vector<std::string> wierszePominietych(const std::set<long>& p) {
   std::vector<std::string> w;
+  w.reserve(p.size());
   for (long v : p) w.push_back(std::to_string(v));
   return w;
 }

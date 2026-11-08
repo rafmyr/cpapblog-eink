@@ -6,7 +6,7 @@ You need a ResMed Series 10 device with an AirBridge module and a Seeed reTermin
 
 Author: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Status: beta (`1.0.0-beta.1`). Polish version below. The repository is `cpapblog-eink`; in code, network names and file names the internal prefix `cpap-eink` is used. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Specification: [docs/spec/](docs/spec/README.md).
 
-> **Not a medical device.** The panel does not diagnose, does not change or suggest therapy device settings and does not replace a doctor. It summarises data the device already records and, when something keeps differing from your usual nights, it says that it is worth talking to your doctor. See [Disclaimer](#disclaimer).
+> The panel does not diagnose, does not change or suggest therapy device settings and does not replace a doctor. Its status under medical device regulations has not been determined; until it is, there are no ready-to-flash firmware images and no certification. It summarises data the device already records and, when something keeps differing from your usual nights, it says that it is worth talking to your doctor. See [Intended use](#intended-use) and [Disclaimer](#disclaimer).
 
 ## Screens
 
@@ -26,6 +26,10 @@ Previews rendered from the design files (800×480, 1-bit), not photos of the dev
 - A cartoon **alarm clock character** on cards; screens are either data screens or cards, never mixed.
 
 All screen texts are in Polish.
+
+## Intended use
+
+The panel is meant for an adult treated with a CPAP or ASV device under the care of a doctor, who operates the device and the panel themselves. It is not meant for children. It sets the data recorded by the therapy device against the user's own history and points out when to talk to a doctor. It does not assess blood oxygenation without an oximeter. It is not meant for emergencies.
 
 ## Hardware
 
@@ -109,11 +113,11 @@ Documentation and code identifiers are in Polish.
 
 ## Status
 
-Beta `1.0.0-beta.1` (November 2026), running on two test units. Firmware `1.0.0-beta.1` implements specification 1.2 ([docs/spec/](docs/spec/README.md)). Thresholds marked `[PRÓG]` in the specification are not yet calibrated. The therapy modes `CPAP`, `AutoSet` and `ASV` were checked on synthetic data only. Not a release for the general public. Known limitations: [CHANGELOG.md](CHANGELOG.md) and [SECURITY.md](SECURITY.md).
+Beta `1.0.0-beta.1` (November 2026), running on two test units. Firmware `1.0.0-beta.1` implements specification 1.2 ([docs/spec/](docs/spec/README.md)). Thresholds marked `[PRÓG]` in the specification are not yet calibrated. The therapy modes `CPAP`, `AutoSet` and `ASV` were checked on synthetic data only. Not a release for the general public. The code on `main` includes the fixes of 08.11.2026 (see [CHANGELOG.md](CHANGELOG.md)); there is no new release and no firmware image to download: you build and flash the firmware yourself. Known limitations: [CHANGELOG.md](CHANGELOG.md) and [SECURITY.md](SECURITY.md).
 
 ## Disclaimer
 
-This project is not a medical device and has no medical certification. It does not diagnose, does not monitor for emergencies, does not change therapy device settings and does not tell you what settings to use. It does not replace a doctor or the device manufacturer's software. Decisions about treatment belong to you and your doctor. The panel does not warn about sudden conditions: with shortness of breath or chest pain call for help. Use at your own risk.
+The panel does not diagnose, does not change or suggest therapy device settings and does not replace a doctor. Its status under medical device regulations (EU MDR) has not been determined; until it is, the project publishes no ready-to-flash firmware images and has no certification. It does not monitor for emergencies and does not tell you what settings to use. It does not replace the device manufacturer's software either. Decisions about treatment belong to you and your doctor. The panel does not warn about sudden conditions: with shortness of breath or chest pain call for help. Use at your own risk.
 
 ## License
 
@@ -137,7 +141,7 @@ Potrzebujesz aparatu ResMed serii 10 z modułem AirBridge i Seeed reTerminal E10
 
 Autor: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Stan: beta (`1.0.0-beta.1`). Repozytorium nazywa się `cpapblog-eink`; w kodzie, nazwach sieci i plików jest wewnętrzny prefiks `cpap-eink`. Współtworzenie: [CONTRIBUTING.md](CONTRIBUTING.md). Specyfikacja: [docs/spec/](docs/spec/README.md).
 
-> **To nie jest wyrób medyczny.** Panel nie diagnozuje, nie zmienia i nie podpowiada ustawień aparatu i nie zastępuje lekarza. Zestawia dane, które aparat już zapisuje, a gdy coś przez dłuższy czas odbiega od Twoich zwykłych nocy, mówi, że warto porozmawiać z lekarzem. Zobacz [Zastrzeżenie](#zastrzeżenie).
+> Panel nie diagnozuje, nie zmienia i nie podpowiada ustawień aparatu i nie zastępuje lekarza. Jego status wobec przepisów o wyrobach medycznych nie został rozstrzygnięty; do tego czasu nie ma gotowych obrazów firmware do wgrania ani certyfikacji. Zestawia dane, które aparat już zapisuje, a gdy coś przez dłuższy czas odbiega od Twoich zwykłych nocy, mówi, że warto porozmawiać z lekarzem. Zobacz [Przeznaczenie](#przeznaczenie) i [Zastrzeżenie](#zastrzeżenie).
 
 ## Ekrany
 
@@ -232,13 +236,17 @@ python3 tools/spojnosc_tech.py
 
 Teksty na ekranie są po polsku. Dokumentacja i identyfikatory w kodzie również.
 
+## Przeznaczenie
+
+Panel jest dla dorosłej osoby leczonej aparatem CPAP albo ASV pod opieką lekarza, która sama obsługuje aparat i panel. Nie jest przeznaczony dla dzieci. Zestawia dane zapisane przez aparat z własną historią użytkownika i wskazuje, kiedy porozmawiać z lekarzem. Nie ocenia natlenienia krwi bez oksymetru. Nie służy do stanów nagłych.
+
 ## Stan
 
-Beta `1.0.0-beta.1` (listopad 2026), działa na dwóch egzemplarzach testowych. Firmware `1.0.0-beta.1` realizuje specyfikację 1.2 ([docs/spec/](docs/spec/README.md)). Progi oznaczone w specyfikacji `[PRÓG]` nie są jeszcze skalibrowane. Tryby `CPAP`, `AutoSet` i `ASV` sprawdzono tylko na danych syntetycznych. To nie jest wydanie dla każdego. Znane ograniczenia: [CHANGELOG.md](CHANGELOG.md) i [SECURITY.md](SECURITY.md).
+Beta `1.0.0-beta.1` (listopad 2026), działa na dwóch egzemplarzach testowych. Firmware `1.0.0-beta.1` realizuje specyfikację 1.2 ([docs/spec/](docs/spec/README.md)). Progi oznaczone w specyfikacji `[PRÓG]` nie są jeszcze skalibrowane. Tryby `CPAP`, `AutoSet` i `ASV` sprawdzono tylko na danych syntetycznych. To nie jest wydanie dla każdego. Kod na `main` zawiera poprawki z 08.11.2026 (zob. [CHANGELOG.md](CHANGELOG.md)); nowego wydania ani obrazu firmware do pobrania nie ma: firmware budujesz i wgrywasz sam. Znane ograniczenia: [CHANGELOG.md](CHANGELOG.md) i [SECURITY.md](SECURITY.md).
 
 ## Zastrzeżenie
 
-Projekt nie jest wyrobem medycznym i nie ma certyfikacji medycznej. Nie diagnozuje, nie czuwa nad stanami nagłymi, nie zmienia ustawień aparatu i nie mówi, jakie ustawienia wybrać. Nie zastępuje lekarza ani oprogramowania producenta aparatu. O leczeniu decydujesz Ty z lekarzem. Panel nie ostrzega o nagłych stanach: przy duszności lub bólu w klatce wezwij pomoc. Używasz na własną odpowiedzialność.
+Panel nie diagnozuje, nie zmienia i nie podpowiada ustawień aparatu i nie zastępuje lekarza. Jego status wobec przepisów o wyrobach medycznych (MDR) nie został rozstrzygnięty; do tego czasu projekt nie publikuje gotowych obrazów firmware do wgrania i nie ma certyfikacji. Nie czuwa nad stanami nagłymi i nie mówi, jakie ustawienia wybrać. Nie zastępuje też oprogramowania producenta aparatu. O leczeniu decydujesz Ty z lekarzem. Panel nie ostrzega o nagłych stanach: przy duszności lub bólu w klatce wezwij pomoc. Używasz na własną odpowiedzialność.
 
 ## Licencja
 

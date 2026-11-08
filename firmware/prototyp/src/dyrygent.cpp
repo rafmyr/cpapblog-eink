@@ -405,7 +405,7 @@ class Przebieg {
     minuta = t.tm_hour * 60 + t.tm_min;
   }
 
-  Ekran ekran() { return (Ekran)r.ekran; }
+  Ekran ekran() { return ekranZRtc(r.ekran); }
   void ustawEkran(Ekran e) {
     if (e != ekran()) r.klatkaOd = 0;  // inny ekran: następne rysowanie zawsze odświeża e-ink
     r.ekran = (uint8_t)e;
@@ -1213,6 +1213,7 @@ class Przebieg {
     b5.metryki = sprawy::sprawyMetryk(hist, stany(dzis), dzis);
     wk.metryki = &b5.metryki;
     wk.odpowiedziPelne = &odpowiedzi;
+    wk.nocyNieczytelne = stany(dzis).nocyNieczytelne;  // R-SKI-24
     b5.linieE = linieZdarzenB11();  // E-10, E-04 i inne linie zdarzeń w kolejce 7.5
     liniaZmianyUstawienB21(dzis);  // R-NOR-14 (grupa 4, przed R-MAS-11)
     liniaTrybuB21(dzis);           // R-DANE-29 (grupa 3)
@@ -1724,6 +1725,7 @@ class Przebieg {
     w.tylkoRegulyBezOceny = b5.stany.niespokoj == Stany::Niespokoj::REGULY;
     w.tylkoOcenyWylaczone = b5.stany.niespokoj == Stany::Niespokoj::OCENY;
     w.tylkoBrakDanych = b5.stany.niespokoj == Stany::Niespokoj::DANE;  //
+    w.brakDanychWyciek = w.tylkoBrakDanych && b5.stany.bezOcenZWycieku;  // 5.4.13 pkt 7: przyczyna to wyciek
     w.prosbaDzis = prosbaDzisB9(dzis) && !sk::wpisDzis(dziennik, dzis, true);
     w.wieczorowZKrokiem7 = wieczoryZKrokiemB9(dzis);
     if (stopkaZPamieci) {  // … a wybór ekranu ze świeżego odczytu: inny zestaw S-K (próg przekroczony) → świeży odczyt
@@ -2857,6 +2859,7 @@ class Przebieg {
     u.tylkoRegulyBezOceny = b5.stany.niespokoj == Stany::Niespokoj::REGULY;
     u.tylkoOcenyWylaczone = b5.stany.niespokoj == Stany::Niespokoj::OCENY;
     u.tylkoBrakDanych = b5.stany.niespokoj == Stany::Niespokoj::DANE;  //
+    u.brakDanychWyciek = u.tylkoBrakDanych && b5.stany.bezOcenZWycieku;  // 5.4.13 pkt 7: przyczyna to wyciek
     odkrycia::TrescOdkrycia o = odkrycia::trescOdkrycia(z, *w, trybB15(), u, &hist);
     TrescEkranu t = podsumowanie::trescS1(o);
     linieB15(t, dd);
@@ -3038,6 +3041,8 @@ class Przebieg {
       return false;
     }, prz);
   }
+  // Paczka EDF z AirBridge do decyzji: do tego czasu raport, strona i ściąga nie obiecują paczki.
+  static constexpr bool EDF_DOSTEPNA = false;
   void otworzRaportB13(const std::string& dzis, Ekran z) {
     zamknijRaportB13();
     rap = StanRaportuB13();
@@ -3069,6 +3074,7 @@ class Przebieg {
     we.czynnikiWlaczone = raport::czynnikiZKonfiguracji(konf, we.czynnikiUstawione);
     we.podpowiedziH = ustawieniaB9().podpowiedz != 0;  // R-HIP-07, `podpowiedz=nie` = bez strefy 3b
     we.wersjaPanelu = a.uruchomienie.wersja();
+    we.edf = EDF_DOSTEPNA;
     we.wersjaAirBridge = r.ab.wersja;
     rap.tresc = raport::zbuduj(we);
     rap.temat = rap.tresc.temat;
@@ -3092,6 +3098,10 @@ class Przebieg {
       wzorce::raportZEkranuL(b5.pamiec, s->klucz, dzis);
       zapiszPamiecRegul();
     }
+    if (rap.sciaga && !EDF_DOSTEPNA) {  // ściąga podaje tylko paczkę EDF: bez niej radio i serwer nic nie dają
+      log("raport dla lekarza: ściąga bez paczki EDF, bez Wi-Fi i serwera");
+      return;
+    }
     serwer::GniazdoHttp* g = serwer::gniazdo();
     // R-NF-09, R-NF-27: serwer tylko pod adresem z sieci prywatnej
     if (!g || !wifiRaportuB13() || !serwer::adresPrywatny(a.siec.adresIp()) || !g->start(80)) {  // R-LEK-22 (panel bez karty: bez ścieżki)
@@ -3109,7 +3119,7 @@ class Przebieg {
     if (fsOk()) a.pliki.listuj("/raporty", ist);
     rap.sesja.otworz(serwer::token(bajty), ms(), a.siec.adresIp(), rap.sciaga ? serwer::Tryb::SCIAGA : serwer::Tryb::PDF,
                      rap.plik, serwer::pozycjeZPlikow(ist), dzis, rap.temat,
-                     ddmm(rap.tresc.od) + "–" + ddmm(rap.tresc.do_), false);
+                     ddmm(rap.tresc.od) + "–" + ddmm(rap.tresc.do_), EDF_DOSTEPNA);
     rap.serwer = true;
     rap.koniecEp = teraz() + serwer::CZAS_MS / 1000;
     log("raport dla lekarza: serwer do %s (%s)", godzina(rap.koniecEp).c_str(), rap.sciaga ? "ściąga" : "PDF");
@@ -3141,9 +3151,9 @@ class Przebieg {
         o = serwer::Odpowiedz();
         o.cialo = "Nie ma takiej strony.";
       }
-      if (o.edf) {  // EDF z AirBridge do decyzji; w wersji beta strona mówi `AirBridge nie odpowiada`
-        o.kod = 503;
-        o.cialo = "AirBridge nie odpowiada.";
+      if (o.edf && !rap.sesja.edf()) {  // paczki EDF nie ma: bez udawania awarii AirBridge
+        o.kod = 501;
+        o.cialo = serwer::EDF_NIEDOSTEPNA;
       }
       if (o.pdfPobrany && o.kod == 200) {
         rap.pobrano = "Pobrano o " + godzina(teraz()) + ".";  // R-LEK-21
@@ -3182,7 +3192,7 @@ class Przebieg {
         s.etykiety[i] = rap.tresc.s4tab.kolumny.size() > (size_t)i + 1 ? rap.tresc.s4tab.kolumny[(size_t)i + 1] : "";
       }
       s.podpis = rap.tresc.sciagaPodpis;
-      s.adresQr = rap.serwer ? rap.sesja.adresQr() : "";
+      s.adresQr = rap.serwer && rap.sesja.edf() ? rap.sesja.adresQr() : "";  // kod i podpis tylko z paczką EDF
       rysujSciage(plotno(), s);
       return;
     }

@@ -138,8 +138,8 @@ std::string Sesja::strona() const {
          "',{type:'application/pdf'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({"
          "files:[f],title:'Raport dla lekarza'});return;}}catch(e){}location.href='" + b + "raport.pdf';};</script>";
   }
-  s += "<p><a href=\"" + b + "edf\">Paczka EDF dla lekarza (OSCAR/SleepHQ)</a>" +
-       std::string(edf_ ? "" : " · AirBridge nie odpowiada") + "</p>";
+  if (edf_) s += "<p><a href=\"" + b + "edf\">Paczka EDF dla lekarza (OSCAR/SleepHQ)</a></p>";
+  else s += "<p>" + std::string(EDF_NIEDOSTEPNA) + "</p>";  // bez linku do funkcji, której nie ma
   s += "<h2>Poprzednie raporty</h2><ul>";
   for (auto& p : widoczne_) {
     std::string n = nazwaZSciezki(p.sciezka);

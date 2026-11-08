@@ -3,7 +3,9 @@
 """Odbiera zrzut ekranu z panelu (port szeregowy) i zapisuje PNG 800x480.
 
 Firmware z ZRZUT_EKRANU=1 po każdym narysowaniu wysyła bufor w base64 między
-liniami ZRZUT_START i ZRZUT_KONIEC. Bez Pillow: PNG pisany ręcznie (zlib).
+liniami ZRZUT_START i ZRZUT_KONIEC. Flagę ma tylko obraz deweloperski
+(`pio run -e e1001_dev -t upload`, platformio.ini); zwykły `e1001` zrzutu nie wysyła.
+Bez Pillow: PNG pisany ręcznie (zlib).
 Użycie (pyserial jest w środowisku PlatformIO):
   ~/.platformio/penv/bin/python tools/prototyp/podglad.py /dev/cu.usbserial-110 [--reset] [--czas 90]
 Wynik: firmware/prototyp/zrzuty/RRRRMMDD-GGMMSS.png (folder w .gitignore).

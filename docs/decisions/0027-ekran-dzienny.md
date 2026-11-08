@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Data | 03.11.2026 |
-| Status | przyjęta (decyzja właściciela projektu 03.11.2026) |
+| Status | przyjęta (decyzja właściciela projektu 03.11.2026); w kodzie wersji beta od 03.11.2026 |
 | Źródło | spec 1.5 („Slot”), 5.8.2, 5.8.3, 5.8.4, 5.8.12, 5.9.3, 6.2, 7.2 (część „Dzień”), R-KON-41…R-KON-55, R-NF-02; S-K-33…S-K-38 |
 
 ## Kontekst
