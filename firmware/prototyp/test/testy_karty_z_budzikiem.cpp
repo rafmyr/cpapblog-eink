@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "dobranoc.h"
 #include "ekrany.h"
 #include "humor.h"
 #include "magazyn.h"
@@ -101,40 +102,55 @@ static void testPule() {
     for (auto z : p->propozycje) { SPRAWDZ(znaki(z) <= 45); ROWNE(tekstZdania(std::string(id) + ":" + std::to_string(i++)), z); }
   }
   SPRAWDZ(pul == 23);
-  SPRAWDZ(pula("przerywnik_sceny")->propozycje.size() == 18 && pula("przerywnik_sceny")->kanwa.empty());
-  ROWNE(tekstZdania("przerywnik_sceny:11"), "Przebrałem się za konkurencję. Wyszło lepiej.");  // G12
-  ROWNE(tekstZdania("przerywnik:2"), "Maska trzyma. Płetwy zbędne.");                     // K20, G12
-  ROWNE(tekstZdania("wyciek:0"), "Syczy. To nie ja, sprawdzałem.");
-  // istniejące numery z dziennika (dobra_noc, seria, kamien, brak_danych, synchronizacja) bez zmian
-  ROWNE(tekstZdania("dobra_noc:0"), "Kawa dla mnie, wyniki dla ciebie.");
-  ROWNE(tekstZdania("synchronizacja:4"), "Aparat oddaje noc. Ja podaję rękę.");
+  // pula przyjęta 08.11.2026: wszystkie zdania przyjęte, listy propozycji puste; 150 zdań razem z pulą „noc” (7),
+  // od zmiany 09.11.2026 154 (dobra noc +4, stała pora −3 +3)
+  size_t razem = 0;
+  for (auto id : {"dobra_noc", "seria", "kamien", "synchronizacja", "tydzien", "powrot", "wyciek", "przerwy", "zuzycie",
+                  "po_wymianie", "wietrzenie", "smog", "chlod", "suche_powietrze", "upal", "pylek", "stala_pora",
+                  "z_maska", "weekend", "odkrycie", "brak_danych", "przerywnik", "przerywnik_sceny"}) {
+    SPRAWDZ(pula(id)->propozycje.empty() && pula(id)->kanwa.size() >= 5);
+    razem += pula(id)->kanwa.size();
+  }
+  SPRAWDZ(razem + ZDANIA_NOCY.size() == 154);
+  SPRAWDZ(pula("dobra_noc")->kanwa.size() == 9 && pula("stala_pora")->kanwa.size() == 5);
+  ROWNE(tekstZdania("stala_pora:2"), "Pora zasypiania: wersja ruchoma.");
+  SPRAWDZ(pula("przerywnik_sceny")->kanwa.size() == 18);
+  ROWNE(tekstZdania("przerywnik_sceny:0"), "Przesunęli czas. Bez konsultacji ze mną.");  // G01
+  ROWNE(tekstZdania("przerywnik_sceny:11"), "W masce wyglądam poważnie. To pomyłka.");  // G12
+  ROWNE(tekstZdania("przerywnik_sceny:17"), "Gotuję z pasją. Głównie wymówki.");       // G18
+  ROWNE(tekstZdania("przerywnik:0"), "Optymizm? Miałem kiedyś. Męczący.");
+  ROWNE(tekstZdania("wyciek:0"), "Nie wszystko, co ucieka, ma nogi.");
+  ROWNE(tekstZdania("dobra_noc:0"), "Noc bez sensacji. Wreszcie coś dla mnie.");
+  ROWNE(tekstZdania("synchronizacja:4"), "Dane płyną. Oby bez przystanków.");
 }
 
-// R-HUM-27 (weryfikacja): przed akceptacją pul S-K-18 (1 zdanie) → ekran danych; S-K-07 (0 zdań) → ekran danych;
-// S-K-10 (4 zdania) → karta 1 na 2 (R-HUM-07); po akceptacji (propozycje) S-K-18 kartą.
+// R-HUM-27 (weryfikacja) po przyjęciu puli 08.11.2026: S-K-18 (5 zdań), S-K-07 (5), S-K-10 (6), S-K-16 (6) kartą także
+// bez propozycji; pula „dobra noc” bez warunku uspokojenia (od 09.11.2026 6 zdań spoza listy uspokajających) → K22.
 static void testR_HUM_27() {
   KontekstHumoru k = kontekst("2026-11-15", false);  // niedziela
   std::vector<WpisHumoru> log;
   EkranDnia e = ekranKarty("SK18", "2026-11-15", k.dzis, log, "");
   SPRAWDZ(e.kartaZTabeli);
   Wybor w = wybierzTryb(e, true, log, k);
-  SPRAWDZ(w.tryb == 'D');
-  ROWNE(w.dlaczego, "pula < 3 zdania (R-HUM-27)");
+  SPRAWDZ(w.tryb == 'K' && w.scena == "M06");
   e = ekranKarty("SK07", "2026-11-15", k.dzis, log, "");
-  SPRAWDZ(e.kartaZTabeli && wybierzTryb(e, true, log, k).tryb == 'D');
+  SPRAWDZ(e.kartaZTabeli && wybierzTryb(e, true, log, k).tryb == 'K');
   e = ekranKarty("SK10", "2026-11-10", k.dzis, {wpis("2026-11-14", "SK10", "2026-11-10#1", 'D')}, "");
   SPRAWDZ(e.klucz == "2026-11-10#2" && e.kartaZTabeli);
   w = wybierzTryb(e, true, log, k);
   SPRAWDZ(w.tryb == 'K' && w.scena == "P01" && w.zdanie == "wyciek:0");
-  k.zPropozycjami = true;
-  e = ekranKarty("SK18", "2026-11-15", k.dzis, log, "");
-  w = wybierzTryb(e, true, log, k);
-  SPRAWDZ(w.tryb == 'K' && w.scena == "M06");
-  // przerwy S-K-16 bez zdań z kanwy: tylko z propozycjami
   e = ekranKarty("SK16", "x", k.dzis, {wpis("2026-11-14", "SK16", "x#1", 'D')}, "");
   SPRAWDZ(wybierzTryb(e, true, log, k).tryb == 'K');
-  k.zPropozycjami = false;
-  SPRAWDZ(wybierzTryb(e, true, log, k).tryb == 'D');
+  k.zPropozycjami = true;  // listy propozycji puste: ten sam wynik
+  SPRAWDZ(wybierzTryb(e, true, log, k).tryb == 'K');
+  EkranDnia a{"S2A", "3", true, false};
+  w = wybierzTryb(a, true, log, k);
+  SPRAWDZ(w.tryb == 'K' && !uspokajajace(tekstZdania(w.zdanie)));
+  k.uspokojenie = true;
+  SPRAWDZ(wybierzTryb(a, true, log, k).tryb == 'K');
+  // pula < 3 dalej daje ekran danych: pusta lista zdań do losowania (żadna przyjęta pula dziś tego nie wywołuje)
+  Pula mala{"mala", {"Raport dobry. Pobudka psuje statystyki.", "Noc odnotowana. Pobudka niestety też."}, {}};
+  SPRAWDZ(zdaniaDoLosowania(mala, false, false).size() == 1 && zdaniaDoLosowania(mala, false, true).size() == 2);
 }
 
 // R-HUM-07 (weryfikacja): S-K-10 trzy razy w ciągu 10 dni przy trwającym warunku → dane, karta, dane; S-K-01 trzy
@@ -291,6 +307,7 @@ static void testBrakPlikuSceny() {
 // R-HUM-26: aktywny wzorzec B → S2a i S2c bez K22, S2b dalej K01; bez przerywnika.
 static void testR_HUM_26() {
   KontekstHumoru k = kontekst("2026-11-10", true);
+  k.uspokojenie = true;  // pula „dobra noc” (08.11.2026) ma same zdania po spokojnej nocy
   k.wzorzecB = true;
   EkranDnia a{"S2A", "3", true, false}, b{"S2B", "", true, false}, c{"S2C", "6", true, false};
   Wybor w = wybierzTryb(a, true, {}, k);
@@ -413,11 +430,14 @@ static void testPrzerywnik() {
     SPRAWDZ(!wybierzPrzerywnik(inny, {}, k, u).jest);
   }
   SPRAWDZ(wybierzPrzerywnik(EkranDnia{"S2B", "", true, false}, {}, k, u).jest);
-  // R-HUM-27: bez propozycji tylko sceny z kanwy (K20 dla G12) → G12; bez sceny ze zdaniem → dowód spokoju
+  // pula przyjęta: bez propozycji każda scena G01–G18 ma przypięte zdanie `przerywnik_sceny:{i}` (kolejność SCENY_G);
+  // R-HUM-27: scena bez zdania (spoza G01–G18) → dowód spokoju
   k.zPropozycjami = false;
-  p = wybierzPrzerywnik(dowod, {}, k, u);
-  SPRAWDZ(p.jest && p.scena == "G12" && p.zdanie == "przerywnik:2");
   u.ogolne = {"G10", "G13", "G14"};
+  p = wybierzPrzerywnik(dowod, {}, k, u);
+  SPRAWDZ(p.jest && (p.scena == "G10" || p.scena == "G13" || p.scena == "G14"));
+  ROWNE(p.zdanie, "przerywnik_sceny:" + std::to_string(liczbaCalk(p.scena.c_str() + 1) - 1));
+  u.ogolne = {"G99"};
   p = wybierzPrzerywnik(dowod, {}, k, u);
   SPRAWDZ(!p.jest);
   ROWNE(p.dlaczego, "brak sceny ze zdaniem (R-HUM-10, R-HUM-11, R-HUM-27)");

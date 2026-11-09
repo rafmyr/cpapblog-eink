@@ -35,9 +35,11 @@ Rozważone warianty:
 ## Konsekwencje
 - Wskazówka wieczorna (np. `Przewietrz sypialnię`) znika o 23:30, więc kto wchodzi do sypialni po 23:30, już jej nie zobaczy (wcześniej stała do rana, 5.8.2). Koszt świadomy: o tej porze zwykle maska jest już założona albo zaraz będzie.
 - Jedno dodatkowe pełne odświeżenie na dobę, o 23:30 (energia: R-NF-02; błysk w chwili, gdy zwykle nikt jeszcze nie śpi).
-- Zmienione: R-KON-02 (wyjątek dla jednego rysowania o 23:30), R-EKR-37 (o 05:00 także z S9), opis slotu nocnego (1.5, 2.4, 5.8.2, 7.1, 7.2), mapa przycisków (5.6.2). Nowe: S9, R-KON-31…R-KON-40, pula zdań „noc” (5.7.5, do akceptacji WY15).
+- Zmienione: R-KON-02 (wyjątek dla jednego rysowania o 23:30), R-EKR-37 (o 05:00 także z S9), opis slotu nocnego (1.5, 2.4, 5.8.2, 7.1, 7.2), mapa przycisków (5.6.2). Nowe: S9, R-KON-31…R-KON-40, pula zdań „noc” (5.7.5; przyjęta 08.11.2026).
 - Nowe rozmiary bitmap budzika: A2 do 600×340, A3 230×250 (obok `karta-240x205`); do przygotowania przy budowie ekranu. Artboardów trzech wariantów nie ma w makietach (6.7).
 - Godzina założenia maski w praktyce nie pojawi się, dopóki AirBridge nie potwierdzi startu sesji na żywo; do tego czasu S9 zawsze w wersji „bez godziny maski”.
+
+Zmiana 2026-11-08: pula „noc” przyjęta przez właściciela projektu 08.11.2026 (5.7.5); S9 ma zdanie sceny także przy `HUMOR_PROPOZYCJE=0` (R-KON-40). Zmiana 2026-11-09: przy humorze `wyłączony` S9 bez sceny i bez zdania także w prototypie (R-KON-39).
 
 ## Adnotacja (31.10.2026, przegląd dokumentacji)
 Zamknięte 30.10.2026: AirBridge v2.2.1 podaje w `GET /api/status` pole `edf_prefix` (start bieżącej sesji) i `rop` (1 = terapia), więc S9 pokazuje godzinę założenia maski przy `rop` = 1 (spec 5.8.11, R-KON-33, Załącznik A pkt 4). Pkt 5 decyzji i ostatni punkt „Konsekwencji” („S9 zawsze w wersji bez godziny maski”) są przez to nieaktualne. Zmiana momentu rysowania na chwilę założenia maski nadal wymaga osobnej decyzji.

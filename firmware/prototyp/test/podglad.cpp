@@ -392,18 +392,18 @@ static void makiety(PlotnoPamiec& p) {
   dn.zwyklySen = 10 * 60 + 59;
   dn.maskaOd = 22 * 60 + 47;
   dn.wybor = wyborNocy(0);  // A1-W12
-  dn.wybor.zdanie = "Dziś bez wiadomości. Sam jestem wiadomością.";  // najdłuższe zdanie budzika (44 zn.)
+  dn.wybor.zdanie = "Maska schodziła ze sceny częściej niż trzeba.";  // najdłuższe zdanie budzika (45 zn.)
   rysujDobranoc(p, dn);
   zapisz(p, "mak-noc-a1");
   dn.maskaOd = -1;
   rysujDobranoc(p, dn);
   zapisz(p, "mak-noc-a1-bez-godziny");
   dn.maskaOd = 22 * 60 + 47;
-  dn.wybor = wyborNocy(4);  // A2-G13, `Księżyc ma przewagę. Gra nocą u siebie.`
+  dn.wybor = wyborNocy(4);  // A2-G13, `Księżyc gra na zwłokę. Ja na sen.`
   rysujDobranoc(p, dn);
   zapisz(p, "mak-noc-a2");
   dn.wieczor = "2026-10-26";  // poniedziałek: najdłuższy nagłówek A3
-  dn.wybor = wyborNocy(2);   // A3-W12, `Ja też ziewam. Do jutra.` (bez G12)
+  dn.wybor = wyborNocy(2);   // A3-W12, `Dobranoc. Skargi przyjmę we śnie.`
   rysujDobranoc(p, dn);
   zapisz(p, "mak-noc-a3");
   dn.maskaOd = -1;
@@ -429,7 +429,7 @@ static void makiety(PlotnoPamiec& p) {
   k.powod = "Tydzień: inaczej niż zwykle.";
   k.fakty = {{"12,4", "AHI"}, {"112", "wyciek l/min"}};
   k.stopkaPrawo = "przy łóżku 21° · 46%";
-  rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22, "Dziś bez wiadomości. Sam jestem wiadomością.");
+  rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22, "Maska schodziła ze sceny częściej niż trzeba.");
   zapisz(p, "mak-karta-k22");
   k = TrescEkranu();
   k.etykieta = "BRAK DANYCH Z NOCY";
@@ -437,7 +437,7 @@ static void makiety(PlotnoPamiec& p) {
   k.powod = "AirBridge nie odpowiada od 11.11 05:42. Ponawiam co\xC2\xA0" "30\xC2\xA0" "min.";
   k.krok = "→ Sprawdź zasilanie AirBridge.";
   k.stopkaPrawo = "↻ ponów";
-  rysujKarte(p, {"cz 12.11", "dane z 11.11"}, k, scenaS5, "Zaspałem? Nie, to nie ja.");
+  rysujKarte(p, {"cz 12.11", "dane z 11.11"}, k, scenaS5, "Wyników brak. Wróżką też nie jestem.");
   zapisz(p, "mak-karta-s5");
 }
 
@@ -743,7 +743,7 @@ static void podgladB9(PlotnoPamiec& p) {
     t.etykieta = wersaliki(t.etykieta);
     t.stopkaPrawo = stopkaCzujnika(21, 44);
     Naglowek nk{naglowekSlotu(ww.dzis) + " · wieczór", "sypialnia 21:40"};
-    rysujKarte(p, nk, t, "W01", "Ja otworzę. Ty dopilnuj.");
+    rysujKarte(p, nk, t, "W01", "W sypialni duszno. Atmosfera też siada.");
     zapisz(p, "sk01-przewietrz-karta");
   }
   {  // wariant z odczytu bieżącego, bez serii nocy
@@ -918,7 +918,7 @@ static void podgladB15(PlotnoPamiec& p) {
       rysujK1(p, ka);
       zapisz(p, "b17-k1-odkrycie-4-wiersze");  // AutoSet
     }
-    rysujKarte(p, no, ts, scenaJest("O01") ? "O01" : "", "Zapisałem odkrycie. Nazwę je swoim imieniem.");
+    rysujKarte(p, no, ts, scenaJest("O01") ? "O01" : "", "Jest trop. Nie krzyczmy jeszcze: eureka.");
     zapisz(p, "b15-s1-o12-karta");
   }
   std::vector<Noc> hw;
@@ -1088,18 +1088,20 @@ int main(int argc, char** argv) {
     e.kartaZTabeli = true;
     kh.zPropozycjami = propozycje;
     TrescEkranu t = trescDnia(typ, klucz, d);
-    Wybor w = wybierzTryb(e, kartaMiesci(t), {}, kh);
+    KontekstHumoru khk = kh;
+    if (typ == "S2A") khk.uspokojenie = true;  // K22 ze zdaniem z pełnej puli „dobra noc” (także uspokajające)
+    Wybor w = wybierzTryb(e, kartaMiesci(t), {}, khk);
     if (std::string(plik) == "karta-k22-propozycje") scenaK22 = w.scena;
     if (w.tryb == 'K') rysujKarte(p, n, t, w.scena, tekstZdania(w.zdanie));
     else { printf("  %s: ekran danych (%s)\n", plik, w.dlaczego); rysujEkranDanych(p, n, t); }
     zapisz(p, plik);
   };
-  karta("S2B", "", "karta-s2b-seria", true);  // pula „seria” bez propozycji ma 2 zdania (R-HUM-27)
+  karta("S2B", "", "karta-s2b-seria", true);  // pula „seria” przyjęta: 7 zdań przyjętych
   karta("KM", "100", "karta-km-100", false);
   karta("S2A", "3", "karta-k22-propozycje", true);
   karta("KM", "365", "karta-km-365", false);  // M05 w pamięci (rocznica)
   {  // karty ekranów S-K z tabeli 5.7.3; teksty dosłownie z 5.8.4, liczby syntetyczne (ekrany S-K rysuje
-     // dopiero pakiet ekranów; tu tylko karta z budzikiem: scena i zdanie z humoru, z propozycjami pul)
+     // dopiero pakiet ekranów; tu tylko karta z budzikiem: scena i zdanie z humoru, pula przyjęta)
     auto kartaSK = [&](const std::string& typ, const std::string& sprawa, const char* plik, const char* et,
                        const char* tytul, const char* powod, const char* krok) {
       TrescEkranu t;
@@ -1123,7 +1125,7 @@ int main(int argc, char** argv) {
             "Wyciek 8\xC2\xA0l/min, przed wymianą 21.", "→ Wymiana co 3\xC2\xA0mies. się opłaca.");
   }
   {  // przerywnik S2d (5.7.6) z mechanizmu humoru; wszystkie 18 kart G01–G18 z tekstami z zestawu
-     // (propozycja do akceptacji), etykieta, tytuł i powód jak na panelu, bez kroku (R-HUM-21), fakty
+     // (teksty właściciela projektu), etykieta, tytuł i powód jak na panelu, bez kroku (R-HUM-21), fakty
      // ostatniej nocy z dowodu spokoju i zdanie przypięte do sceny (5.7.5)
     UstawieniaPrzerywnikow u = ustawieniaPrzerywnikowBety();
     kh.zPropozycjami = true;
@@ -1358,9 +1360,10 @@ int main(int argc, char** argv) {
       zapisz(p, (plik + "-bez-godziny").c_str());
     }
   }
-  dn.maskaOd = -1;  // -DHUMOR_PROPOZYCJE=0: bez zdania budzika (R-KON-40)
+  dn.maskaOd = -1;  // S9 ze sceną bez zdania budzika (zdanie spoza puli, R-KON-40); od 08.11.2026 flaga propozycji zdania nie zabiera
   for (long nr = 0; nr < 3; nr++) {
     dn.wybor = wyborNocy(nr, false);
+    dn.wybor.zdanie.clear();
     rysujDobranoc(p, dn);
     zapisz(p, ("noc-" + std::to_string(nr) + "-" + dn.wybor.scena + "-bez-zdania").c_str());
   }

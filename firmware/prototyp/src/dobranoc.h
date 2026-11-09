@@ -21,6 +21,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include "humor.h"  // Humor (ustawienie `humor=`, R-KON-39)
 
 enum class WariantNocy : unsigned char { A1 = 0, A2 = 1, A3 = 2 };
 
@@ -35,8 +36,10 @@ struct WyborNocy {
   std::string scena;   // id w SCENY_NOCY, np. "A1-G14"
   std::string zdanie;  // zdanie budzika przypięte do sceny: stopka w A1 i A3, linia pod `Dobranoc.` w A2
 };
-// zPropozycjami: pula „noc” ma same propozycje (5.7.5), więc bez nich S9 nie ma zdania budzika (R-KON-40).
-WyborNocy wyborNocy(long n, bool zPropozycjami = true);
+// zPropozycjami: bez skutku od przyjęcia puli „noc” (08.11.2026): zdanie przypięte do sceny jest zawsze;
+// parametr zostaje na następną rundę propozycji (przełącznik HUMOR_PROPOZYCJE).
+// humor `wyłączony` (R-KON-39, R-HUM-03): S9 bez sceny i bez zdania budzika (wariant i numer bez zmian).
+WyborNocy wyborNocy(long n, bool zPropozycjami = true, Humor humor = Humor::NORMALNY);
 // Zdanie budzika przypięte do sceny nocnej ("A1-W12" i "A3-W12" → W12); "" dla nieznanej sceny.
 std::string zdanieNocy(const std::string& scena);
 struct ZdanieSceny {
@@ -66,7 +69,7 @@ struct DecyzjaNocy {
 // ekranDnia: na ekranie jest ekran dnia, nie ekran otwarty przyciskiem.
 // dzienTrwa: ekran dnia ma zostać na noc (S5, R-KON-35); liczy się tylko przy pierwszej decyzji tej nocy.
 DecyzjaNocy decyzjaNocy(const std::string& dzis, int minuta, bool ekranDnia, bool dzienTrwa, const StanNocy& s,
-                        bool zPropozycjami = true);
+                        bool zPropozycjami = true, Humor humor = Humor::NORMALNY);
 StanNocy poDecyzji(const DecyzjaNocy& d, const StanNocy& s);
 
 // ---------- godzina założenia maski ----------

@@ -8,266 +8,257 @@
 #include <cstdio>
 #include <cstdlib>
 
-// Pule ze spec 5.7.5, wszystkie typy ekranów z kartą; kolejność zdań = numery w `/humor.csv`.
+// Pule ze spec 5.7.5 (pula przyjęta 08.11.2026), wszystkie typy ekranów z kartą;
+// kolejność zdań = numery w `/humor.csv`. Wszystkie zdania w pierwszej liście (przyjęte); lista propozycji pusta.
+// Kontrola: tools/test_pule_humoru.py (dosłownie ze spec), test_zasady_zdan_budzika (5.7.5).
 static const Pula PULE[] = {
+    // dobra noc (S2a, S2c, K22)
     {"dobra_noc",
-     {"Kawa dla mnie, wyniki dla ciebie.", "Nic nie dzwoniło. Poza mną.", "Przespane. Ja tylko tykałem."},
-     {"Aparat pracował, a medal biorę ja.", "Tak cicho, że słyszałem własne tykanie.", "Szukałem dziury w całym. Nie ma.",
-      "Wzorowa noc. Wpiszę ją sobie do CV.", "Wstałem pierwszy. Jak zawsze.", "Noc za nami. Wskazówki w komplecie."}},
-    // S2b (zwykła seria, od SERIA_MIN nocy): spokojny ton, bez medali i świeczek
+     {
+      "Noc bez sensacji. Wreszcie coś dla mnie.",
+      "Raport dobry. Pobudka psuje statystyki.",
+      "Wszystko w normie. Podejrzanie nudne.",
+      "Przyzwoita noc. Można nie dramatyzować.",
+      "Wyniki dobre. Nie lubię być optymistą.",
+      "Noc odnotowana. Pobudka niestety też.",
+      "Raport z nocy gotowy. Kawa jeszcze nie.",
+      "Noc zamknięta. Teraz moja zmiana.",
+      "Kolejna noc w aktach. Wstajemy."},
+     {}},
+    // S2b (zwykła seria, od SERIA_MIN nocy)
     {"seria",
-     {"Licznik się kręci. Ja też.", "Tykam z dumą."},
-     {"Seria dłuższa niż moja lista spóźnień.", "Jestem nakręcony tą serią.", "Tyle nocy, że muszę dokręcić sprężynę.",
-      "Noc za nocą. Nudno i dobrze."}},
-    // kamień milowy (S-K-28): tu zostają medal i świeczki
+     {
+      "Kolejna noc. Konsekwencja bywa natrętna.",
+      "Seria rośnie. Oklaski w trybie cichym.",
+      "Każda noc z maską. To już związek.",
+      "Seria trwa. Nikt nie złożył sprzeciwu.",
+      "Noc po nocy. Monotonia z certyfikatem.",
+      "Kolejna noc w rejestrze. Rubryk przybywa.",
+      "Seria rośnie. Archiwum prosi o regał."},
+     {}},
+    // kamień milowy (S-K-27, S-K-28)
     {"kamien",
-     {"Medal mi się należy. Tobie też.", "Tykam z dumą.", "Licznik się kręci. Ja też.", "Świeczki zdmuchnąłem. Maski nie."},
-     {"Seria dłuższa niż moja lista spóźnień.", "Jestem nakręcony tą serią.", "Tyle nocy, że muszę dokręcić sprężynę.",
-      "Kolejna noc. Mój mechanizm się wzruszył."}},
+     {
+      "Tyle nocy? Maska powinna dostać stażowe.",
+      "Rekord. Wysiłek twój, fanfary moje.",
+      "Próg osiągnięty. Gdzie jest mój medal?",
+      "Świętujmy. Kto przyniósł tort?",
+      "Sukces odnotowany. Spróbujmy go nie zepsuć."},
+     {}},
+    // brak danych (S5)
     {"brak_danych",
-     {"Zaspałem? Nie, to nie ja.", "Dane się spóźniają. Ja nigdy.", "Czekam. To umiem najlepiej.", "Halo, AirBridge?"},
-     {"Aparat milczy. Wreszcie mam ostatnie słowo.", "Poszedłbym po dane. Mam nawet buty.",
-      "Dane się spóźniają. Wstyd mi za kolegów.", "Most milczy. Zadzwoniłbym, tylko do kogo?"}},
-    // S10 „Synchronizuję się z aparatem” (R-EKR-57): tylko propozycje, do akceptacji (WY15)
+     {
+      "Wyników brak. Wróżką też nie jestem.",
+      "Dane milczą. Wreszcie ktoś rozsądny.",
+      "Nie mam liczb. Opinii mam aż nadto.",
+      "Bez danych nawet ja nie będę zgadywał.",
+      "Raport nie dotarł. Poczta nocna zawiodła.",
+      "Dane spóźnione. Usprawiedliwienia brak.",
+      "Brak wyników. Protokół zostaje pusty."},
+     {}},
+    // S10 „Synchronizuję się z aparatem” (R-EKR-57); zdanie wybierane po dacie
     {"synchronizacja",
-     {},
-     {"Wciągam noc z aparatu. Nie poganiaj.", "Chwilka. Dane jeszcze w kapciach.",
-      "Synchronizuję się. Brzmi mądrze, prawda?", "Mieszam kawę. Dane się ładują.",
-      "Aparat oddaje noc. Ja podaję rękę."}},
-    // pozostałe pule 5.7.5 dosłownie ze spec (kontrola: tools/test_pule_humoru.py)
+     {
+      "Łączę się. Nie każ mi być towarzyskim.",
+      "Synchronizacja. Relacja na odległość.",
+      "Łączę kropki. Na razie szukam kropek.",
+      "Proszę o ciszę. Udaję zajętego.",
+      "Dane płyną. Oby bez przystanków."},
+     {}},
     // tydzień (S-K-18)
     {"tydzien",
      {
-      "Wszystko odhaczone. Sprawdziłem dwa razy."},
-     {
-      "Tydzień zamknięty. Ołówek odpoczywa.",
-      "Lista gotowa. Ja też, prawie.",
-      "Tydzień podsumowany. Ja nakręcony.",
-      "Niedziela. Nawet ja zwalniam tempo.",
-      "Zrobiłem notatki. Na marginesie.",
-      "Przeglądam tydzień jak album.",
-      "Kolejny tydzień w kalendarzu. Ładny."}},
+      "Tydzień w liczbach. Spoiler: było siedem dni.",
+      "Tydzień zamknięty. Reklamacji nie przyjmuję.",
+      "Raport gotowy. Wykres zagrał główną rolę.",
+      "Bilans sporządzony. Cyfry mają alibi.",
+      "Minął tydzień. Cyfry żądają weekendu."},
+     {}},
     // powrót do rytmu (S-K-29)
     {"powrot",
      {
-      "Rozgrzewka zaliczona."},
-     {
-      "Wróciliśmy. Ja nigdzie nie szedłem.",
-      "Znów w rytmie. Tykam do taktu.",
-      "Rozgrzałem wskazówki na powitanie.",
-      "Dobrze, że jesteś. Ja tu stałem.",
-      "Trucht zaliczony, teraz marsz.",
-      "Powrót jak w filmie. Bez napisów.",
-      "Stęskniłem się. Tylko trochę."}},
+      "O, wróciłeś. A już ułożyłem sobie dzień.",
+      "Jesteś. Nie będę udawał wzruszenia.",
+      "Jesteś. Wzruszenia nie okażę. Ale jest.",
+      "Przerwa minęła. Nie będę robił scen.",
+      "Znamy się? Ach, to ty. Witaj.",
+      "Wróciłeś. Udam, że nie czekałem.",
+      "Powrót przyjęty. Prawie cię nie poznałem.",
+      "Powrót odnotowany. Pytań nie będzie."},
+     {}},
     // wyciek (S-K-10)
     {"wyciek",
      {
-      "Syczy. To nie ja, sprawdzałem.",
-      "Coś gwiżdże, a ja nie umiem.",
-      "Taśma tu nie pomoże.",
-      "Szukam dziury w całym. Dosłownie."},
-     {
-      "Maska puściła parę. Ja nikomu nie powiem.",
-      "Nawet ja raz zadzwoniłem w niedzielę.",
-      "Coś uciekało w nocy. Na pewno nie czas.",
-      "Syczało? Ja tylko tykam, przysięgam."}},
+      "Nie wszystko, co ucieka, ma nogi.",
+      "Powietrze szukało wyjścia. I znalazło.",
+      "Szczelność na pół etatu. Reszta urlopu.",
+      "W nocy coś syczało. To nie byłem ja.",
+      "Część powietrza wybrała własną drogę.",
+      "Szczelność do poprawki. Powietrze potwierdza."},
+     {}},
     // przerwy w nocy (S-K-16)
     {"przerwy",
-     {},
      {
-      "Rura mnie owinęła. Walczę dalej.",
-      "Rozplątuję węzły. Idzie mi średnio.",
-      "Wąż ogrodowy to przy tym pestka.",
-      "Kabel, rura i ja. Trudny trójkąt.",
-      "Wyplątałem się. Prawie elegancko.",
-      "Moje ręce do węzłów nie pasują.",
-      "Zrobiłem supeł. Dumny nie jestem."}},
+      "Maska robiła sobie przerwy bez wniosku.",
+      "Kilka aktów, jedna noc. Za dużo teatru.",
+      "Maska miała więcej wejść niż gwiazda.",
+      "Przerwy w terapii. Kto montował tę noc?",
+      "Maska schodziła ze sceny częściej niż trzeba.",
+      "Noc na odcinki. Nie zamawiałem serialu."},
+     {}},
     // sprzęt: zużycie (S-K-31)
     {"zuzycie",
      {
-      "Ta poduszka widziała już wszystko."},
-     {
-      "Mam klucz. Nie wiem jeszcze, do czego.",
-      "Poduszka na emeryturę. Ja jeszcze nie.",
-      "Stare dobre czasy. Za stare.",
-      "Majsterkuję. Proszę nie patrzeć.",
-      "Wymiana to nie zdrada. Sprawdzałem.",
-      "Mnie nikt nie wymienia. Na szczęście.",
-      "Lupa mówi jedno: czas na nową."}},
+      "Maska pamięta lepsze czasy. Ja również.",
+      "Poduszka maski złożyła wypowiedzenie.",
+      "Sprzęt ma prawo do emerytury. Ja też.",
+      "Maska zmęczona. Nawet plastik ma granice.",
+      "Ta maska przepracowała więcej niż ja."},
+     {}},
     // sprzęt: po wymianie (S-K-32)
     {"po_wymianie",
      {
-      "Miłość od pierwszego uszczelnienia."},
-     {
-      "Nowa poduszka. Trochę zazdroszczę.",
-      "Pasuje jak ulał. Mnie nic nie pasuje.",
-      "Cisza w masce. Słyszę tylko siebie.",
-      "Szczelnie i spokojnie. Lubię to.",
-      "Wymiana się udała. Biorę zasługi.",
-      "Ani syku. Mogę wreszcie tykać.",
-      "Przytulam maskę. Nie mów nikomu."}},
+      "Stara maska straciła stanowisko.",
+      "Szczelniej. Mój wkład: nadzór artystyczny.",
+      "Nowa maska. Ja nadal niezastąpiony.",
+      "Poprzednia na emeryturze. Ja zazdroszczę.",
+      "Poprzednia przekazała obowiązki. Bez żalu.",
+      "Wymiana dokonana. Protokół podpisany."},
+     {}},
     // wieczór: wietrzenie (S-K-01)
     {"wietrzenie",
      {
-      "Ja otworzę. Ty dopilnuj."},
-     {
-      "Powietrze stoi. Nie znoszę, jak coś stoi.",
-      "Do klamki nie sięgam. Ale kibicuję.",
-      "Duszno jak w szufladzie zegarmistrza.",
-      "Przeciąg mnie nie ruszy. Mam ciężkie buty.",
-      "Otworzyłbym okno, ale mam tylko wskazówki.",
-      "Powietrze stoi. Ja przynajmniej chodzę.",
-      "Okno otwarte, ja na straży."}},
+      "W sypialni duszno. Atmosfera też siada.",
+      "To powietrze pamięta poprzedni sezon.",
+      "Powietrze stoi tu dłużej niż ja.",
+      "Atmosfera ciężka. I nie chodzi o rozmowę.",
+      "Powietrze w sypialni dawno po terminie."},
+     {}},
     // wieczór: smog (S-K-02)
     {"smog",
-     {},
      {
-      "Zamykam okno. Smog zostaje za nim.",
-      "Trzymam się za nos. Profilaktycznie.",
-      "Na dworze szaro. W środku ja.",
-      "Krótko wietrzę, szybko zamykam.",
-      "Smog za szybą. Ja pilnuję szyby.",
-      "Wietrzę jak ninja: szybko i cicho.",
-      "Za oknem mgła. Nie ta romantyczna.",
-      "Szyba to dziś mój najlepszy kolega."}},
+      "Powietrze za oknem ma kiepski skład.",
+      "Na zewnątrz smog. Romantyzm odwołany.",
+      "Za oknem szaro. Powietrze bez gwarancji.",
+      "Smog. Widok dziś tylko po znajomości.",
+      "Smog. Horyzont dziś niedostępny.",
+      "Za oknem mleko. Niepasteryzowane."},
+     {}},
     // wieczór: chłód (S-K-03)
     {"chlod",
-     {},
      {
-      "Zimno mi w dzwonki.",
-      "Czapka na głowę, otulina na rurę.",
-      "Szczękam wskazówkami. Z zimna.",
-      "Rura marznie pierwsza. Potem ja.",
-      "Robię na drutach. Dla rury.",
-      "Tryb zimowy: szalik i cierpliwość.",
-      "Chucham na dzwonki. Pomaga średnio."}},
+      "Chłodno. Kołdra zgłasza pełną gotowość.",
+      "Termometr robi aluzje. Niezbyt subtelne.",
+      "Zimna noc. Kołdra negocjuje podwyżkę.",
+      "Zimno. Wskazówki chodzą w szalikach.",
+      "Chłodna noc. Kaloryfer pod obserwacją.",
+      "Zimno. Nawet sprężyna się kurczy.",
+      "Termometr spadł. Ja trzymam fason."},
+     {}},
     // wieczór: suche powietrze (S-K-04)
     {"suche_powietrze",
-     {},
      {
-      "Szukam kropli. Znalazłem kurz.",
-      "Sucho jak na pustyni. Mam konewkę.",
-      "Kaktus by się tu odnalazł. Ja nie.",
-      "Nawilżam, co mogę. Głównie siebie.",
-      "Powietrze szeleści. Nie lubię tego.",
-      "Kropla tu, kropla tam. Pomagam.",
-      "Wysycham z tęsknoty za wilgocią.",
-      "Konewka w dłoń. Ogrodnik ze mnie."}},
+      "Sucho. Nawet żarty wymagają nawilżenia.",
+      "Wilgotność niska. Entuzjazm też.",
+      "Kaktus pyta, czy to legalne.",
+      "Pustynia pyta, kto tu przejął jej etat.",
+      "Sucho. Powietrze bez nawilżenia, ja też."},
+     {}},
     // wieczór: upał (S-K-05)
     {"upal",
      {
-      "Wachluję się za nas dwóch."},
-     {
-      "Topię się. Wskazówki mi miękną.",
-      "Gorąco. Tykam w zwolnionym tempie.",
-      "Szukam cienia. Jestem przy oknie.",
-      "Wentylator to mój nowy przyjaciel.",
-      "Pocę się olejem. Zegarmistrz wie.",
-      "Za ciepło na pośpiech. Tykam leniwie.",
-      "Lato w sypialni. Ja wolę wiosnę."}},
+      "W sypialni sauna. Kto zamawiał pakiet?",
+      "Tak gorąco, że dzwonki proszą o cień.",
+      "Gorąco. Klimat przesadza z ambicjami.",
+      "Upał. Nawet termometr chce do lodówki.",
+      "Ta noc ma ustawienia piekarnika."},
+     {}},
     // wieczór: pyłek (S-K-06)
     {"pylek",
-     {},
      {
-      "Kwiatki ładne. Z daleka.",
-      "Pyłek fruwa, ja się chowam.",
-      "Brzoza kwitnie. Trzymam dystans.",
-      "Wietrzę na chwilkę. Pyłek czuwa.",
-      "Wiosna przyszła. Z pyłkiem w gratisie.",
-      "Sprzątam pyłek z dzwonków.",
-      "Natura szaleje. Ja tylko tykam.",
-      "Pyłek na wskazówkach. Ciężko się kręci."}},
+      "Pyłki w powietrzu. Rośliny bez kultury.",
+      "Sezon pylenia. Przyroda znów się narzuca.",
+      "Kwiaty są ładne. Ich marketing agresywny.",
+      "Drzewa pylą. I jeszcze chcą być lubiane.",
+      "Pyłki latają. Bez zezwolenia.",
+      "Pylenie w toku. Przyroda nie zna umiaru.",
+      "Drzewa rozsyłają pyłki. Nikt nie prosił."},
+     {}},
     // wieczór: stała pora (S-K-07)
     {"stala_pora",
-     {},
      {
-      "Lubię rutynę. To moja praca.",
-      "Ta sama pora, ten sam ja.",
-      "Punktualność to moje drugie imię.",
-      "Moje wskazówki znają tę godzinę.",
-      "Godzina jak w zegarku. Dosłownie.",
-      "Wieczór o czasie. Jestem wzorem.",
-      "Ja zawsze o czasie. Zawodowo.",
-      "Zawsze o tej samej. Sprawdzone."}},
+      "Rutyna. Jedyna relacja bez niespodzianek.",
+      "Stała pora. Nawet chaos ma godziny otwarcia.",
+      "Pora zasypiania: wersja ruchoma.",
+      "Rozkład jazdy bez rozkładu.",
+      "Godzina snu zmienna. Ja wolę stałe posady."},
+     {}},
     // wieczór: dziś znowu z maską (S-K-08)
     {"z_maska",
-     {},
      {
-      "Maska podana. Do usług.",
-      "Podaję maskę na srebrnej tacy.",
-      "Wczoraj przerwa, dziś premiera.",
-      "Kelner gotowy. Maska też.",
-      "Nowy wieczór, czysta karta.",
-      "Maska czeka. Ja też umiem czekać.",
-      "Polerowałem tacę cały dzień.",
-      "Stolik dla dwojga: ty i maska."}},
+      "Maska wraca do obsady. Miała kontrakt.",
+      "Wczoraj minęło. Dziś liczy się maska.",
+      "Powrót do maski. Dramat odwołany.",
+      "Maska w gotowości. Kto by pomyślał.",
+      "Nowa noc, nowa szansa. Tym razem z maską."},
+     {}},
     // wieczór: weekend (S-K-09)
     {"weekend",
      {
-      "Urlop od budzenia? Nie dla mnie."},
-     {
-      "Pakuję walizkę. Maska jedzie pierwsza.",
-      "W sobotę też tykam. Taki los.",
-      "Hamak czeka. Ja w gotowości.",
-      "Weekend! A ja nadal w pracy.",
-      "Leniuchuję dopiero od niedzieli.",
-      "Piątek. Wskazówki już tańczą.",
-      "Tryb weekendowy: tykam w kapciach."}},
+      "Weekend. Budzik też ma prawo do złudzeń.",
+      "Piątek. Praca się kończy, ja zostaję.",
+      "Zegar nie uznaje weekendów. Bezczelny.",
+      "Wreszcie wolne. Tak twierdzi kalendarz.",
+      "Przed nami weekend. Nie psujmy go planem."},
+     {}},
     // odkrycie (S1 (O-03…O-12), S-K-21)
     {"odkrycie",
      {
-      "Mam trop. Prowadzi do okna.",
-      "Śledztwo zamknięte.",
-      "Liczyłem. Dwa razy.",
-      "Zapisz to sobie. Ja już zapisałem."},
-     {
-      "Wiedziałem, że coś tyka w tych danych.",
-      "Panel liczył, ja udawałem, że też liczę.",
-      "Zapisałem odkrycie. Nazwę je swoim imieniem.",
-      "Zaskoczyło mi w trybikach. Mamy trop."}},
-    // przerywnik (S2d (sceny bez własnego zdania))
+      "Jest trop. Nie krzyczmy jeszcze: eureka.",
+      "Coś w danych drgnęło. Nie ja.",
+      "Wzór w danych. Wreszcie ktoś tu myśli.",
+      "Nowa obserwacja. Nobel może poczekać.",
+      "Wykres coś sugeruje. Nie plotkujmy jeszcze."},
+     {}},
+    // przerywnik neutralny (S2d); dziś każda scena G ma własne zdanie, więc pula jest rezerwą (5.7.5)
     {"przerywnik",
      {
-      "Kręcenie własnymi wskazówkami boli.",
-      "Wstaję, bo muszę. Ty też.",
-      "Maska trzyma. Płetwy zbędne."},
-     {
-      "Dziś bez wiadomości. Sam jestem wiadomością.",
-      "Wolne od wykresów. Korzystam.",
-      "Nic się nie dzieje. Celebruję to.",
-      "Mam wolne. Nadal tykam.",
-      "Dzień bez misji. Mam hobby.",
-      "Spokój. Ćwiczę bycie ozdobą.",
-      "Dziś tylko ja i moje dzwonki.",
-      "Odpoczywam aktywnie. Tykam."}},
-    // „Zdania scen przerywników” (S2d, propozycja v2): zdanie numer i przypięte do sceny G(i+1), kolejno G01…G18
+      "Optymizm? Miałem kiedyś. Męczący.",
+      "Świat się kręci. Ktoś musi go obserwować.",
+      "Mam plany. Na razie sobie nie przeszkadzamy.",
+      "Czas płynie. A mnie płacą za stanie.",
+      "Kalendarz ma plany. Ja mam weto."},
+     {}},
+    // „Zdania scen przerywników” (S2d): zdanie numer i przypięte do sceny G(i+1), kolejno G01…G18 (kolejność SCENY_G)
     {"przerywnik_sceny",
-     {},
      {
-      "Ktoś przesuwa czas, a pocę się ja.",
-      "Punktualność mam w umowie. Entuzjazmu nie.",
-      "Odpoczywam od punktualności. Punktualnie.",
-      "Postanowienie: więcej dzwonić. Przepraszam.",
-      "Kupiłem aparatowi prezent. Z bólem sprężyny.",
-      "Jajko czy budzik? Ja zdążyłem przed kurą.",
-      "Zakwitnie, kiedy zadzwonię. Taki mamy układ.",
-      "Czas leci. Ja prawie też.",
-      "Ulepiłem siebie. Wyszedłem na bałwana.",
-      "Ja liczę owce, owce liczą na mnie.",
-      "Drzemka? Po moim mechanizmie.",
-      "Przebrałem się za konkurencję. Wyszło lepiej.",
-      "Księżyc ma przewagę. Gra nocą u siebie.",
-      "Puchate kapcie. Wizerunek twardziela padł.",
-      "Moja orkiestra nie fałszuje. Nie gra.",
-      "Hantle? Ja codziennie podnoszę ludzi.",
-      "Wodoodporny? Zaraz się okaże.",
-      "Kucharz ze mnie żaden. Minutnik świetny."}},
+      "Przesunęli czas. Bez konsultacji ze mną.",
+      "Poniedziałek. Kto to zatwierdził?",
+      "Piątek. Cud, że tydzień się poddał.",
+      "Nowy Rok. Stare wymówki nadal ważne.",
+      "Święta. Goście przyjdą. Mój entuzjazm nie.",
+      "Szukanie jajek? Ja ich nie zgubiłem.",
+      "Wiosna. Znów ktoś oczekuje entuzjazmu.",
+      "Liście opadają. Ja zostaję na posterunku.",
+      "Bałwan stoi na mrozie. Kto mu płaci?",
+      "Liczę owce. Czwarta żąda honorarium.",
+      "Drzemka. Jedyna rzecz, której nie odkładam.",
+      "W masce wyglądam poważnie. To pomyłka.",
+      "Gram z księżycem. Znowu gra na czas.",
+      "Kapcie. Mój strój do zadań specjalnych.",
+      "Orkiestra milczy. W końcu mnie słuchają.",
+      "Hantle leżą. Wreszcie coś nas łączy.",
+      "Pod prysznicem. Pierwszy legalny wyciek.",
+      "Gotuję z pasją. Głównie wymówki."},
+     {}},
 };
 
+// Zdania tylko po spokojnej nocy (5.4.13, ADR-0029 pkt 7: „nie oceniam” nigdy nie znaczy „w porządku”):
+// tylko zdania oznaczone (S) w puli przyjętej 08.11.2026 (5.7.5); starych zdań uspokajających nie ma już w pulach.
 static const char* const USPOKAJAJACE[] = {
-    "Nic nie dzwoniło. Poza mną.", "Przespane. Ja tylko tykałem.", "Aparat pracował, a medal biorę ja.",
-    "Tak cicho, że słyszałem własne tykanie.", "Szukałem dziury w całym. Nie ma.", "Wzorowa noc. Wpiszę ją sobie do CV.",
-    "Wszystko odhaczone. Sprawdziłem dwa razy."};
+    "Raport dobry. Pobudka psuje statystyki.",  // (S)
+    "Wszystko w normie. Podejrzanie nudne.",    // (S)
+    "Wyniki dobre. Nie lubię być optymistą."};  // (S)
 
 const int KAMIENIE[5] = {7, 30, 100, 180, 365};
 const int SERIA_MIN = 7;  // [PRÓG] obserwacja własna, 1 osoba: seria 2 nocy to nie wydarzenie
@@ -684,19 +675,16 @@ static const char* nazwaOkazji(const std::string& scena) {
   return "";
 }
 
-// Zdanie przypięte do sceny przerywnika (5.7.5): z propozycjami zdanie z tabeli „Zdania scen przerywników”
-// (`przerywnik_sceny:{i}`), bez nich tylko zdania z kanwy K17 (G01), K18 (G02), K20 (G12). "" = scena bez zdania,
-// nie jest losowana (R-HUM-21 fail-path, R-HUM-27).
-static std::string zdanieSceny(const std::string& scena, bool zPropozycjami) {
+// Zdanie przypięte do sceny przerywnika (5.7.5, tabela „Zdania scen przerywników”): `przerywnik_sceny:{i}`, gdzie i to
+// pozycja sceny w SCENY_G (G01 = 0 … G18 = 17). Pula jest przyjęta (08.11.2026), więc zdanie jest niezależnie od
+// HUMOR_PROPOZYCJE. "" = scena bez zdania (poza SCENY_G albo poza pulą), nie jest losowana (R-HUM-21 fail-path, R-HUM-27).
+static std::string zdanieSceny(const std::string& scena) {
   int i = -1;
   for (size_t j = 0; j < SCENY_G.size(); j++)
     if (scena == SCENY_G[j]) i = (int)j;
-  if (i < 0) return "";
-  if (zPropozycjami) return "przerywnik_sceny:" + std::to_string(i);
-  if (scena == "G01") return "przerywnik:0";
-  if (scena == "G02") return "przerywnik:1";
-  if (scena == "G12") return "przerywnik:2";
-  return "";
+  const Pula* p = pula("przerywnik_sceny");
+  if (i < 0 || !p || i >= (int)(p->kanwa.size() + p->propozycje.size())) return "";
+  return "przerywnik_sceny:" + std::to_string(i);
 }
 
 Przerywnik wybierzPrzerywnik(const EkranDnia& dowod, const std::vector<WpisHumoru>& log, const KontekstHumoru& k,
@@ -750,7 +738,7 @@ Przerywnik wybierzPrzerywnik(const EkranDnia& dowod, const std::vector<WpisHumor
       std::vector<std::string> dozwolone;
       std::string poprzednie = dodajDni(k.dzis, -6);
       for (auto& s : ogolne) {
-        if (zdanieSceny(s, k.zPropozycjami).empty()) continue;
+        if (zdanieSceny(s).empty()) continue;
         if (std::find(k.sceny.begin(), k.sceny.end(), s) == k.sceny.end()) continue;
         std::string ostS = ostatniaKarta(s, log);
         if (!ostS.empty() && ostS >= poprzednie && ostS < k.dzis) continue;
@@ -766,7 +754,7 @@ Przerywnik wybierzPrzerywnik(const EkranDnia& dowod, const std::vector<WpisHumor
   if (std::find(k.sceny.begin(), k.sceny.end(), scena) == k.sceny.end()) return bez("brak sceny (R-HUM-11)");
   std::string ost = ostatniaKarta(scena, log);
   if (!ost.empty() && ost >= dodajDni(k.dzis, -6) && ost < k.dzis) return bez("scena z 6 poprzednich dni (R-HUM-10)");
-  r.zdanie = zdanieSceny(scena, k.zPropozycjami);
+  r.zdanie = zdanieSceny(scena);
   if (r.zdanie.empty()) return bez("scena bez zdania (R-HUM-27)");
   const char* limit = limitKart(k.dzis, log);
   if (*limit) return bez(limit);

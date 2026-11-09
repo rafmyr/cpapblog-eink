@@ -325,6 +325,26 @@ static void testKokpit() {
   ROWNE(kr.kol[6], "pn 2");
 }
 
+// Wszystkie zdania pul ekranu dnia i przerywników (5.7.5, pula przyjęta 08.11.2026) i najszersze z nich w kroju stopki P22B.
+static std::vector<std::string> wszystkieZdaniaBudzika() {
+  std::vector<std::string> w;
+  for (const char* pula : {"dobra_noc", "seria", "kamien", "brak_danych", "synchronizacja", "tydzien", "powrot",
+                           "wyciek", "przerwy", "zuzycie", "po_wymianie", "wietrzenie", "smog", "chlod",
+                           "suche_powietrze", "upal", "pylek", "stala_pora", "z_maska", "weekend", "odkrycie",
+                           "przerywnik", "przerywnik_sceny"})
+    for (int i = 0; i < 40; i++) {
+      std::string z = tekstZdania(std::string(pula) + ":" + std::to_string(i));
+      if (!z.empty()) w.push_back(z);
+    }
+  return w;
+}
+static std::string najszerszeZdanieBudzika() {
+  std::string n;
+  for (auto& z : wszystkieZdaniaBudzika())
+    if (szer(F_P22B, "„" + z + "”") > szer(F_P22B, "„" + n + "”")) n = z;
+  return n;
+}
+
 static WpisHumoru wpis(const std::string& d, const std::string& t, const std::string& k, char tryb, const std::string& sc = "",
                        const std::string& z = "") {
   return {d, t, k, tryb, sc, z};
@@ -335,13 +355,13 @@ static void testHumor() {
   SPRAWDZ(parsujHumor("2026-10-29;S2B;;K;M01;seria:0", w) && w.tryb == 'K' && w.scena == "M01");
   ROWNE(zapiszHumor(w), "2026-10-29;S2B;;K;M01;seria:0");
   SPRAWDZ(!parsujHumor("2026-10-29;S2B;;X;M01;seria:0", w));
-  ROWNE(tekstZdania("kamien:0"), "Medal mi się należy. Tobie też.");  // medal tylko przy kamieniu milowym
-  ROWNE(tekstZdania("seria:0"), "Licznik się kręci. Ja też.");        // S2b: spokojna pula
-  for (int i = 0; i < 6; i++) {
+  ROWNE(tekstZdania("kamien:0"), "Tyle nocy? Maska powinna dostać stażowe.");  // pula przyjęta
+  ROWNE(tekstZdania("seria:0"), "Kolejna noc. Konsekwencja bywa natrętna.");   // S2b: spokojna pula
+  for (int i = 0; i < 7; i++) {
     std::string z = tekstZdania("seria:" + std::to_string(i));
     SPRAWDZ(!z.empty() && z.find("Medal") == std::string::npos && z.find("Świeczki") == std::string::npos);
   }
-  ROWNE(tekstZdania("dobra_noc:4"), "Tak cicho, że słyszałem własne tykanie.");
+  ROWNE(tekstZdania("dobra_noc:4"), "Wyniki dobre. Nie lubię być optymistą.");
   auto znaki = [](const std::string& s) {  // znaki UTF-8, nie bajty
     int n = 0;
     for (unsigned char c : s) n += (c & 0xC0) != 0x80;
@@ -356,27 +376,50 @@ static void testHumor() {
   }
   SPRAWDZ(najdluzsze <= 45 && najdluzsze > 30);
 
-  // R-HUM-27: pula „dobra noc” bez propozycji i bez zdań uspokajających = 1 zdanie → ekran danych
+  // R-HUM-27: pula „dobra noc” (przyjęta, zmiana 09.11.2026) ma 9 zdań, 3 tylko po spokojnej nocy
+  // (oznaczone w puli, ADR-0029 pkt 7): bez warunku uspokojenia 6 zdań → karta K22 ze zdaniem spoza listy;
+  // z warunkiem 9. Flaga propozycji bez skutku (listy puste).
   KontekstHumoru k;
   k.dzis = "2026-10-29";
   k.sceny = sceny();
-  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), false, false).size() == 1);
-  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), false, true).size() == 3);
-  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), true, false).size() == 3);
+  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), false, false) ==
+          (std::vector<std::string>{"dobra_noc:0", "dobra_noc:3", "dobra_noc:5", "dobra_noc:6", "dobra_noc:7", "dobra_noc:8"}));
+  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), false, true).size() == 9);
+  SPRAWDZ(zdaniaDoLosowania(*pula("dobra_noc"), true, false).size() == 6);
+  // lista uspokajających = tylko trzy zdania oznaczone (S) (5.7.5)
+  SPRAWDZ(uspokajajace("Raport dobry. Pobudka psuje statystyki.") && uspokajajace("Wszystko w normie. Podejrzanie nudne.") &&
+          uspokajajace("Wyniki dobre. Nie lubię być optymistą."));
+  SPRAWDZ(!uspokajajace("Noc bez sensacji. Wreszcie coś dla mnie.") && !uspokajajace("Przyzwoita noc. Można nie dramatyzować.") &&
+          !uspokajajace("Bilans sporządzony. Cyfry mają alibi.") && !uspokajajace("Noc odnotowana. Pobudka niestety też."));
   EkranDnia e;
   e.typ = "S2A";
   e.kartaZTabeli = true;
   Wybor x = wybierzTryb(e, true, {}, k);
-  SPRAWDZ(x.tryb == 'D');
-  k.zPropozycjami = true;
-  x = wybierzTryb(e, true, {}, k);
   SPRAWDZ(x.tryb == 'K' && x.scena == "D01" && x.zdanie == "dobra_noc:0");  // komplet D01–D08, pierwsza D01
+  k.zPropozycjami = true;
+  SPRAWDZ(wybierzTryb(e, true, {}, k).tryb == 'K');
   k.zPropozycjami = false;
+  k.uspokojenie = true;
+  x = wybierzTryb(e, true, {}, k);
+  SPRAWDZ(x.tryb == 'K' && x.scena == "D01" && x.zdanie == "dobra_noc:0");
+  // zdanie uspokajające tylko przy warunku: dziennik z użytymi zdaniami nieuspokajającymi → bez warunku nigdy (S)
+  {
+    std::vector<WpisHumoru> uzyte;
+    for (int i : {0, 3, 5, 6, 7})
+      uzyte.push_back({"2026-10-2" + std::to_string(i % 9), "S2A", "", 'K', "D0" + std::to_string(i % 8 + 1),
+                       "dobra_noc:" + std::to_string(i)});
+    KontekstHumoru k2 = k;
+    k2.uspokojenie = false;
+    Wybor y = wybierzTryb(e, true, uzyte, k2);
+    SPRAWDZ(y.tryb != 'K' || !uspokajajace(tekstZdania(y.zdanie)));
+  }
+  k.uspokojenie = false;
 
-  // S2b: pula „seria” bez propozycji ma 2 zdania → ekran danych (R-HUM-27); z propozycjami 6 → karta bez medalu (D02)
+  // S2b: pula „seria” (przyjęta) ma 7 przyjętych zdań → karta bez medalu (D02) także bez propozycji
   // R-HUM-17 linia uwagi → ekran danych; R-HUM-05 → ekran danych
   e.typ = "S2B";
-  SPRAWDZ(wybierzTryb(e, true, {}, k).tryb == 'D');
+  x = wybierzTryb(e, true, {}, k);
+  SPRAWDZ(x.tryb == 'K' && x.scena == "D02" && x.zdanie == "seria:0");
   k.zPropozycjami = true;
   x = wybierzTryb(e, true, {}, k);
   SPRAWDZ(x.tryb == 'K' && x.scena == "D02" && x.zdanie == "seria:0");
@@ -428,7 +471,7 @@ static void testHumor() {
          wpis("2026-10-09", "S2B", "", 'K', "D07", "seria:2"), wpis("2026-10-13", "S2B", "", 'K', "D08", "seria:3"),
          wpis("2026-10-17", "S2B", "", 'K', "D02", "seria:4"), wpis("2026-10-21", "S2B", "", 'K', "D05", "seria:5")};
   x = wybierzTryb(e, true, log, k);
-  SPRAWDZ(x.zdanie == "seria:0" && x.scena == "D07");
+  SPRAWDZ(x.zdanie == "seria:6" && x.scena == "D07");  // pula przyjęta: seria:6 nieużyte, przed użytymi (R-HUM-20)
   {
     std::vector<std::string> sc2b = scenyTypu("S2B", "");
     SPRAWDZ(std::find(sc2b.begin(), sc2b.end(), "M01") == sc2b.end());  // medal tylko przy kamieniu (KM)
@@ -595,7 +638,9 @@ static void testNocZnana() {
     v.hist = &h;
     DecyzjaDnia dd = decyzjaDnia(v, {});
     SPRAWDZ(dd.e.typ == "S10" && !dd.zapisz && dd.e.kartaZTabeli);
-    SPRAWDZ(!zdanieSynchronizacji("2026-11-11", true).empty() && zdanieSynchronizacji("2026-11-11", false).empty());
+    // pula „synchronizacja” przyjęta (08.11.2026): zdanie także bez propozycji
+    SPRAWDZ(!zdanieSynchronizacji("2026-11-11", true).empty() &&
+            zdanieSynchronizacji("2026-11-11", false) == zdanieSynchronizacji("2026-11-11", true));
     SPRAWDZ(zdanieSynchronizacji("2026-11-11", true) != zdanieSynchronizacji("2026-11-12", true));
     SPRAWDZ(zdanieSynchronizacji("2026-11-11", true).find(':') == std::string::npos);  // tekst, nie ID zdania
     // awaria od wczoraj (odczyt 10.11 22:00, noc 11.11 bez danych) → 12.11 rano S5, nie S10 „zaraz”
@@ -1092,16 +1137,35 @@ static void testDobranocLogika() {
   for (long n = 0; n < 18; n++) {
     WyborNocy w = wyborNocy(n);
     SPRAWDZ(!w.zdanie.empty() && w.zdanie == zdanieNocy(w.scena));  // także w A2 (linia pod `Dobranoc.`)
-    SPRAWDZ(wyborNocy(n, false).zdanie.empty());  // -DHUMOR_PROPOZYCJE=0: bez zdania (R-KON-40)
+    ROWNE(wyborNocy(n, false).zdanie, w.zdanie);  // -DHUMOR_PROPOZYCJE=0: pula „noc” przyjęta (08.11.2026), zdanie jest
   }
-  ROWNE(zdanieNocy("A1-W12"), "Ja też ziewam. Do jutra.");
-  ROWNE(zdanieNocy("A3-W12"), "Ja też ziewam. Do jutra.");
-  ROWNE(zdanieNocy("A1-G14"), "Puchate kapcie. Wizerunek twardziela padł.");
-  ROWNE(zdanieNocy("A1-G11"), "Drzemka? Po moim mechanizmie.");
-  ROWNE(zdanieNocy("A2-G10"), "Ja liczę owce, owce liczą na mnie.");
-  ROWNE(zdanieNocy("A2-G13"), "Księżyc ma przewagę. Gra nocą u siebie.");
-  ROWNE(zdanieNocy("A2-G15"), "Dyryguję ciszą. Swoją partię zagram rano.");
-  ROWNE(zdanieNocy("A3-G12"), "Przebrałem się za konkurencję. Wyszło lepiej.");
+  // R-KON-39: humor `wyłączony` → S9 bez sceny i bez zdania, ten sam wariant (rotacja) i ta sama treść tekstowa
+  for (long n = 0; n < 9; n++) {
+    WyborNocy w = wyborNocy(n), x = wyborNocy(n, true, Humor::WYLACZONY);
+    SPRAWDZ(x.scena.empty() && x.zdanie.empty() && x.n == w.n && x.wariant == w.wariant);
+    SPRAWDZ(wyborNocy(n, true, Humor::OSZCZEDNY).scena == w.scena);  // oszczędny jak normalny (tabela 5.7.3)
+    DaneNocy dw, dx;
+    dw.wybor = w;
+    dx.wybor = x;
+    dw.wieczor = dx.wieczor = "2026-10-30";
+    dw.maskaOd = dx.maskaOd = n % 2 ? 23 * 60 + 5 : -1;  // A3 z godziną i bez
+    TekstyNocy tw = tekstyNocy(dw), tx = tekstyNocy(dx);
+    SPRAWDZ(tx.tytul == tw.tytul && tx.etykieta == tw.etykieta && tx.linie == tw.linie && tx.krok == tw.krok);
+    SPRAWDZ(tx.stopkaLewo.empty() && tx.zdanieA2.empty());
+  }
+  {
+    StanNocy s0;
+    DecyzjaNocy d0 = decyzjaNocy("2026-10-30", 23 * 60 + 30, true, false, s0, true, Humor::WYLACZONY);
+    SPRAWDZ(d0.nocny && d0.wybor.scena.empty() && d0.wybor.zdanie.empty() && d0.wybor.wariant == WariantNocy::A1);
+  }
+  ROWNE(zdanieNocy("A1-W12"), "Dobranoc. Skargi przyjmę we śnie.");
+  ROWNE(zdanieNocy("A3-W12"), "Dobranoc. Skargi przyjmę we śnie.");
+  ROWNE(zdanieNocy("A1-G14"), "Kapcie zdjęte. Reszta świata niech poczeka.");
+  ROWNE(zdanieNocy("A1-G11"), "Drzemka się przedłużyła. Nie wnoszę skargi.");
+  ROWNE(zdanieNocy("A2-G10"), "Owce policzone. Jedna się nie zgadza.");
+  ROWNE(zdanieNocy("A2-G13"), "Księżyc gra na zwłokę. Ja na sen.");
+  ROWNE(zdanieNocy("A2-G15"), "Cisza wystąpi dziś bez dyrygenta.");
+  ROWNE(zdanieNocy("A3-G12"), "Dziś nurkuję tylko w poduszce.");
   ROWNE(zdanieNocy("A1-X99"), "");
   SPRAWDZ(ZDANIA_NOCY.size() == 7);
   for (auto& z : ZDANIA_NOCY) {
@@ -1190,7 +1254,7 @@ static void testDobranocLogika() {
   ROWNE(t.fakty[1].first + "|" + t.fakty[1].second, "45%|wilgotność");
   ROWNE(t.fakty[2].first + "|" + t.fakty[2].second, "7 h 25|zwykle z maską");  // T13
   ROWNE(t.krok, "→ Ekran zostaje do rana, żeby nie błyskać.");  // T14
-  ROWNE(t.stopkaLewo, "„Puchate kapcie. Wizerunek twardziela padł.”");
+  ROWNE(t.stopkaLewo, "„Kapcie zdjęte. Reszta świata niech poczeka.”");
   ROWNE(t.stopkaPrawo, "▶ kokpit");
   dn.maskaOd = -1;  // bez startu sesji (R-KON-33): nagłówek `30.10` bez `maska od`, powód tylko wynik rano
   dn.zwyklySen = -1;  // bez normy: bez faktu „Twój zwykły czas z maską”
@@ -1202,14 +1266,14 @@ static void testDobranocLogika() {
   dn.maskaOd = 22 * 60 + 47;
   ROWNE(tekstyNocy(dn).liniaA2, "maska od 22:47 · przy łóżku 21° · 45% · wynik rano");
   ROWNE(tekstyNocy(dn).tytul, "Dobranoc.");
-  ROWNE(tekstyNocy(dn).zdanieA2, "„Księżyc ma przewagę. Gra nocą u siebie.”");
+  ROWNE(tekstyNocy(dn).zdanieA2, "„Księżyc gra na zwłokę. Ja na sen.”");
   SPRAWDZ(tekstyNocy(dn).stopkaLewo.empty());
   dn.maskaOd = -1;
   ROWNE(tekstyNocy(dn).liniaA2, "przy łóżku 21° · 45% · wynik rano");
   dn.temp = dn.wilg = NAN;  // bez czujnika panelu
   ROWNE(tekstyNocy(dn).liniaA2, "wynik rano");
-  dn.wybor = wyborNocy(numerPoranka("2026-10-31"), false);  // bez propozycji: bez zdania
-  SPRAWDZ(tekstyNocy(dn).zdanieA2.empty());
+  dn.wybor = wyborNocy(numerPoranka("2026-10-31"), false);  // bez propozycji: pula „noc” przyjęta, zdanie zostaje
+  ROWNE(tekstyNocy(dn).zdanieA2, "„Księżyc gra na zwłokę. Ja na sen.”");
   dn.temp = 21.4f;
   dn.wilg = 44.6f;
   dn.wybor = wyborNocy(numerPoranka("2026-11-01"));  // A3, W12
@@ -1222,7 +1286,7 @@ static void testDobranocLogika() {
   SPRAWDZ(t.tytulGodzina && t.linie.size() == 2);
   ROWNE(t.linie[0], "Dobranoc. Wynik nocy rano.");
   ROWNE(t.linie[1], "Ekran zostaje do rana, żeby nie błyskać.");  // T15
-  ROWNE(t.stopkaLewo, "„Ja też ziewam. Do jutra.”");
+  ROWNE(t.stopkaLewo, "„Dobranoc. Skargi przyjmę we śnie.”");
   dn.maskaOd = -1;  // R-KON-33: bez startu sesji, noc A3
   t = tekstyNocy(dn);
   ROWNE(t.etykieta, "NA DOBRANOC");
@@ -1230,7 +1294,7 @@ static void testDobranocLogika() {
   SPRAWDZ(!t.tytulGodzina);
   ROWNE(t.linie[0], "Wynik nocy rano.");
   dn.wybor = wyborNocy(numerPoranka("2026-11-01"), false);
-  SPRAWDZ(tekstyNocy(dn).stopkaLewo.empty());  // -DHUMOR_PROPOZYCJE=0: stopka bez zdania (R-KON-40)
+  ROWNE(tekstyNocy(dn).stopkaLewo, "„Dobranoc. Skargi przyjmę we śnie.”");  // -DHUMOR_PROPOZYCJE=0: pula przyjęta (08.11.2026)
   // ADR-0002: na ekranie nocnym ani słowa o ustawieniach aparatu i ocenie nocy
   for (long n = 0; n < 18; n++)
     for (int g : {-1, 23 * 60 + 41}) {
@@ -2962,22 +3026,20 @@ static void testSkalaB() {
   // (stopka U-05 ma krój P18B i własny układ według kanwy: testU05WedlugKanwy)
   SPRAWDZ(szerStopki(stopkaK2()) <= 744 && szerStopki(stopkaK1(true)) <= 744 && szerStopki(stopkaPytania()) <= 744);
   SPRAWDZ(szerStopki({"◀ ostatnia noc · 2 s ustawienia", "↻ ekran dnia · 2 s sprzęt", "▶ raport"}) <= 744);  // pełna mapa K2
-  // stopka karty: najdłuższe zdanie z pul ekranu dnia i najdłuższy odczyt czujnika mieszczą się w 744 px; dłuższe
-  // zdanie (do 45 znaków) wypiera odczyt czujnika, nigdy akcję
-  for (const char* pula : {"dobra_noc", "seria", "kamien", "brak_danych", "synchronizacja"})
-    for (int i = 0; i < 12; i++) {
-      std::string z = tekstZdania(std::string(pula) + ":" + std::to_string(i));
-      if (!z.empty()) SPRAWDZ(szer(F_P22B, "„" + z + "”") + szer(F_P22B, "przy łóżku 35° · 100%") + 24 <= 744);
-    }
+  // stopka karty: każde zdanie z pul (08.11.2026) mieści się obok akcji `▶ kokpit`; zdanie, które nie mieści się obok
+  // najdłuższego odczytu czujnika, wypiera odczyt, nigdy akcję
+  for (auto& z : wszystkieZdaniaBudzika()) SPRAWDZ(szer(F_P22B, "„" + z + "”") + szerStopki({"▶ kokpit"}) + 24 <= 744);
+  std::string najszersze = najszerszeZdanieBudzika();
+  SPRAWDZ(szer(F_P22B, "„" + najszersze + "”") + szer(F_P22B, "przy łóżku 35° · 100%") + 24 > 744);  // jest co wypierać
   {
     TrescEkranu kt;
     kt.tytul = "Noc: 6 h 38 z maską.";
     kt.stopkaPrawo = "przy łóżku 35° · 100%";
     PlotnoTest kp;
-    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "", "Dziś bez wiadomości. Sam jestem wiadomością.");
-    SPRAWDZ(kp.czarne(560, 440, 800, 480) == 0);  // odczyt czujnika ustąpił zdaniu, nic nie nachodzi
+    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "", najszersze);
+    int xk = 28 + szer(F_P22B, "„" + najszersze + "”") + 4;  // koniec zdania (X = 28)
+    SPRAWDZ(kp.czarne(xk, 440, 800, 480) == 0);  // odczyt czujnika ustąpił zdaniu, nic nie nachodzi
   }
-  SPRAWDZ(szer(F_P22B, "„Dziś bez wiadomości. Sam jestem wiadomością.”") + szerStopki({"▶ kokpit"}) + 24 <= 744);
   // S9 A1: fakty i krok w kolumnie tekstu 474 px; A3: linia 2 obok budzika (≤ 500)
   SPRAWDZ(szer(F_P22B, "temperatura") + 22 + szer(F_P22B, "wilgotność") + 22 + szer(F_P28B, "10 h 59") <= 474);
   SPRAWDZ(szer(F_P22B, "→ Ekran zostaje do rana, żeby nie błyskać.") <= 474);
@@ -3151,10 +3213,10 @@ static void testSkalaB() {
       for (auto& f : t.fakty) wszystko += f.w + " " + f.p + "|";
       for (auto& k : t.kolumny) wszystko += k.et + " " + k.p + "|";
     }
-    for (const char* pula : {"dobra_noc", "seria", "brak_danych"})
+    for (const char* pula : {"dobra_noc", "seria", "brak_danych", "powrot"})
       for (int i = 0; i < 12; i++) wszystko += tekstZdania(std::string(pula) + ":" + std::to_string(i)) + "|";
     for (long nr = 0; nr < 9; nr++) wszystko += wyborNocy(nr).zdanie + "|";
-    SPRAWDZ(wszystko.find("ciebie") != std::string::npos);  // pule naprawdę przejrzane
+    SPRAWDZ(wszystko.find(" cię ") != std::string::npos);  // pule naprawdę przejrzane (`Prawie cię nie poznałem.`)
     SPRAWDZ(wszystko.find("P95") == std::string::npos);
     for (const char* f : {" Ciebie", " Tobie", " Tobą", " Twoj", " Twój", " Ci ", " Cię"}) {
       size_t i = wszystko.find(f);
@@ -3422,12 +3484,12 @@ static void testOtoczenie() {
     TrescEkranu kt;
     kt.tytul = "Noc: 6 h 38 z maską.";
     kt.stopkaPrawo = "przy łóżku 35° · 99% · CO2 4999";
-    std::string zd = "Dziś bez wiadomości. Sam jestem wiadomością.";
+    std::string zd = najszerszeZdanieBudzika();
     SPRAWDZ(szer(F_P22B, "„" + zd + "”") + szer(F_P22B, kt.stopkaPrawo) + 24 > 744);
     SPRAWDZ(szer(F_P22B, "„" + zd + "”") + szer(F_P22B, "przy łóżku 35° · 99%") + 24 > 744);  // tu ustępuje cały
     PlotnoTest kp;
     rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "", zd);
-    SPRAWDZ(kp.czarne(560, 440, 800, 480) == 0);
+    SPRAWDZ(kp.czarne(28 + szer(F_P22B, "„" + zd + "”") + 4, 440, 800, 480) == 0);  // koniec zdania (X = 28)
     PlotnoTest kp2;
     rysujKarte(kp2, {"cz 30.11", "dane 05:46"}, kt, "", "Dobra noc.");
     int x0 = 772 - szer(F_P22B, "przy łóżku 35° · 99% · CO2 4999");
@@ -3738,20 +3800,20 @@ static void testNumerZdaniaZPliku() {
   ROWNE(tekstZdania("seria:1000"), "");
   ROWNE(tekstZdania("nieznana:0"), "");
   // poprawne numery bez zmian
-  ROWNE(tekstZdania("seria:0"), "Licznik się kręci. Ja też.");
-  ROWNE(tekstZdania("kamien:0"), "Medal mi się należy. Tobie też.");
+  ROWNE(tekstZdania("seria:0"), "Kolejna noc. Konsekwencja bywa natrętna.");
+  ROWNE(tekstZdania("kamien:0"), "Tyle nocy? Maska powinna dostać stażowe.");
   // łańcuch jak na panelu: wpis z pliku → numer zdania → tekst karty
   WpisHumoru w;
   SPRAWDZ(parsujHumor("2026-11-02;S2A;;K;D01;seria:-1", w));
   ROWNE(tekstZdania(w.zdanie), "");
-  // granica puli: `seria` ma 2 zdania kanwy i 4 propozycje
+  // granica puli: `seria` ma 7 zdań przyjętych (08.11.2026) i pustą listę propozycji
   const Pula* ps = pula("seria");
-  SPRAWDZ(ps && ps->kanwa.size() + ps->propozycje.size() == 6);
-  if (ps && ps->propozycje.size() == 4) {
-    ROWNE(tekstZdania("seria:2"), ps->propozycje[0]);
-    ROWNE(tekstZdania("seria:5"), ps->propozycje[3]);
+  SPRAWDZ(ps && ps->kanwa.size() == 7 && ps->propozycje.empty());
+  if (ps && ps->kanwa.size() == 7) {
+    ROWNE(tekstZdania("seria:2"), ps->kanwa[2]);
+    ROWNE(tekstZdania("seria:6"), ps->kanwa[6]);
   }
-  ROWNE(tekstZdania("seria:6"), "");
+  ROWNE(tekstZdania("seria:7"), "");
   // indeksZTekstu() wprost: kontrakt z wspolne.h
   int i = -7;
   SPRAWDZ(indeksZTekstu("3", 5, i) && i == 3);

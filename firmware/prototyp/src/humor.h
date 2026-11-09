@@ -42,8 +42,9 @@ const WpisHumoru* znajdzWpis(const std::vector<WpisHumoru>& log, const std::stri
                              const std::string& klucz);
 
 // ---------- pule zdań (5.7.5) ----------
-// Do akceptacji pul (kryterium WY15) panel losuje tylko z kolumny „Z v0.6c i kanwy”; kolumna „Propozycje”
-// tylko przy zPropozycjami (przełącznik prototypu HUMOR_PROPOZYCJE, do przeglądu pul na panelu).
+// Lista `kanwa` = zdania przyjęte (od 08.11.2026 cała przyjęta pula, kryterium WY15 spełnione); lista `propozycje` =
+// zdania do akceptacji, losowane tylko przy zPropozycjami (przełącznik prototypu HUMOR_PROPOZYCJE). Od 08.11.2026 lista
+// propozycji jest pusta w każdej puli, więc przełącznik nie zmienia zdań; zostaje na następną rundę propozycji.
 struct Pula {
   const char* id;
   std::vector<const char*> kanwa, propozycje;
@@ -55,6 +56,14 @@ std::vector<std::string> zdaniaDoLosowania(const Pula& p, bool zPropozycjami, bo
 // Zwraca "" dla nieznanej puli i dla numeru, który nie jest liczbą 0…(rozmiar puli − 1) zapisaną samymi
 // cyframi (ID przychodzi z `/humor.csv`, więc może być uszkodzone: `seria:-1`, `seria:abc`).
 std::string tekstZdania(const std::string& id);
+// Czy kartę z wpisu `/humor.csv` wolno narysować ponownie (slot nocny, to samo wyświetlenie dnia): zdanie z ID
+// ma tekst w dzisiejszej puli (stary numer spoza nowej puli → nie) i nie jest uspokajające bez spełnionego
+// warunku uspokojenia (R-EKR-32, ADR-0029 pkt 7). `uspokojenie` wołane tylko dla zdania uspokajającego (koszt).
+// Przy `false` panel rysuje ekran danych zamiast karty.
+template <class F> bool kartaZWpisuWazna(const std::string& id, F uspokojenie) {
+  std::string z = tekstZdania(id);
+  return !z.empty() && (!uspokajajace(z) || uspokojenie());
+}
 
 // ---------- ekran dnia ----------
 struct StanDnia {

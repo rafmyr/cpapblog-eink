@@ -64,7 +64,8 @@ namespace reguly {
 void zarejestrujRodzajeE();  // src/rodzaje_e.cpp: rodzaje warunków zdarzeń E spoza rdzenia
 }  // namespace reguly
 
-// 1 (domyślnie w prototypie) = losuj też z kolumny „Propozycje” pul zdań (5.7.5); 0 = tylko zdania z kanwy (R-HUM-27).
+// 1 (domyślnie w prototypie) = losuj też z listy propozycji pul zdań (5.7.5); 0 = tylko zdania przyjęte (R-HUM-27).
+// Od puli przyjętej 08.11.2026 wszystkie zdania są przyjęte, a listy propozycji puste: flaga nie zmienia zdań.
 // Flaga kompilacji z platformio.ini, jak w prototypie.
 #ifndef HUMOR_PROPOZYCJE
 #define HUMOR_PROPOZYCJE 1
@@ -1457,7 +1458,7 @@ class Przebieg {
     std::string w = wieczorNocy(dzis, m);
     bool dzien = ekran() == Ekran::DZIEN;
     bool trwa = ekranDniaTrwa(ekran(), w, stanNocy, s5Teraz());
-    DecyzjaNocy d = decyzjaNocy(dzis, m, dzien, trwa, stanNocy, Z_PROPOZYCJAMI);
+    DecyzjaNocy d = decyzjaNocy(dzis, m, dzien, trwa, stanNocy, Z_PROPOZYCJAMI, humorB32());  // R-KON-39
     if (zapisz && d.nowa) {
       stanNocy = poDecyzji(d, stanNocy);
       zapiszStanNocy();
@@ -1466,7 +1467,12 @@ class Przebieg {
     return d;
   }
 
-  void rysujNocny(const DecyzjaNocy& dn) {
+  void rysujNocny(const DecyzjaNocy& dn0) {
+    DecyzjaNocy dn = dn0;
+    if (humorB32() == Humor::WYLACZONY) {  // R-KON-39 (także po zmianie ustawienia już po decyzji tej nocy)
+      dn.wybor.scena.clear();
+      dn.wybor.zdanie.clear();
+    }
     Norma nm = norma(dzisiaj());
     int zwykly = nm.m01.jest() ? (int)lround(nm.m01.med) : -1;
     bool nowe = dn.wieczor != r.faktyNocy.wieczor;
@@ -2439,9 +2445,14 @@ class Przebieg {
       if (dd.wpis && rysujWpisB15(*dd.wpis, d)) return;  // S7, S8, S1 z dziennika
       if (dd.wpis && sk::typB16(dd.wpis->typ) && rysujNocB16(*dd.wpis, d, n)) return;  // ten sam ekran co wieczorem
       TrescEkranu t = trescDnia(e.typ == "S2D" ? "S2A" : e.typ, e.typ == "S2D" ? "" : e.klucz, d);  // przerywnik stoi za dowód spokoju
-      if (e.typ == "S2D" && dd.wpis)  // R-HUM-28: wariant tekstu z faktów nocy dnia ekranu, jak przy rysowaniu rano
+      // karta z dziennika tylko, gdy zdanie jest w dzisiejszej puli i (uspokajające) warunek uspokojenia jest spełniony;
+      // inaczej ekran danych (po zmianie puli 08.11.2026 stary numer może wskazywać nic albo zdanie uspokajające)
+      const std::string dzienWpisu = dd.wpis ? dd.wpis->data : dzis;
+      bool karta = dd.wpis && dd.wpis->tryb == 'K' &&
+                   kartaZWpisuWazna(dd.wpis->zdanie, [&] { return stany(dzienWpisu).uspokojenie; });
+      if (karta && e.typ == "S2D")  // R-HUM-28: wariant tekstu z faktów nocy dnia ekranu, jak przy rysowaniu rano
         trescPrzerywnikaB17(t, dd.wpis->scena, d, warunekPrzerywnika(dd.wpis->scena, nocPrzerywnikaDnia(d.dzis)));
-      if (dd.wpis && dd.wpis->tryb == 'K') rysujKarte(plotno(), n, t, dd.wpis->scena, tekstZdania(dd.wpis->zdanie));
+      if (karta) rysujKarte(plotno(), n, t, dd.wpis->scena, tekstZdania(dd.wpis->zdanie));
       else rysujEkranDanych(plotno(), n, t);
       dzienOdswiezalny = t.stopkaStandardowa;
       r.dzienTryb = 0;
@@ -2571,6 +2582,11 @@ class Przebieg {
           w.scena.c_str(), w.tryb == 'K' ? "" : w.dlaczego);
     }
     if (zPamieci) w.tryb = r.dzienTryb;
+    // to samo wyświetlenie z wpisu dziennika: karta tylko ze zdaniem z dzisiejszej puli, uspokajające tylko przy
+    // spełnionym warunku uspokojenia (R-EKR-32); inaczej ekran danych (zmiana puli 08.11.2026)
+    if (pw.zWpisu && w.tryb == 'K' &&
+        !kartaZWpisuWazna(w.zdanie, [&] { return (b5.wyniki.empty() || b5.dzis != dzis ? stany(dzis) : b5.stany).uspokojenie; }))
+      w.tryb = 'D';
     // przerywnik (wpis S2D z dziś albo wybór wyżej): tytuł, powód i fakty przerywnika (trescPrzerywnikaB17)
     if (w.tryb == 'K' && !w.scena.empty() && w.scena[0] == 'G') {
       if (pw.zWpisu) warunkowaP = warunekPrzerywnika(w.scena, nocP);

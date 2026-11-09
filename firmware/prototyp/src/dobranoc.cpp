@@ -4,16 +4,15 @@
 #include "nawigacja.h"
 #include "wspolne.h"
 
-// Pula „noc” (5.7.5): zdanie przypięte do sceny, do akceptacji (WY15).
-// Sceny G10–G15: zestaw v2 (docs/design/zdania-budzika-v2.md).
+// Pula „noc” (5.7.5, pula przyjęta 08.11.2026): zdanie przypięte do sceny.
 const std::vector<ZdanieSceny> ZDANIA_NOCY = {
-    {"W12", "Ja też ziewam. Do jutra."},
-    {"G14", "Puchate kapcie. Wizerunek twardziela padł."},
-    {"G11", "Drzemka? Po moim mechanizmie."},
-    {"G10", "Ja liczę owce, owce liczą na mnie."},
-    {"G13", "Księżyc ma przewagę. Gra nocą u siebie."},
-    {"G15", "Dyryguję ciszą. Swoją partię zagram rano."},
-    {"G12", "Przebrałem się za konkurencję. Wyszło lepiej."},
+    {"W12", "Dobranoc. Skargi przyjmę we śnie."},
+    {"G14", "Kapcie zdjęte. Reszta świata niech poczeka."},
+    {"G11", "Drzemka się przedłużyła. Nie wnoszę skargi."},
+    {"G10", "Owce policzone. Jedna się nie zgadza."},
+    {"G13", "Księżyc gra na zwłokę. Ja na sen."},
+    {"G15", "Cisza wystąpi dziś bez dyrygenta."},
+    {"G12", "Dziś nurkuję tylko w poduszce."},
 };
 
 // Sceny wariantów w kolejności rotacji (id jak w SCENY_NOCY, include/obrazy.h, tools/prototyp/generuj.py).
@@ -64,21 +63,22 @@ std::string zdanieNocy(const std::string& scena) {
   return "";
 }
 
-WyborNocy wyborNocy(long n, bool zPropozycjami) {
+WyborNocy wyborNocy(long n, bool /*zPropozycjami*/, Humor humor) {
   WyborNocy w;
   if (n < 0) return w;
   w.n = n;
   int war = (int)(n % 3);
   w.wariant = (WariantNocy)war;
+  if (humor == Humor::WYLACZONY) return w;  // R-KON-39: bez sceny i bez zdania, ta sama treść tekstowa
   std::vector<std::string> sc = scenyNocyWariantu(w.wariant);  // tylko sceny z listy dozwolonych
   if (sc.empty()) sc = {"A1-W12"};                              // zabezpieczenie; test pilnuje, że pula nie jest pusta
   w.scena = sc[(n / 3) % (long)sc.size()];
-  if (zPropozycjami) w.zdanie = zdanieNocy(w.scena);  // pula „noc” to same propozycje (R-KON-40)
+  w.zdanie = zdanieNocy(w.scena);  // pula „noc” przyjęta (08.11.2026): zdanie niezależnie od HUMOR_PROPOZYCJE
   return w;
 }
 
 DecyzjaNocy decyzjaNocy(const std::string& dzis, int minuta, bool ekranDnia, bool dzienTrwa, const StanNocy& s,
-                        bool zPropozycjami) {
+                        bool zPropozycjami, Humor humor) {
   DecyzjaNocy d;
   d.wieczor = wieczorNocy(dzis, minuta);
   if (d.wieczor.empty()) return d;  // dzień albo brak zegara
@@ -89,7 +89,7 @@ DecyzjaNocy decyzjaNocy(const std::string& dzis, int minuta, bool ekranDnia, boo
     d.nocny = ekranDnia && !dzienTrwa;
     d.rysujPoZegarze = d.nocny;
   }
-  if (d.nocny) d.wybor = wyborNocy(numerPoranka(d.wieczor), zPropozycjami);
+  if (d.nocny) d.wybor = wyborNocy(numerPoranka(d.wieczor), zPropozycjami, humor);
   return d;
 }
 

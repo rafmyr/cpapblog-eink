@@ -74,14 +74,41 @@ static void r03_tenSamWybórPrzyOdswiezeniu() {
   SPRAWDZ(w2.tryb == 'K' && w2.scena == w1.scena && w2.zdanie == w1.zdanie);
 }
 
-// TRZYMA: numery zdań istniejących pul (dziennik na panelu) bez zmian względem 187b2ab.
+// Pula przyjęta 08.11.2026 zastąpiła wszystkie zdania: numery w dzienniku sprzed niej wskazują nowe teksty (dziennik
+// służy tylko rotacji „najdawniej użyte”), a numer poza nową pulą daje "" (zdanie pominięte, nie błąd).
 static void numeracjaStarychPul() {
-  SPRAWDZ(tekstZdania("dobra_noc:8") == "Noc za nami. Wskazówki w komplecie.");
-  SPRAWDZ(tekstZdania("seria:5") == "Noc za nocą. Nudno i dobrze.");
-  SPRAWDZ(tekstZdania("kamien:3") == "Świeczki zdmuchnąłem. Maski nie.");
-  SPRAWDZ(tekstZdania("kamien:7") == "Kolejna noc. Mój mechanizm się wzruszył.");
-  SPRAWDZ(tekstZdania("brak_danych:7") == "Most milczy. Zadzwoniłbym, tylko do kogo?");
-  SPRAWDZ(tekstZdania("synchronizacja:0") == "Wciągam noc z aparatu. Nie poganiaj.");
+  SPRAWDZ(tekstZdania("dobra_noc:4") == "Wyniki dobre. Nie lubię być optymistą.");
+  SPRAWDZ(tekstZdania("dobra_noc:8") == "Kolejna noc w aktach. Wstajemy.");  // dopisane 09.11.2026
+  SPRAWDZ(tekstZdania("dobra_noc:9").empty());  // numer poza pulą 9 zdań
+  SPRAWDZ(tekstZdania("seria:5") == "Kolejna noc w rejestrze. Rubryk przybywa.");
+  SPRAWDZ(tekstZdania("kamien:3") == "Świętujmy. Kto przyniósł tort?");
+  SPRAWDZ(tekstZdania("kamien:7").empty());
+  SPRAWDZ(tekstZdania("brak_danych:6") == "Brak wyników. Protokół zostaje pusty.");
+  SPRAWDZ(tekstZdania("synchronizacja:0") == "Łączę się. Nie każ mi być towarzyskim.");
+}
+
+// Powtórne rysowanie karty z `/humor.csv` po zmianie puli (dyrygent: slot nocny i to samo wyświetlenie dnia):
+// stary numer poza pulą → ekran danych; numer wskazujący zdanie uspokajające bez warunku uspokojenia → ekran danych
+// (R-EKR-32, ADR-0029 pkt 7); warunek liczony tylko dla zdania uspokajającego.
+static void kartaZWpisuPoZmianiePuli() {
+  int wolan = 0;
+  auto tak = [&] { wolan++; return true; };
+  auto nie = [&] { wolan++; return false; };
+  SPRAWDZ(!kartaZWpisuWazna("dobra_noc:9", tak));       // numer poza pulą 9 zdań
+  SPRAWDZ(!kartaZWpisuWazna("przerywnik_sceny:18", tak));  // poza G01–G18
+  SPRAWDZ(!kartaZWpisuWazna("nie_ma_puli:0", tak));
+  SPRAWDZ(!kartaZWpisuWazna("", tak));
+  SPRAWDZ(wolan == 0);
+  SPRAWDZ(!kartaZWpisuWazna("dobra_noc:1", nie));       // `Raport dobry. …` (S) bez uspokojenia
+  SPRAWDZ(!kartaZWpisuWazna("dobra_noc:2", nie));
+  SPRAWDZ(!kartaZWpisuWazna("dobra_noc:4", nie));
+  SPRAWDZ(wolan == 3);
+  SPRAWDZ(kartaZWpisuWazna("dobra_noc:1", tak));        // z uspokojeniem karta zostaje
+  SPRAWDZ(kartaZWpisuWazna("dobra_noc:0", nie));        // nieuspokajające: bez warunku
+  SPRAWDZ(kartaZWpisuWazna("dobra_noc:5", nie));
+  SPRAWDZ(kartaZWpisuWazna("seria:2", nie));
+  SPRAWDZ(wolan == 4);
+  SPRAWDZ(!kartaZWpisuWazna("stala_pora:5", tak));      // stary numer: pula S-K-07 ma od 09.11.2026 5 zdań
 }
 
 // TRZYMA: dziennik z wersji sprzed (typy S2A, S2B, S2C, S5, KM, sceny z 27) wczytany po restarcie: rotacja
@@ -111,6 +138,7 @@ static void dziennikWersji0() {
   e = wybierzEkranDnia(s, log);  // S2b bez serii → S2c, numer 6 = karta (R-HUM-09)
   SPRAWDZ(e.typ == "S2C" && e.klucz == "6" && e.kartaZTabeli);
   KontekstHumoru k = kontekst(s.dzis);
+  k.uspokojenie = true;  // pula „dobra noc” (08.11.2026): same zdania po spokojnej nocy
   Wybor w = wybierzTryb(e, true, log, k);
   SPRAWDZ(w.tryb == 'K' && w.scena != "D02" && w.scena != "D05");  // D02, D05 z 01–02.11: 6 poprzednich dni
 }
@@ -146,6 +174,7 @@ int main() {
   S2DnieMozeBycKartaPozaPrzerywnikiem();
   r03_tenSamWybórPrzyOdswiezeniu();
   numeracjaStarychPul();
+  kartaZWpisuPoZmianiePuli();
   dziennikWersji0();
   przerywnikNicSieNieLosuje();
   printf("testy_karty_z_budzikiem_brzegowe: %d dobrze, %d źle\n", ok, zle);
