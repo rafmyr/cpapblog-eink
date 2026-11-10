@@ -58,6 +58,12 @@ const Powody POWOD_SLOT_TYGODNIOWY = 1u << 15;  // „slot_tygodniowy”: R-KON-
 // POWOD_SLOT_WIECZORNY (egzemplarz bez ekranów CO2 albo bez źródła otoczenia); S-K-03…S-K-09 z danych w pamięci
 // (noce, prognoza z POWOD_POGODA), e-ink tylko przy innej klatce (pokaz(): skrót klatki)
 const Powody POWOD_SLOT_WIECZORNY_BEZ_SIECI = 1u << 16;  // „slot_wieczorny_bez_sieci”: R-KON-01; bez Wi-Fi
+// Szybszy wynik nocy rano (decyzja właściciela projektu 10.11.2026, A + B):
+// gęste okno co 5 min wokół zwykłej pory końca terapii (A) i powtórka po 2 min, gdy AirBridge przetwarza pliki po
+// terapii (B). Oba z pełnym pobraniem jak okno poranne (status, lista nocy, raport; przy terapii sam status).
+const Powody POWOD_OKNO_GESTE = 1u << 17;   // „okno_geste”: R-DANE-61 (co 5 min wokół zwykłej pory końca terapii); z Wi-Fi
+const Powody POWOD_POWTORKA = 1u << 18;     // „powtorka_przetwarzania”: R-DANE-62 (2 min po statusie
+                                            // „przetwarza”, najwyżej 5 na dobę); z Wi-Fi
 
 // Stałe planu kroku 2 (wszystkie [PRÓG] ze spec, minuty doby czasu lokalnego).
 const int PLAN_OKNO_OD = 5 * 60;            // R-DANE-02: okno poranne 05:00–11:00
@@ -81,6 +87,23 @@ const int PLAN_START_Z_OCENA_S = 60;
 // (bez ponowień R-AW-01, bo brak odpowiedzi to zwykła ocena, R-KON-56); 3 s to kilkakrotność czasu odpowiedzi
 // AirBridge w sieci domowej (odczyt egzemplarza: ok. 100–300 ms) [DOMYSŁ, do kalibracji w]
 const uint32_t LIMIT_STATUSU_SLOTU_MS = 3000;
+// Gęste okno (A, R-DANE-61; bez niego przy E-01: ostatnia próba bez odpowiedzi AirBridge albo Wi-Fi, decyzja właściciela
+// projektu 10.11.2026, także z odrzuconym logowaniem): zwykła pora końca terapii = mediana końca terapii
+// (koniecTerapiiNocy()) z ostatnich PLAN_GESTE_NOCY nocy z terapią, z co najmniej PLAN_GESTE_NOCY_MIN takich nocy
+// (mniej: bez gęstego okna, jak przed 10.11.2026); okno od PLAN_GESTE_PRZED_MIN przed do PLAN_GESTE_PO_MIN po niej, przycięte do okna porannego 05:00–11:00;
+// w nim zapytania co PLAN_GESTE_CO_MIN, dopóki noc nie jest kompletna. Wszystkie [PRÓG] (decyzja właściciela projektu 10.11.2026,
+// bez źródła; docs/spec/progi-poza-zakresem.csv).
+const int PLAN_GESTE_CO_MIN = 5;        // [PRÓG] R-DANE-61
+const int PLAN_GESTE_PRZED_MIN = 45;    // [PRÓG] R-DANE-61
+const int PLAN_GESTE_PO_MIN = 45;       // [PRÓG] R-DANE-61
+const int PLAN_GESTE_NOCY = 14;         // [PRÓG] R-DANE-61 (jak R-KON-09)
+const int PLAN_GESTE_NOCY_MIN = 3;      // [PRÓG] R-DANE-61 (jak R-KON-09)
+// Powtórka przy przetwarzaniu (B, R-DANE-62): następne wybudzenie PLAN_POWTORKA_S po odczycie `/api/status`
+// z przetwarzaniem plików po terapii (src/airbridge.h modulPrzetwarza()), najwyżej PLAN_POWTORKI_MAKS na dobę.
+const uint32_t PLAN_POWTORKA_S = 2 * 60;  // [PRÓG] R-DANE-62
+const int PLAN_POWTORKI_MAKS = 5;         // [PRÓG] R-DANE-62
+// Pobranie przy wybudzeniu przyciskiem rano bez nocy (D, R-PRZ-22): najwyżej raz na tyle sekund.
+const long PLAN_POBRANIE_PRZYCISKIEM_CO_S = 120L;  // [PRÓG] R-PRZ-22: 2 min
 // Ile sekund ostatnia obsłużona chwila albo start slotu może leżeć „w przyszłości” po
 // cofnięciu zegara przez NTP w tym samym wybudzeniu (zegar panelu spieszy się) [PRÓG]; dalej: jak nieznana
 const uint32_t KOREKTA_NTP_S = 15 * 60;
@@ -139,6 +162,14 @@ struct WejsciePlanu {
   // (data poranka dziś) dla slotu tygodniowego
   int wieczorOd = 21 * 60;
   bool niedziela = false;
+  // Szybszy wynik nocy rano (R-DANE-61, R-DANE-62). zwyklyKoniec: zwykła pora końca terapii (minuta doby,
+  // zwyklyKoniecTerapii()); -1 = mniej niż 3 noce ze znanym końcem, czyli bez gęstego okna.
+  int zwyklyKoniec = -1;
+  // przetwarzaOd: chwila (sekunda doby dziś) ostatniego odczytu `/api/status` z przetwarzaniem plików po terapii
+  // (StanRtc::przetwarzaEp); -1 = ostatni odczyt bez przetwarzania albo nie dziś.
+  int przetwarzaOd = -1;
+  // powtorekDzis: powtórki R-DANE-62 wykonane dziś (StanRtc::powtorki z dobą powtorkiDoba).
+  int powtorekDzis = 0;
 };
 
 // (R-KON-41, R-EKR-60, R-KON-09): koniec slotu dziennego i przerysowań R-EKR-60 (minuta doby) = początek okna
@@ -191,6 +222,14 @@ struct Termin {
 // {ZALEGLY_TERMIN_S, powodyZalegle(w)}: następne wybudzenie zegarem zaraz, z tymi powodami w powodyTeraz().
 Termin nastepnyTermin(const WejsciePlanu& w);
 
+// (R-DANE-61, R-DANE-62) w nastepnyTermin():
+//  - POWOD_OKNO_GESTE: co PLAN_GESTE_CO_MIN w gęstym oknie (wGestymOknie()), dopóki !nocKompletna, w minutach bez
+//    POWOD_OKNO_PORANNE (siatka 30 min zostaje jak była); nie przy e01 (ostatnia próba bez odpowiedzi AirBridge albo
+//    Wi-Fi, decyzja właściciela projektu 10.11.2026; także odrzucone logowanie), wraca po pierwszym udanym odczycie;
+//  - POWOD_POWTORKA: chwila terminPowtorki() (sekunda, nie minuta siatki), gdy wypada przed najbliższą chwilą siatki;
+//    termin powtórki, który już minął (np. w czuwaniu po przycisku), daje sen ZALEGLY_TERMIN_S z tym powodem;
+//    powodyTeraz() nie daje POWOD_POWTORKA, gdy w tym samym przedziale jest POWOD_OKNO_PORANNE albo POWOD_OKNO_GESTE
+//    (powtórka nie zużywa wtedy licznika).
 // Powody bieżącego wybudzenia zegarem (dziennik wybudzeń, decyzja o Wi-Fi). Przyjmuje stan planu z chwili wybudzenia
 // (przed pobraniem). Zwraca bity tych terminów z reguł nastepnyTermin(), których chwila wypada w przedziale
 // (obsluzoneDo, teraz] (przy obsluzoneZnane i obsluzoneDo < teraz; po północy od 00:00), inaczej
@@ -219,7 +258,8 @@ int poczatekSlotuDziennego(const WejsciePlanu& w);
 // wybudzenie zegarem przesuwa obsłużoną chwilę na swój początek.
 Powody powodyZalegle(const WejsciePlanu& w);
 
-// Czy powody wymagają Wi-Fi (R-NF-03): OKNO_PORANNE, SPRAWDZENIE_11, PONOWIENIE, POGODA, POCZATEK_NOCY, CZAS;
+// Czy powody wymagają Wi-Fi (R-NF-03): OKNO_PORANNE, SPRAWDZENIE_11, PONOWIENIE, POGODA, POCZATEK_NOCY, CZAS,
+// OKNO_GESTE i POWTORKA (R-DANE-61, R-DANE-62);
 // także SLOT_DZIENNY_START i SLOT_DZIENNY_GODZINA (`/api/status`, R-KON-42) i PROGNOZA_GODZINOWA (R-KON-52).
 // CZUJNIKI, POWROT, PYTANIE, ODSWIEZENIE i SLOT_DZIENNY_BEZ_SIECI same nie włączają Wi-Fi (R-DANE-33, T-WYM-31, T-WYM-24, R-EKR-60).
 bool sieciowy(Powody powody);
@@ -242,6 +282,37 @@ bool przerysowanieDnia(Powody powody);
 // przed koniecSlotuDziennego() i poza slotem nocnym. Dyrygent zapisuje wtedy chwilę naciśnięcia jako nacisniecieRano
 // i slotDziennyOd (StanRtc::nacisniecieRanoEp, slotDziennyEp).
 bool startSlotuPrzyciskiem(const WejsciePlanu& w, Ekran przed);
+
+// Gęste okno (R-DANE-61). Przyjmuje stan planu i minutę doby. Zwraca true, gdy zwyklyKoniec >= 0 i minuta leży
+// w [zwyklyKoniec − PLAN_GESTE_PRZED_MIN, zwyklyKoniec + PLAN_GESTE_PO_MIN] i w oknie porannym (PLAN_OKNO_OD,
+// PLAN_OKNO_DO) bez jego końców (05:00 jest zawsze terminem okna porannego, 11:00 sprawdzeniem R-DANE-24).
+// Nie patrzy na nocKompletna (to robi plan przy terminach).
+bool wGestymOknie(const WejsciePlanu& w, int minuta);
+
+// Termin powtórki przy przetwarzaniu (R-DANE-62). Przyjmuje stan planu. Zwraca sekundę doby przetwarzaOd +
+// PLAN_POWTORKA_S, gdy jest zegar, teraz przed 11:00, przetwarzaOd w oknie porannym (od 05:00), termin przed 11:00,
+// noc niekompletna
+// i powtorekDzis < PLAN_POWTORKI_MAKS; inaczej -1 (wtedy zwykła siatka: gęste okno albo 30 min).
+int terminPowtorki(const WejsciePlanu& w);
+
+// Koniec terapii nocy w minutach od 12:00 dnia wieczoru (skala M-18, R-KON-09) albo -1. Rekord nocy nie ma końca
+// ostatniej sesji, więc przybliżenie [DOMYSŁ]: M-18 (start najdłuższej sesji, R-DANE-27) + M-01 (minuty z maską):
+// dokładne dla nocy z jedną sesją; przy kilku sesjach przesunięte o (czas sesji przed najdłuższą − przerwy po niej).
+// -1: m18 albo m01 nieznane, m01 < 15 min (jak noc z terapią w R-KON-09) albo noc częściowa.
+int koniecTerapiiNocy(const Noc& n);
+
+// Zwykła pora końca terapii (R-DANE-61): mediana koniecTerapiiNocy() z ostatnich PLAN_GESTE_NOCY nocy z terapią
+// do nocy z poranka `dzis` wyłącznie (ta jeszcze nie przyszła), z co najmniej PLAN_GESTE_NOCY_MIN takich nocy.
+// Zwraca minutę doby (0…1439; koniec po 12:00 następnego dnia daje minutę ≥ 12:00, czyli gęste okno puste) albo -1.
+int zwyklyKoniecTerapii(const std::vector<Noc>& hist, const std::string& dzis);
+
+// Pobranie przy wybudzeniu przyciskiem rano bez nocy (R-PRZ-22, D). Przyjmuje stan planu i ile sekund temu skończyło
+// się poprzednie nieprzerwane takie pobranie (-1 = nie było albo chwila nieznana). Zwraca true przy zegarze, w oknie
+// porannym [05:00, 11:00), przy nocy niekompletnej, bez E-01 i odOstatniego < 0 albo
+// >= PLAN_POBRANIE_PRZYCISKIEM_CO_S. Dyrygent pobiera wtedy przerywalnie po wykonaniu akcji przycisku, z poranną
+// decyzją o pytaniu, tylko gdy po akcji stoi ekran dnia albo strona kokpitu `n / 6`
+// i akcja sama nie pobierała, bez pierwszej konfiguracji, sieci panelu, serwera i okna serwisowego.
+bool pobranieRanoPrzyciskiem(const WejsciePlanu& w, long odOstatniego);
 
 // Pobranie po wybudzeniu zegarem (zastępuje dla zegara pobranieNaStarcie(ZEGAR) z kroku 1, T-WYM-28, R-NF-03).
 // Przyjmuje powodyTeraz(). Zwraca pobierz = sieciowy(powody), nieprzerywalne, poranekCzynnikow = pobierz albo

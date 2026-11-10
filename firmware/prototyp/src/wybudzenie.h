@@ -143,6 +143,14 @@ struct StanRtc {
   // M-25 (E-05): wygładzony procent baterii i surowy procent poprzedniego pomiaru
   // (src/bateria.h wygladzProcent()); -1 = brak (po zaniku zasilania od nowa z pierwszego pomiaru).
   int8_t bateriaProc = -1, bateriaSurowy = -1;
+  // Szybszy wynik nocy rano (src/plan.h, R-DANE-62, R-PRZ-22): czas unix ostatniego odczytu `/api/status`
+  // z przetwarzaniem plików po terapii (0 = ostatni odczyt bez przetwarzania), powtórki R-DANE-62 wykonane w dobie
+  // `powtorkiDoba` (jak pamiecDoba: nrDnia + 1; 0 = brak) i czas unix ostatniego pobrania przy wybudzeniu przyciskiem
+  // rano (0 = nie było). Tylko w RTC: po zaniku zasilania od zera (najwyżej 5 powtórek więcej tej doby).
+  uint32_t przetwarzaEp = 0;
+  int32_t powtorkiDoba = 0;
+  uint8_t powtorki = 0;
+  uint32_t pobranieRanoEp = 0;
 };
 // StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
 static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");

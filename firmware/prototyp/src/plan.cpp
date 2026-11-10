@@ -4,6 +4,7 @@
 // Testy: test/testy_plan_wybudzen.cpp, test/testy_dyrygenta.cpp (dyrygent na planie); slot dzienny:
 // test/testy_slot_dzienny_w_planie.cpp.
 #include "plan.h"
+#include <algorithm>
 #include "sypialnia.h"
 #include "wspolne.h"
 
@@ -17,7 +18,7 @@ bool terminRzadki(int m) { return m > PLAN_OKNO_DO && m < PLAN_NOC_OD && (m - PL
 
 // Powody z pełnym pobraniem (AirBridge: status, lista i raporty, zaległe doby; źródło otoczenia).
 const Powody PELNE = POWOD_OKNO_PORANNE | POWOD_SPRAWDZENIE_11 | POWOD_PONOWIENIE | POWOD_POGODA |
-                       POWOD_POCZATEK_NOCY | POWOD_CZAS;
+                       POWOD_POCZATEK_NOCY | POWOD_CZAS | POWOD_OKNO_GESTE | POWOD_POWTORKA;
 // Powody slotu dziennego z Wi-Fi tylko na `/api/status` i źródło otoczenia (R-KON-42) albo prognozę (R-KON-52).
 const Powody SLOT_SIECIOWE = POWOD_SLOT_DZIENNY_START | POWOD_SLOT_DZIENNY_GODZINA | POWOD_PROGNOZA_GODZINOWA;
 const Powody SIECIOWE = PELNE | SLOT_SIECIOWE | POWOD_SLOT_WIECZORNY;  // wieczór tylko status i otoczenie
@@ -106,6 +107,12 @@ Powody powodyMinuty(const WejsciePlanu& w, int m) {
   Powody p = 0;
   bool co30 = m % PLAN_CO_ILE_MIN == 0;
   if (m == PLAN_OKNO_OD || (m > PLAN_OKNO_OD && m < PLAN_OKNO_DO && co30 && !w.nocKompletna)) p |= POWOD_OKNO_PORANNE;
+  // R-DANE-61: gęste okno co 5 min wokół zwykłej pory końca terapii, dopóki noc niekompletna; minuty siatki 30 min
+  // zostają z samym POWOD_OKNO_PORANNE
+  // bez gęstego okna, gdy ostatnia próba skończyła się brakiem odpowiedzi AirBridge albo Wi-Fi (decyzja właściciela
+  // projektu 10.11.2026) albo odrzuconym logowaniem: E-01 w każdej postaci
+  if (!w.nocKompletna && !(p & POWOD_OKNO_PORANNE) && m % PLAN_GESTE_CO_MIN == 0 && !w.e01 && wGestymOknie(w, m))
+    p |= POWOD_OKNO_GESTE;
   if (m == PLAN_OKNO_DO && !w.sprawdzenie11) p |= POWOD_SPRAWDZENIE_11;
   if (m > PLAN_OKNO_DO && m <= PLAN_NOC_OD && co30 && !w.nocKompletna) {
     bool rzadko = w.e01 && w.nocyBezDanych >= 2 && !w.logowanieOdrzucone;
@@ -157,6 +164,8 @@ WejsciePlanu nowaDoba(const WejsciePlanu& w) {
   n.dzienRysowany = -1;  // ekran dnia z wczoraj: 05:00 rysuje nowy
   n.koniecTerapii = n.importNocy = n.nacisniecieRano = n.slotDziennyOd = n.prognozaGodzinowa = -1;  // nowa doba
   n.nocBezTerapii = false;
+  n.przetwarzaOd = -1;  // przetwarzanie i powtórki R-DANE-62 liczą się w obrębie doby
+  n.powtorekDzis = 0;
   if (n.e01) n.nocyBezDanych++;
   return n;
 }
@@ -181,6 +190,13 @@ Termin nastepnyTermin(const WejsciePlanu& w) {
     return t;
   }
   long teraz = sekundaTeraz(w);
+  // R-DANE-62: powtórka przy przetwarzaniu, której chwila już minęła (np. w czuwaniu po przycisku): zaraz
+  int powtorka = terminPowtorki(w);
+  if (powtorka >= 0 && powtorka <= teraz) {
+    t.sekund = ZALEGLY_TERMIN_S;
+    t.powody = POWOD_POWTORKA;
+    return t;
+  }
   WejsciePlanu jutro = nowaDoba(w);
   // pierwsza chwila siatki później niż teraz; 05:00 i czujniki są każdej doby, więc dwie doby zawsze wystarczą
   long chwila = -1;
@@ -194,6 +210,11 @@ Termin nastepnyTermin(const WejsciePlanu& w) {
       powody = p;
       break;
     }
+  }
+  // R-DANE-62: powtórka 2 min po statusie „przetwarza”, gdy wypada przed najbliższą chwilą siatki (sekunda, nie minuta)
+  if (powtorka >= 0 && (chwila < 0 || powtorka < chwila)) {
+    chwila = powtorka;
+    powody = POWOD_POWTORKA;
   }
   // powrót R-PRZ-02 (w slocie nocnym sekundDoPowrotu() daje -1, R-PRZ-18)
   int minuta = (int)(teraz / 60);
@@ -235,6 +256,10 @@ Powody powodyTeraz(const WejsciePlanu& w) {
     int mp = minutaPrognozy(w);
     if (mp >= 0 && (long)mp * 60 <= teraz) p |= POWOD_PROGNOZA_GODZINOWA;
   }
+  // R-DANE-62: chwila powtórki minęła (sekunda, nie minuta siatki); gdy w tym wybudzeniu i tak jest termin okna
+  // porannego albo gęstego (status będzie odczytany), powtórka nie zużywa licznika doby
+  int powtorka = terminPowtorki(w);
+  if (powtorka >= 0 && powtorka <= teraz && !(p & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE))) p |= POWOD_POWTORKA;
   if (sekundDoPowrotu(w.ekran, w.sekundOdNacisniecia, (int)(teraz / 60)) == 0) p |= POWOD_POWROT;
   if (koniecCofnieciaTeraz(w.ekran, w.sekundOdNacisniecia, (int)(teraz / 60))) p |= POWOD_POWROT;
   return p;
@@ -314,7 +339,8 @@ std::string nazwyPowodow(Powody powody) {
                                       "czujniki",     "powrot",         "pytanie",    "czas",
                                       "odswiezenie",  "slot_dzienny",   "slot_dzienny_godzina",
                                       "prognoza_godzinowa", "slot_dzienny_bez_sieci", "slot_wieczorny",
-                                      "slot_tygodniowy", "slot_wieczorny_bez_sieci"};
+                                      "slot_tygodniowy", "slot_wieczorny_bez_sieci", "okno_geste",
+                                      "powtorka_przetwarzania"};
   std::string s;
   for (unsigned i = 0; i < sizeof NAZWY / sizeof NAZWY[0]; i++) {
     if (!(powody & (1u << i))) continue;
@@ -352,4 +378,52 @@ bool nocKompletnaDzis(const std::vector<Noc>& hist, const std::string& dzis, con
 int terminPytaniaDzis(const WpisCzynnikow* wpis) {
   if (!wpis || wpis->stan != 'C' || wpis->termin < 0 || wpis->termin >= MINUT_DOBY) return -1;
   return wpis->termin;
+}
+
+// ---------- szybszy wynik nocy rano (R-DANE-61, R-DANE-62, R-PRZ-22) ----------
+
+bool wGestymOknie(const WejsciePlanu& w, int minuta) {
+  if (w.zwyklyKoniec < 0 || w.zwyklyKoniec >= MINUT_DOBY) return false;
+  if (minuta <= PLAN_OKNO_OD || minuta >= PLAN_OKNO_DO) return false;  // 05:00 i 11:00 mają własne terminy
+  return minuta >= w.zwyklyKoniec - PLAN_GESTE_PRZED_MIN && minuta <= w.zwyklyKoniec + PLAN_GESTE_PO_MIN;
+}
+
+int terminPowtorki(const WejsciePlanu& w) {
+  if (!w.zegar || w.nocKompletna || w.powtorekDzis >= PLAN_POWTORKI_MAKS) return -1;
+  if (sekundaTeraz(w) >= (long)PLAN_OKNO_DO * 60) return -1;  // tylko w oknie porannym, także termin zaległy
+  if (!sekundaWDobie(w.przetwarzaOd) || w.przetwarzaOd < PLAN_OKNO_OD * 60) return -1;
+  long t = (long)w.przetwarzaOd + (long)PLAN_POWTORKA_S;
+  return t < (long)PLAN_OKNO_DO * 60 ? (int)t : -1;
+}
+
+int koniecTerapiiNocy(const Noc& n) {
+  if (n.czesciowa || n.m18 < 0 || n.m18 >= MINUT_DOBY || n.m01 < 15) return -1;
+  return n.m18 + n.m01;  // minuty od 12:00 wieczoru; > 1440 = koniec po 12:00 dnia poranka
+}
+
+int zwyklyKoniecTerapii(const std::vector<Noc>& hist, const std::string& dzis) {
+  if (!dataOk(dzis)) return -1;
+  std::vector<int> k;
+  for (size_t i = hist.size(); i-- > 0 && (int)k.size() < PLAN_GESTE_NOCY;) {
+    const Noc& n = hist[i];
+    if (n.data >= dzis) continue;  // noc z poranka dziś (i późniejsze) się nie liczy
+    int v = koniecTerapiiNocy(n);
+    if (v >= 0) k.push_back(v);
+  }
+  if ((int)k.size() < PLAN_GESTE_NOCY_MIN) return -1;
+  std::sort(k.begin(), k.end());
+  size_t c = k.size();
+  int med = c % 2 ? k[c / 2] : (k[c / 2 - 1] + k[c / 2]) / 2;  // minuty od 12:00 wieczoru
+  int m = 12 * 60 + med - MINUT_DOBY;                           // minuta doby poranka
+  if (m < 0) return -1;                                         // koniec przed północą: nie dotyczy okna porannego
+  return m < MINUT_DOBY ? m : -1;                               // koniec po 12:00 następnego dnia: brak
+}
+
+bool pobranieRanoPrzyciskiem(const WejsciePlanu& w, long odOstatniego) {
+  // E-01 (brak odpowiedzi AirBridge albo Wi-Fi, odrzucone logowanie): bez pobrania; ekran dnia to wtedy S5
+  // z `↻ ponów` (R-PRZ-06), a siatka 30 min sprawdza dalej
+  if (!w.zegar || w.nocKompletna || w.e01) return false;
+  long teraz = sekundaTeraz(w);
+  if (teraz < (long)PLAN_OKNO_OD * 60 || teraz >= (long)PLAN_OKNO_DO * 60) return false;
+  return odOstatniego < 0 || odOstatniego >= PLAN_POBRANIE_PRZYCISKIEM_CO_S;
 }

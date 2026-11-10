@@ -1,8 +1,25 @@
 wymaganie,id_odwolania,rodzina_odwolania,ekran,sekcja_wymagania,zrodlo_powiazania,przypadek_testowy
 R-DANE-01,R-DANE-31,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-01
 R-DANE-02,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-02; przypadki 7.8: 19
+R-DANE-19,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-19,R-DANE-62,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-19,R-DANE-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-19,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-61,M-18,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-AW-34,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-24,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-KON-09,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-62,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
+R-DANE-62,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
+R-DANE-62,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
+R-DANE-62,R-DANE-24,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
+R-DANE-62,R-EKR-57,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
 R-DANE-20,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
 R-DANE-20,R-DANE-35,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
 R-DANE-20,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
@@ -38,6 +55,7 @@ R-DANE-25,R-DANE-21,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
 R-DANE-25,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
 R-DANE-25,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
 R-DANE-25,R-DANE-13,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-25
+R-DANE-03,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-03; przypadki 7.8: 19
 R-DANE-05,R-AW-23,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-05
 R-DANE-06,R-DANE-20,R,nie,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
 R-DANE-06,E-10,E,tak,5.1.2 Wymagania,wymaganie,"weryfikacja R-DANE-06; przypadki 7.8: 30, 57"
@@ -871,6 +889,13 @@ R-PRZ-21,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-21,U-03,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-21,R-PRZ-08,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-21,R-PRZ-20,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-22,R-PRZ-06,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,U-05,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,R-KONF-07,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,E-01,E,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,R-PRZ-20,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,R-PRZ-01,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,R-PRZ-14,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
 R-PRZ-10,S-K-30,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,S-K-18,S-K,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-11,R-PRZ-13,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-11; przypadki 7.8: 28
@@ -2033,6 +2058,8 @@ R-NF-01,E-05,E,tak,8.2 Wymagania,wymaganie,weryfikacja R-NF-01
 R-NF-02,R-DANE-02,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-03,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-19,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-61,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-62,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-09,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-10,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-15,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
@@ -2337,6 +2364,12 @@ R-PRZ-19,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,wery
 R-PRZ-20,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-20
 R-PRZ-21,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
 R-PRZ-21,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-21
+R-PRZ-22,S5,stan,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,pytanie „Co było inaczej?”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,potwierdzenie „Omówione”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
+R-PRZ-22,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-22
 R-PRZ-10,pytanie o senność,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,pytanie „gorzej”,nazwany,tak,5.6.7 Wymagania,wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"
 R-PRZ-10,potwierdzenie „Zapisano”,nazwany,tak,5.6.7 Wymagania,katalog+wymaganie,"weryfikacja R-PRZ-10; przypadki 7.8: 28, 46"

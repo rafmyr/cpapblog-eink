@@ -187,3 +187,6 @@ R-KON-52,3,parametr techniczny,prognoza godzinowa starsza niż tyle godzin jest 
 R-KON-53,12,parametr techniczny,prognoza godzinowa starsza niż tyle godzin nie jest używana
 R-KON-56,3 s,parametr techniczny,"limit odpowiedzi jedynej próby `/api/status` w ocenie slotu dziennego (bez ponowień R-AW-01, nie liczy się do E-01) 04.11.2026, kalibracja na egzemplarzu"
 R-HUM-12,3 zdania,powtórzenie,"= WY15.pula_min (weryfikacja R-HUM-12: co najmniej tyle zdań na typ ekranu, docelowo 8)"
+R-DANE-61,"co 5 min; 45 min przed i po zwykłej porze końca terapii; 14 nocy, co najmniej 3",czas interfejsu,"gęste okno rano, decyzja właściciela projektu 10.11.2026 bez źródła; 14 i 3 jak R-KON-09"
+R-DANE-62,"2 min; 5 powtórek na dobę",czas interfejsu,"powtórka przy przetwarzaniu plików w AirBridge, decyzja właściciela projektu 10.11.2026 bez źródła"
+R-PRZ-22,"05:00–11:00; raz na 2 min",czas interfejsu,"pobranie rano po przycisku; okno jak R-DANE-02, limit decyzją właściciela projektu 10.11.2026"

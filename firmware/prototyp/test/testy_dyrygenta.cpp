@@ -275,9 +275,11 @@ static void testBezWiFi() {
 
 // Czuwanie (R-PRZ-01): ▶ budzi → K1, ▶ w czuwaniu (w K1 bez akcji) przerysowuje; po 20 s bez naciśnięcia sen;
 // R-PRZ-02: sen do powrotu po 5 min. Krok 2: czuwanie tylko po wybudzeniu przyciskiem (src/plan.h czuwanieMs()).
+// Od 10.11.2026 (R-PRZ-22) przycisk rano bez nocy dodatkowo pobiera noc, więc wybudzenie o 12:00 zamiast 10:00
+// (test czuwania i nawigacji bez pobrania; poranek: test/testy_poranek_szybciej.cpp).
 static void testCzuwanieINawigacja() {
   Panel p;
-  panel(p, 10, 0, PowodWybudzenia::PRZYCISK);
+  panel(p, 12, 0, PowodWybudzenia::PRZYCISK);
   p.start.budzace = BIT_PRAWY;
   // (nowa nawigacja): ▶ budzi → K1, ▶ → K2, a akcją bez skutku jest ◀ 2 s w K2
   // (przytrzymania na stronach kokpitu nic nie otwierają, mapa 5.6.2); zmiana testu:
@@ -1054,9 +1056,10 @@ static void testAwaryjnyWrocIWyjdz() {
 }
 
 // Samosprawdzenie po wybudzeniu przyciskiem (wersja do sprawdzenia, T-WYM-41): Wi-Fi tylko do sprawdzenia.
+// Od 10.11.2026 (R-PRZ-22) wybudzenie o 12:00 zamiast 10:00: rano bez nocy przycisk dodatkowo pobiera noc.
 static void testSamosprawdzeniePoPrzycisku() {
   Panel p;
-  panel(p, 10, 0, PowodWybudzenia::PRZYCISK);
+  panel(p, 12, 0, PowodWybudzenia::PRZYCISK);
   p.start.stanW = StanWersji::DO_SPRAWDZENIA;
   p.start.budzace = BIT_PRAWY;
   p.przyciski.skrypt = {{0, BIT_PRAWY}, {200, 0}};

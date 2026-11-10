@@ -5,7 +5,8 @@ Podstawa: [ADR-0032](../../docs/decisions/0032-aktualizacja-firmware-z-github.md
 | Plik | Co robi |
 |---|---|
 | `wydaj.py` | buduje obraz bez sekretów (`pio run -e e1001_wydanie`, flaga `BEZ_SEKRETOW`), sprawdza, że w obrazie nie ma wartości z lokalnego `include/secrets.h`, że mieści się w slocie 4 MB i ma nagłówek obrazu ESP32, liczy SHA-256, pisze `cpap-eink-{wersja}.bin`, `wydanie.json` i `nota.md` w `build/wydanie-{wersja}/`; z `--publikuj` tworzy wydanie `v{wersja}` (`gh release create`) |
-| `certyfikaty.py` | z pakietu certyfikatów Mozilli (certifi) pisze `firmware/prototyp/src/certyfikaty_github.h`: certyfikaty główne serwerów GitHuba wkompilowane w firmware (HTTPS z weryfikacją) |
+| `wydaj.sh` | wydanie jednym poleceniem na Macu: bramki (main, CI), numer, pytanie „tak”, `wydaj.py --publikuj`, sprawdzenie na GitHubie |
+| `certyfikaty.py` | z pakietu certyfikatów Mozilli (certifi) pisze `firmware/prototyp/src/certyfikaty_github.h`: certyfikaty główne serwerów GitHuba wkompilowane w firmware (od 10.11.2026 także ISRG Root X1 i X2, bo serwer plików wydań ma certyfikat Let's Encrypt; HTTPS z weryfikacją) |
 
 ## Uwaga przed pierwszym wydaniem
 
@@ -13,9 +14,33 @@ Obraz wydania nie ma haseł ani adresów. **Pierwszą wersję z aktualizatorem b
 
 Kontrola obrazu: znacznik `cpap-eink:obraz-bez-sekretow:v1` (jest tylko w obrazie z `-DBEZ_SEKRETOW`), brak wartości przykładowych ze wzoru `secrets.example.h` i, gdy na maszynie jest `include/secrets.h`, brak jego wartości. Bez lokalnego `secrets.h` narzędzie pisze ostrzeżenie, że tego porównania nie zrobiło.
 
-## Użycie
+Wartość z `secrets.h`, która stoi jawnie w kodzie programu (np. fabryczne hasło AirBridge równe słowu „airbridge” z napisów), jest w każdym obrazie, więc kontrola jej nie sprawdza i wypisuje ostrzeżenie z nazwą (od 10.11.2026, po fałszywym alarmie przy wydaniu). `wydaj.sh` buduje w `~/.cache/cpap-eink-pio-wydanie` (zmienna `PLATFORMIO_WORKSPACE_DIR`), bo iCloud dorabia w `.pio` w folderze projektu kopie „plik 2.cpp” i budowa pada.
+
+## Na co dzień: jedno polecenie na Macu
+
+W Terminalu, w folderze projektu (repo na `main`):
 
 ```
+tools/wydanie/wydaj.sh
+```
+
+Co robi, po kolei, i kiedy odmawia (bez publikacji):
+
+| Krok | Odmowa, gdy |
+|---|---|
+| repo na gałęzi `main`, bez niezapisanych zmian, równo z GitHubem (sam dociąga nowsze commity) | inna gałąź, zmiany lokalne, lokalne commity spoza GitHuba |
+| CI na tym commicie: wszystkie sprawdzenia zakończone sukcesem | CI w toku albo czerwone |
+| numer wersji: następny po najwyższym wydaniu (`1.0.0-beta.2` → `1.0.0-beta.3`, `1.0.1` → `1.0.2`); ręcznie: `tools/wydanie/wydaj.sh 1.0.1` | wydanie o tym numerze już jest |
+| podsumowanie (wersja, commit, repo) i pytanie | odpowiedź inna niż `tak` |
+| budowa obrazu bez sekretów, kontrola obrazu, `wydanie.json`, publikacja (`wydaj.py --publikuj`) | błąd budowy albo kontroli |
+| sprawdzenie na GitHubie: najnowsze wydanie to ta wersja, nie robocze, nie pre-release, z obrazem i `wydanie.json` | czegoś brakuje (wtedy kod wyjścia 1 i opis) |
+
+Wymaga PlatformIO w `~/.platformio` i `gh` zalogowanego na konto z prawem zapisu do repozytorium wydań. W tym repozytorium `REPO_WYDAN` w `wydaj.sh` wskazuje `rafmyr/cpapblog-eink`, a wydań z gotowym obrazem nie publikuje się w nim do opinii prawnika (ADR-0033 pkt 6); polecenie uruchamia tylko właściciel. Powstało po pierwszym wydaniu 10.11.2026, przy którym ręczne wgrywanie plików na stronie GitHuba zgubiło najpierw oba pliki, potem `wydanie.json`.
+
+## Użycie wydaj.py (szczegóły)
+
+```
+python3 tools/wydanie/wydaj.py --nastepna             # następny numer po ostatnim wydaniu
 python3 tools/wydanie/wydaj.py 1.0.1                  # budowa i pliki, bez wysyłania
 python3 tools/wydanie/wydaj.py 1.0.1 --publikuj       # to samo i wydanie na GitHubie (tylko na wyraźne polecenie właściciela)
 python3 tools/wydanie/wydaj.py 1.0.1 --obraz plik.bin # z gotowego obrazu zbudowanego z BEZ_SEKRETOW

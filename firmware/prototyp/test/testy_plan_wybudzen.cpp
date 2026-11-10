@@ -942,7 +942,8 @@ static void testT_WYM_20_czuwanieDyrygent() {
     s.p.start.budzace = BIT_PRAWY;
     s.p.start.stan.ekran = (uint8_t)Ekran::DZIEN;
     s.przyciski.skrypt = {{0, BIT_PRAWY}, {300, 0}};
-    Wyb w = wybudz(s, ep(2026, 11, 4, 10, 5, 0), PowodWybudzenia::PRZYCISK);
+    // 12:05, nie 10:05: od 10.11.2026 rano bez nocy przycisk dodatkowo pobiera noc (R-PRZ-22)
+    Wyb w = wybudz(s, ep(2026, 11, 4, 12, 5, 0), PowodWybudzenia::PRZYCISK);
     SPRAWDZ(w.spal && w.m.polaczen == 0 && w.m.odswiezen == 1);
     SPRAWDZ(w.m.msPrzySnie - w.m.ostatnieRysowanieMs >= CZUWANIE_MS);
     ROWNE_L(w.m.wifiMs, 0);

@@ -837,9 +837,12 @@ static void testT_WYM_83_trybAwaryjny() {
 }
 
 // T-WYM-24: wybudzenie ▶ na ekranie dnia → K1 narysowany, bez Wi-Fi i bez żądań HTTP.
+// Od 10.11.2026 (R-PRZ-22, szybszy wynik nocy rano) przycisk rano bez nocy dodatkowo pobiera noc, więc wybudzenie
+// o 12:00 (poza oknem porannym); poranek: test/testy_poranek_szybciej.cpp testR_PRZ_22_dyrygent.
 static void testT_WYM_24_dyrygentPrzyciskBezWiFi() {
   Panel p;
   zwyklyPanel(p);
+  p.zegar.epoch = ep(2026, 11, 4, 12, 0);
   p.start.powodWybudzenia = PowodWybudzenia::PRZYCISK;
   p.start.budzace = BIT_PRAWY;
   p.start.stan.ekran = (uint8_t)Ekran::DZIEN;

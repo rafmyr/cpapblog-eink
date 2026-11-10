@@ -111,6 +111,14 @@ echo "testy slotu dziennego w planie wybudzeń (test/testy_slot_dzienny_w_planie
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_dzienny_w_planie.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_slot_dzienny_w_planie"
 "$BUD/testy_slot_dzienny_w_planie"
 
+echo "testy szybszego wyniku nocy rano (test/testy_poranek_szybciej.cpp: R-DANE-61 gęste okno, R-DANE-62 powtórka przy przetwarzaniu, R-PRZ-22 pobranie rano po przycisku)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_poranek_szybciej.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_poranek_szybciej"
+
+echo "testy przypadków brzegowych (test/testy_poranek_brzegowe.cpp: szybszy wynik nocy rano)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_poranek_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_poranek_brzegowe"
+"$BUD/testy_poranek_brzegowe"
+"$BUD/testy_poranek_szybciej"
+
 echo "testy magazynu danych (test/testy_magazyn_danych.cpp: magazyn danych, migracje, układ pamięci 32 MB, przywracanie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_magazyn_danych.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_magazyn_danych"
 "$BUD/testy_magazyn_danych"

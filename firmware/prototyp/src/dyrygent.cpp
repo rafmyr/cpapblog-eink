@@ -300,6 +300,7 @@ class Przebieg {
   // (R-KON-57 to slot dzienny) i bez `GET /api/report`
   bool wieczorTeraz = false;
   bool prognozaTeraz = false;  // POWOD_PROGNOZA_GODZINOWA w tym wybudzeniu (R-KON-52)
+  bool pobranieRano = false;   // R-PRZ-22: po rysowaniu akcji przycisku budzącego pobranie nocy (rano bez nocy)
   // wybudzenie zegarem tylko z oceną wieczorną bez Wi-Fi (ewentualnie z zapisem czujników): stopka
   // czujnika z ostatnio wyświetlonej klatki (StanRtc::stopkaTemp), więc e-ink tylko przy zmianie ekranu
   // Od 06.11.2026 także ocena slotu dziennego o pełnej godzinie (R-KON-42): stopka z odczytów
@@ -349,6 +350,10 @@ class Przebieg {
   bool abPrzerywalne = false;
   PrzerwaniePrzyciskiem abDetektor;
   bool abPrzerwano = false;
+  // R-PRZ-22: pobranie rano po przycisku zostawia w kolejce naciśnięcie, które je przerwało (czuwanie wykona jego akcję)
+  bool abZostawKolejke = false;
+  bool abPobierano = false;  // to wybudzenie już pytało AirBridge (np. ↻ na S5 i S10): bez pobrania rano R-PRZ-22
+  bool odczytPrzerwany = false;  // ostatni odczyt() przerwany przyciskiem (R-PRZ-22: bez liczenia limitu 2 min)
   uint8_t zaciete = 0;  // U4: bity zaciętych przycisków
 
   // ---------- log (port serwisowy) ----------
@@ -3478,7 +3483,11 @@ class Przebieg {
     zo.maksBajtow = aktualizacja::MAKS_OPISU;
     OdpowiedzWydania oo = a.wydania->pobierzTekst(zo);
     odnow();
-    if (!oo.certyfikatOk) return Powod::BRAK_SIECI;
+    if (!oo.certyfikatOk) {
+      log("aktualizacja: certyfikat serwera plików wydania spoza zestawu (%s), bez pobrania", wyd.opis.adresApi.c_str());
+      return Powod::BRAK_SIECI;
+    }
+    log("aktualizacja: opis wydania → HTTP %d", oo.kod);
     if (oo.kod == 401 || oo.kod == 403) return Powod::TOKEN_ODRZUCONY;
     if (oo.kod != 200) return Powod::BRAK_SIECI;
     if (!aktualizacja::parsujOpis(oo.cialo, opis) || opis.wersja != aktualizacja::bezBudowy(wyd.tag)) {
@@ -3641,6 +3650,7 @@ class Przebieg {
     WynikObrazu wo = a.wydania->pobierzObraz(z, opis.rozmiar, [this]() { odnow(); });
     odnow();
     Powod blad = Powod::BRAK;
+    if (!wo.http.certyfikatOk) log("aktualizacja: certyfikat serwera plików wydania spoza zestawu, obraz niepobrany");
     if (!wo.http.certyfikatOk || wo.http.kod != 200) blad = wo.http.kod == 401 || wo.http.kod == 403 ? Powod::TOKEN_ODRZUCONY
                                                                                                      : Powod::BRAK_SIECI;
     else if (!wo.zapisOk || wo.bajtow != opis.rozmiar || wo.sha256 != opis.sha256) blad = Powod::USZKODZONY;
@@ -5035,7 +5045,9 @@ class Przebieg {
   bool abPrzerwij() {
     if (abPrzerywalne && !abPrzerwano && abDetektor.krok(wcisniety() != Przycisk::BRAK)) {
       abPrzerwano = true;
-      a.przyciski.wyczyscKolejke();  // naciśnięcie, które przerwało pobieranie, nie wraca z kolejki
+      // naciśnięcie, które przerwało pobieranie, nie wraca z kolejki; przy pobraniu rano po przycisku (R-PRZ-22)
+      // wraca, bo to zwykła nawigacja, a pobranie było tylko dodatkiem
+      if (!abZostawKolejke) a.przyciski.wyczyscKolejke();
       log("AirBridge: pobieranie przerwane przyciskiem");
     }
     return abPrzerwano;
@@ -5777,6 +5789,7 @@ class Przebieg {
 
   // Wynik: 1 udany odczyt, 0 nieudany, -1 przerwany przyciskiem.
   int pobierz(bool przerywalny) {
+    abPobierano = true;
     obsNocy = stan_nocy::Obserwacja::ZEGAR;
     abPrzerywanie(przerywalny);
     if (!wifiOdMs) wifiOdMs = ms() ? ms() : 1;  // pomiar baterii: czas z włączonym Wi-Fi do zaśnięcia
@@ -5826,6 +5839,8 @@ class Przebieg {
     httpKod = kodStatusu;
     StatusAB st;
     PoStatusie ps = poStatusie(kodStatusu, tresc, st);
+    // R-DANE-62: chwila odczytu z przetwarzaniem plików po terapii (powtórka po 2 min); każdy inny wynik ją kasuje
+    r.przetwarzaEp = ps == PoStatusie::PRZETWARZA && zegar() ? teraz() : 0;
     if (ps == PoStatusie::BRAK_ODPOWIEDZI) {  // R-AW-12; 401 = złe hasło
       // (R-CZY-19): ostatnia próba bez odpowiedzi AirBridge przy działającym panelu i Wi-Fi, w NVS
       // `cpap`/`ab_bl` najwyżej raz na godzinę (ADR-0022); panel bez zasilania nie zapisuje prób, więc nie „wyjazd”
@@ -6117,6 +6132,7 @@ class Przebieg {
     int poprzedniKod = httpKod;
     int w = pobierz(przerywalny);
     abPrzerywanie(false);
+    odczytPrzerwany = w < 0;
     if (w < 0) {
       httpKod = poprzedniKod;
       odczytUdany = r.ostatniOdczytOk;
@@ -6238,6 +6254,10 @@ class Przebieg {
     w.nocBezTerapii = !dzis.empty() && stan_nocy::bezTerapii(fazaNocy(), dzis);  // E-10 z 5.1.4 (R-DANE-18)
     w.wieczorOd = slot_wieczorny::oknoZHistorii(hist, dzis);  // R-KON-09, R-KON-17
     w.niedziela = dataOk(dzis) && dzienTygodnia(dzis) == 0;   // slot tygodniowy (R-KON-08)
+    // szybszy wynik nocy rano: gęste okno (R-DANE-61) i powtórka przy przetwarzaniu (R-DANE-62)
+    w.zwyklyKoniec = zwyklyKoniecTerapii(hist, dzis);
+    w.przetwarzaOd = sekundaDzis(r.przetwarzaEp);
+    w.powtorekDzis = r.powtorkiDoba != 0 && r.powtorkiDoba == dobaPamieci() ? r.powtorki : 0;
     return w;
   }
 
@@ -6486,6 +6506,57 @@ class Przebieg {
     return w;
   }
 
+  // ---------- szybszy wynik nocy rano (R-DANE-62, R-PRZ-22) ----------
+  // Wybudzenie z powodem powtórki: licznik doby +1 i chwila przetwarzania skasowana (pobranie tego wybudzenia ustawi ją
+  // od nowa, gdy moduł nadal przetwarza), więc powtórek nie ma więcej niż PLAN_POWTORKI_MAKS, nawet bez odczytu.
+  void policzPowtorke() {
+    int32_t doba = dobaPamieci();
+    r.powtorki = (uint8_t)(r.powtorkiDoba == doba && doba != 0 ? r.powtorki + 1 : 1);
+    r.powtorkiDoba = doba;
+    r.przetwarzaEp = 0;
+    log("powtórka przy przetwarzaniu %d z %d (R-DANE-62)", (int)r.powtorki, PLAN_POWTORKI_MAKS);
+  }
+
+  // Czy przycisk budzący ma rano dodatkowo pobrać noc (src/plan.h pobranieRanoPrzyciskiem()): nie, gdy akcja przycisku
+  // sama pobiera albo już pobrała (↻ na S5 i S10, ekran testu), trwa sieć panelu, serwer raportu albo formularza, okno serwisowe albo
+  // pierwsza konfiguracja.
+  bool pobranieRanoTeraz(const Pobranie& akcji) {
+    if (akcji.pobierz || abPobierano || k.pierwszaKonfiguracja || otaAktywne || ap.aktywna || rap.serwer || frm.serwer) return false;
+    // tylko na ekranie dnia i stronach kokpitu `n / 6`: tam kolejka naciśnięć z czasu pobierania jest wykonywana,
+    // a krótkie naciśnięcie nic nie zapisuje; pytania, potwierdzenia, „Sprzęt”, U-xx bez pobrania
+    if (ekran() != Ekran::DZIEN && numerStrony(ekran()) <= 0) return false;
+    // pytanie tak/nie na ekranie dnia (5.12.8): krótkie naciśnięcie zapisuje odpowiedź, więc przytrzymanie wykryte
+    // z opóźnieniem po żądaniu HTTP mogłoby zapisać „tak” albo „nie”; tam bez pobrania
+    if (ekran() == Ekran::DZIEN && b5.pytanie.jest) return false;
+    long od = -1;
+    if (zegar() && zegarZnany(r.pobranieRanoEp) && r.pobranieRanoEp <= teraz()) od = (long)(teraz() - r.pobranieRanoEp);
+    return pobranieRanoPrzyciskiem(wejsciePlanu(0), od);
+  }
+
+  // Pobranie przerywalne po wybudzeniu przyciskiem rano bez nocy (R-PRZ-22), z poranną decyzją o pytaniu po
+  // wyłączeniu Wi-Fi (jak ↻ na S5). Naciśnięcie w trakcie przerywa je i zostaje w kolejce do czuwania. Nowa noc i ekran dnia na panelu: ekran dnia od nowa;
+  // w kokpicie nowa noc jest widoczna przy następnym rysowaniu.
+  void pobierzRanoPoPrzycisku() {
+    pobranieRano = false;
+    std::string dzis = dzisiaj();
+    bool byla = nocKompletnaDzis(hist, dzis, wczytajStanHist().pom);
+    log("rano bez nocy: pobranie po przycisku, przerywalne (R-PRZ-22)");
+    Pobranie p;
+    p.pobierz = p.przerywalne = true;
+    p.poranekCzynnikow = true;  // decyzja o pytaniu od razu, jak ↻ na S5 i S10
+    abZostawKolejke = true;
+    odczytPrzerwany = false;
+    wykonajPobranie(p, false);
+    abZostawKolejke = false;
+    // limit 2 min od końca pobrania, które nie zostało przerwane naciśnięciem
+    if (!odczytPrzerwany && zegar()) r.pobranieRanoEp = teraz();
+    bool jest = nocKompletnaDzis(hist, dzis, wczytajStanHist().pom);
+    if (!byla && jest && ekran() == Ekran::DZIEN) {
+      log("rano: nowa noc po przycisku, ekran dnia od nowa");
+      pokaz();
+    }
+  }
+
   // ---------- sen ----------
   // Tuż przed każdym snem: wiersz pamięci, licznik startów od zera, sen (T-WYM-82). Wersja
   // niesprawdzona nie zasypia (7.8): zamiast snu powrót do poprzedniej.
@@ -6630,6 +6701,10 @@ class Przebieg {
     wybudzenieZ = w;
     Powody powody = w == PowodWybudzenia::ZEGAR ? powodyTeraz(wejsciePlanu(r.obsluzoneDo)) : 0;
     if (w == PowodWybudzenia::ZEGAR && zegar()) obsluzonePrzyStarcie = teraz();
+    if (powody & POWOD_POWTORKA) policzPowtorke();  // R-DANE-62: licznik doby przed pobraniem
+    // termin okna porannego albo gęstego i tak odczyta status: powtórka czekająca na tę chwilę przepada bez licznika
+    // (bez tego nieudane połączenie zostawiłoby zaległą powtórkę na sen 1 s)
+    if (powody & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE)) r.przetwarzaEp = 0;
     powodBaterii = powodWpisuBaterii(w, powody);
     // tylko przerysowanie R-EKR-60 (ewentualnie z zapisem czujników), bez pobrania: tryb i linia z RTC
     // ocena slotu dziennego (R-KON-41, R-KON-42) przerysowuje ekran dnia tak samo
@@ -6666,6 +6741,8 @@ class Przebieg {
       zmiana = pn.zmiana;
       wykonajPobranie(pn.pobranie, otworzycOknoSerwisowe(ekran()));  // ekran testu: świeży stan sieci, Wi-Fi dla okna
       czekajNaPuszczenie();
+      // R-PRZ-22: rano bez nocy przycisk budzący dodatkowo pobiera noc, po narysowaniu wyniku akcji
+      pobranieRano = skrotBudzenia != 2 && pobranieRanoTeraz(pn.pobranie);
     } else {
       powod = w == PowodWybudzenia::ZEGAR ? "zegar" : "start";
       Pobranie p = w == PowodWybudzenia::ZEGAR ? pobranieZegarem(powody) : pobranieNaStarcie(w);
@@ -6716,6 +6793,7 @@ class Przebieg {
     }
     if (rysuj) pokaz();
     else log("slot nocny: ekran bez zmian");
+    if (pobranieRano) pobierzRanoPoPrzycisku();  // R-PRZ-22: po narysowaniu akcji przycisku
     if (!samosprawdzenie(rysuj)) return;
     if (u07Przerysuj && ekran() == Ekran::AKTUALIZACJA) {  // wynik po oznaczeniu wersji jako dobrej
       u07Przerysuj = false;

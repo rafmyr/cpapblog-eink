@@ -15,8 +15,11 @@ import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CEL = os.path.join(REPO, "firmware", "prototyp", "src", "certyfikaty_github.h")
-# api.github.com: Sectigo → USERTrust; serwery plików (objects / release-assets.githubusercontent.com): DigiCert.
-# Zapas: nowsze korzenie obu wystawców, żeby zmiana pośredniego certyfikatu po stronie GitHuba nie wyłączyła aktualizacji.
+# api.github.com: Sectigo → USERTrust. Serwery plików wydań (release-assets / objects.githubusercontent.com): od
+# 30.09.2026 Let's Encrypt (YR1 → ISRG Root YR, krzyżowo podpisany przez ISRG Root X1; sprawdzone 10.11.2026 openssl
+# z sieci domowej), wcześniej DigiCert. Bez ISRG panel odrzucał certyfikat przy pobraniu `wydanie.json` i pokazywał
+# „brak połączenia z internetem” (próba na panelu 10.11.2026). Zapas: nowsze korzenie każdego wystawcy i DigiCert,
+# żeby zmiana pośredniego certyfikatu albo wystawcy po stronie GitHuba nie wyłączyła aktualizacji.
 ETYKIETY = [
     "USERTrust ECC Certification Authority",
     "USERTrust RSA Certification Authority",
@@ -24,6 +27,8 @@ ETYKIETY = [
     "Sectigo Public Server Authentication Root R46",
     "DigiCert Global Root G2",
     "DigiCert Global Root G3",
+    "ISRG Root X1",
+    "ISRG Root X2",
 ]
 
 
