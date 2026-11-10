@@ -24,6 +24,7 @@ INNA_LICENCJA = {
     "firmware/prototyp/src/qr.cpp": "GPL-3.0-or-later AND MIT",  # według Project Nayuki
     "firmware/prototyp/src/qr.h": "GPL-3.0-or-later AND MIT",
     "firmware/prototyp/test/atrapy/gfxfont.h": "BSD-2-Clause",  # definicje struktur Adafruit GFX
+    "firmware/prototyp/src/certyfikaty_github.h": "MPL-2.0",  # dane z pakietu certyfikatów Mozilli (NOTICE pkt 7)
 }
 KOD = (".cpp", ".h", ".c", ".py", ".sh", ".js")
 

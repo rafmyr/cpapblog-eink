@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // Plik generowany: tools/wydanie/certyfikaty.py (pakiet certyfikatów Mozilli). Nie edytować ręcznie.
 // Certyfikaty główne serwerów GitHuba do weryfikacji HTTPS przy aktualizacji (ADR-0032 pkt 5, R-NF-32).
 #pragma once

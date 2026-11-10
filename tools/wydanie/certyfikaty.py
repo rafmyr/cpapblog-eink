@@ -49,7 +49,7 @@ def wytnij(pakiet, etykiety):
 
 # REUSE-IgnoreStart (znacznik SPDX jako tekst w kodzie, nie licencja tego pliku)
 def naglowek(pemy):
-    w = ["// SPDX-License-Identifier: GPL-3.0-or-later",
+    w = ["// SPDX-License-Identifier: MPL-2.0",
          "// Plik generowany: tools/wydanie/certyfikaty.py (pakiet certyfikatów Mozilli). Nie edytować ręcznie.",
          "// Certyfikaty główne serwerów GitHuba do weryfikacji HTTPS przy aktualizacji (ADR-0032 pkt 5, R-NF-32).",
          "#pragma once", "", "static const char CERTYFIKATY_GITHUB[] ="]
