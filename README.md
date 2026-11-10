@@ -44,8 +44,8 @@ Supported therapy modes in release 1.x: `CPAP`, `AutoSet`, `ASV` and `ASVAuto`. 
 
 ## Architecture
 
-- **All processing local** ([ADR-0001](docs/decisions/0001-przetwarzanie-lokalne.md)). The panel only sends read requests to AirBridge and to the optional environment source in the home network. Outside the home network it asks only for time (NTP) and, if city coordinates are configured, weather and air quality (Open-Meteo). No cloud, no account, no therapy data leaves the panel.
-- **Data flow:** AirBridge (`/api/status`, night list and night reports, HTTP Digest login) → panel wakes up on a schedule (from 05:00 every 30 min until the night is downloaded) → night record in the panel flash (LittleFS, CSV files with a version header) → personal norm and rules → one screen drawn on e-ink → deep sleep.
+- **All processing local** ([ADR-0001](docs/decisions/0001-przetwarzanie-lokalne.md)). The panel only sends read requests to AirBridge and to the optional environment source in the home network. Outside the home network it asks only for time (NTP), if city coordinates are configured for weather and air quality (Open-Meteo), and, only if a release token has been entered, for the latest firmware release on GitHub ([ADR-0038](docs/decisions/0038-wydania-z-prywatnego-repo-i-token.md)). No cloud, no account, no therapy data leaves the panel.
+- **Data flow:** AirBridge (`/api/status`, night list and night reports, HTTP Digest login; from v2.3.1 also the device summary `STR.edf` for the history and the session files for the comparison with nights computed on the panel, [ADR-0035](docs/decisions/0035-historia-nocy-ze-str-edf.md), [ADR-0036](docs/decisions/0036-noc-z-plikow-sesji-edf.md)) → panel wakes up on a schedule (from 05:00 every 30 min until the night is downloaded) → night record in the panel flash (LittleFS, CSV files with a version header) → personal norm and rules → one screen drawn on e-ink → deep sleep.
 - **Firmware split** ([ADR-0021](docs/decisions/0021-podzial-firmware-na-komponenty.md)), in `firmware/prototyp/src/`:
   - core without hardware, compiled and tested on a PC: nights and metrics (`noc`, `stany`, `kokpit`), rules engine (`reguly*`, `rodzaje_*`, `wzorce`, `sprawy`), screens (`ekrany*`, `dzien`, `dobranoc`, `slot_*`), humour and character (`humor`), storage (`magazyn`), report (`raport*`, `qr`), wake-up plan (`plan`);
   - hardware and network adapters (`adaptery_esp32`, `serwer_raportu_esp32`) behind interfaces in `adaptery.h`;
@@ -65,7 +65,7 @@ pio run -e e1001                                  # build
 pio run -e e1001 -t upload --upload-port /dev/cu.usbserial-XXXX
 ```
 
-- `include/secrets.h` holds only initial values (Wi-Fi, AirBridge address and account, optional environment source, optional city coordinates, password of the Wi-Fi service window). Network and AirBridge settings entered from a phone are stored on the panel (NVS) and are used instead. On macOS `tools/prototyp/sekrety.sh` can create the file from the Keychain.
+- `include/secrets.h` holds only initial values (Wi-Fi, AirBridge address and account, optional environment source, optional city coordinates, password of the Wi-Fi service window). Network and AirBridge settings and the service window password entered from a phone are stored on the panel (NVS) and are used instead. On macOS `tools/prototyp/sekrety.sh` can create the file from the Keychain.
 - The example file has every line commented out: built unchanged, the panel starts in first configuration and Wi-Fi upload is disabled. Set your own long random `OTA_PASS` (e.g. `openssl rand -hex 16`); an empty password does not protect the window.
 - Upload speed is 115200 baud; the USB bridge of the panel loses data at higher speeds.
 - Uploading over Wi-Fi (`-e e1001_ota`) is locked in `platformio.ini` (`blokada_ota.py`) until a panel has been switched to the 32 MB partition layout over a cable. Details: [`firmware/prototyp/README.md`](firmware/prototyp/README.md).
@@ -100,7 +100,8 @@ python3 tools/spojnosc_tech.py      # consistency of the technical spec (referen
 | `tools/symulator/` | day simulator on a PC |
 | `tools/zestaw/` | builder of the rule data set |
 | `tools/jakosc/` | quality gates (coverage, clang-tidy, size budget) |
-| `tools/kalibracja/`, `tools/pomiary/` | night table from a copy of the device SD card, analysis of panel log files (tested on synthetic data) |
+| `tools/kalibracja/`, `tools/pomiary/` | night table from a copy of the device SD card, nights computed with the panel code and compared with AirBridge reports, analysis of panel log files (tested on synthetic data) |
+| `tools/wydanie/` | release image without secrets and its description for the update from GitHub (no images are published here, ADR-0033) |
 | `tools/airbridge/` | read-only dump of AirBridge responses |
 | `tools/obrazki/` | converter of your own daily pictures to panel format (no pictures included) |
 | `docs/spec/` | functional specification (EARS requirements), technical specification, thresholds, rule catalogue, traceability matrices ([how to read them](docs/spec/README.md)) |
@@ -173,8 +174,8 @@ Tryby terapii w wydaniu 1.x: `CPAP`, `AutoSet`, `ASV` i `ASVAuto`. Na prawdziwym
 
 ## Architektura
 
-- **Całe przetwarzanie lokalnie** ([ADR-0001](docs/decisions/0001-przetwarzanie-lokalne.md)). Panel wysyła tylko żądania odczytu do AirBridge i do opcjonalnego źródła otoczenia w sieci domowej. Poza domem pyta tylko o czas (NTP) i, gdy podano współrzędne miasta, o pogodę i jakość powietrza (Open-Meteo). Bez chmury, bez konta, dane terapii nie wychodzą z panelu.
-- **Przepływ danych:** AirBridge (`/api/status`, lista nocy i raporty nocy, logowanie HTTP Digest) → panel budzi się według planu (od 05:00 co 30 min, aż noc zostanie pobrana) → rekord nocy w pamięci flash panelu (LittleFS, pliki CSV z wersją w nagłówku) → norma osobista i reguły → jeden ekran na e-inku → głęboki sen.
+- **Całe przetwarzanie lokalnie** ([ADR-0001](docs/decisions/0001-przetwarzanie-lokalne.md)). Panel wysyła tylko żądania odczytu do AirBridge i do opcjonalnego źródła otoczenia w sieci domowej. Poza domem pyta tylko o czas (NTP), gdy podano współrzędne miasta o pogodę i jakość powietrza (Open-Meteo), a tylko po wpisaniu klucza wydań o najnowsze wydanie firmware na GitHubie ([ADR-0038](docs/decisions/0038-wydania-z-prywatnego-repo-i-token.md)). Bez chmury, bez konta, dane terapii nie wychodzą z panelu.
+- **Przepływ danych:** AirBridge (`/api/status`, lista nocy i raporty nocy, logowanie HTTP Digest; od v2.3.1 także podsumowanie aparatu `STR.edf` do historii i pliki sesji do porównania z nocą liczoną na panelu, [ADR-0035](docs/decisions/0035-historia-nocy-ze-str-edf.md), [ADR-0036](docs/decisions/0036-noc-z-plikow-sesji-edf.md)) → panel budzi się według planu (od 05:00 co 30 min, aż noc zostanie pobrana) → rekord nocy w pamięci flash panelu (LittleFS, pliki CSV z wersją w nagłówku) → norma osobista i reguły → jeden ekran na e-inku → głęboki sen.
 - **Podział firmware** ([ADR-0021](docs/decisions/0021-podzial-firmware-na-komponenty.md)), w `firmware/prototyp/src/`: rdzeń bez sprzętu, kompilowany i testowany na komputerze (noce i metryki, silnik reguł, ekrany, budzik, magazyn danych, raport, plan wybudzeń); adaptery sprzętu i sieci za interfejsami z `adaptery.h`; cienki dyrygent jednego wybudzenia (`dyrygent`, `main.cpp`).
 - **Reguły jako dane** ([ADR-0023](docs/decisions/0023-silnik-regul-sterowany-danymi.md)): progi (`docs/spec/progi.csv`), katalog reguł (`docs/spec/katalog/*.csv`) i teksty to pliki danych; `tools/zestaw/buduj_zestaw.py` buduje z nich `firmware/prototyp/src/zestaw_wbudowany.h` (plik generowany).
 - **Granice** ([ADR-0002](docs/decisions/0002-panel-nie-zmienia-ustawien.md)): panel nigdy nie zmienia ustawień aparatu, nie pokazuje ich wartości ani drogi do ich zmiany i nie diagnozuje.
@@ -191,7 +192,7 @@ pio run -e e1001
 pio run -e e1001 -t upload --upload-port /dev/cu.usbserial-XXXX
 ```
 
-- `include/secrets.h` ma tylko wartości początkowe (Wi-Fi, adres i konto AirBridge, opcjonalnie źródło otoczenia i współrzędne miasta, hasło okna serwisowego). Sieć i AirBridge wpisane z telefonu panel trzyma u siebie (NVS) i używa ich zamiast pliku. Na macOS plik może zrobić `tools/prototyp/sekrety.sh` z Pęku kluczy.
+- `include/secrets.h` ma tylko wartości początkowe (Wi-Fi, adres i konto AirBridge, opcjonalnie źródło otoczenia i współrzędne miasta, hasło okna serwisowego). Sieć, AirBridge i hasło okna serwisowego wpisane z telefonu panel trzyma u siebie (NVS) i używa ich zamiast pliku. Na macOS plik może zrobić `tools/prototyp/sekrety.sh` z Pęku kluczy.
 - Wzór ma wszystkie linie zakomentowane: bez zmian panel startuje w pierwszej konfiguracji, a wgrywanie przez Wi-Fi jest wyłączone. `OTA_PASS` ustaw własne, długie i losowe (np. `openssl rand -hex 16`); puste hasło nie chroni okna.
 - Prędkość wgrywania 115200 bodów; mostek USB panelu gubi dane przy wyższych.
 - Wgrywanie przez Wi-Fi (`-e e1001_ota`) jest zablokowane w `platformio.ini` (`blokada_ota.py`) do przejścia egzemplarza kablem na układ partycji 32 MB. Szczegóły: [`firmware/prototyp/README.md`](firmware/prototyp/README.md).
@@ -225,7 +226,8 @@ python3 tools/spojnosc_tech.py
 | `tools/symulator/` | symulator dnia na komputerze |
 | `tools/zestaw/` | budowa zestawu danych reguł |
 | `tools/jakosc/` | bramki jakości (pokrycie, clang-tidy, budżet rozmiaru) |
-| `tools/kalibracja/`, `tools/pomiary/` | tabela nocy z kopii karty SD aparatu, analiza plików dziennika panelu (testowane na danych syntetycznych) |
+| `tools/kalibracja/`, `tools/pomiary/` | tabela nocy z kopii karty SD aparatu, noce liczone kodem panelu i porównane z raportami AirBridge, analiza plików dziennika panelu (testowane na danych syntetycznych) |
+| `tools/wydanie/` | obraz wydania bez sekretów i jego opis do aktualizacji z GitHub (obrazów tu nie publikujemy, ADR-0033) |
 | `tools/airbridge/` | zrzut odpowiedzi AirBridge tylko do odczytu |
 | `tools/obrazki/` | konwerter własnych obrazków dnia do formatu panelu (bez dołączonych obrazków) |
 | `docs/spec/` | specyfikacja funkcjonalna (wymagania EARS), techniczna, progi, katalog reguł, macierze śledzenia ([jak je czytać](docs/spec/README.md)) |

@@ -295,6 +295,53 @@ class Diagnostyka {
   virtual uint32_t zapasStosu() = 0;      // uxTaskGetStackHighWaterMark(NULL) zadania loop, w bajtach
 };
 
+// Wydania firmware z GitHub (ADR-0032, ADR-0038; T-KOMP-16 i T-KOMP-18; rdzeń: src/aktualizacja.h). HTTPS
+// z weryfikacją certyfikatu serwera certyfikatami głównymi wkompilowanymi w firmware; bez poprawnego czasu (U-04)
+// rdzeń nie woła tego adaptera. Przekierowanie (plik zasobu leży na innym serwerze GitHuba): adapter idzie za nim
+// najwyżej PRZEKIEROWAN_MAKS razy, tylko na https://, a nagłówki dla każdego adresu liczy od nowa funkcją rdzenia
+// aktualizacja::naglowki(), więc token nie trafia na host inny niż api.github.com (R-NF-36). Adapter niczego nie
+// decyduje: zwraca kod, ciało albo liczbę bajtów i skrót SHA-256 liczony w locie; porównanie robi rdzeń.
+struct ZadanieWydania {
+  std::string url;        // https://api.github.com/…
+  std::string token;      // token wydań z NVS (sekrety); "" = bez nagłówka Authorization
+  bool binarne = false;   // Accept: application/octet-stream (plik zasobu przez API)
+  uint32_t limitMs = 20000;
+  size_t maksBajtow = 0;  // ciało tekstowe: powyżej → zaDuzo, bez ciała
+};
+struct OdpowiedzWydania {
+  int kod = 0;                 // kod HTTP po przekierowaniach albo ujemny błąd połączenia
+  std::string cialo;           // pobierzTekst(): ciało przy 200
+  bool certyfikatOk = true;    // false = serwer bez certyfikatu z zestawu (żądanie nie wyszło)
+  bool zaDuzo = false;
+  std::vector<std::string> hosty;  // hosty kolejnych żądań (pierwszy i po przekierowaniach), do logu i testów
+};
+struct WynikObrazu {
+  OdpowiedzWydania http;
+  uint64_t bajtow = 0;         // bajty zapisane do drugiego slotu aplikacji
+  std::string sha256;          // skrót SHA-256 zapisanych bajtów (64 znaki), liczony w locie
+  bool zapisOk = false;        // esp_ota_begin/esp_ota_write bez błędu i bajtow == rozmiar
+};
+const int PRZEKIEROWAN_MAKS = 3;
+class Wydania {
+ public:
+  virtual ~Wydania() = default;
+  // GET tekstu (odpowiedź API, `wydanie.json`); ciało tylko przy 200 i w limicie maksBajtow.
+  virtual OdpowiedzWydania pobierzTekst(const ZadanieWydania& z) = 0;
+  // GET obrazu strumieniem do drugiego slotu aplikacji (esp_ota_begin z rozmiarem `rozmiar`), SHA-256 w locie.
+  // Slot nie jest ustawiany jako startowy; przy błędzie zapis przerwany (esp_ota_abort). `postep` wołany co kawałek
+  // (strażnik zadania, T-WYM-81).
+  virtual WynikObrazu pobierzObraz(const ZadanieWydania& z, uint64_t rozmiar, const std::function<void()>& postep) = 0;
+  // Zamknięcie zapisu i ustawienie drugiego slotu jako startowego (esp_ota_end, esp_ota_set_boot_partition): false
+  // = obraz odrzucony przez ESP-IDF (zły nagłówek, inny układ), slot startowy bez zmian.
+  virtual bool ustawStartowy() = 0;
+  // Porzucenie zapisanego, niezatwierdzonego obrazu (esp_ota_abort); bezpieczne bez zapisu w toku.
+  virtual void porzuc() = 0;
+  // Restart po ustawieniu slotu (esp_restart); na panelu nie wraca, atrapa wraca.
+  virtual void restart() = 0;
+  // Rozmiar drugiego slotu aplikacji (esp_ota_get_next_update_partition()->size); 0 = brak slotu.
+  virtual uint64_t rozmiarSlotu() = 0;
+};
+
 // Komplet adapterów jednego panelu; dyrygent dostaje go przy tworzeniu.
 struct Adaptery {
   Zegar& zegar;
@@ -310,4 +357,6 @@ struct Adaptery {
   Sen& sen;
   PortSerwisowy& port;
   Diagnostyka& diagnostyka;
+  // (ADR-0032) wydania z GitHub; nullptr = panel bez aktualizacji z sieci (starsze testy, symulator)
+  Wydania* wydania = nullptr;
 };

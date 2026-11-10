@@ -2,10 +2,13 @@
 // Adaptery panelu reTerminal E1001 (src/adaptery_esp32.h): kod sprzętu, kontrakty w src/adaptery.h.
 #include "adaptery_esp32.h"
 #include "magazyn.h"
+#include "aktualizacja.h"
+#include "certyfikaty_github.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <HTTPClient.h>
+#include <NetworkClientSecure.h>
 #include <mbedtls/md5.h>
 #include <Preferences.h>
 #include <sys/time.h>
@@ -1013,3 +1016,172 @@ uint32_t DiagnostykaEsp32::minWolnaSterta() {
   return (uint32_t)heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 }
 uint32_t DiagnostykaEsp32::zapasStosu() { return (uint32_t)uxTaskGetStackHighWaterMark(NULL); }  // bajty (ESP-IDF)
+
+// ---------- WydaniaEsp32 (ADR-0032, ADR-0038) ----------
+// Decyzje (adres po przekierowaniu, kompletność ciała, nadmiar bajtów) są w rdzeniu z testami na PC:
+// aktualizacja::kodPrzekierowania(), nastepnyAdres(), cialoKompletne(), ileZapisac(). HTTP/1.0: bez kodowania
+// `chunked` i bez keep-alive, więc ciało to surowe bajty do zamknięcia połączenia albo do Content-Length.
+namespace {
+// MBEDTLS_ERR_X509_CERT_VERIFY_FAILED: certyfikat serwera spoza zestawu (żądanie z tokenem nie wyszło)
+const int BLAD_CERTYFIKATU = -0x2700;
+
+// Jedno żądanie GET przez HTTPS z przekierowaniami ręcznie. Nagłówki każdego adresu liczy rdzeń
+// (aktualizacja::naglowki), więc po przekierowaniu na inny host żądanie idzie bez tokenu (R-NF-36). Połączenie
+// i uzgadnianie TLS mają osobny limit LIMIT_POLACZENIA_MS (krótszy niż strażnik zadania); `odnow` woła się
+// przed każdym żądaniem. Zwraca kod HTTP ostatniego żądania albo ujemny błąd.
+template <typename F>
+int getHttps(const ZadanieWydania& z, OdpowiedzWydania& o, const std::function<void()>& odnow, F&& cialo) {
+  std::string url = z.url;
+  const uint32_t pol = aktualizacja::LIMIT_POLACZENIA_MS;
+  for (int krok = 0;; krok++) {
+    std::string host = aktualizacja::hostZAdresu(url);
+    if (host.empty()) return -2;  // tylko https://
+    o.hosty.push_back(host);
+    if (odnow) odnow();
+    NetworkClientSecure klient;
+    klient.setCACert(CERTYFIKATY_GITHUB);
+    klient.setTimeout(pol / 1000);
+    klient.setHandshakeTimeout(pol / 1000);
+    HTTPClient http;
+    http.useHTTP10(true);  // bez `Transfer-Encoding: chunked`
+    http.setReuse(false);
+    http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
+    http.setTimeout((uint16_t)pol);
+    http.setConnectTimeout((int32_t)pol);
+    if (!http.begin(klient, String(url.c_str()))) return -1;
+    const char* zbierane[] = {"Location"};
+    http.collectHeaders(zbierane, 1);
+    for (auto& n : aktualizacja::naglowki(url, z.token, z.binarne)) http.addHeader(n.first.c_str(), n.second.c_str());
+    int kod = http.GET();
+    if (odnow) odnow();
+    if (kod < 0) {
+      char opis[8];
+      if (klient.lastError(opis, sizeof opis) == BLAD_CERTYFIKATU) o.certyfikatOk = false;
+      http.end();
+      return kod;
+    }
+    if (aktualizacja::kodPrzekierowania(kod)) {
+      std::string nowy = aktualizacja::nastepnyAdres(url, http.header("Location").c_str(), krok + 1);
+      http.end();
+      if (nowy.empty()) return -3;  // obcy schemat, pętla albo za dużo przekierowań
+      url = nowy;
+      continue;
+    }
+    if (kod == 200) cialo(http);
+    http.end();
+    return kod;
+  }
+}
+}  // namespace
+
+OdpowiedzWydania WydaniaEsp32::pobierzTekst(const ZadanieWydania& z) {
+  OdpowiedzWydania o;
+  bool niekompletne = false;
+  o.kod = getHttps(z, o, [] { esp_task_wdt_reset(); }, [&](HTTPClient& http) {
+    long dl = http.getSize();
+    if (z.maksBajtow && dl > (long)z.maksBajtow) {
+      o.zaDuzo = true;
+      return;
+    }
+    NetworkClient* s = http.getStreamPtr();
+    uint32_t t0 = (uint32_t)millis(), ostatni = t0;
+    uint8_t buf[512];
+    bool zamkniete = false;
+    while (s && (dl < 0 || (long)o.cialo.size() < dl)) {
+      esp_task_wdt_reset();
+      uint32_t t = (uint32_t)millis();
+      if (t - t0 > z.limitMs || t - ostatni > aktualizacja::LIMIT_PRZESTOJU_MS) break;
+      int n = s->available() ? s->read(buf, sizeof buf) : 0;
+      if (n <= 0) {
+        if (!s->connected()) {
+          zamkniete = true;
+          break;
+        }
+        delay(5);
+        continue;
+      }
+      ostatni = t;
+      o.cialo.append((const char*)buf, (size_t)n);
+      if (z.maksBajtow && o.cialo.size() > z.maksBajtow) break;
+    }
+    if (!aktualizacja::cialoKompletne(dl, o.cialo.size(), zamkniete, z.maksBajtow)) {
+      o.zaDuzo = z.maksBajtow && o.cialo.size() > z.maksBajtow;
+      o.cialo.clear();
+      niekompletne = true;
+    }
+  });
+  if (niekompletne && !o.zaDuzo) o.kod = -6;  // ciało niekompletne (przestój, zerwane): jak brak połączenia
+  return o;
+}
+
+WynikObrazu WydaniaEsp32::pobierzObraz(const ZadanieWydania& z, uint64_t rozmiar, const std::function<void()>& postep) {
+  WynikObrazu w;
+  porzuc();
+  const esp_partition_t* slot = esp_ota_get_next_update_partition(nullptr);
+  if (!slot || rozmiar == 0 || rozmiar > slot->size) {
+    w.http.kod = -4;
+    return w;
+  }
+  if (postep) postep();
+  esp_ota_handle_t h = 0;
+  if (esp_ota_begin(slot, (size_t)rozmiar, &h) != ESP_OK) {  // kasowanie slotu (do 4 MB, kilkanaście s)
+    w.http.kod = -5;
+    return w;
+  }
+  if (postep) postep();
+  uchwyt_ = (uint32_t)h;
+  aktualizacja::Sha256 sha;
+  bool blad = false;
+  w.http.kod = getHttps(z, w.http, postep, [&](HTTPClient& http) {
+    NetworkClient* s = http.getStreamPtr();
+    uint32_t t0 = (uint32_t)millis(), ostatni = t0;
+    uint8_t buf[2048];
+    while (s && w.bajtow < rozmiar) {
+      if (postep) postep();
+      uint32_t t = (uint32_t)millis();
+      if (t - t0 > z.limitMs || t - ostatni > aktualizacja::LIMIT_PRZESTOJU_MS) break;  // całość i przestój [PRÓG]
+      int n = s->available() ? s->read(buf, sizeof buf) : 0;
+      if (n <= 0) {
+        if (!s->connected()) break;
+        delay(5);
+        continue;
+      }
+      ostatni = t;
+      size_t ile = aktualizacja::ileZapisac(w.bajtow, rozmiar, (size_t)n);  // nadmiar = plik niezgodny z opisem
+      if (esp_ota_write(h, buf, ile) != ESP_OK) {
+        blad = true;
+        break;
+      }
+      sha.dodaj(buf, ile);
+      w.bajtow += ile;
+    }
+  });
+  w.sha256 = sha.hex();
+  w.zapisOk = !blad && w.http.kod == 200 && w.bajtow == rozmiar;
+  zapisany_ = w.zapisOk;
+  if (!w.zapisOk) porzuc();
+  return w;
+}
+
+bool WydaniaEsp32::ustawStartowy() {
+  if (!uchwyt_ || !zapisany_) return false;
+  esp_ota_handle_t h = (esp_ota_handle_t)uchwyt_;
+  uchwyt_ = 0;
+  zapisany_ = false;
+  if (esp_ota_end(h) != ESP_OK) return false;  // ESP-IDF sprawdza nagłówek i skrót obrazu
+  const esp_partition_t* slot = esp_ota_get_next_update_partition(nullptr);
+  return slot && esp_ota_set_boot_partition(slot) == ESP_OK;
+}
+
+void WydaniaEsp32::porzuc() {
+  if (uchwyt_) esp_ota_abort((esp_ota_handle_t)uchwyt_);
+  uchwyt_ = 0;
+  zapisany_ = false;
+}
+
+void WydaniaEsp32::restart() { esp_restart(); }
+
+uint64_t WydaniaEsp32::rozmiarSlotu() {
+  const esp_partition_t* slot = esp_ota_get_next_update_partition(nullptr);
+  return slot ? slot->size : 0;
+}

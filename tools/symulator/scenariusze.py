@@ -251,7 +251,7 @@ def _wyciek(p, s, w):
     p.noce.append(noc(s, w, wmed=14.0, wp95=38.0, m08=70.0))
     p.od, p.do = _rano(s), _rano(s, 23, 59)
     p.przyciski += przejscie_ekranow(_rano(s, 7, 30))
-    p.oczekiwane += [("ekran", "dzien-zdarzenie-E-23", "pełny ekran „Wyciek od 27 l/min w nocy” (E-23, S3) od rana",
+    p.oczekiwane += [("ekran", "dzien-zdarzenie-E-23", "pełny ekran „Wyciek w nocy ponad próg” (E-23, S3) od rana",
                       (("regula", "E-23"), ("log", "ekran dnia: zdarzenie E-23"))),
                      ("ekran", "sprawy", "Otwarte sprawy z kartą E-23", (("regula", "E-23"),))]
 
@@ -758,7 +758,7 @@ SCENARIUSZE = {
     "przerywniki": (_przerywniki, "Po rozbiegu zdrowe noce (AHI 1,2, 7 h 30) do najbliższej okazji z kartą pochwalną (23.09, 25.12, 1.01): co 7 dni w dniu dowodu spokoju przerywnik S2d bez etykiety, "
                     "karta z warunkiem (noc spełnia warunek sceny) albo neutralna, w dniu okazji karta z warunkiem; ekran problemu, wzorzec lekarski i linia "
                     "uwagi mają pierwszeństwo (R-HUM-29).", True),
-    "wyciek": (_wyciek, "Pierwsza noc po rozbiegu ma wyciek P95 38 L/min (E-23 „Wyciek od 27 l/min w nocy”): od rana do "
+    "wyciek": (_wyciek, "Pierwsza noc po rozbiegu ma wyciek P95 38 L/min (E-23 „Wyciek w nocy ponad próg”): od rana do "
                "wieczora pełny ekran E-23 (S3, slot dzienny go nie wypiera), o 7:30 K1, K2 i Otwarte sprawy "
                "z kartą E-23.", True),
     "ahi-rosnie": (_ahi_rosnie, "Od pierwszej nocy po rozbiegu AHI 14/h: 4. i 5. poranka pełny ekran E-30 „Noce z AHI "

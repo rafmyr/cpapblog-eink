@@ -137,6 +137,10 @@ class PlikEDF:
             s.offset = offset
             offset += s.probki * 2
             self.sygnaly.append(s)
+        # czas rekordu ≤ 0 albo nieskończony przy sygnałach pomiarowych (uszkodzony nagłówek): czasy próbek byłyby
+        # ujemne; plik z samymi adnotacjami (EVE, CSL) może mieć czas rekordu 0 (jak src/edf.cpp panelu)
+        if not (0 < self.czas_rekordu < float("inf")) and any(not s.adnotacje and not s.crc for s in self.sygnaly):
+            raise BladEDF("zły czas rekordu: %r" % self.czas_rekordu)
         self.bajty_naglowka = bajty_naglowka
         self.bajty_rekordu = offset
         w_pliku = (rozmiar - bajty_naglowka) // self.bajty_rekordu if self.bajty_rekordu else 0

@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Slot dzienny: opis w src/slot_dzienny.h (spec 5.8.12, ADR-0027). Bez wyjątków i RTTI (liczby przez strtod).
 #include "slot_dzienny.h"
+#include "noc_pliki.h"
 #include "miasta.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include "ekrany.h"
 #include "wspolne.h"
 
 const char* const PYLEK_DOPELNIACZ[PYL_N] = {"brzozy", "traw", "olchy", "bylicy"};
 const char* const NAZWY_ELEMENTU[EL_N] = {"maska", "filtr"};
+const char* const NAZWY_ELEMENTU_MIEJSCOWNIK[EL_N] = {"masce", "filtrze"};  // krok S-K-35: `przy {element}`
 
 namespace {
 
@@ -602,6 +605,16 @@ Drzemka liczDrzemke(const std::vector<SesjaDoby>& s, uint32_t koniecNocy) {
 }
 bool wyciekDrzemki(const Drzemka& d) { return d.minut > 0 && !std::isnan(d.wyciekP95) && d.wyciekP95 > WYCIEK_PROG_SK10; }
 
+uint32_t chwilaZCywilnego(long long cyw) {
+  if (cyw <= 0) return 0;
+  time_t t = (time_t)cyw;
+  std::tm g{};
+  if (!gmtime_r(&t, &g)) return 0;
+  g.tm_isdst = -1;  // kalendarz aparatu = czas lokalny strefy panelu (Europe/Warsaw, R-NF-20)
+  time_t w = mktime(&g);
+  return w > 0 ? (uint32_t)w : 0;
+}
+
 bool sesjeZRaportu(const std::string& j, std::vector<SesjaDoby>& s, float& p95) {
   s.clear();
   p95 = NAN;
@@ -632,8 +645,10 @@ bool sesjeZRaportu(const std::string& j, std::vector<SesjaDoby>& s, float& p95) 
     size_t z = j.find('}', o);
     if (z == std::string::npos || z > b) break;
     double st = 0, en = 0;
-    if (liczba(o, z, "start_ms", st) && liczba(o, z, "end_ms", en) && en > st && st > 0)
-      s.push_back({(uint32_t)(st / 1000), (uint32_t)(en / 1000), NAN});
+    // `start_ms`, `end_ms`: czas cywilny aparatu zakodowany jak UTC (AirBridge, bez strefy) → chwila unix w strefie
+    // panelu, żeby porównanie z chwilą importu nocy (czas unix) i godziny `drzemka {hh:mm}` były w tej samej skali
+    if (liczba(o, z, "start_ms", st) && liczba(o, z, "end_ms", en) && en > st && st > 0 && en < 4.0e12)
+      s.push_back({chwilaZCywilnego((long long)(st / 1000)), chwilaZCywilnego((long long)(en / 1000)), NAN});
     p = z + 1;
   }
   size_t l = j.find("\"id\":\"Leak\"");
@@ -781,6 +796,14 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
         ok = !std::isnan(f) && f > 0;
         if (ok) u.pylki.prog[i] = f;
       }
+    if (k == "noc_zrodlo") {  // ADR-0036 pkt 5 i „Zmiana 2026-11-09”: bramka przed przełączeniem na noc z plików sesji
+      ok = v == "plik" || v == "json" || v == "porownanie" || v == "porównanie";
+      if (ok) u.nocZrodlo = v == "plik" ? 1 : v == "json" ? 0 : 2;
+    }
+    if (k == "noc_json") {
+      ok = noc_pliki::parsujMetrykiJson(v, u.nocJson);
+      u.nocJsonZly = !ok;
+    }
     if (k == "co2") {  // przełącznik ekranów CO2 per egzemplarz (5.8.8)
       ok = v == "tak" || v == "nie";
       if (ok) u.co2 = v == "tak" ? 1 : 0;
@@ -1034,7 +1057,10 @@ TekstySlotu tekstySlotu(const WyborSlotu& w, const WejscieSlotu& we) {
         t.powod = std::string(m.poTerminie ? "Termin minął " : "Termin ") + ddmm(m.termin) + ", ma " + wiek;
         if (t.powod.back() != '.') t.powod += ".";
       }
-      t.krok = "→ Po wymianie zapisz: K2, potem ↻ 2\xC2\xA0s.";
+      // krok według mapy przycisków (5.6.2): wymianę zapisuje ◀ 2 s na stronie „Sprzęt” (`5 / 6`) przy wierszu
+      // elementu w ramce; wejście ustawia ramkę na masce, przy filtrze trzeba ją przesunąć (▶). Te same słowa co
+      // podpowiedź pod tabelą „Sprzętu” (`ramka na …`). ↻ 2 s na wierszu maski zapisuje nowy model, więc nie tu.
+      t.krok = std::string("→ Po wymianie: strona 5 / 6, ramka na ") + NAZWY_ELEMENTU_MIEJSCOWNIK[m.element] + ", ◀ 2\xC2\xA0s.";
       break;
     }
     case EkranSlotu::SK36:

@@ -33,7 +33,7 @@ static const Akcja X = Akcja::NIC;  // „nic”: ekran bez zmiany, akcja NIC
 static std::string nazwa(Ekran e) {
   static const char* const N[] = {"DZIEN", "K1", "K2", "PYTANIE", "TEST", "OMOWIONE", "SPRAWY", "PRZENIESIONE",
                                   "ZAPISANO", "RAPORT", "NORMA", "LICZBY", "SPRZET", "SPRZET_ZAPISANO", "USTAWIENIA",
-                                  "FORMULARZ", "SIEC_PANELU"};
+                                  "FORMULARZ", "SIEC_PANELU", "AKTUALIZACJA"};
   return N[(int)e];
 }
 
@@ -178,7 +178,13 @@ static void testMapy() {
                 {Ekran::USTAWIENIA, Akcja::POKAZ}, {Ekran::SPRZET, X}, {D, Akcja::POKAZ}, {Ekran::SPRZET, X}}});
   w.push_back({"U-01", Ekran::USTAWIENIA, k,
                {{Ekran::SPRZET, Akcja::SPRZET_OD_KONCA}, {Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START},
-                {Ekran::USTAWIENIA, X}, {Ekran::FORMULARZ, Akcja::POKAZ}, {D, Akcja::POKAZ}, {Ekran::USTAWIENIA, X}}});
+                {Ekran::USTAWIENIA, X}, {Ekran::FORMULARZ, Akcja::POKAZ}, {D, Akcja::POKAZ},
+                {Ekran::AKTUALIZACJA, Akcja::AKT_SPRAWDZ}}});  // ↻ 2 s: U-07 (R-KONF-43, aktualizacja z GitHub)
+  KontekstNaw u7 = k;
+  u7.aktualizacja = 1;  // U-07 „jest nowsza” (R-KONF-44)
+  w.push_back({"U-07 jest nowsza", Ekran::AKTUALIZACJA, u7,
+               {{Ekran::USTAWIENIA, Akcja::POKAZ}, {Ekran::AKTUALIZACJA, X}, {Ekran::AKTUALIZACJA, Akcja::AKT_INSTALUJ},
+                {Ekran::AKTUALIZACJA, X}, {D, Akcja::POKAZ}, {Ekran::AKTUALIZACJA, X}}});
   KontekstNaw u2 = k;
   u2.zrodlo = Ekran::USTAWIENIA;
   w.push_back({"U-02 z U-01", Ekran::SIEC_PANELU, u2,
@@ -326,7 +332,7 @@ static void testStopek() {
   TRZYMA(stopkaSpraw(3, 3)[1] == "▶ norma" && stopkaSpraw(2, 3)[0] == "◀ poprzednia");
   TRZYMA(stopkaSpraw(1, 0)[0] == "◀ 7 nocy" && stopkaSpraw(1, 0)[1] == "▶ norma");
   std::string m = sprzet::stopkaSprzetu(EL_MASKA), f = sprzet::stopkaSprzetu(EL_FILTR);
-  TRZYMA(ma(m, "◀ wstecz · 2 s wymienione") && ma(m, "▶ niżej") && ma(m, "↻ ekran dnia · 2 s nowy model"));
+  TRZYMA(ma(m, "◀ norma · 2 s wymienione") && ma(m, "▶ niżej") && ma(m, "↻ ekran dnia · 2 s nowy model"));
   TRZYMA(ma(f, "◀ wyżej · 2 s wymienione") && ma(f, "▶ ustawienia") && !ma(f, "nowy model"));
   TRZYMA(stopkaWzorca(true) == std::vector<std::string>({"◀ 2 s omówione", "▶ kokpit · 2 s raport", "↻ 2 s wiem"}));
   TRZYMA(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));

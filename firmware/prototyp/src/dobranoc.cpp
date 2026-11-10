@@ -146,7 +146,7 @@ TekstyNocy tekstyNocy(const DaneNocy& d) {
   // jedna nazwa odczytu czujnika panelu na całym panelu: `przy łóżku`
   std::string panel = czujnik ? "przy łóżku " + temp + " · " + wilg : "";
   std::string godz = hhmm(d.maskaOd);
-  std::string zdanie = d.wybor.zdanie.empty() ? "" : "„" + d.wybor.zdanie + "”";
+  // od 10.11.2026 bez zdania budzika na ekranie (ADR-0018 i ADR-0009 „Zmiana 2026-11-10”): stopka i A2 bez niego
   switch (d.wybor.wariant) {
     case WariantNocy::A1:
       t.naglowekLewo = dataOk(d.wieczor) ? ddmm(d.wieczor) : "";  // data wieczoru bez dnia tygodnia (R-KON-33)
@@ -161,15 +161,13 @@ TekstyNocy tekstyNocy(const DaneNocy& d) {
         t.fakty.push_back({wilg, "wilgotność"});
       }
       if (d.zwyklySen >= 0) t.fakty.push_back({godzH(d.zwyklySen), "zwykle z maską"});  // T13
-      t.krok = "→ Ekran zostaje do rana, żeby nie błyskać.";  // T14: jedna linia
-      t.stopkaLewo = zdanie;
+      t.krok = "Ekran zostaje do rana, żeby nie błyskać.";  // T14: jedna linia; informacja, nie czynność: bez `→`
       t.stopkaPrawo = "▶ kokpit";
       break;
     case WariantNocy::A2: {
       std::string l;
       if (!godz.empty()) l = "maska od " + godz;
       if (czujnik) l += (l.empty() ? "" : " · ") + panel;
-      t.zdanieA2 = zdanie;
       t.liniaA2 = l + (l.empty() ? "" : " · ") + "wynik rano";
       t.tytul = "Dobranoc.";
       break;
@@ -183,7 +181,6 @@ TekstyNocy tekstyNocy(const DaneNocy& d) {
       // bez godziny `Dobranoc.` jest już tytułem, więc zdanie bez powtórzenia
       t.linie.push_back(t.tytulGodzina ? "Dobranoc. Wynik nocy rano." : "Wynik nocy rano.");
       t.linie.push_back("Ekran zostaje do rana, żeby nie błyskać.");  // T15: to samo zdanie co A1
-      t.stopkaLewo = zdanie;
       t.stopkaPrawo = "▶ kokpit";
       break;
   }

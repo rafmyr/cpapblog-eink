@@ -130,7 +130,7 @@ void raportZEkranuL(reguly::Pamiec& pamiec, const std::string& klucz, const std:
 enum class Karta : unsigned char {
   PELNY_EKRAN,  // wzorzec A albo B: tytuł i powód ekranu
   PROBLEM,      // L-09 (R5c): tytuł i powód ekranu „problem”
-  NA_KONTROLE,  // pilność C: tytuł `Sprawa na kontrolę`, powód = linia C bez `Na kontroli: raport z K2.`
+  NA_KONTROLE,  // pilność C: tytuł `Sprawa na kontrolę`, powód = linia C bez `Na kontroli: raport 2 / 6.`
   W_RAPORCIE    // „tylko raport” ze spełnionym warunkiem: tytuł `Sprawa w raporcie`, wiersz `Dalej: w raporcie, bez pilności`
 };
 struct InfoWzorca {

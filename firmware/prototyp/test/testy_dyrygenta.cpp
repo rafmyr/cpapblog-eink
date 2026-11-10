@@ -456,6 +456,7 @@ static void testR_KON_41_slotDziennyDyrygent() {
   SPRAWDZ(wLogu(p, "wybudzenie zegar:slot_dzienny_godzina,") && !wLogu(p, "zegar:slot_dzienny+"));
   SPRAWDZ(p.siec.zadania.size() == 1 && zadan(p, "/api/status") == 1);
   SPRAWDZ(wLogu(p, "slot dzienny: tylko odczyt stanu aparatu"));
+  SPRAWDZ(zadan(p, "/api/sessions") == 0 && zadan(p, "/api/storage") == 0);  // R-KON-42 bez STR.edf (ADR-0035 pkt 1)
   SPRAWDZ(p.start.stan.ab.pobrano == pobrano && p.start.stan.slotDziennyEp == ep(2026, 11, 4, 7, 10));
   SPRAWDZ(p.zegar.teraz() + p.sen.plan.sekund == ep(2026, 11, 4, 9, 0) + 5);
   // zanik zasilania (RTC od nowa, NVS i pliki zostają): chwila importu nieznana; (było:
@@ -574,6 +575,9 @@ static void testR_DANE_24_przyciskPrzedTerminem() {
   panel(p, 10, 59, PowodWybudzenia::PRZYCISK);
   p.zegar.epoch += 50;
   p.pliki.pliki["/noce.csv"] = NOC_DZIS;
+  // tryb porównawczy (domyślny od 09.11.2026) łączyłby się drugi raz na końcu wybudzenia (R-DANE-60): tu tylko
+  // termin 11:00 (R-DANE-24), więc `json`
+  p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\n";
   p.nvs.teksty["cpap/ab_rano"] = "2026-11-04";
   p.start.budzace = BIT_PRAWY;
   p.przyciski.skrypt = {{0, BIT_PRAWY}, {300, 0}};

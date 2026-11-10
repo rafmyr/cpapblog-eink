@@ -183,7 +183,7 @@ struct WejscieSpraw {
   // (ADR-0029 pkt 7): stan pusty mówi `Ocena: pełna` tylko wtedy, gdy wołający wie, że każda reguła
   // jest oceniona (5.4.13 pkt 7) i lista `Metryki niewalidowane` jest policzona i pusta (pkt 5). Panel pkt 5 jeszcze
   // nie liczy (WY9), więc dziś nikt tego nie ustawia. bez pewności
-  // `Ocena: częściowa` i wiersz `Część reguł nie ma jeszcze danych.` (R-EKR-50).
+  // `Ocena: częściowa` i wiersz `Części rzeczy jeszcze nie oceniam.` (tytuł wtedy `Nie widzę otwartych spraw.`) (R-EKR-50).
   bool ocenaPelna = false;
 };
 // Karty w kolejności R-EKR-48; pusta lista = stan pusty (R-EKR-50, kartaPusta()).

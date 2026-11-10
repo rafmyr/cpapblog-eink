@@ -379,6 +379,32 @@ class CzytnikEDF(unittest.TestCase):
         self.assertTrue(any("niepełny" in p for p in r["problemy"]))
         self.assertFalse(r["metryki"]["wazna"])
 
+    def test_czas_rekordu_zly_daje_noc_czesciowa(self):
+        # czas rekordu ≤ 0 albo nieskończony przy sygnałach pomiarowych = błąd pliku (jak src/edf.cpp panelu)
+        for zly in (b"0       ", b"-60     ", b"inf     "):
+            karta, pld = self._karta_jednej_nocy(None)
+            with open(pld, "r+b") as f:
+                f.seek(244)
+                f.write(zly)
+            with self.assertRaises(edf.BladEDF):
+                edf.PlikEDF(pld)
+            r = noce.noce(karta)[0]
+            self.assertTrue(r["partial"])
+            self.assertIsNone(r["used_seconds"])
+            shutil.rmtree(karta)
+        # plik adnotacji z czasem rekordu 0 jest poprawny
+        p = os.path.join(self.tmp, "a_EVE.edf")
+        syntetyczna.adnotacje(p, dt.datetime(2026, 1, 10, 23, 0), [])
+        self.assertEqual(edf.PlikEDF(p).czas_rekordu, 0)
+
+    def test_bajty_za_rekordami_daja_noc_czesciowa(self):
+        karta, pld = self._karta_jednej_nocy(None)
+        with open(pld, "ab") as f:
+            f.write(b"\0" * 1000)
+        r = noce.noce(karta)[0]
+        self.assertTrue(r["partial"])
+        self.assertTrue(any("niepełny" in p for p in r["problemy"]))
+
     def test_brak_strefy_czasu(self):
         # godzina z nagłówka jest czasem lokalnym aparatu, bez przeliczania strefy
         karta, pld = self._karta_jednej_nocy(None)
@@ -665,6 +691,47 @@ class BezPrawdziwychNocyWRepo(unittest.TestCase):
             self.skipTest("brak historii git")
         pliki = [l for l in p.stdout.splitlines() if l.lower().endswith((".edf", ".crc"))]
         self.assertEqual(pliki, [], "pliki z karty SD w historii git (WY12)")
+
+
+class StrPanelu(unittest.TestCase):
+    """Syntetyczny STR do testów panelu (syntetyczna.str_panelu, ADR-0035) i wzorzec str_wzorzec.py."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kat = tempfile.mkdtemp(prefix="cpap-str-")
+        cls.sciezka = syntetyczna.str_panelu(os.path.join(cls.kat, "STR.edf"))
+        cls.s = noce.Str(cls.sciezka)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.kat, ignore_errors=True)
+
+    def test_doby(self):
+        d0 = noce.dzien_z_daty(syntetyczna.PIERWSZY_DZIEN_PANELU)
+        self.assertIsNone(self.s.blad)
+        # doba 5 bez Mode i Duration: brak; doba 7 bez Date: dzień startu + 7
+        self.assertEqual(sorted(self.s.dni), [d0, d0 + 1, d0 + 2, d0 + 3, d0 + 4, d0 + 6, d0 + 7])
+        r = self.s.dni[d0]
+        self.assertEqual(r["Duration"], 432)
+        self.assertIsNone(r["OAI"])
+        self.assertAlmostEqual(r["AmbTemp"], -3.5)
+        self.assertEqual(r["PatientHours"], 24337)
+        self.assertEqual(self.s.dni[d0 + 4]["PatientHours"], 40000)   # bez znaku, zakres 0…65534
+
+    def test_statystyki_i_ustawienia(self):
+        d0 = noce.dzien_z_daty(syntetyczna.PIERWSZY_DZIEN_PANELU)
+        self.assertAlmostEqual(self.s.statystyka(d0, "Leak", "50"), 6.0)
+        self.assertAlmostEqual(self.s.statystyka(d0, "TidVol", "50"), 460.0)
+        self.assertIsNone(self.s.statystyka(d0, "Snore", "50"))      # jednostka dB zamiast ""
+        _, pola = self.s.ustawienia(d0)
+        self.assertEqual([p["tag"] for p in pola][:5], ["MOP", "EAI", "EAX", "ANS", "AXS"])
+        self.assertEqual(pola[0]["value"], "ASVAuto")
+
+    def test_wzorzec(self):
+        import str_wzorzec
+        w = str_wzorzec.wzorzec(self.sciezka)
+        self.assertTrue(any(l.startswith("U;") for l in w))
+        self.assertTrue(all(l.split(";")[0] in ("D", "U", "K") for l in w))
 
 
 if __name__ == "__main__":

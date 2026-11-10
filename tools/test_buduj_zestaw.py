@@ -185,6 +185,19 @@ def test_liczby_przyklejone_i_inna_jednostka_nie_sa_progiem(tmp_path):
     assert kod == 1 and "przez {prog:" in out
 
 
+def test_numer_strony_kokpitu_nie_jest_progiem(tmp_path):
+    # `raport 2 / 6` to numer strony kokpitu w linii pilności C, nie wartość progu 2; sama `2` dalej jest błędem
+    progi = PROGI + "E-30.dwa,E-30,,2,noce,opis,brak,spec,wszystkie,do kalibracji\n"
+    e = E30.replace("n=E-30.okno", "n=E-30.okno,delta=E-30.dwa")
+    e2 = e.replace("E-30.krok;aktywna", "E-30.krok,E-30.linia;aktywna")
+    spec = SPEC + "\n`Na kontroli: raport 2 / 6.`\n`Od 2 nocy.`\n"
+    t = TEKSTY + "E-30.linia;linia;;Na kontroli: raport 2 / 6.\n"
+    kod, out = uruchom(przygotuj(tmp_path, progi=progi, katalog_e=(e2,), teksty=t, spec=spec))
+    assert kod == 0, out
+    t2 = TEKSTY + "E-30.linia;linia;;Od 2 nocy.\n"
+    kod, out = uruchom(przygotuj(tmp_path, progi=progi, katalog_e=(e2,), teksty=t2, spec=spec))
+    assert kod == 1 and "przez {prog:" in out
+
 def test_deklaracje_rodzajow_paczek(tmp_path):
     argv = przygotuj(tmp_path, katalog_e=(E30 + "\nE-40;;nowy_rodzaj_b3;moj=E-30.ahi;;;;;;wszystkie;nie;tak;;;;;;aktywna;;t",))
     kod, out = uruchom(argv)

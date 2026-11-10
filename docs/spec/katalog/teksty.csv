@@ -7,11 +7,11 @@ L-02.tytul;tytul;30;Urządzenie oznaczyło wzorzec
 L-02.powod_a;powod;70;Oddychanie okresowe w {n} z {prog:L-02.a_okno} nocy, razem {min} min.
 L-02.powod_b;powod;70;Oddychanie okresowe {x}% czasu nocy, zwykle {norma}%.
 L-02.krok;krok;60;→ Omów wynik z lekarzem w najbliższych tygodniach.
-L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport z K2.
+L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 6.
 L-03.tytul;tytul;30;Bezdechy utrzymują się wyżej
 L-03.powod;powod;70;Mediana z {prog:L-03.okno} nocy {x} / h, wyciek mały.
 L-03.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
-L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport z K2.
+L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 6.
 L-04.tytul_asvauto;tytul;30;EPAP przy górnej granicy
 L-04.powod_asvauto;powod;70;EPAP blisko maksimum {max}, bezdechy obturacyjne {y} / h.
 L-04.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
@@ -19,11 +19,11 @@ L-05.tytul;tytul;30;Zmiana oddechu od kilku nocy
 L-05.powod;powod;70;Oddechy {x} / min, zwykle {norma}, od {n} nocy.
 L-05.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
 L-07.tytul_asv;tytul;30;EPAP rośnie
-L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport z K2.
+L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
 L-08.tytul_szybki;tytul;30;Dużo mniej nocy z maską
 L-08.powod_szybki;powod;70;Ponad 4 h w {n} z 30 nocy, miesiąc temu {m} z 30.
 L-08.krok_szybki;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
-L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport z K2.
+L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.
 L-09.tytul;tytul;30;Wyciek nie ustępuje
 L-09.powod;powod;70;Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.
 L-09.krok;krok;60;→ Zapytaj dostawcę sprzętu o inną maskę.
@@ -52,11 +52,11 @@ H-09.pytanie;pytanie;200;Senność przy medianie {czas} z maską na noc: czy cza
 L-04.tytul;tytul;30;Ciśnienie przy górnej granicy
 L-04.powod;powod;70;Ciśnienie blisko maksimum {max}, bezdechy obturacyjne {y} / h.
 L-07.tytul;tytul;30;Ciśnienie rośnie od tygodni
-L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport z K2.
+L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
 L-10.tytul;tytul;30;Spłaszczone wdechy i senność
 L-10.powod;powod;70;Od {n} tygodni więcej spłaszczonych wdechów i senność.
 L-10.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
-L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport z K2.
+L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 6.
 H-01.linia;ramka;60;Najpewniej do poprawy: minimalne ciśnienie
 H-01.zdanie;ramka;60;Obszar do omówienia z lekarzem.
 H-01.pytanie;pytanie;200;Zdarzenia skupiają się przy niskim ciśnieniu ({a} / h wobec {b} / h): czy minimalne ciśnienie może mieć z tym związek, czy szukać innej przyczyny?
@@ -96,8 +96,8 @@ E-14.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
 E-21.tytul;tytul;30;Sprawdź maskę
 E-21.powod;powod;70;Wyciek rośnie od {n} nocy: {x} L/min, zwykle {norma}.
 E-21.krok;krok;60;→ Umyj lub wymień poduszkę, sprawdź paski.
-E-23.tytul;tytul;30;Wyciek od {prog:E-23.przeciek_p95} l/min w nocy
-E-23.powod;powod;70;Przez co najmniej 5% czasu terapii.
+E-23.tytul;tytul;30;Wyciek w nocy ponad próg
+E-23.powod;powod;70;{x} l/min lub więcej przez 5% czasu terapii, próg {prog:E-23.przeciek_p95}.
 E-23.krok;krok;60;→ Sprawdź maskę. Gdy wraca, pokaż lekarzowi.
 E-23.podpis_lewo;podpis_lewo;40;wyciek l/min · 30 nocy
 E-23.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-23.przeciek_p95} l/min
@@ -229,7 +229,7 @@ S-K-18.krok_czas;krok;;→ Każda godzina z maską się liczy.
 S-K-18.krok_nic;krok;;→ Nic do zrobienia. Tak trzymaj.
 S-K-18.krok_linia;krok;;→ Sprawa z linii wyżej wciąż otwarta.
 S-K-18.krok_sprawy;krok;;→ Otwarte sprawy: strona 3 / 6.
-S-K-18.krok_oceny;krok;;→ Część ocen wyłączona: zobacz K1.
+S-K-18.krok_oceny;krok;;→ Część ocen wyłączona: zobacz ▶.
 S-K-18.krok_reguly;krok;;→ Część reguł nie działa: zobacz Test sprzętu.
 S-K-18.krok_dane;krok;;→ Część ocen jeszcze nie działa: za mało nocy.
 S-K-18.krok_dane_wyciek;krok;;→ Bezdechów nie oceniam: noce z wyciekiem.
@@ -397,3 +397,11 @@ S2D.G18.neutralna.powod;powod;100;Dopóki ktoś nie przypomni, kto będzie zmien
 R-NOR-14.linia;linia;60;Nowe ustawienia aparatu. Uczę się normy.
 R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
 R-DANE-29.linia_nieznany;linia;60;Nie znam trybu aparatu: tej nocy nie oceniam.
+L-01.tytul_asv;tytul;30;Bezdechy mimo pełnego wsparcia
+L-01.powod_asv;powod;70;Bezdechy średnio {x} / h z {prog:L-01.okno} nocy, przy pełnym wsparciu {p}%.
+L-02.linia_asv;raport;120;Oddychanie okresowe: aparat ASV go nie oznacza.
+L-04.powod_asvauto_m32;powod;70;EPAP blisko maksimum {max}, bezdechy przy nim {y} / h.
+H-02.pytanie_asvauto_m32;pytanie;200;EPAP przy maksimum {max}, bezdechy przy nim {y} / h: czy zakres EPAP może mieć z tym związek, czy szukać innej przyczyny?
+E-33.tytul_asv;tytul;30;Bezdechy przy pełnym wsparciu
+E-33.podpis_lewo_asv;podpis_lewo;40;przy pełnym wsparciu / h · 30 nocy
+S-K-18.krok_dane_pliki;krok;;→ Bezdechów nie oceniam: brak plików nocy.

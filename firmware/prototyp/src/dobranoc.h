@@ -97,7 +97,6 @@ struct TekstyNocy {
   std::vector<std::string> linie;           // A1: linie powodu; A3: zdanie (P28B) i mała linia (P22B)
   std::vector<std::pair<std::string, std::string>> fakty;  // A1: liczba, podpis
   std::string krok;                         // A1
-  std::string zdanieA2;                     // A2: zdanie budzika w cudzysłowie pod `Dobranoc.`
   std::string liniaA2;                      // A2: linia faktów pod zdaniem
   std::string stopkaLewo, stopkaPrawo;      // A1, A3
 };

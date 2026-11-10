@@ -29,9 +29,13 @@ std::string bezKropki(std::string s) {
   while (!s.empty() && (s.back() == '.' || s.back() == ' ')) s.pop_back();
   return s;
 }
-std::string bezKontroli(const std::string& l) {  // linia C bez `Na kontroli: raport z K2.` (5.13.2)
-  static const std::string K = " Na kontroli: raport z K2.";
-  if (l.size() >= K.size() && l.compare(l.size() - K.size(), K.size(), K) == 0) return l.substr(0, l.size() - K.size());
+std::string bezKontroli(const std::string& l) {  // linia C bez `Na kontroli: raport 2 / 6.` (5.13.2)
+  // druga postać: zestaw danych sprzed 10.11.2026 (nazwa robocza strony zamiast `2 / 6`)
+  static const char* const K[] = {" Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+  for (const char* k : K) {
+    const std::string s(k);
+    if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());
+  }
   return l;
 }
 std::string zamien(std::string s, const std::string& co, const std::string& na) {

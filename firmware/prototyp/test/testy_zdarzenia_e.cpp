@@ -207,9 +207,15 @@ static void testKatalog() {
   // teksty: liczba progu przez {prog:…}, granica ADR-0002 (zero wartości ustawień, drogi do zmiany, diagnozy)
   Wynik pusty;
   SPRAWDZ(reguly::tekst(z, "E-30.tytul", pusty, Tryb::ASVAUTO) == "Noce z AHI powyżej 5", "tytuł E-30 z progiem");
-  SPRAWDZ(reguly::tekst(z, "E-23.powod", pusty, Tryb::ASVAUTO) ==
-              "Przez co najmniej 5% czasu terapii.",
-          "powód E-23 z progiem");
+  SPRAWDZ(reguly::tekst(z, "E-23.tytul", pusty, Tryb::ASVAUTO) == "Wyciek w nocy ponad próg", "tytuł E-23 bez liczby");
+  // powód z wartością nocy i progiem (bez wyniku `{x}` = `–`, panel nie wymyśla liczby)
+  SPRAWDZ(reguly::tekst(z, "E-23.powod", pusty, Tryb::ASVAUTO) == "– l/min lub więcej przez 5% czasu terapii, próg 27.",
+          "powód E-23 bez wartości");
+  Wynik e23;
+  e23.id = "E-23";
+  e23.zmienne["x"] = "38,2";
+  SPRAWDZ(reguly::tekst(z, "E-23.powod", e23, Tryb::ASVAUTO) == "38,2 l/min lub więcej przez 5% czasu terapii, próg 27.",
+          "powód E-23 z wartością nocy");
   const char* zakazane[] = {"cmH2O", "EPR", "Ustaw", "ustaw", "Obniż", "Podnieś", "Zwiększ", "Zmniejsz", "menu",
                             "choroba", "diagnoz", "bezdech senny"};
   for (const auto& t : z.teksty) {

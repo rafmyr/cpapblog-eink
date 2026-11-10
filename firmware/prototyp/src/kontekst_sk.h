@@ -210,6 +210,11 @@ std::vector<Tresc> trendyTygodnia(const Wejscie& w, const std::string& niedziela
 
 // Pozycja grupy z tabeli 7.2 (rano: R0 = 0 … R9 = 12; wieczór W1 = 20 … W3 = 22; tydzień T2 = 30), mniejsza wygrywa.
 int ranga(const std::string& grupa);
+// Czy rano jako ekran dnia stanie ekran S-K w tonie „problem” z grup R5b…R5d, czyli prośba (7.4, R-PIE-10), na
+// której ↻ 2 s znaczy „wiem” (R-CZY-07). Przyjmuje listę z rano(); patrzy tylko na kandydata, który się pokaże:
+// pierwszego poza wpisami do logu i S-K-30 (S-K-30 idzie jako pytanie tak/nie, R-CZY-15). S-K-31 nie jest taką
+// prośbą (↻ 2 s na nim to pytanie „Co było inaczej?”, mapa 5.6.2, 7.4), choćby niżej na liście stał S-K-10.
+bool problemNaEkranieRano(const std::vector<Tresc>& v);
 // Ranga typu ekranu dnia z rotacji prototypu (src/humor.h wybierzEkranDnia: S5, S10, KM, S6, S2x, S1).
 int rangaTypu(const std::string& typEkranuDnia);
 // Treść z dziennika (dzień z wpisem: ten sam ekran po ponownej ocenie); nullptr gdy dziś nie było ekranu S-K.

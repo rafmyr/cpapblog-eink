@@ -31,7 +31,7 @@ static const Przycisk P3[3] = {Przycisk::LEWY, Przycisk::PRAWY, Przycisk::SRODEK
 static const Ekran WSZYSTKIE[] = {Ekran::DZIEN, Ekran::K1, Ekran::K2, Ekran::PYTANIE, Ekran::TEST, Ekran::OMOWIONE,
                                   Ekran::SPRAWY, Ekran::PRZENIESIONE, Ekran::ZAPISANO, Ekran::RAPORT, Ekran::NORMA,
                                   Ekran::LICZBY, Ekran::SPRZET, Ekran::SPRZET_ZAPISANO, Ekran::USTAWIENIA,
-                                  Ekran::FORMULARZ, Ekran::SIEC_PANELU};
+                                  Ekran::FORMULARZ, Ekran::SIEC_PANELU, Ekran::AKTUALIZACJA};
 static const Ekran STRONY[] = {Ekran::K1, Ekran::K2, Ekran::SPRAWY, Ekran::NORMA, Ekran::LICZBY, Ekran::SPRZET,
                                Ekran::USTAWIENIA, Ekran::FORMULARZ, Ekran::TEST};
 
@@ -86,7 +86,7 @@ static void krok(Stan& s, Przycisk p) {
 static std::string nazwa(Ekran e) {
   static const char* const N[] = {"DZIEN", "K1", "K2", "PYTANIE", "TEST", "OMOWIONE", "SPRAWY", "PRZENIESIONE",
                                   "ZAPISANO", "RAPORT", "NORMA", "LICZBY", "SPRZET", "SPRZET_ZAPISANO", "USTAWIENIA",
-                                  "FORMULARZ", "SIEC_PANELU"};
+                                  "FORMULARZ", "SIEC_PANELU", "AKTUALIZACJA"};
   return N[(int)e];
 }
 
@@ -179,7 +179,8 @@ static void testZielonyDom() {
 static void testPrzytrzymaniaToZapis() {
   const std::set<Akcja> zapisy = {Akcja::WIEM, Akcja::SPRZET_WYMIENIONE, Akcja::SPRZET_NOWY_MODEL, Akcja::COFNIJ_WIEM,
                                   Akcja::COFNIJ_ODP, Akcja::SPRZET_COFNIJ, Akcja::PYT_ZAPISZ, Akcja::PYT_POMIN,
-                                  Akcja::OTWORZ_PYTANIE, Akcja::RAPORT_STARSZE, Akcja::SIEC_PANELU_START};
+                                  Akcja::OTWORZ_PYTANIE, Akcja::RAPORT_STARSZE, Akcja::SIEC_PANELU_START,
+                                  Akcja::AKT_SPRAWDZ};  // usługa z Wi-Fi (R-KONF-43)
   // ekrany, na które przytrzymanie może prowadzić: zapis z potwierdzeniem albo cofnięciem, odpowiedź na pytanie,
   // usługa z Wi-Fi (raport ogólny, sieć panelu); wyjście z ekranu potwierdzenia na ekran dnia albo „Sprzęt”
   const std::set<Ekran> celePrzytrzyman = {Ekran::DZIEN, Ekran::PRZENIESIONE, Ekran::OMOWIONE, Ekran::SPRZET_ZAPISANO,
@@ -189,8 +190,11 @@ static void testPrzytrzymaniaToZapis() {
       for (Przycisk p : P3) {
         Przejscie pr = nacisniecie(e, p, true, k);
         bool zostaje = pr.ekran == e;
-        bool wifi = p == Przycisk::PRAWY && ((e == Ekran::USTAWIENIA && pr.ekran == Ekran::FORMULARZ) ||
-                                             (e == Ekran::FORMULARZ && pr.ekran == Ekran::TEST));  // usługi z Wi-Fi
+        bool wifi = (p == Przycisk::PRAWY && ((e == Ekran::USTAWIENIA && pr.ekran == Ekran::FORMULARZ) ||
+                                              (e == Ekran::FORMULARZ && pr.ekran == Ekran::TEST))) ||
+                    // aktualizacja z GitHub: ↻ 2 s na U-01 uruchamia sprawdzenie wersji (Wi-Fi), R-KONF-43
+                    (p == Przycisk::SRODEK && e == Ekran::USTAWIENIA && pr.ekran == Ekran::AKTUALIZACJA &&
+                     pr.akcja == Akcja::AKT_SPRAWDZ);  // usługi z Wi-Fi
         bool cel = celePrzytrzyman.count(pr.ekran) > 0 || (e == Ekran::SPRZET_ZAPISANO && pr.ekran == Ekran::SPRZET) ||
                    (e == Ekran::SIEC_PANELU && pr.ekran == k.zrodlo) || wifi;
         SPRAWDZ(zostaje || cel);
@@ -563,7 +567,7 @@ static void testSkrotTestu() {
 static void testEkranZRtc() {
   SPRAWDZ(ekranZRtc(0) == Ekran::DZIEN && ekranZRtc(9) == Ekran::RAPORT);
   SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU) == Ekran::SIEC_PANELU);
-  SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::AKTUALIZACJA + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
 }
 
 int main() {

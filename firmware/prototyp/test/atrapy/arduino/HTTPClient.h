@@ -2,6 +2,7 @@
 // Atrapa (tylko -fsyntax-only), zob. Arduino.h
 #pragma once
 #include "Arduino.h"
+#include "NetworkClientSecure.h"
 struct Stream {
   virtual ~Stream() {}
   virtual size_t write(uint8_t) = 0;
@@ -14,11 +15,16 @@ struct Stream {
 enum followRedirects_t { HTTPC_DISABLE_FOLLOW_REDIRECTS, HTTPC_STRICT_FOLLOW_REDIRECTS, HTTPC_FORCE_FOLLOW_REDIRECTS };
 struct HTTPClient {
   void setFollowRedirects(followRedirects_t) {}
+  void useHTTP10(bool) {}
+  void setReuse(bool) {}
   void setTimeout(int) {}
   void setConnectTimeout(int32_t) {}
   int getSize() { return -1; }
   int writeToStream(Stream*) { return 0; }
   bool begin(const String&) { return true; }
+  bool begin(NetworkClient&, const String&) { return true; }
+  NetworkClient* getStreamPtr() { return nullptr; }
+  bool connected() { return false; }
   void setAuthorization(const char*, const char*) {}
   void collectHeaders(const char* [], size_t) {}
   void addHeader(const String&, const String&) {}

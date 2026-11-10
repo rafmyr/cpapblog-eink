@@ -27,6 +27,7 @@
 #include "podsumowanie.h"
 #include "raport_ekran.h"
 #include "ekrany_konfiguracji.h"
+#include "aktualizacja.h"
 #include "kontekst_sk.h"
 #include "sprzet.h"
 #include "ekrany_zdarzen.h"
@@ -167,6 +168,13 @@ static void makiety(PlotnoPamiec& p) {
   TrescEkranu t;
   rysuj("s2a-zwykly", {"pt 30.10", "dane 05:42"}, tydz("9 h 09", "0,1", SPOKOJ, "Tydzień jak zwykle.", STOPKA));
   rysuj("s2a-najgorsze-wartosci", {N_MAX, P_MAX}, tydz("12 h 59", "12,4", NAJGORSZE, ROZNICE, STOPKA_MAX));
+  {  // ikona aktualizacji w stopce ekranu dnia (R-EKR-61): najdłuższa stopka skrócona do pełnych słów przed ikoną
+    IkonaStopki ik(true);
+    TrescEkranu ti = tydz("12 h 59", "12,4", NAJGORSZE, ROZNICE, STOPKA_MAX);
+    rysujEkranDanych(p, {N_MAX, P_MAX}, ti);
+    ikonaAktualizacji(p, false);
+    zapisz(p, "mak-s2a-ikona-aktualizacji");
+  }
   rysuj("s2a-odchylenie", {"wt 27.10", "dane 05:38"}, tydz("6 h 38", "4,1", ODCH, ROZNICE, STOPKA));
   t = tydz("6 h 38", "", SPOKOJ, "Tydzień jak zwykle.", STOPKA);
   t.ahiNiepewne = true;
@@ -429,15 +437,21 @@ static void makiety(PlotnoPamiec& p) {
   k.powod = "Tydzień: inaczej niż zwykle.";
   k.fakty = {{"12,4", "AHI"}, {"112", "wyciek l/min"}};
   k.stopkaPrawo = "przy łóżku 21° · 46%";
-  rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22, "Maska schodziła ze sceny częściej niż trzeba.");
+  rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22);
   zapisz(p, "mak-karta-k22");
+  {  // ta sama karta z ikoną aktualizacji w stopce (R-EKR-61)
+    IkonaStopki ik(true);
+    rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22);
+    ikonaAktualizacji(p, false);
+    zapisz(p, "mak-karta-k22-ikona-aktualizacji");
+  }
   k = TrescEkranu();
   k.etykieta = "BRAK DANYCH Z NOCY";
   k.tytul = "Brak danych z nocy 12.11";
   k.powod = "AirBridge nie odpowiada od 11.11 05:42. Ponawiam co\xC2\xA0" "30\xC2\xA0" "min.";
   k.krok = "→ Sprawdź zasilanie AirBridge.";
   k.stopkaPrawo = "↻ ponów";
-  rysujKarte(p, {"cz 12.11", "dane z 11.11"}, k, scenaS5, "Wyników brak. Wróżką też nie jestem.");
+  rysujKarte(p, {"cz 12.11", "dane z 11.11"}, k, scenaS5);
   zapisz(p, "mak-karta-s5");
 }
 
@@ -530,6 +544,17 @@ static void podgladB16(PlotnoPamiec& p) {
   {  // S-K-10: wyciek ostatniej nocy ponad próg (ton „problem”)
     h.back().wp95 = 26;
     skB16(p, sk::rano(w), "S-K-10", "b16-sk10-przeciek", rano, "Katowice 3° · mgła", stopkaCzujnika(21, 44));
+    // ten sam ekran w negatywie z linią uwagi (ostrzeżenie: biały pasek z `!`) i z ikoną aktualizacji w stopce
+    for (auto& t : sk::rano(w))
+      if (t.id == "S-K-10") {
+        sk::Tresc tl = t;
+        tl.t.linia = "Noce mało czytelne: bezdechów nie oceniam.";
+        tl.t.liniaOstrzezenie = true;
+        IkonaStopki ik(true);
+        sk::rysuj(p, rano, tl, "Katowice 3° · mgła", stopkaCzujnika(21, 44));
+        ikonaAktualizacji(p, true);
+        zapisz(p, "b16-sk10-przeciek-linia-ikona");
+      }
     h.back().wp95 = 10;
   }
   {  // S-K-10 wariant opisowy (R-KONF-42): P95 18 przy ustawieniu 15, ton „informacja”, ekran danych
@@ -743,7 +768,7 @@ static void podgladB9(PlotnoPamiec& p) {
     t.etykieta = wersaliki(t.etykieta);
     t.stopkaPrawo = stopkaCzujnika(21, 44);
     Naglowek nk{naglowekSlotu(ww.dzis) + " · wieczór", "sypialnia 21:40"};
-    rysujKarte(p, nk, t, "W01", "W sypialni duszno. Atmosfera też siada.");
+    rysujKarte(p, nk, t, "W01");
     zapisz(p, "sk01-przewietrz-karta");
   }
   {  // wariant z odczytu bieżącego, bez serii nocy
@@ -802,7 +827,7 @@ static void podgladB15(PlotnoPamiec& p) {
   w.norma = &n;
   w.tryb = reguly::Tryb::ASVAUTO;
   w.zK1 = true;
-  Naglowek n8{"wt 03.11", "4 / 6"};  // S8 jako strona 4 / 6 kokpitu
+  Naglowek n8{"Twoja norma", "4 / 6"};  // S8 jako strona 4 / 6 kokpitu: nazwa strony w nagłówku
   podsumowanie::DaneS8 s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-norma");
@@ -812,7 +837,7 @@ static void podgladB15(PlotnoPamiec& p) {
   t = podsumowanie::trescS8(s8);
   t.stopkaLewo = "Katowice 4° · pochmurno";
   t.stopkaPrawo = "przy łóżku 21° · 45%";
-  podsumowanie::rysujS8(p, n8, s8, t);
+  podsumowanie::rysujS8(p, Naglowek{"wt 03.11", "dane 05:44"}, s8, t);  // S8 jako ekran dnia: data i tytuł
   zapisz(p, "b15-s8-informacja");
   n.ahi.n = 0;
   n.ca.n = 0;
@@ -821,9 +846,9 @@ static void podgladB15(PlotnoPamiec& p) {
   s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-publiczny-uczesie");
-  podsumowanie::rysujLiczby(p, n8, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true));
+  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", "4 / 6"}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true));
   zapisz(p, "b15-co-znacza-liczby");
-  podsumowanie::rysujLiczby(p, n8, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
+  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", "4 / 6"}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
   zapisz(p, "b15-co-znacza-liczby-asv");
   // odkrycia: O-12 (alkohol) z archiwum z wagami R-CZY-24, O-08 (weekend), O-03 (linia 30 nocy)
   std::vector<Noc> ho;
@@ -918,7 +943,7 @@ static void podgladB15(PlotnoPamiec& p) {
       rysujK1(p, ka);
       zapisz(p, "b17-k1-odkrycie-4-wiersze");  // AutoSet
     }
-    rysujKarte(p, no, ts, scenaJest("O01") ? "O01" : "", "Jest trop. Nie krzyczmy jeszcze: eureka.");
+    rysujKarte(p, no, ts, scenaJest("O01") ? "O01" : "");
     zapisz(p, "b15-s1-o12-karta");
   }
   std::vector<Noc> hw;
@@ -1092,7 +1117,7 @@ int main(int argc, char** argv) {
     if (typ == "S2A") khk.uspokojenie = true;  // K22 ze zdaniem z pełnej puli „dobra noc” (także uspokajające)
     Wybor w = wybierzTryb(e, kartaMiesci(t), {}, khk);
     if (std::string(plik) == "karta-k22-propozycje") scenaK22 = w.scena;
-    if (w.tryb == 'K') rysujKarte(p, n, t, w.scena, tekstZdania(w.zdanie));
+    if (w.tryb == 'K') rysujKarte(p, n, t, w.scena);
     else { printf("  %s: ekran danych (%s)\n", plik, w.dlaczego); rysujEkranDanych(p, n, t); }
     zapisz(p, plik);
   };
@@ -1113,7 +1138,7 @@ int main(int argc, char** argv) {
       kh.zPropozycjami = true;
       EkranDnia e = ekranKarty(typ, sprawa, dzis, {}, krok);
       Wybor w = wybierzTryb(e, kartaMiesci(t), {}, kh);
-      if (w.tryb == 'K') rysujKarte(p, n, t, w.scena, tekstZdania(w.zdanie));
+      if (w.tryb == 'K') rysujKarte(p, n, t, w.scena);
       else { printf("  %s: ekran danych (%s)\n", plik, w.dlaczego); rysujEkranDanych(p, n, t); }
       zapisz(p, plik);
     };
@@ -1142,7 +1167,7 @@ int main(int argc, char** argv) {
         trescPrzerywnika(t, tp.tytul, tp.powod, d);
         t.stopkaPrawo = d.przyLozku;
         if (!kartaPrzerywnikaMiesci(t)) printf("  UWAGA: %s %s poza układem S2d\n", sc, war ? "warunek" : "neutralna");
-        rysujKarte(p, n, t, sc, tekstZdania("przerywnik_sceny:" + std::to_string(g - 1)));
+        rysujKarte(p, n, t, sc);
         zapisz(p, (std::string("karta-s2d-") + sc + (war ? "-warunkowa" : "-neutralna")).c_str());
       }
     }
@@ -1153,7 +1178,7 @@ int main(int argc, char** argv) {
     trescPrzerywnika(t, tp.tytul, tp.powod, d);
     t.stopkaPrawo = d.przyLozku;
     if (!kartaPrzerywnikaMiesci(t)) printf("  UWAGA: G01 marzec poza układem S2d\n");
-    rysujKarte(p, n, t, "G01", tekstZdania("przerywnik_sceny:0"));
+    rysujKarte(p, n, t, "G01");
     zapisz(p, "karta-s2d-G01-neutralna-marzec");
   }
   rysujEkranDanych(p, n, trescDnia("S2A", "3", d));
@@ -1223,7 +1248,7 @@ int main(int argc, char** argv) {
     TrescEkranu t = trescDnia("S5", "1", b);
     EkranDnia e{"S5", "1", true, false};
     Wybor w = wybierzTryb(e, kartaMiesci(t), {}, kh);
-    rysujKarte(p, n5, t, w.scena, tekstZdania(w.zdanie));
+    rysujKarte(p, n5, t, w.scena);
     scenaS5 = w.scena;
     zapisz(p, "karta-s5");
     rysujEkranDanych(p, n5, t);
@@ -1239,7 +1264,7 @@ int main(int argc, char** argv) {
     b.godzinaDanych = "";
     Naglowek n10{naglowekDniaLewo(b), naglowekDniaPrawo(b)};
     TrescEkranu t = trescDnia("S10", "", b);
-    rysujKarte(p, n10, t, "B05", zdanieSynchronizacji(dzis, true));
+    rysujKarte(p, n10, t, "B05");
     zapisz(p, "karta-s10");
     rysujEkranDanych(p, n10, t);
     zapisz(p, "dane-s10");
@@ -1276,10 +1301,15 @@ int main(int argc, char** argv) {
               {"Karta", "brak karty"}, {"Źródło otoczenia", "OK 05:46"}};
     u.prawa = {{"Panel", "192.168.0.10"}, {"Wi-Fi", "Dom −60 dBm"}, {"AirBridge", "192.168.0.20 · v2.3.0"},
                {"Ostatnie pobranie", "12.11 05:32"}, {"Bateria", "–"}};
+    // wiersz trybu porównawczego (ADR-0036 „Zmiana 2026-11-09”) pod kolumnami: 7 z 7 zgodnych
+    u.dol = {{"Noce z plików", "zgodne 7 z 7, można przełączyć na pliki"}};
     u.ramkaLewo = "Wgrywanie przez Wi-Fi do 23:59";
     u.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     rysujTest(p, u);
     zapisz(p, "test");
+    u.dol = {{"Noce z plików", "rozjazd 1 z 7 (M-05, M-02)"}};
+    rysujTest(p, u);
+    zapisz(p, "test-porownanie-rozjazd");
     // najdłuższe wartości: warianty skrócone (dopasujWartosc) i bez połączenia z Wi-Fi (ostatnie z godziną)
     Otoczenie o;
     wyczyscOtoczenie(o, true);
@@ -1289,6 +1319,7 @@ int main(int argc, char** argv) {
     u.prawa[0].wartosc = "192.168.100.200 (11.11 23:59)";
     u.prawa[1].wartosc = dopasujWartosc("Wi-Fi", {"Bardzo-Dluga-Nazwa-Sieci-Domowej −90 dBm (11.11 23:59)"});
     u.prawa[2].wartosc = dopasujWartosc("AirBridge", {"brak odpowiedzi od 11.11 23:40", "brak odp. od 11.11 23:40"});
+    u.dol = {{"Noce z plików", "brak porównania: AirBridge < 2.3.1"}};
     u.ramkaLewo = "Wgrywanie przez Wi-Fi: wyłączone";
     rysujTest(p, u);
     zapisz(p, "test-najdluzsze");
@@ -1478,7 +1509,7 @@ int main(int argc, char** argv) {
       kp.tytul = "Maska przecieka.";
       kp.powod = "Trzecią noc z rzędu ponad próg 24.";
       kp.tonProblem = true;
-      rysujKarte(p, {"pn 09.11", "dane 05:44"}, kp, scenaJest("B04") ? "B04" : "", "");
+      rysujKarte(p, {"pn 09.11", "dane 05:44"}, kp, scenaJest("B04") ? "B04" : "");
       zapisz(p, "b5-karta-problem");
     }
     DaneDnia nd = d;
@@ -1512,9 +1543,38 @@ int main(int argc, char** argv) {
     rysujRaportQr(p, e);
     zapisz(p, "b13-raport-ogolny-starsze");
     // U-01 „Ustawienia” i U-03 formularz z kodem QR (stany: kod, zapisano, wynik sprawdzenia, bez Wi-Fi)
-    // U-01 jako strona 6 / 6, bez kursora; wiersze mówią, dokąd prowadzą przyciski
-    rysujUstawienia(p, {"▶ 2 s Więcej na telefonie", "▶ 2 s ▶ 2 s Test sprzętu", "◀ 2 s Sieć i AirBridge"}, -1);
-    zapisz(p, "p07-u01-ustawienia");
+    // U-01 jako strona 6 / 6, bez kursora: lista bieżących ustawień do odczytu (R-KONF-55)
+    {
+      DaneUstawien u;
+      u.ssid = "Dom-2.4GHz";
+      u.abAdres = "192.168.1.40";
+      u.miasto = "Katowice";
+      u.co2 = 1;
+      u.wersja = "1.0.0";
+      u.aktualizacja = aktualizacja::wierszU01(true, "", "1.0.0");
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia");
+      // najdłuższe wartości i znana nowsza wersja: wiersz `Jest wersja … · ↻ 2 s Aktualizacja` pod listą
+      u.ssid = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
+      u.abAdres = "bardzo-dluga-nazwa-airbridge-w-sieci.local:65535";
+      u.miasto = MIASTO_ZE_WSPOLRZEDNYCH;
+      u.aktualizacja = aktualizacja::wierszU01(true, "1.12.3-rc.12", "1.0.0");
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia-nowa-wersja");
+      u.aktualizacja = aktualizacja::wierszU01(false, "", "1.0.0");
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia-bez-klucza");
+    }
+    {  // U-07 „Aktualizacja”: jest nowsza wersja
+      aktualizacja::DaneU07 d7;
+      d7.stan = aktualizacja::StanU07::NOWSZA;
+      d7.wlasna = "1.0.0";
+      d7.nowa = "1.1.0";
+      d7.sprawdzono = "10.11 09:12";
+      aktualizacja::TresciU07 t7 = aktualizacja::trescU07(d7);
+      rysujAktualizacje(p, t7.linie, t7.stopka);
+      zapisz(p, "akt-u07-jest-nowsza");
+    }
     DaneFormularzaQr f;
     f.adresQr = "http://192.168.1.47/u/f1b384krart14y2p6g97gnhm28/";
     f.adresReczny = "192.168.1.47/u/f1b384krart14y2p6g97gnhm28";

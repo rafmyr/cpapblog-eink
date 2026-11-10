@@ -56,8 +56,8 @@ static const char* STATUS =
 // Raport nocy jak test/testy_ekrany_co2.cpp raport(): spokojna noc 7 h, AHI 1,4.
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"

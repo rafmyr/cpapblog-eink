@@ -120,11 +120,21 @@ std::string przywrocWymiane(const std::string& konfiguracja, int element, const 
 // ---------- ekran „Sprzęt” (5.9.3, R-MAS-05) ----------
 struct WierszSprzetu {
   std::string nazwa, wiek, okres;  // `Maska` · `7 mies.` · `6 mies.`; `Filtr` · `5 tyg.` · `4 tyg.`
+  // kolumna `następna wymiana` (R-MAS-15): `{data} · co {okres}`, po terminie `po {data} · co {okres}`, bez daty
+  // wymiany `brak daty · co {okres}`; data `DD.MM`, z rokiem `DD.MM.RRRR`, gdy termin wypada w innym roku niż dziś
+  std::string termin;
   bool poTerminie = false;
+  bool bezDaty = false;  // element bez zapisanej daty wymiany (R-MAS-06): pod tabelą podpowiedź, jak ją zapisać
 };
 std::vector<WierszSprzetu> wierszeSprzetu(const Elementy& e, const std::string& dzis);
-// Stopka lewa zależy od kursora (maska: `↻ 2 s: nowy model`).
-std::string stopkaSprzetu(int kursor);
-void rysujSprzet(Plotno& p, const std::vector<WierszSprzetu>& w, int kursor);
+// Podpowiedź pod tabelą, gdy któryś element nie ma daty wymiany (R-MAS-15): nazywa element bez daty i miejsce
+// ramki, bo ◀ 2 s zapisuje wymianę elementu pod ramką, a ramka może stać na innym wierszu, np.
+// `Filtr bez daty: po wymianie ramka na filtrze, ◀ 2 s.`; przy obu elementach bez daty
+// `Maska i filtr bez daty: po wymianie ramka na wierszu, ◀ 2 s.`; "" = każdy element ma datę.
+std::string podpowiedzBezDaty(const std::vector<WierszSprzetu>& w);
+// Stopka zależy od kursora (maska: `↻ 2 s nowy model`); ◀ na pierwszym wierszu podpisany nazwą strony, do której
+// prowadzi: `◀ norma` (S8), w profilu publicznym `◀ liczby` („Co znaczą te liczby”, R-EKR-51).
+std::string stopkaSprzetu(int kursor, bool profilPubliczny = false);
+void rysujSprzet(Plotno& p, const std::vector<WierszSprzetu>& w, int kursor, bool profilPubliczny = false);
 
 }  // namespace sprzet

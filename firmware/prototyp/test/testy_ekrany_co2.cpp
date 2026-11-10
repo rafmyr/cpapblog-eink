@@ -70,8 +70,8 @@ static const long DOBA_A = nrDnia("2026-11-03");  // noc z poranka 4.11.2026
 // ostatniej nocy jako `end_ms` ostatniej sesji (Załącznik A).
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"

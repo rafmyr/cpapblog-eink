@@ -116,6 +116,18 @@ const int AB_KOD_ZA_DUZO = -301;
 const size_t AB_MAKS_BAJTOW_STATUSU = size_t{16} * 1024;
 const size_t AB_MAKS_BAJTOW_LISTY = size_t{512} * 1024;
 const size_t AB_MAKS_BAJTOW_RAPORTU = size_t{64} * 1024;  // raport doby i inne trasy
+// STR.edf z AirBridge od v2.3.1 (src/str.h, ADR-0035):
+std::string sciezkaSesjiStr();     // /api/sessions?order=desc&limit=1
+std::string sciezkaPobraniaStr();  // /api/storage/download?path=/STR.edf
+// Limity ciała odpowiedzi (limitOdpowiedziAB()) [stałe techniczne]: lista jednej sesji z kilkoma plikami to ok. 1 KB;
+// STR.edf zmierzony 09.11.2026: 134 200 B przy 359 dobach (ok. 370 B na dobę), więc 1 MiB to ok. 2 800 dób.
+const size_t AB_MAKS_BAJTOW_SESJI = size_t{16} * 1024;
+const size_t AB_MAKS_BAJTOW_STR = size_t{1024} * 1024;
+// Plik sesji z /api/storage/download (noc z plików, src/noc_pliki.h, ADR-0036) [stała techniczna]: PLD zmierzony
+// 09.11.2026: 363 KB na 8 h 18 min (ok. 44 KB na godzinę), więc 2 MiB to ok. 47 h jednej sesji; większy plik =
+// noc z raportu JSON (zapas).
+const size_t AB_MAKS_BAJTOW_PLIKU_SESJI = size_t{2} * 1024 * 1024;
+
 size_t limitOdpowiedziAB(const std::string& sciezka);
 // liczba JSON spoza ±1e15 (także nieskończoność z `1e309`) w polu, które parser zapamiętuje,
 // czyni dokument nieczytelnym; pola pominięte filtrem nie są sprawdzane.
@@ -186,12 +198,38 @@ struct NocAB {
 // brakujące pola puste, nigdy 0 (R-AW-22).
 // M-08 = `leak_high_seconds` / 60 (minuty; brak, null, zły typ albo ujemne = NAN, R-AW-22);
 // M-13 = `median` kanału `RespRate` (liczba; pierwszy wpis z `source` = "edf" wygrywa, bez EDF pierwszy
-// z liczbą; brak kanału albo `null` = NAN, R-DANE-07); M-17 = `session_count` − 1, najmniej 0 (R-DANE-27 fail-path:
-// panel nie czyta `sessions[]`); brak `session_count` albo zły typ = -1. `pna`, `srn`: model i numer aparatu
+// z liczbą; brak kanału albo `null` = NAN, R-DANE-07); M-17 i M-18 według R-DANE-27 z `sessions[]` (`start_ms`,
+// `end_ms` w czasie cywilnym aparatu, m17m18Sesji()); bez `sessions[]` M-17 = `session_count` − 1, najmniej 0
+// (fail-path R-DANE-27) i M-18 brak; brak `session_count` albo zły typ = -1. `pna`, `srn`: model i numer aparatu
 // z `/api/status` tego samego wybudzenia (R-NOR-25,; raport dnia ich nie ma), zapisane przez czystePole;
 // "" = brak odczytu (nie jest zmianą aparatu).
 NocAB nocZRaportu(const std::string& tresc, long dzien, const std::string& trybZapasowy,
                   const std::string& pna = "", const std::string& srn = "");
+
+// R-DANE-27 (m17_m18() w tools/kalibracja/noce.py): sesje doby w czasie cywilnym aparatu (sekundy kalendarza aparatu
+// od 1970-01-01, bez strefy: tak AirBridge koduje `sessions[].start_ms` / 1000 i tak liczy nagłówek EDF). M-17 = sesje od
+// 18:00 [PRÓG] dnia `dzien` − 1 (wyjątek wczesnego snu: najdłuższa sesja przed 18:00 ≥ 4 h [PRÓG] i bez takiej po 18:00
+// → ta sesja i późniejsze); M-18 = start najdłuższej z nich w minutach od 12:00 dnia `dzien` (bez długości: najwcześniejszy
+// start; sesja bez startu liczy się tylko do M-17); NAN = brak. Bez sesji: M-17 = 0.
+struct SesjaCywilna {
+  bool start = false;
+  double startS = 0;
+  bool koniec = false;
+  double koniecS = 0;
+};
+// docs/spec/progi.csv: R-DANE-27.start_nocy (18:00 = 360 min od 12:00), R-DANE-27.wczesny_sen_min (4 h)
+const double R_DANE_27_START_NOCY_MIN = 360;
+const double R_DANE_27_WCZESNY_SEN_S = 4 * 3600.0;
+void m17m18Sesji(const std::vector<SesjaCywilna>& sesje, long dzien, double startNocyMin, double wczesnySenS,
+                 int& m17, double& m18Min);
+
+// Części nocZRaportu() wspólne z nocą ze STR (src/str.h nocZeStr()), żeby reguły kanałów i ustawień były jedne:
+// kanalyRaportu(): `channels[]` → pola kanałów (KANALY_AB z regułami źródła: TYLKO_EDF pomija `source` inne niż "edf",
+// EDF_ALBO_STR ustawia Noc::epapStr), M-13 (`RespRate`) i M-10 (`FlowLim`); kanalEdf = któryś kanał KANALY_AB ma
+// `source` = "edf" i liczbę w `median`.
+// ustawieniaRaportu(): `settings` → Noc::ustawienia, mpa…epr; zwraca tryb z tagu MOP (maMop = tag obecny).
+void kanalyRaportu(Noc& n, const Json& kanaly, bool& kanalEdf);
+std::string ustawieniaRaportu(Noc& n, const Json& settings, bool& maMop);
 
 // Mapowanie kanałów raportu na pola rekordu: jedno miejsce do poprawki po sprawdzeniu na urządzeniu.
 enum class ZrodloKanalu : uint8_t {
@@ -264,7 +302,8 @@ bool potrzebnaLista(const std::vector<Noc>& hist, const std::string& dzis, int m
 // Numery dni do pobrania, najnowsze najpierw, najwyżej `maks`: doby z listy z datą poranka ≤ dziś bez kompletnego
 // rekordu z AirBridge (pełna noc z AirBridge zastępuje noc z importu karty; rekord „częściowa” jest pobierany znów),
 // spoza pominiętych, a przy `proby` ≠ nullptr: bez dób czekających i wyczerpanych; ostatnia noc także przy sprawdzeniu
-// o 11:00; doba z `stale` (przy `proby` ≠ nullptr) raz jeszcze, także gdy ma rekord albo jest w pominiętych.
+// o 11:00; doba z `stale` (przy `proby` ≠ nullptr) raz jeszcze, także gdy ma rekord albo jest w pominiętych; starsza
+// doba z nocą ze STR (zrodlo 'S') tylko, gdy lista podaje dla niej sesje (`session_count` ≥ 1, ADR-0035).
 std::vector<long> planPobrania(const std::vector<DzienListy>& lista, const std::vector<Noc>& hist,
                                const std::set<long>& pominiete, const std::string& dzis, bool spr11, int maks,
                                const ProbyDob* proby = nullptr, uint32_t teraz = 0);
@@ -291,7 +330,8 @@ std::vector<std::string> wierszePominietych(const std::set<long>& p);
 //   - kompletna noc zastępuje rekord „częściowa” zawsze, a zapisany kompletny rekord z AirBridge tylko przy ponownym
 //     sprawdzeniu (`nadpisz`) i tylko, gdy wynik się różni;
 //   - pełna noc z AirBridge zastępuje rekord z importu karty tej samej daty;
-//   - noc niepełna nigdy nie zastępuje rekordu z karty ani pełnego rekordu z AirBridge (`zostawiony` = true);
+//   - noc niepełna nigdy nie zastępuje rekordu z karty, pełnego rekordu z AirBridge ani nocy ze STR aparatu (zrodlo
+//     'S', ADR-0035 pkt 4; `zostawiony` = true); pełna noc zastępuje noc ze STR;
 //   - przy zastąpieniu puste pola nowej nocy dostają wartości ze starego rekordu tej daty (uzupelnijNoc: np. wsparcie
 // PS z karty, którego raport AirBridge nie ma), więc zastąpienie niczego nie gubi.
 // Zwraca true, gdy historia się zmieniła (wtedy posortuj i zapisz plik).
@@ -302,6 +342,6 @@ bool rekordPelny(const Noc& r);
 // Import nocy z karty (R-DANE-31, ADR-0017): data bez rekordu → DODANA; pełny rekord tej daty
 // zostaje, a jego puste pola dostają wartości z karty (np. PS) → UZUPELNIONA albo POMINIETA (nic do dopisania);
 // niepełny rekord z AirBridge (tylko STR albo „częściowa”) ustępuje nocy z karty, która dostaje jego pola, których
-// karta nie ma (M-03, M-09) → ZASTAPIONA.
+// karta nie ma (M-03, M-09) → ZASTAPIONA. Noc ze STR aparatu ('S') nie jest pełna, więc ustępuje nocy z karty tak samo.
 enum class WynikImportu : uint8_t { DODANA, ZASTAPIONA, UZUPELNIONA, POMINIETA };
 WynikImportu wpiszImport(std::vector<Noc>& hist, const Noc& k);

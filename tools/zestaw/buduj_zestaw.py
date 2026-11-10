@@ -17,7 +17,8 @@ Kontrole (błąd = kod wyjścia 1 i komunikat po polsku na stderr):
   - każdy rodzaj warunku jest z tabeli 9.3 (RODZAJE), każdy parametr z kontraktu 6 (PARAMETRY);
   - każdy tekst katalogu jest w teksty.csv i stoi dosłownie w spec funkcjonalnej (białe znaki znormalizowane,
     `{prog:id}` zamienione na wartość progu, `{zmienna}` pasuje do dowolnego ciągu);
-  - liczba w tekście równa wartości progu tej reguły, wpisana bez `{prog:…}` = błąd;
+  - liczba w tekście równa wartości progu tej reguły, wpisana bez `{prog:…}` = błąd (poza numerem strony
+    kokpitu `n / 6` po słowie „raport” albo „strona”);
   - tekst dłuższy niż limit (po wstawieniu progów i najdłuższych wartości zmiennych, SZEROKOSC_ZMIENNYCH) = błąd;
   - pola `stan`, `pilnosc`, `liczone_noce`, `wymaga_normy`, `w_rozruchu` z dozwolonych wartości;
   - zależności (`wymaga`, `zlozenie.skladniki`, `trwanie.regula`) bez cyklu: wiersze są układane tak, żeby składnik
@@ -364,6 +365,9 @@ def wczytaj_deklaracje(katalog_dir):
 # Kontrola liczby progu w tekście: liczba przyklejona do liter (`K2`, `M-07`, `S2a`) nie jest
 # liczbą; liczba z jednostką inną niż jednostka progu (`od 2 tygodni` wobec 2 cmH2O) nie jest tym progiem.
 LICZBA_W_TEKSCIE = r"(?<![A-Za-z0-9-])\d+(?:,\d+)?(?![A-Za-z0-9])"
+# numer strony kokpitu w tekście (`raport 2 / 6`, `strona 5 / 6`): tylko `n / 6` po słowie „raport” albo „strona”;
+# każdy inny ułamek (`3 / 7 nocy`) dalej podlega kontroli liczb progów
+NUMER_STRONY = r"(?<=raport )[1-6] / 6(?![\d,])|(?<=strona )[1-6] / 6(?![\d,])"
 JEDNOSTKI_PO_LICZBIE = [("L/min", r"L\s*/\s*min"), ("/min", r"/\s*min"), ("/h", r"/\s*h"), ("cmH2O", r"cmH2O"),
                         ("min", r"min"), ("h", r"h(?![A-Za-ząćęłńóśźż])"), ("%", r"%"), ("noce", r"noc"),
                         ("dni", r"(dni|dzie|dob)"), ("tygodnie", r"tydz|tyg"), ("miesiące", r"miesi")]
@@ -477,6 +481,7 @@ def buduj(progi_csv, katalog_dir, spec_md, rodzaje_dodatkowe=(), ostrzezenia=Non
             t = teksty[idt]
             g = "%s, tekst %s" % (gdzie, idt)
             bez = re.sub(r"\{[^}]*\}", " ", t["tekst"])
+            bez = re.sub(NUMER_STRONY, " ", bez)  # `2 / 6` to numer strony kokpitu, nie wartość
             for m in re.finditer(LICZBA_W_TEKSCIE, bez):
                 x = liczba(m.group(0))
                 jt = jednostka_po(bez, m.end())

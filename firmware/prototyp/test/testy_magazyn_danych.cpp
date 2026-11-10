@@ -145,6 +145,8 @@ static const Oczekiwany FORMATY[] = {
      "id;wariant;aktywna_od;ostatnio;licznik;stan_wzorca;wiem;omowione"},
     // odpowiedzi tak/nie 5.12.8 (bez pliku prototypu)
     {"odpowiedzi", "/dane/odpowiedzi.csv", "", RodzajZapisu::PRZEPISANIE, "data;pytanie;odpowiedz"},
+    // porównanie nocy z plików z raportem JSON (src/porownanie.h), bez pliku prototypu
+    {"porownanie", "/dane/porownanie.csv", "", RodzajZapisu::PRZEPISANIE, "data;werdykt;rozjazd;pominiete;przyczyna"},
 };
 static std::string sciezkaRoku(const std::string& wzor, const std::string& rok) {
   std::string s = wzor;
@@ -254,6 +256,7 @@ static std::string wierszFormatu(const std::string& nazwa, int i) {
   if (nazwa == "pominiete") return std::to_string(nrDnia(d));
   if (nazwa == "reguly") return "E-30;;" + d + ";" + d + ";" + std::to_string(i + 1) + ";;;";
   if (nazwa == "odpowiedzi") return d + ";sennosc;" + (i % 2 ? "tak" : "nie");
+  if (nazwa == "porownanie") return d + (i % 2 ? ";rozjazd;m05=14.60~14.00;m28:pliki;" : ";brak;;;brak czasu");
   return std::to_string(nrDnia(d)) + ";2;" + std::to_string(ep(2026, 10, 1, 7, 0)) + ";0";  // proby
 }
 
@@ -306,7 +309,7 @@ static void montowana(AtrapaPlikow& pl) {
 // `#cpap-eink {nazwa} 1`, drugi nazwy pól, przy przepisywanych na końcu `#koniec 1`.
 static void testT_WYM_50_naglowkiPlikow() {
   const std::vector<FormatPliku>& r = rejestrFormatow();
-  ROWNE_L(r.size(), 11);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`
+  ROWNE_L(r.size(), 12);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`
   for (auto& e : FORMATY) {
     const FormatPliku* f = formatPliku(r, e.nazwa);
     SPRAWDZ(f != nullptr);
@@ -314,7 +317,7 @@ static void testT_WYM_50_naglowkiPlikow() {
     ROWNE(f->sciezka, e.sciezka);
     ROWNE(f->sciezkaV0, e.v0);
     SPRAWDZ(f->rodzaj == e.rodzaj);
-    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 3 : std::string(e.nazwa) == "sypialnia" ? 2 : 1);
+    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 4 : std::string(e.nazwa) == "sypialnia" ? 2 : 1);
     if (f->wersja() >= 1) ROWNE(polaTekst(f->pola[0]), e.pola);
   }
   Dziennik d;
@@ -684,7 +687,7 @@ static void testT_WYM_55_migracjaPozostalych() {
 // przez firmware znający wersję 1 → te same wartości pól wspólnych (stan NOWSZY), a znający wersję 2 → całe wiersze.
 static void testT_WYM_57_poleTylkoNaKoncu() {
   const std::vector<FormatPliku>& r = rejestrFormatow();
-  ROWNE_L(r.size(), 11);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`
+  ROWNE_L(r.size(), 12);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`
   for (auto& f : r) {
     std::vector<FormatPliku> rej;
     SPRAWDZ(rejestrV2(rej, f.nazwa));
@@ -879,8 +882,8 @@ static const char* R_AW_16 = "Błąd pamięci panelu. Wyniki mogą być niepełn
 // Raport doby i lista nocy jak w test/testy_slot_dzienny_w_planie.cpp (dane syntetyczne).
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"
@@ -2032,7 +2035,7 @@ static void testT_WYM_62_przejscieNaZrzucieZPanelu() {
   bool inne = false;
   for (auto& n : plikiZrzutu())
     if (n != "noce.csv" && std::ifstream(std::string(kat) + "/" + n)) inne = true;
-  SPRAWDZ(zawiera(t.diagnostykaTestu, inne ? "Dane: wersje plików 1, " : "Dane: wersja plików 3"));  // noce 3
+  SPRAWDZ(zawiera(t.diagnostykaTestu, inne ? "Dane: wersje plików 1, " : "Dane: wersja plików 4"));  // noce 4
   const char* pbm = getenv("CPAP_ZRZUT_PBM");
   if (pbm && *pbm)
     for (size_t i = 0; i < s.p.ekran.klatki.size(); i++)
@@ -2565,14 +2568,15 @@ static void testU05_wierszeZDanychFirmware() {
   std::vector<std::string> ocz = {"Oprogramowanie: 1.0.0 (app0)", "Zestaw reguł: wbudowany", "Pamięć panelu: wolne 23 MB",
                                   "Karta: brak karty", "Źródło otoczenia: wyłączone", "Panel: 192.168.1.50",
                                   "Wi-Fi: Dom −60 dBm", "AirBridge: 192.168.1.20 · v2.2.1", "Ostatnie pobranie: –",
-                                  "Bateria: 70%", "Wgrywanie przez Wi-Fi do 10:10", "hasła i dane terapii nie są pokazywane"};
+                                  "Bateria: 70%", "Noce z plików: jeszcze bez porównania",
+                                  "Wgrywanie przez Wi-Fi do 10:10", "hasła i dane terapii nie są pokazywane"};
   SPRAWDZ(t.linieTestu.size() >= ocz.size());
   for (size_t i = 0; i < ocz.size() && i < t.linieTestu.size(); i++) ROWNE(t.linieTestu[i], ocz[i]);
   SPRAWDZ(!zawiera(t.linieTestu, "abc1234") && !zawiera(t.linieTestu, "proto"));
   SPRAWDZ(logMa(s, "U-05 · Wersja: 1.0.0+abc1234 · slot app0"));
   for (const char* d : {"U-05 · Wybudzenie: przycisk", "U-05 · Wi-Fi: 192.168.1.50 · RSSI -60 dBm", "U-05 · AirBridge: 192.168.1.20",
                         "historia 30 nocy", "U-05 · Czynniki: ", "U-05 · Bateria 3,95 V", "U-05 · Otoczenie: wyłączone",
-                        "U-05 · Pamięć: min. sterta", "U-05 · Dane: wersja plików 3"})  // noce w wersji 3 (M-18)
+                        "U-05 · Pamięć: min. sterta", "U-05 · Dane: wersja plików 4"})  // noce w wersji 4 (S w polu zrodlo, ADR-0035)
     SPRAWDZ(logMa(s, d));
   SPRAWDZ(!s.p.ekran.klatki.empty() && ukladU05(s.p.ekran.klatki.front(), 5, 5));
   if (!s.p.ekran.klatki.empty()) zapiszU05(s.p.ekran.klatki.front(), "u05-okno-wifi");
@@ -2637,12 +2641,13 @@ static void testU05_oknoPrzywracaniaIPo412() {
   doPortu(s, b + "K" + "O");  // `O` po oknie: U-05 w czuwaniu (okno serwisowe), jak testT_WYM_62_przejscieNaZrzucieZPanelu
   blokada(s, 0);
   TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
-  SPRAWDZ(t.linieTestu.size() >= 24);
-  if (t.linieTestu.size() < 24) return;
-  ROWNE(t.linieTestu[10], "Okno przywracania do 07:10");
-  ROWNE(t.linieTestu[11], "hasła i dane terapii nie są pokazywane");
+  // każdy U-05 to 13 tekstów (10 wierszy kolumn, `Noce z plików`, ramka)
+  SPRAWDZ(t.linieTestu.size() >= 26);
+  if (t.linieTestu.size() < 26) return;
+  ROWNE(t.linieTestu[11], "Okno przywracania do 07:10");
+  ROWNE(t.linieTestu[12], "hasła i dane terapii nie są pokazywane");
   ROWNE(t.linieTestu[2], "Pamięć panelu: wolne 23 MB");  // świeżo sformatowana partycja
-  ROWNE(t.linieTestu[14], "Pamięć panelu: przywrócono 412/412");  // 2. U-05: po przywróceniu
+  ROWNE(t.linieTestu[15], "Pamięć panelu: przywrócono 412/412");  // 2. U-05: po przywróceniu
   SPRAWDZ(zawiera(t.diagnostykaTestu, "historia 412 nocy") && zawiera(t.diagnostykaTestu, "przywrócono 412 z 412"));
   SPRAWDZ(s.p.ekran.klatki.size() >= 2);
   if (s.p.ekran.klatki.size() < 2) return;
@@ -2677,10 +2682,10 @@ static void testU05_ostatniePobraniePoPrzywroceniu() {
     doPortu(s, b + "K" + "O");
     blokada(s, 0);
     TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
-    SPRAWDZ(t.linieTestu.size() >= 24);
-    if (t.linieTestu.size() < 24) return;
-    ROWNE(t.linieTestu[14], "Pamięć panelu: przywrócono 412/412");
-    ROWNE(t.linieTestu[20], "Ostatnie pobranie: 04.11 05:32");  // przed D52: `–` (noce zrzutu bez `import`)
+    SPRAWDZ(t.linieTestu.size() >= 26);
+    if (t.linieTestu.size() < 26) return;
+    ROWNE(t.linieTestu[15], "Pamięć panelu: przywrócono 412/412");
+    ROWNE(t.linieTestu[21], "Ostatnie pobranie: 04.11 05:32");  // przed D52: `–` (noce zrzutu bez `import`)
     SPRAWDZ(s.p.ekran.klatki.size() >= 2);
     for (auto& k : s.p.ekran.klatki)
       if (ukladU05(k, 5, 5) && &k != &s.p.ekran.klatki.front()) zapiszU05(k, "u05-po-przywroceniu-412-pobranie");

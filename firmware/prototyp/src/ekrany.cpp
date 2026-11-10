@@ -317,6 +317,23 @@ std::string wersaliki(const std::string& u) {
   return r;
 }
 
+int liniaUwagiEkranu(Plotno& p, const std::string& t, bool liniaA, bool ostrzezenie, bool negatyw, int x0, int x1) {
+  if (t.empty()) return 0;
+  const int h = liniaA ? 60 : 48, y = liniaA ? 94 : 87, x = 28;
+  const GFXfont* f = liniaA ? F_P28B : F_P24B;
+  const bool kolorTekstu = !negatyw;  // czarny na białym tle, biały w negatywie
+  if (liniaA || ostrzezenie) {        // ostrzeżenie: pasek odwrócony względem tła, `!`
+    p.prostokat(x0, 54, x1 - x0, h, kolorTekstu);
+    int xt = tekst(p, f, x, y, "!", !kolorTekstu);
+    tekst(p, f, xt + 12, y, t, !kolorTekstu);
+  } else {  // informacja albo prośba: tło ekranu, ramka 2 px w kolorze tekstu, bez `!`
+    p.prostokat(x0, 54, x1 - x0, h, !kolorTekstu);
+    p.ramka(12, 57, 776, h - 6, 2, kolorTekstu);
+    tekst(p, f, x, y, t, kolorTekstu);
+  }
+  return h;
+}
+
 // ---------- elementy wspólne ----------
 namespace {
 
@@ -348,27 +365,49 @@ void naglowekKarty(Plotno& p, const Naglowek& n, int b = 32) {
 
 // Stopka (SPEC-B 3, SPEC-KOKPIT 2.1): linia 2 px na 434, P22B na 465. lewo: pogoda albo zdanie budzika w cudzysłowie;
 // grupy: akcje przycisków (z prawej, gdy jest `lewo`) albo prawa część (odczyt czujnika `przy łóżku …`).
-void stopkaAkcji(Plotno& p, const std::string& lewo, std::vector<std::string> grupy) {
+// przy ikonie aktualizacji grupy skracane do pełnych słów od ostatniej (grupa z samą ikoną znika)
+void grupyDoSzerokosci(std::vector<std::string>& grupy, int maxW) {
+  if (!ikonaAktualizacjiWlaczona()) return;
+  while (!grupy.empty() && szerStopki(grupy) > maxW) {
+    std::string& g = grupy.back();
+    size_t sp = g.rfind(' ');
+    if (sp == std::string::npos || g.find(' ') == sp) {
+      grupy.pop_back();
+      continue;
+    }
+    g.erase(sp);
+    while (!g.empty() && (g.back() == ' ' || g.back() == '\xb7' || g.back() == '\xc2')) g.pop_back();  // bez `·` na końcu
+  }
+}
+
+void stopkaAkcji(Plotno& p, const std::string& lewo0, std::vector<std::string> grupy) {
   uporzadkujPrzyciski(grupy);
   StylStopki st;
   kreska(p, 434);
+  grupyDoSzerokosci(grupy, prawyBrzegStopki() - X);
   int w = szerStopki(grupy);
   int x = X;
+  std::string lewo = ikonaAktualizacjiWlaczona() ? skrocDoSlow(F_P22B, lewo0, prawyBrzegStopki() - w - 26 - X) : lewo0;
   if (!lewo.empty()) {
     tekst(p, F_P22B, X, 465, lewo);
-    x = XP - w;
+    x = prawyBrzegStopki() - w;  // R-EKR-61: przy ikonie aktualizacji grupy kończą się przed nią
   }
   for (auto& g : grupy) x = tekst(p, F_P22B, x, 465, g) + 26;
 }
 
 // stopka ekranu dnia: znika, gdy obie strony są puste (reguła ustępowania 0, SPEC-B 3); lewo pogoda, prawo `przy łóżku …`
 // albo akcja (`↻ ponów`)
-bool stopkaDnia(Plotno& p, const std::string& lewo, const std::string& prawo) {
-  if (lewo.empty() && prawo.empty()) return false;
+bool stopkaDnia(Plotno& p, const std::string& lewo0, const std::string& prawo0) {
+  if (lewo0.empty() && prawo0.empty()) return false;
   StylStopki st;
   kreska(p, 434);
+  std::string prawo = prawo0, lewo = lewo0;
+  if (ikonaAktualizacjiWlaczona()) {  // pełne słowa przed ikoną
+    prawo = skrocDoSlow(F_P22B, prawo0, prawyBrzegStopki() - X);
+    lewo = skrocDoSlow(F_P22B, lewo0, prawyBrzegStopki() - X - (prawo.empty() ? 0 : szer(F_P22B, prawo) + 26));
+  }
   if (!lewo.empty()) tekst(p, F_P22B, X, 465, lewo);
-  if (!prawo.empty()) tekstPrawo(p, F_P22B, XP, 465, prawo);
+  if (!prawo.empty()) tekstPrawo(p, F_P22B, prawyBrzegStopki(), 465, prawo);
   return true;
 }
 
@@ -527,7 +566,12 @@ static void trescKarty(Plotno& p, const std::string& et, const std::string& tytu
   if (!krok.empty()) tekst(p, F_P22B, XK, 412, krok);
 }
 
-void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& sc, const std::string& zdanie) {
+// Stopka karty (od 10.11.2026 bez zdania budzika, ADR-0009 „Zmiana 2026-11-10”): jak stopka ekranu danych (stopkaDnia,
+// znika bez treści po obu stronach), lewo z t.stopkaLewo (pogoda albo podpowiedź ekranu danych tego samego ekranu,
+// R-EKR-10, albo podpis akcji), prawo bez zmian (`przy łóżku …` albo akcja). Pogodę z lewej wywołujący skraca
+// wcześniej tą samą regułą co na ekranie danych (dopasujStopke(): opis pogody, miasto, dopisek CO2); gdy obie
+// części i tak nie mieszczą się w 744 px, ustępuje lewa, bo prawa jest odczytem albo akcją.
+void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& sc) {
   p.prostokat(0, 0, 800, 480, false);
   if (t.tonProblem) {  // ton „problem” (R-HUM-24, kanwa K09): czarny pasek nagłówka z białym tekstem; tło jasne (ADR-0009)
     p.prostokat(0, 0, 800, 48, true);
@@ -541,16 +585,9 @@ void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::s
              t.fakty, t.krok, t.tonProblem, t.kartaBezEtykiety);
   const SceneBudzika* s = scena(sc);
   if (s) p.bitmapa(s->bmp, 800 - 26 - 14 - 125 - s->w / 2, 418 - s->h, s->w, s->h);  // budzik zawsze na bieli (ADR-0009)
-  // zdanie budzika w cudzysłowie, bez kursywy (T16); prawa część: `przy łóżku …` albo akcja (`↻ ponów`)
-  std::string lewo = zdanie.empty() ? std::string() : "„" + zdanie + "”";
-  std::string prawo = t.stopkaPrawo;
-  // odczyt czujnika (nie akcja) ustępuje zdaniu budzika, gdy oba nie mieszczą się w 744 px (zdanie do 45 znaków)
-  bool akcja = prawo.rfind("↻", 0) == 0 || prawo.rfind("▶", 0) == 0 || prawo.rfind("◀", 0) == 0;
-  // (najpierw ustępuje dopisek CO2 sypialni, potem cały odczyt)
-  auto zaDlugo = [&]() { return !akcja && !prawo.empty() && !lewo.empty() && szer(F_P22B, lewo) + szerStopki({prawo}) + 24 > W; };
-  if (zaDlugo() && prawo.find(" · CO2 ") != std::string::npos) prawo = prawo.substr(0, prawo.find(" · CO2 "));
-  if (zaDlugo()) prawo.clear();
-  stopkaAkcji(p, lewo, prawo.empty() ? std::vector<std::string>{} : std::vector<std::string>{prawo});
+  std::string lewo = t.stopkaLewo;
+  if (!lewo.empty() && !t.stopkaPrawo.empty() && szer(F_P22B, lewo) + szer(F_P22B, t.stopkaPrawo) + 24 > W) lewo.clear();
+  stopkaDnia(p, lewo, t.stopkaPrawo);
 }
 
 // ---------- ekran danych (5.4.3, wariant B: docs/design/czytelnosc-b/SPEC-B.md 3–5) ----------
@@ -680,18 +717,7 @@ void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t) {
   p.prostokat(0, 0, 800, 480, false);
   naglowekDanych(p, {t.naglowekLewo.empty() ? n.lewo : t.naglowekLewo, n.prawo});
   int h = wysLinii(t);
-  if (h) {  // linia uwagi (zwykła B6 na 87, wzorca A B5 na 94)
-    const GFXfont* f = t.liniaA ? F_P28B : F_P24B;
-    int y = t.liniaA ? 94 : 87;
-    if (t.liniaA || t.liniaOstrzezenie) {  // ostrzeżenie (grupa „zdrowie”): czarny pasek, `!` i tekst biały
-      p.prostokat(0, 54, 800, h, true);
-      int x = tekst(p, f, X, y, "!", false);
-      tekst(p, f, x + 12, y, t.linia, false);
-    } else {  // informacja albo prośba: biały pasek w ramce 2 px, bez `!`
-      p.ramka(12, 57, 776, h - 6, 2);
-      tekst(p, f, X, y, t.linia);
-    }
-  }
+  if (h) liniaUwagiEkranu(p, t.linia, t.liniaA, t.liniaOstrzezenie, false);  // zwykła B6 na 87, wzorca A B5 na 94
   switch (t.uklad) {
     case Uklad::TYDZIEN: ekranTydzien(p, t, 54 + h); break;
     case Uklad::SERIA: ekranSeria(p, t, 54 + h, maStopke(t)); break;
@@ -702,6 +728,10 @@ void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t) {
 }
 
 // ---------- K1 (5.5.2, SPEC-KOKPIT 3) ----------
+const char* const LEGENDA_K1 = "↔ stabilnie";
+
+std::string slowoOcenyK1(const std::string& slowo) { return slowo == "stabilnie" ? "↔" : slowo; }
+
 void rysujK1(Plotno& p, const DaneK1& d) {
   p.prostokat(0, 0, 800, 480, false);
   naglowekDanych(p, {d.naglowek + (d.romb ? " ◆" : ""), numerStronyTekst(Ekran::K1)}, F_P22B);  // `1 / 6`
@@ -742,7 +772,7 @@ void rysujK1(Plotno& p, const DaneK1& d) {
   // y + 1 … y + 48 (48 px). Tekst P22B zajmuje od −17 do +3 px wokół linii bazowej (21 px), więc dwie linie oceny
   // na y + 20 i y + 43 mają po 2 px odstępu od ramki i między sobą.
   // Z odkryciem wiersze mają (432 − góra) / wierszy px. Ocena w dwóch liniach P22B mieści się od 46 px; niżej idzie
-  // w jednej linii P22B (`wyżej niż zwykle od 3 nocy`, `stabilnie · wyciek widoczny`, do 296 px), a linia trendu
+  // w jednej linii P22B (`wyżej niż zwykle od 3 nocy`, `↔ wyciek widoczny`, do 296 px), a linia trendu
   // i mediana przesuwają się w lewo o 36 px, żeby zmieścić ją do prawego marginesu.
   const int top = yKreska + 28;
   const int hw = odk ? std::min(50, (432 - top) / std::max(1, d.wierszy)) : 50;
@@ -752,6 +782,8 @@ void rysujK1(Plotno& p, const DaneK1& d) {
   tekst(p, F_P22B, X, yKol, "Ostatnie 30 nocy");
   tekstPrawo(p, F_P22B, xm, yKol, "mediana");
   tekst(p, F_P22B, xm + 16, yKol, "ocena");
+  // wiersze spokojne (trend `stabilnie`) mają sam znak `↔`; słowo stoi raz, w legendzie z prawej (R-KOK-17)
+  tekstPrawo(p, F_P22B, XP, yKol, LEGENDA_K1);
   for (int i = 0; i < d.wierszy; i++) {  // 4 wiersze w CPAP i AutoSet, 5 w ASV (R-KOK-15)
     const WierszK1& w = d.w[i];
     int y = top + i * hw, sr = y + hw / 2;
@@ -761,12 +793,13 @@ void rysujK1(Plotno& p, const DaneK1& d) {
     int hl = hw >= 50 ? 32 : hw - 14;  // linia trendu niższa przy niższym wierszu
     linia30(p, 196, sr - hl / 2, wl, hl, w.linia, 3, false);
     tekstPrawo(p, F_P28B, xm, sr + 10, w.mediana);
+    const std::string slowo = slowoOcenyK1(w.slowo);
     if (w.slowo2.empty()) {
-      tekst(p, F_P22B, xm + 16, sr + 8, w.slowo);
+      tekst(p, F_P22B, xm + 16, sr + 8, slowo);
     } else if (jednaLinia) {  // `od {n} nocy` czyta się dalej zdania, inne dopiski po `·` (separator panelu)
-      tekst(p, F_P22B, xm + 16, sr + 8, w.slowo + (w.slowo2.rfind("od ", 0) == 0 ? " " : " · ") + w.slowo2);
+      tekst(p, F_P22B, xm + 16, sr + 8, slowo + (w.slowo2.rfind("od ", 0) == 0 || slowo == "↔" ? " " : " · ") + w.slowo2);
     } else {  // T3: `wyżej niż zwykle` / `od {n} nocy` w 2 liniach; przy wierszu 46…49 px o 1 px ciaśniej
-      tekst(p, F_P22B, xm + 16, y + (hw >= 50 ? 20 : 19), w.slowo);
+      tekst(p, F_P22B, xm + 16, y + (hw >= 50 ? 20 : 19), slowo);
       tekst(p, F_P22B, xm + 16, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
     }
   }
@@ -797,11 +830,19 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   tekstPrawo(p, F_P22B, TXP, top - 9, "norma");
   kreska(p, top - 2, 3, TX, TXP);
   int y = top + 1;
+  bool zwin[DaneK2::WIERSZE] = {};
+  const std::string brak = zwinieteK2(d, zwin);
+  bool grupaCzeka = false;  // linia grupy zwiniętego wiersza przechodzi na następny rysowany wiersz
   for (int r = 0; r < d.wierszy; r++) {  // 9 wierszy w CPAP i AutoSet, 10 w ASV (R-KOK-15)
     const WierszK2& w = d.w[r];
-    if (w.grupa) {  // linie grup: przed `Czas z maską` i przed `Wyciek l/min`
+    if (zwin[r]) {  // R-KOK-18: wiersz z samymi kreskami tylko w linii `brak danych: …` pod tabelą
+      grupaCzeka = grupaCzeka || w.grupa;
+      continue;
+    }
+    if (w.grupa || grupaCzeka) {  // linie grup: przed `Czas z maską` i przed `Wyciek l/min`
       kreska(p, y, 1, TX, TXP);
       y += 2;
+      grupaCzeka = false;
     }
     int b = y + h / 2 + 8;  // wersalik P22B wyśrodkowany w wierszu
     if (w.stan) {  // R-KOK-09: etykieta wiersza w ramce (stan odchylenia = poza twoją normą)
@@ -834,6 +875,11 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   // pionowe linie 1 px: przed ostatnią nocą (wyróżnienie bez znaczenia kolorystycznego) i przed normą
   p.prostokat(xKol + 6 * krok + 1, top + 1, 1, y - top - 1, true);
   p.prostokat(xKol + 7 * krok + 3, top + 1, 1, y - top - 1, true);
+  // R-KOK-18: zwinięte wiersze jedną linią pod tabelą, nad legendą; legenda niżej o wysokość wiersza
+  if (!brak.empty()) {
+    tekst(p, F_P22B, X, y + 21, brak);
+    y += h;
+  }
   // legenda (T6), jedna dla całego panelu: czarny prostokąt `ponad próg`, ramka `poza twoją normą`, P22B prosto
   int ly = y + 21;
   p.prostokat(X, ly - 15, 26, 16, true);
@@ -841,6 +887,34 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   p.ramka(x + 26, ly - 16, 26, 18, 2);
   tekst(p, F_P22B, x + 60, ly, "poza twoją normą");
   stopkaAkcji(p, "", stopkaK2(d.sprawy));
+}
+
+std::string zwinieteK2(const DaneK2& d, bool zwin[DaneK2::WIERSZE]) {
+  // dwa przebiegi: gdy wcięta składowa AHI nie zmieści się w linii i zostanie w tabeli, AHI też zostaje (wcięcie
+  // nie wisi bez wiersza nadrzędnego), a linia liczy się od nowa bez AHI
+  bool bezAhi = false;
+  std::string l;
+  for (int przebieg = 0; przebieg < 2; przebieg++) {
+    l.clear();
+    bool skladowaZostaje = false;
+    for (int r = 0; r < d.wierszy && r < DaneK2::WIERSZE; r++) {
+      zwin[r] = false;
+      if (!d.w[r].pusty || (r == 0 && bezAhi)) {
+        skladowaZostaje = skladowaZostaje || d.w[r].wciecie;
+        continue;
+      }
+      std::string kandydat = (l.empty() ? std::string("brak danych: ") : l + ", ") + d.w[r].nazwaBraku;
+      if (szer(F_P22B, kandydat) > W) {  // nie mieści się: wiersz zostaje w tabeli
+        skladowaZostaje = skladowaZostaje || d.w[r].wciecie;
+        continue;
+      }
+      l = kandydat;
+      zwin[r] = true;
+    }
+    if (!(d.wierszy > 0 && zwin[0] && skladowaZostaje)) break;
+    bezAhi = true;
+  }
+  return l;
 }
 
 // ---------- pytanie „Co było inaczej?” (5.11.4, SPEC-KOKPIT 5) ----------
@@ -968,11 +1042,11 @@ void kolumnaU05(Plotno& p, int x0, const std::string& nazwa, const std::vector<W
 }
 }  // namespace
 
-int miejsceNaWartosc(const std::string& nazwa) { return TEST_KOLUMNA - szer(F_P20, nazwa) - TEST_ODSTEP; }
+int miejsceNaWartosc(const std::string& nazwa, int szerokosc) { return szerokosc - szer(F_P20, nazwa) - TEST_ODSTEP; }
 
-std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty) {
+std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty, int szerokosc) {
   if (warianty.empty()) return "";
-  int m = miejsceNaWartosc(nazwa);
+  int m = miejsceNaWartosc(nazwa, szerokosc);
   for (auto& w : warianty)
     if (szer(F_P20B, w) <= m) return w;
   std::string w = warianty.back();
@@ -991,6 +1065,13 @@ void rysujTest(Plotno& p, const DaneTestu& d) {
   kreska(p, T_NAGLOWEK);
   kolumnaU05(p, T_X, "Oprogramowanie i pamięć", d.lewa);
   kolumnaU05(p, T_KOL2, "Łączność i bateria", d.prawa);
+  if (!d.dol.empty()) {  // wiersz pod kolumnami na całą szerokość, jak wiersz kolumny (P20, P20B, kreska 1 px)
+    int y0 = T_WIERSZ0 + 5 * T_WIERSZ;
+    const WierszTestu& w = d.dol.front();
+    tekst(p, F_P20, T_X, y0 + T_BAZA_WIERSZA, w.nazwa);
+    tekstPrawo(p, F_P20B, T_XP, y0 + T_BAZA_WIERSZA, dopasujWartosc(w.nazwa, {w.wartosc}, TEST_SZEROKOSC));
+    p.prostokat(T_X, y0 + T_WIERSZ - 1, TEST_SZEROKOSC, 1, true);
+  }
   p.ramka(T_X, T_RAMKA_Y, T_XP - T_X, T_RAMKA_H, 2);
   tekst(p, F_P20B, T_X + T_WCIECIE_RAMKI, T_BAZA_RAMKI, d.ramkaLewo);
   tekstPrawo(p, F_P20, T_XP - T_WCIECIE_RAMKI, T_BAZA_RAMKI, d.ramkaPrawo);
@@ -1020,9 +1101,8 @@ void rysujDobranoc(Plotno& p, const DaneNocy& d) {
   p.prostokat(0, 0, 800, 480, false);  // budzik zawsze na bieli (ADR-0009)
   TekstyNocy t = tekstyNocy(d);
   const SceneBudzika* s = scenaNocy(d.wybor.scena);
-  auto stopkaNocy = [&]() {
-    stopkaAkcji(p, t.stopkaLewo, t.stopkaPrawo.empty() ? std::vector<std::string>{} : std::vector<std::string>{t.stopkaPrawo});
-  };
+  // stopka jak na karcie (bez zdania budzika od 10.11.2026): `▶ kokpit` z prawej, jak dotąd
+  auto stopkaNocy = [&]() { stopkaDnia(p, t.stopkaLewo, t.stopkaPrawo); };
   switch (d.wybor.wariant) {
     case WariantNocy::A1: {  // karta według anatomii ADR-0009
       naglowekKarty(p, {t.naglowekLewo, t.naglowekPrawo});
@@ -1036,9 +1116,8 @@ void rysujDobranoc(Plotno& p, const DaneNocy& d) {
     }
     case WariantNocy::A2:  // duża scena, minimum tekstu, bez nagłówka i stopki
       if (s) p.bitmapa(s->bmp, (800 - s->w) / 2, 40, s->w, s->h);
-      tekstSrodek(p, F_SB44, 400, t.zdanieA2.empty() ? 395 : 382, t.tytul);
-      if (!t.zdanieA2.empty()) tekstSrodek(p, F_P22B, 400, 418, t.zdanieA2);
-      tekstSrodek(p, F_P22B, 400, t.zdanieA2.empty() ? 440 : 452, t.liniaA2);
+      tekstSrodek(p, F_SB44, 400, 395, t.tytul);  // bez zdania budzika pod tytułem (od 10.11.2026)
+      tekstSrodek(p, F_P22B, 400, 440, t.liniaA2);
       break;
     case WariantNocy::A3:  // typograficzny: godzina założenia maski
       naglowekKarty(p, {t.naglowekLewo, t.naglowekPrawo});
@@ -1108,19 +1187,8 @@ void rysujWzorzec(Plotno& p, const DaneWzorca& d) {
   // przesuwa się o wysokość linii minus to miejsce, a wizualizacja traci resztę (krok i stopka zostają na swoich liniach)
   // R-PIE-07: na ekranie wzorca A (ton „lekarz”) jedyną linią jest E-05 krytyczne (dyrygent podaje ją tylko wtedy);
   // pasek w ramce ekranu, treść przesuwa się jak na ekranie „problem”
-  int hl = !d.linia.empty() ? (d.liniaA ? 60 : 48) : 0;
-  if (hl) {
-    const GFXfont* f = d.liniaA ? F_P28B : F_P24B;
-    int yb = d.liniaA ? 94 : 87;
-    if (d.liniaA || d.liniaOstrzezenie) {  // ostrzeżenie: na negatywie biały pasek, `!` i tekst czarny
-      p.prostokat(x0, 54, x1 - x0, hl, B);
-      int x = tekst(p, f, X, yb, "!", !B);
-      tekst(p, f, x + 12, yb, d.linia, !B);
-    } else {  // informacja albo prośba: biała ramka 2 px, tekst biały, bez `!`
-      p.ramka(12, 57, 776, hl - 6, 2, B);
-      tekst(p, f, X, yb, d.linia, B);
-    }
-  }
+  // ostrzeżenie: na negatywie biały pasek, `!` i tekst czarny; informacja: biała ramka 2 px, tekst biały, bez `!`
+  int hl = liniaUwagiEkranu(p, d.linia, d.liniaA, d.liniaOstrzezenie, true, x0, x1);
   int sz = hl ? hl - (d.etykieta.empty() ? 36 : 0) : 0;
   if (sz < 0) sz = 0;
   if (!d.etykieta.empty()) etykieta(p, X, 88 + sz, wersaliki(d.etykieta), B);
@@ -1283,13 +1351,15 @@ void rysujSprawy(Plotno& p, const DaneSpraw& d) {
 
 void naglowekEkranu(Plotno& p, const Naglowek& n) { naglowekDanych(p, n, F_P22B); }
 
-void stopkaEkranu(Plotno& p, std::vector<std::string> lewo, const std::string& prawo) {
+void stopkaEkranu(Plotno& p, std::vector<std::string> lewo, const std::string& prawo0) {
   uporzadkujPrzyciski(lewo);
   StylStopki st;
   kreska(p, 434);
+  std::string prawo = ikonaAktualizacjiWlaczona() ? skrocDoSlow(F_P22B, prawo0, prawyBrzegStopki() - X) : prawo0;
+  grupyDoSzerokosci(lewo, prawyBrzegStopki() - X - (prawo.empty() ? 0 : szer(F_P22B, prawo) + 26));
   int x = X;
   for (auto& g : lewo) x = tekst(p, F_P22B, x, 465, g) + 26;
-  if (!prawo.empty()) tekstPrawo(p, F_P22B, XP, 465, prawo);
+  if (!prawo.empty()) tekstPrawo(p, F_P22B, prawyBrzegStopki(), 465, prawo);
 }
 
 void rysujPytanieTN(Plotno& p, const DanePytaniaTN& d) {
@@ -1304,4 +1374,36 @@ void rysujPytanieTN(Plotno& p, const DanePytaniaTN& d) {
   poleOdpowiedzi(p, XP - 200, 312, 200, 96, "↻", "pomiń", F_P28B, true);
   kreska(p, 434);
   tekst(p, F_P22B, X, 465, d.stopka);
+}
+
+// ---------- R-EKR-61: ikona aktualizacji w stopce ekranu dnia ----------
+namespace {
+bool ikonaWl = false;
+}
+void ustawIkoneAktualizacji(bool wl) { ikonaWl = wl; }
+bool ikonaAktualizacjiWlaczona() { return ikonaWl; }
+int prawyBrzegStopki() { return ikonaWl ? XP - BOK_IKONY_AKTUALIZACJI - ODSTEP_IKONY_AKTUALIZACJI : XP; }
+
+bool ikonaAktualizacji(Plotno& p, bool tloCzarne) {
+  if (!ikonaWl) return false;
+  const int b = BOK_IKONY_AKTUALIZACJI, x = XP - b, y = 465 - b + 2;  // dolna krawędź jak dół ikon przycisków
+  // pas od lewej krawędzi ikony minus odstęp do prawej krawędzi ekranu w kolorze tła stopki: treść się skraca
+  p.prostokat(x - ODSTEP_IKONY_AKTUALIZACJI, 437, 800 - (x - ODSTEP_IKONY_AKTUALIZACJI), 43, tloCzarne);
+  bool cz = !tloCzarne;
+  p.prostokat(x, y, b, b, cz);                      // kwadrat w negatywie
+  p.prostokat(x + b / 2 - 1, y + 4, 3, 9, !cz);     // trzon strzałki
+  p.trojkat(x + 6, y + 11, x + b - 6, y + 11, x + b / 2, y + 17, !cz);  // grot w dół
+  p.prostokat(x + 5, y + 19, b - 10, 2, !cz);       // kreska pod strzałką
+  return true;
+}
+
+std::string skrocDoSlow(const GFXfont* f, const std::string& t, int maxW) {
+  std::string w = t;
+  while (!w.empty() && szer(f, w) > maxW) {
+    size_t sp = w.rfind(' ');
+    if (sp == std::string::npos) return "";
+    w.erase(sp);
+    while (!w.empty() && (w.back() == ' ' || w.back() == ',' || w.back() == '\xb7' || w.back() == '\xc2')) w.pop_back();
+  }
+  return w;
 }

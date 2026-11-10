@@ -133,7 +133,7 @@ TrescKontekstu trescSK01(const WejscieWieczoru& w, const WynikWieczoru& r) {
   // powód z wyzwalacza wyboru (r): przy ponownym rysowaniu tego samego dnia dyrygent podaje wynik zapamiętany
   // z pierwszego wyboru, nie ocenę z tej chwili; bez wyzwalacza bez powodu, nigdy `0 h`
   if (r.ekran != EkranWieczoru::BRAK && r.zOdczytu && r.wartosc >= CO2_PROG)
-    k.t.powod = "Teraz CO2 " + std::to_string(r.wartosc) + " ppm. Powietrze jest zastałe.";
+    k.t.powod = "Powietrze w sypialni jest teraz zastałe.";  // liczba stoi w nagłówku i w fakcie (bez powtórzeń)
   else if (r.ekran != EkranWieczoru::BRAK && !r.zOdczytu && r.wartosc >= SK01_MIN_PONAD)
     k.t.powod = "Zeszłej nocy CO2 przez " + std::to_string(r.wartosc / 60) + "\xC2\xA0h ponad 1000\xC2\xA0ppm.";
   // tabela konfliktów 5.8.5 (pierwszy pasujący wiersz; smog to S-K-02)

@@ -56,3 +56,7 @@ Adnotacja z 04.11.2026 („duży wyciek zostaje 24 L/min na stałe, wariant A”
 ## Zmiana 2026-11-08 (ADR-0034)
 
 Model pasm wycieku P95 i siatka L-09 dla pasma 15–24 L/min: [ADR-0034](0034-model-pasm-wycieku-p95.md). Adnotacja z 06.11.2026 wyżej dostała odesłanie.
+
+## Zmiana 2026-11-09 (ADR-0037; bez zmiany decyzji)
+
+Tabela pól według trybu (spec 4.11) miała w kolumnach ASV i ASVAuto wiersz „rodzaj bezdechu i oddychanie okresowe: w danych AirBridge”. To było błędne: aparaty ResMed ASV nie zapisują rodzaju bezdechu ani CSR ([ADR-0037](0037-asv-bez-rodzaju-bezdechu-i-csr.md), dowód z karty aparatu, STR i plików AirBridge v2.3.1). Od 09.11.2026 w tych trybach OA, CA, CA/h i M-09 mają stan „aparat nie rozróżnia” (R-DANE-50), a reguły L-01, L-02, L-04 z H-02, E-33 i O-12 mają warianty ASV opisane w 4.11 (metryki M-30…M-33 z EVE i PLD). Lista trybów obsługiwanych i pkt 3 (L-04 w ASV ze stałym EPAP nie działa) bez zmian; L-04 w ASVAuto liczy bezdechy przy maksymalnym EPAP zamiast OA. W trybach CPAP i AutoSet OA i CA z aparatu; przy UA ≥ 1 / h tylko jako dolna granica (wejście reguł tak, wyjście, norma i uspokojenie nie; R-DANE-52).

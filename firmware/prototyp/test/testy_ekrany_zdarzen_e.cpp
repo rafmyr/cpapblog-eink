@@ -307,7 +307,8 @@ static void testTrescIRysowanie() {
   SPRAWDZ(!w.lekarz && w.etykieta.empty() && w.wiz == WizWzorca::LINIA);
   SPRAWDZ(w.wartosci.size() == (size_t)zdarzenia::NOCY_WYKRESU);
   SPRAWDZ(!w.wartosci.empty() && std::fabs(w.wartosci.back() - 38.0f) < 1e-3f && std::fabs(w.prog - 27.0f) < 1e-3f);
-  ROWNE(w.tytul, "Wyciek od 27 l/min w nocy");  // przegląd kliniczny
+  ROWNE(w.tytul, "Wyciek w nocy ponad próg");  // tytuł bez liczby: próg nie udaje wartości nocy
+  ROWNE(w.powod, "38,0 l/min lub więcej przez 5% czasu terapii, próg 27.");  // wartość nocy i próg
   std::vector<std::string> st = stopkaWzorca(false);
   // mapa 5.6.2: problem poranny; stopka podpisuje każdą akcję, także ▶ kokpit (K1)
   SPRAWDZ(st.size() == 2 && st[0] == "▶ kokpit" && st[1] == "↻ 2 s wiem");

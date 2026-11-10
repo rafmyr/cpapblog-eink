@@ -7,7 +7,8 @@ Kroki (jednorazowo, z kablem USB przy panelu; dane zdrowotne tylko w katalogu po
   2. Porównanie skrótów SHA-256 obu zrzutów (wszystkie pliki, także `dane/…` i `log/…` z firmware) i kontrola
      kompletności. Różne skróty albo zrzut bez nocy = koniec bez wgrywania (zrzut do powtórzenia).
      Pliki do wgrania (<katalog>/do-wgrania/): pliki prototypu ze zrzutu, a noce, czynniki, sypialnia, dziennik
-     i dziennik wybudzeń z nowych ścieżek (`dane/noce/RRRR.csv` …, wersja 1) przepisane na wiersze prototypu.
+     i dziennik wybudzeń z nowych ścieżek (`dane/noce/RRRR.csv` …, wersja 1) przepisane na wiersze prototypu,
+     oraz `konfiguracja.txt` ze zrzutu bajt w bajt, gdy jest (wysyłana przed `K`, jak `wgraj_pliki.py --konfiguracja`).
      0 nocy = błąd, nigdy sukces.
   3. Wgranie kablem firmware z nową tablicą partycji (skrypt wypisuje komendę i czeka na Enter).
   4. Restart panelu przez DTR/RTS (domyślnie; --bez-resetu wyłącza) i zapytanie `?` o okno przywracania (U3: bez
@@ -47,11 +48,12 @@ def skrot(sciezka):
 
 
 def pliki_zrzutu(katalog):
-    """Ścieżki względne wszystkich plików zrzutu (bez kopii `.poprzedni` z zrzut_plikow.py), posortowane."""
+    """Ścieżki względne wszystkich plików zrzutu (bez kopii `.poprzedni` z zrzut_plikow.py i bez kopii konfiguracji
+    `konfiguracja.txt.*`: poprzednie wersje z datą i nieudane odczyty), posortowane."""
     v = []
     for kat, _, nazwy in os.walk(katalog):
         for n in nazwy:
-            if n.endswith(".poprzedni"):
+            if n.endswith(".poprzedni") or n.startswith(wgraj_pliki.NAZWA_KONFIGURACJI + "."):
                 continue
             v.append(os.path.relpath(os.path.join(kat, n), katalog))
     return sorted(v)
@@ -176,6 +178,9 @@ def pliki_do_wgrania(zrzut, cel):
             wiersze = _scal(stare, nowe[v0])
         with open(os.path.join(cel, v0), "wb") as f:
             f.write("".join(w + "\n" for w in wiersze).encode("utf-8"))
+    konf = os.path.join(zrzut, wgraj_pliki.NAZWA_KONFIGURACJI)
+    if os.path.isfile(konf) and not os.path.islink(konf):  # ustawienia panelu bajt w bajt, wgraj() wysyła je przed `K`
+        shutil.copyfile(konf, os.path.join(cel, wgraj_pliki.NAZWA_KONFIGURACJI))
     return liczba_nocy(cel) if os.path.isfile(os.path.join(cel, "noce.csv")) else 0
 
 
@@ -187,6 +192,7 @@ class AtrapaPanelu:
 
     def __init__(self):
         self.pliki = {}
+        self.konfiguracja = None
         self.wyjscie = [self.WIERSZ_OKNA]
         self._bufor = b""
 
@@ -210,7 +216,10 @@ class AtrapaPanelu:
             if len(reszta) < rozmiar:
                 break
             tresc, self._bufor = reszta[:rozmiar], reszta[rozmiar:]
-            if nazwa not in PLIKI_ZRZUTU:
+            if nazwa == wgraj_pliki.NAZWA_KONFIGURACJI and hashlib.sha256(tresc).hexdigest() == sha:
+                self.konfiguracja = tresc  # jak panel: zapis wprost do /konfiguracja.txt, poza plikami przywracania
+                self.wyjscie.append(("OK %s\n" % nazwa).encode())
+            elif nazwa not in PLIKI_ZRZUTU:
                 self.wyjscie.append(("BLAD %s nazwa\n" % nazwa).encode())
             elif hashlib.sha256(tresc).hexdigest() != sha:
                 self.wyjscie.append(("BLAD %s skrot\n" % nazwa).encode())
@@ -299,7 +308,8 @@ def main(argv=None, wejscie=input):
         print("krok 4: panel nie odpowiada na `?`; wysyłam pliki mimo to (poza oknem panel odpowie `poza oknem`)")
     wynik = wgraj_pliki.wgraj(port, dw, zakoncz=True, log=log)
     print("krok 4: " + ", ".join("%s %s" % kv for kv in wynik.items()))
-    if any(w != "OK" for w in wynik.values()):
+    konf = wynik.get(wgraj_pliki.NAZWA_KONFIGURACJI)
+    if not wgraj_pliki.pliki_nocy_ok(wynik) or konf == wgraj_pliki.BRAK_ODPOWIEDZI:
         print("nie wszystkie pliki przyjęte, K nie wysłane. Po próbie wgrania okno wraca przy każdym starcie zasilania, "
               "dopóki przywrócenie po K przy komplecie się nie uda; powtórz krok 4 (restart panelu przez DTR/RTS):")
         print("  tools/prototyp/wgraj_pliki.py %s %s --reset" % (a.port, dw))
@@ -309,9 +319,12 @@ def main(argv=None, wejscie=input):
     # krok 5: wynik przywrócenia z logu
     t = wgraj_pliki.czekaj_na_wiersz(port, ["przywrócono", "niezgodna liczba"], 60, log)
     oczekiwany = "przywrócono %d z %d" % (n, n)
+    if konf not in (None, "OK"):  # noce idą dalej (`K` wysłane); ustawienia panelu do wysłania osobno
+        print("krok 4: konfiguracja nie przyjęta (%s); po przejściu wyślij ją: tools/prototyp/wgraj_pliki.py %s "
+              "--konfiguracja %s" % (konf, a.port, os.path.join(dw, wgraj_pliki.NAZWA_KONFIGURACJI)))
     if t and oczekiwany in t:
         print("krok 5: %s; sprawdź U-05 (Pamięć panelu: przywrócono %d…) i ekran dnia" % (oczekiwany, n))
-        return 0
+        return 0 if konf in (None, "OK") else 1
     print("krok 5: przywrócenie nieudane: %s (oczekiwane `%s`); zrzut zostaje w %s, okno wróci przy następnym "
           "starcie zasilania" % (t or "brak wiersza", oczekiwany, za))
     return 1

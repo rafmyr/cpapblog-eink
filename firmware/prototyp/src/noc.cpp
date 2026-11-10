@@ -40,7 +40,7 @@ bool parsujNoc(const std::string& l, char domyslneZrodlo, Noc& r) {
   w.m01 = std::isnan(m01) ? -1 : (int)m01;
   if (n >= 13) w.ustawienia = p[12];
   std::string z = n == 9 ? p[8] : n >= 14 ? p[13] : std::string();
-  if (!z.empty() && z != "A" && z != "K") return false;
+  if (!z.empty() && z != "A" && z != "K" && z != "S") return false;  // S: noc ze STR aparatu (ADR-0035)
   w.zrodlo = z.empty() ? domyslneZrodlo : z[0];
   if (n == 20) {
     auto flaga = [](const std::string& v, bool& f) {

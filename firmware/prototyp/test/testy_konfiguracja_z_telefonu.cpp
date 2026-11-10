@@ -300,7 +300,7 @@ static void mapaUstawien() {
   SPRAWDZ(nacisniecie(Ekran::SPRZET, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);  // R-KONF-02
   k = KontekstNaw();
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::SRODEK, false, k).ekran == Ekran::DZIEN);
-  SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::SRODEK, true, k).akcja == Akcja::NIC);
+  SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::SRODEK, true, k).akcja == Akcja::AKT_SPRAWDZ);  // R-KONF-43: U-07 (aktualizacja z GitHub)
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::LEWY, false, k).ekran == Ekran::SPRZET);   // R-KONF-33
   // ◀ 2 s na U-01 = sieć panelu (było „nic”)
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::LEWY, true, k).akcja == Akcja::SIEC_PANELU_START);

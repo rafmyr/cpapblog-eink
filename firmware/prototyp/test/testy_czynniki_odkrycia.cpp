@@ -510,18 +510,18 @@ static void testS8() {
   ROWNE(d.wiersze[1], "Wyciek 6–12 l/min");
   ROWNE(d.wiersze[2], "Czas 6 h 12–7 h 36");
   ROWNE(d.wiersze[3], "Centralne 0,2–0,9 / h");
-  ROWNE(d.krok, "→ Odchylenia liczę od tego.");
+  ROWNE(d.krok, "Odchylenia liczę od tego.");
   SPRAWDZ(!d.informacja);
   n.ahi.p10 = 1.2; n.ahi.p90 = 5.4;  // przypadek 35 w 7.8
   d = podsumowanie::budujS8(w);
   ROWNE(d.krok, "→ Pasmo AHI wysokie. Obserwuj kolejne noce.");
   SPRAWDZ(d.informacja);
   n.ahi.p10 = 1.5; n.ahi.p90 = 4.2; n.ca.p10 = 0.8; n.ca.p90 = 2.5;
-  ROWNE(podsumowanie::budujS8(w).krok, "→ Odchylenia liczę od tego.");  // przed
+  ROWNE(podsumowanie::budujS8(w).krok, "Odchylenia liczę od tego.");  // przed
   w.p199 = true;
   ROWNE(podsumowanie::budujS8(w).krok, "→ Pasmo centralnych wysokie. Obserwuj kolejne noce.");
   w.tryb = Tryb::ASVAUTO;
-  ROWNE(podsumowanie::budujS8(w).krok, "→ Odchylenia liczę od tego.");
+  ROWNE(podsumowanie::budujS8(w).krok, "Odchylenia liczę od tego.");
   w.wzorzecL = true;
   ROWNE(podsumowanie::budujS8(w).krok, "→ Otwarte sprawy: strona 3 / 6.");  // numer strony kokpitu
   n.ca.n = 0;  // bez normy CA/h: bez wiersza `Centralne`
@@ -534,6 +534,16 @@ static void testS8() {
   d = podsumowanie::budujS8(w);
   ROWNE(d.wiersze[0], "AHI 1,5–4,2 / h");  // AHI w obu profilach
   ROWNE(d.stopkaLewo, "◀ sprawy   ▶ co znaczą liczby   ↻ ekran dnia");  // strona 4 / 6
+  // strona 4 / 6: nazwa strony w nagłówku (jak `Sprzęt`, `Otwarte sprawy`), tytuł jej nie powtarza; jako ekran dnia
+  // nagłówek z datą (pusty `naglowek`) i tytuł `Twoja norma` (R-EKR-34)
+  ROWNE(d.naglowek, "Twoja norma");
+  ROWNE(d.tytul, "");
+  ROWNE(podsumowanie::trescS8(d).tytul, "");
+  w.zK1 = false;
+  d = podsumowanie::budujS8(w);
+  ROWNE(d.naglowek, "");
+  ROWNE(d.tytul, "Twoja norma");
+  w.zK1 = true;
   n.ahi.n = 20;
   SPRAWDZ(podsumowanie::kandydatS8(n, false) == false);  // norma AHI bez 30 nocy
   n.ahi.n = n.m01.n = 30;

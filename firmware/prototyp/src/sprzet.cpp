@@ -2,6 +2,7 @@
 // Moduł SPRZĘT (spec 5.9): opis w src/sprzet.h.
 #include "sprzet.h"
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include "nawigacja.h"
@@ -313,6 +314,14 @@ std::vector<WierszSprzetu> wierszeSprzetu(const Elementy& e, const std::string& 
     x.wiek = wiekElementu(e.el[i], dzis);
     x.okres = okresElementuTekst(e.el[i]);
     x.poTerminie = poTerminie(e.el[i], dzis);
+    std::string t = terminWymiany(e.el[i]);
+    x.bezDaty = t.empty();
+    if (x.bezDaty) {
+      x.termin = "brak daty · co " + x.okres;
+    } else {  // rok tylko wtedy, gdy termin wypada w innym roku niż dziś
+      std::string d = ddmm(t) + (dzis.size() >= 4 && t.compare(0, 4, dzis, 0, 4) == 0 ? "" : "." + t.substr(0, 4));
+      x.termin = (x.poTerminie ? "po " : "") + d + " · co " + x.okres;
+    }
     w.push_back(x);
   }
   return w;
@@ -320,43 +329,66 @@ std::vector<WierszSprzetu> wierszeSprzetu(const Elementy& e, const std::string& 
 
 // (5.9.3, mapa 5.6.2): ◀ ▶ przesuwają kursor, przed pierwszym wierszem ◀ wraca na poprzednią stronę, za
 // ostatnim ▶ idzie do U-01; ◀ 2 s „wymienione dziś” (element pod kursorem), ↻ ekran dnia, ↻ 2 s nowy model (maska).
-std::string stopkaSprzetu(int kursor) {
-  std::string l = kursor <= 0 ? "◀ wstecz" : "◀ wyżej";
+std::string podpowiedzBezDaty(const std::vector<WierszSprzetu>& w) {
+  std::vector<const WierszSprzetu*> bez;
+  for (const WierszSprzetu& x : w)
+    if (x.bezDaty) bez.push_back(&x);
+  if (bez.empty()) return "";
+  if (bez.size() > 1) {
+    std::string n;
+    for (size_t i = 0; i < bez.size(); i++) {
+      std::string e = bez[i]->nazwa;
+      if (i > 0 && !e.empty()) e[0] = (char)std::tolower((unsigned char)e[0]);
+      n += (i == 0 ? "" : i + 1 == bez.size() ? " i " : ", ") + e;
+    }
+    return n + " bez daty: po wymianie ramka na wierszu, ◀ 2 s.";
+  }
+  // miejscownik nazwy elementu (te same słowa co w kroku S-K-35)
+  const std::string& e = bez[0]->nazwa;
+  std::string gdzie = e == "Maska" ? "masce" : e == "Filtr" ? "filtrze" : "wierszu";
+  return e + " bez daty: po wymianie ramka na " + gdzie + ", ◀ 2 s.";
+}
+
+std::string stopkaSprzetu(int kursor, bool profilPubliczny) {
+  std::string l = kursor <= 0 ? (profilPubliczny ? "◀ liczby" : "◀ norma") : "◀ wyżej";
   std::string r = kursor >= EL_N - 1 ? "▶ ustawienia" : "▶ niżej";
   return l + " · 2 s wymienione   " + r + "   ↻ ekran dnia" + (okresMaska(kursor) ? " · 2 s nowy model" : "");
 }
 
-// Kanwa `Sprzet` (design/kanwa/Sprzet.dc.html) w języku reszty panelu (
-// „dopasuj do całości”): nagłówek i stopka jak w K1 i „Otwartych sprawach” (naglowekEkranu,
-// stopkaEkranu), nazwy kolumn jak etykiety (P22B wersalikami, rozstrzelenie 2 px), wiersze 44 px co 50 px od y 96 na
-// szerokości wierszy K1 (12…788, tekst od marginesu 28), nazwy i wartości w P24S (600, jak wartości „Otwartych spraw”;
-// kanwa ma jedną wagę dla całego wiersza), kreska 1 px między wierszami, kursor: ramka 3 px z odstępem 3 px, negatyw =
-// po terminie. Podpis w P22B: w jednej linii zajmuje 856 px przy 744 px miejsca (minimum B7, SPEC-B), więc idzie w
-// dwóch liniach nad stopką, a miejsce na nie daje niższy wiersz (44 zamiast 50 px), nie krótszy tekst.
-void rysujSprzet(Plotno& p, const std::vector<WierszSprzetu>& w, int kursor) {
+// Kanwa `Sprzet` (design/kanwa/Sprzet.dc.html) w języku reszty panelu („dopasuj do całości”): nagłówek i stopka jak
+// w K1 i „Otwartych sprawach” (naglowekEkranu, stopkaEkranu), nazwy kolumn jak etykiety (P22B wersalikami,
+// rozstrzelenie 2 px), wiersze 44 px co 50 px od y 96 na szerokości wierszy K1 (12…788, tekst od marginesu 28),
+// wartości w P24S (600, jak wartości „Otwartych spraw”), kreska 1 px między wierszami, kursor: ramka 3 px z odstępem
+// 3 px, negatyw = po terminie. Kolumny (R-MAS-15): `element` od 28, `wiek` od 180, `następna wymiana` od 300 (472 px
+// do prawego marginesu; najdłuższa wartość `po 31.12.2025 · co 12 mies.` ma 297 px). Pod tabelą przy elemencie
+// bez daty podpowiedź P22B, jak ją zapisać. Podpis w P22B w dwóch liniach nad stopką.
+void rysujSprzet(Plotno& p, const std::vector<WierszSprzetu>& w, int kursor, bool profilPubliczny) {
   p.prostokat(0, 0, 800, 480, false);
   naglowekEkranu(p, {"Sprzęt", numerStronyTekst(Ekran::SPRZET)});  // `5 / 6`
-  const int X1 = 28, X2 = 462, X3 = 600, W = 744, Y0 = 96, H = 44, KROK = 50;
+  const int X1 = 28, X2 = 180, X3 = 300, W = 744, Y0 = 96, H = 44, KROK = 50;
   tekst(p, F_P22B, X1, 84, wersaliki("element"), true, 2);
   tekst(p, F_P22B, X2, 84, wersaliki("wiek"), true, 2);
-  tekst(p, F_P22B, X3, 84, wersaliki("wymiana co"), true, 2);
+  tekst(p, F_P22B, X3, 84, wersaliki("następna wymiana"), true, 2);
   const int n = (int)std::min<size_t>(w.size(), 5);
+  bool bezDaty = false;
   for (int i = 0; i < n; i++) {
     int y = Y0 + KROK * i;
     bool neg = w[(size_t)i].poTerminie;
+    bezDaty = bezDaty || w[(size_t)i].bezDaty;
     if (neg) p.prostokat(12, y, 776, H, true);
     // kreska w połowie odstępu, bez kreski przy kursorze (ramka) i pod ostatnim wierszem
     else if (i < n - 1 && i != kursor && i + 1 != kursor) p.prostokat(12, y + H + 2, 776, 1, true);
     if (i == kursor) p.ramka(6, y - 6, 788, H + 12, 3, true);
     tekst(p, F_P24S, X1, y + 30, w[(size_t)i].nazwa, !neg);
     tekst(p, F_P24S, X2, y + 30, w[(size_t)i].wiek, !neg);
-    tekst(p, F_P24S, X3, y + 30, w[(size_t)i].okres, !neg);
+    tekst(p, F_P24S, X3, y + 30, w[(size_t)i].termin.empty() ? w[(size_t)i].okres : w[(size_t)i].termin, !neg);
   }
+  if (bezDaty) tekst(p, F_P22B, X1, Y0 + KROK * n + 30, podpowiedzBezDaty(w));
   auto l = zawin(F_P22B, "Negatyw = po terminie. Ekran o wymianie pojawi się dopiero, gdy rośnie też wyciek.", W);
   for (size_t i = 0; i < l.size() && i < 2; i++) tekst(p, F_P22B, X1, (l.size() > 1 ? 380 : 406) + 26 * (int)i, l[i]);
   // stopka 5.9.3: wszystkie grupy z tekstu stopki (oddzielone trzema spacjami) po kolei od lewej: ◀ ▶ ↻
   std::vector<std::string> grupy;
-  std::string s = stopkaSprzetu(kursor);
+  std::string s = stopkaSprzetu(kursor, profilPubliczny);
   for (size_t a = 0; a < s.size();) {
     size_t b = s.find("   ", a);
     grupy.push_back(s.substr(a, b == std::string::npos ? std::string::npos : b - a));

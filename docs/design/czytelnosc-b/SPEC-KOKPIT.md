@@ -6,7 +6,7 @@
 Dotyczy: K1, K2, pytanie „Co było inaczej?” (F08), S9 „Dobranoc” (A1, A2, A3), stopki z akcjami, test sprzętu, teksty kart.
 Nie dotyczy: ekranów dnia (projekt ekranów dnia: [SPEC-B.md](SPEC-B.md)), obrazów budzika, mapy przycisków.
 Makiety: [`makiety/`](makiety/) (wybrane ekrany; generator poza repo; ten sam układ rysuje prototyp, podgląd `mak-<ekran>.png` z `tools/prototyp/testy.sh`).
-Dane w makietach to najgorsze przypadki z zadania (AHI 12,4, czas 10:59, wyciek 112, EPAP 14,5, PS 10,0, normy 10,5–12,3 i 9:48–10:59, najdłuższa etykieta czynnika, najdłuższe zdanie budzika 44 zn.).
+Dane w makietach to najgorsze przypadki z zadania (AHI 12,4, czas 10:59, wyciek 112, EPAP 14,5, PS 10,0, normy 10,5–12,3 i 9:48–10:59, najdłuższa etykieta czynnika, najdłuższe zdanie budzika (wycofane z ekranu 2026-11-10) 44 zn.).
 
 ## 1. Skala typograficzna (założenia)
 
@@ -40,7 +40,7 @@ Reguły: nic poniżej 22 px; poniżej 30 px tylko 600 i więcej; brak kursywy (c
 - Jedna grupa na przycisk, zawsze w kolejności **◀, ↻, ▶**; odstęp między grupami 26 px.
 - Grupa: ikona, akcja krótkiego naciśnięcia, potem ` · 2 s ` i akcja przytrzymania, np. `◀ ostatnia noc · 2 s ustawienia`. Przycisk z samym przytrzymaniem: `◀ 2 s norma`.
 - „2 s” zastępuje słowo „przytrzymaj”: krócej o 9 znaków na akcję i ta sama notacja co linia zaproszenia `Co było inaczej? ↻ 2 s` (5.11.3). Bez tego K2 nie mieści się w jednej linii 22 px.
-- Bez zdania budzika grupy idą od lewego marginesu; ze zdaniem budzika (karta, S9) zdanie z lewej, grupy wyrównane do prawej.
+- Bez zdania budzika grupy idą od lewego marginesu; ze zdaniem budzika (karta, S9) zdanie z lewej, grupy wyrównane do prawej. Zmiana 2026-11-10: zdanie budzika wycofane z ekranu (spec 5.7.5); karta i S9 mają z lewej to, co ekran danych (albo nic), z prawej odczyt albo akcję.
 - Podpisy zgodne z mapą 5.6.2 (R-PRZ-04); mapa bez zmian. Prototyp nie ma jeszcze `▶ sprawy`, `◀ 2 s norma` (K1), `↻ 2 s sprzęt`, `▶ raport` (K2): do czasu ich wdrożenia stopka pokazuje tylko działające akcje, żeby nie podpisywać rzeczy, które nic nie robią.
 
 | Ekran | Stopka | Szerokość / 744 px |
@@ -50,8 +50,8 @@ Reguły: nic poniżej 22 px; poniżej 30 px tylko 600 i więcej; brak kursywy (c
 | pytanie | `◀ wstecz · 2 s pomiń` · `↻ zaznacz · 2 s zapisz ({k})` · `▶ dalej` | 629 |
 | test | `◀ kokpit 7 nocy` · `↻ pobierz teraz` · `▶ ekran dnia` | 543 |
 | Zapisano | `◀ 2 s cofnij zapis` | – |
-| karta S5 | zdanie budzika · `↻ ponów` | – |
-| S9 A1, A3 | zdanie budzika · `▶ kokpit` | – |
+| karta S5 | (do 10.11.2026 zdanie budzika) · `↻ ponów` | – |
+| S9 A1, A3 | (do 10.11.2026 zdanie budzika) · `▶ kokpit` | – |
 
 Arkusz: `makiety/stopki.png`.
 
@@ -65,11 +65,11 @@ Makiety: `k1.png` (tryb ASV, 5 wierszy, wiersz w negatywie, `EPAP (urządzenie)`
 | 4 liczby | 54–154 | opis **nad** liczbą: `czas z maską`, `bezdechy / h`, `EPAP` (`EPAP (urządzenie)`), `wyciek l/min` | P22B, linia bazowa 82 | kolumny od x = 28, 222, 398, 608 (nierówne: `EPAP (urządzenie)` ma 190 px) |
 | | | liczba | SN56, linia bazowa 140 | `10:59` 150 px |
 | Linia | 154 | 2 px | | |
-| Nagłówki kolumn | 156–188 | `Ostatnie 30 nocy` · `mediana` (do prawej, x 506) · `ocena` (x 522) | P22B, l. bazowa 181 | rozstrzyga, co jest nocą (góra), a co medianą 30 nocy (dół); ten sam pomysł co tytuł paska `OSTATNIE 7 NOCY · MEDIANA` w SPEC-B |
+| Nagłówki kolumn | 156–188 | `Ostatnie 30 nocy` · `mediana` (do prawej, x 506) · `ocena` (x 522) · legenda `↔ stabilnie` (do prawej, x 772; zmiana 2026-11-10) | P22B, l. bazowa 181 | rozstrzyga, co jest nocą (góra), a co medianą 30 nocy (dół); ten sam pomysł co tytuł paska `OSTATNIE 7 NOCY · MEDIANA` w SPEC-B; legenda jak `↔ jak zwykle` w pasku ekranu dnia |
 | 5 wierszy | 188–428, 48 px | nazwa | P24B, x 28 | `Czas z maską` 155 px |
 | | | linia 30 nocy | 210×32 px, 3 px, przerywana mediana normy | x 196–406; przerwy w nocach bez danych (R-KOK-02) |
 | | | mediana 30 nocy | P28B, do prawej x 506 | |
-| | | ocena | P22B, x 522, do 772 | negatyw (R-KOK-03): 2 linie `wyżej niż zwykle` / `od {n} nocy` (290 px w 1 linii nie mieści się w 250) |
+| | | ocena | P22B, x 522, do 772 | negatyw (R-KOK-03): 2 linie `wyżej niż zwykle` / `od {n} nocy` (290 px w 1 linii nie mieści się w 250); trend `stabilnie` jako sam znak `↔` (słowo w legendzie nagłówka; zmiana 2026-11-10) |
 | Stopka | 434–480 | 2.1 | | |
 
 O-12 (`k1-odkrycie.png`): tytuł `P28B` i powód `P22B` stoją w miejscu 4 liczb, a czas i AHI nocy przechodzą do nagłówka (`Ostatnia noc · czw 12.11 · 10 h 59 · 12,4 / h ◆`). Powód: przy 22 px nie ma miejsca na oba bloki.
@@ -101,7 +101,8 @@ O-12 (`k1-odkrycie.png`): tytuł `P28B` i powód `P22B` stoją w miejscu 4 liczb
 | Zdanie | 74 | zdanie podsumowania | SB24 |
 | Nagłówek tabeli | 110 (linia 3 px na 117) | dni nocy, `◆` przy nocy z czynnikiem, `norma` | P22B, ostatnia noc P24B |
 | Wiersze | 119–403 | 10 × 28 px + 2 linie grup 1 px (po `spłycenia`, po `Zdjęcia maski`) | P22B |
-| Legenda | 423 | czarny prostokąt `ponad próg` · ramka `poza Twoją normą` | P22B, bez kursywy, bez `mediana normy` |
+| Linia `brak danych: …` (od 10.11.2026, R-KOK-18) | 21 px pod ostatnim wierszem, tylko gdy są wiersze bez danych w całym tygodniu (zwinięte z tabeli) | P22B |
+| Legenda | 423 | czarny prostokąt `ponad próg` · ramka `poza Twoją normą` | P22B, bez kursywy, bez `mediana normy`; przy linii `brak danych` 28 px niżej, a tabela krótsza o 28 px na każdy zwinięty wiersz |
 | Stopka | 434–480 | 2.1 | P22B |
 
 Wiersze dodatkowe z oksymetrem (R-KOK-11, 12 wierszy) w opcji A się nie mieszczą (zostaje 0 px). Gdy oksymetr wejdzie do wydania, wtedy wraca pytanie o drugą stronę; dziś nie ma po co jej budować.
@@ -136,7 +137,7 @@ Makiety: `noc-a1.png`, `noc-a1-bez-godziny.png`, `noc-a2.png`, `noc-a3.png`, `no
 | | powód | `Maska założona o 22:47.` / `Wynik nocy pokażę rano.` | P22B, co 29 px | |
 | | fakty | `21°` temperatura · `45%` wilgotność · `10 h 59` zwykle z maską | P28B nad P22B | 450/474 px |
 | | krok | `→ Ekran zostaje do rana, żeby nie błyskać.` | P22B, l. bazowa 412 | 431/474 px, 1 linia; `→` z kroju zapasowego (szeryf), jak w generuj.py |
-| | stopka | zdanie budzika w cudzysłowie, bez kursywy · `▶ kokpit` | P22B | najdłuższe 44 zn. 511 px |
+| | stopka | zdanie budzika (wycofane z ekranu 2026-11-10) w cudzysłowie, bez kursywy · `▶ kokpit` | P22B | najdłuższe 44 zn. 511 px |
 | A2 | scena | bez zmian, 0–338 | | |
 | | tytuł | `Dobranoc.` wyśrodkowany | SB44, l. bazowa 382 | |
 | | zdanie | `„Szach-mat. Księżyc się zamyślił.”` | P22B, 418 | |
@@ -166,7 +167,7 @@ Karty (`karta-k22.png`, `karta-s5.png`; układ ADR-0009 bez zmian, zmieniają si
 | krok | P22B | bez zmian |
 | stopka | zdanie kursywą 18 px 400 | P22B w cudzysłowie, bez kursywy; 44 zn. + `sypialnia 21° · 46%` = 725/744 px |
 
-Ryzyko dla drugiego projektanta: jeśli prawa strona stopki karty urośnie (np. `sypialnia 21° · 45% · CO2 820` z jego pomiarów, ok. 300 px), zdanie budzika musi mieć ≤ 36 znaków albo prawa strona traci CO2.
+Ryzyko dla drugiego projektanta: jeśli prawa strona stopki karty urośnie (np. `sypialnia 21° · 45% · CO2 820` z jego pomiarów, ok. 300 px), zdanie budzika (wycofane z ekranu 2026-11-10) musi mieć ≤ 36 znaków albo prawa strona traci CO2.
 
 ## 8. Teksty do zmiany w specyfikacji (brzmienie i miejsce)
 
@@ -187,7 +188,7 @@ Ryzyko dla drugiego projektanta: jeśli prawa strona stopki karty urośnie (np. 
 | T13 | 5.8.11, A1 „Fakty” | `Twój zwykły czas z maską` | `zwykle z maską` | 3 fakty w 474 px przy 22/600 |
 | T14 | 5.8.11, A1 „Krok” | `→ Do rana bez odświeżania, żeby nie błyskać.` (44 zn., 2 linie) | `→ Ekran zostaje do rana, żeby nie błyskać.` (42 zn., 1 linia) | prościej i mieści się; usuwa też uwagę o 2 liniach |
 | T15 | 5.8.11, A3 „Krok albo mała linia” | `Do rana ekran się nie zmieni, żeby nie błyskać w sypialni.` | `Ekran zostaje do rana, żeby nie błyskać.` | 640 px nie mieści się obok budzika; to samo zdanie co A1 |
-| T16 | 5.7.2, „Tytuł”, „Pod tytułem”, „Stopka” | Source Serif 4 46 px; fakty liczba 32 px nad podpisem 18 px; zdanie budzika kursywą | SB44 700; fakty P28B nad P22B; zdanie w cudzysłowie bez kursywy, 22/600 | skala B |
+| T16 | 5.7.2, „Tytuł”, „Pod tytułem”, „Stopka” | Source Serif 4 46 px; fakty liczba 32 px nad podpisem 18 px; zdanie budzika (wycofane z ekranu 2026-11-10) kursywą | SB44 700; fakty P28B nad P22B; zdanie w cudzysłowie bez kursywy, 22/600 | skala B |
 
 T1–T16 to zmiany treści ekranu: wpis w CHANGELOG i macierz śledzenia, bez ADR (granice i mapa przycisków bez zmian).
 
@@ -211,7 +212,7 @@ Po przejściu kokpitu, pytania, S9, testu i kart na nową skalę te ekrany przes
 | K1 | 4 liczby nocy (SN56), wiersz w negatywie, kształt linii | nazwy wierszy (P24B), mediany (P28B) | ocena, opisy liczb, stopka (22 px) |
 | K2 | czarne komórki i ramki jako wzór, który wiersz jest „czarny” | nagłówek, zdanie | pojedyncze cyfry 22 px |
 | pytanie | tytuł, które pola są zaznaczone, gdzie kursor | etykiety pozycji | podpowiedź, stopka |
-| S9 | A3: godzina; A1, A2: tytuł, fakty (P28B), budzik | zdanie budzika | – |
+| S9 | A3: godzina; A1, A2: tytuł, fakty (P28B), budzik | zdanie budzika (wycofane z ekranu 2026-11-10) | – |
 | karty | tytuł, fakty | powód, krok | stopka |
 | test | tytuł | – | linie (ekran serwisowy, z bliska) |
 

@@ -9,6 +9,12 @@ ZRODLA=("$FW/src/wspolne.cpp" "$FW/src/noc.cpp" "$FW/src/czynniki.cpp" "$FW/src/
         "$FW/src/magazyn.cpp" "$FW/src/reguly.cpp"
         "$FW/src/reguly_parser.cpp" "$FW/src/reguly_rodzaje.cpp" "$FW/src/reguly_pamiec.cpp"
         "$FW/src/sprawy.cpp" "$FW/src/kolejka.cpp" "$FW/src/rodzaje_e.cpp")
+# STR.edf z AirBridge: czytnik EDF (src/edf.cpp) i historia nocy ze STR (src/str.cpp), ADR-0035
+ZRODLA+=("$FW/src/edf.cpp" "$FW/src/str.cpp")
+# noc liczona na panelu z plików sesji PLD, EVE, CSL (src/noc_pliki.cpp), ADR-0036
+ZRODLA+=("$FW/src/noc_pliki.cpp")
+# porównanie nocy z plików z raportem JSON (src/porownanie.cpp), tryb `noc_zrodlo=porownanie`, ADR-0036
+ZRODLA+=("$FW/src/porownanie.cpp")
 # ekrany zdarzeń E w tonie „problem” (S3, src/ekrany_zdarzen.cpp)
 ZRODLA+=("$FW/src/ekrany_zdarzen.cpp")
 # slot dzienny, obrazek dnia, ekrany CO2 S-K-01, S-K-02, S-K-13
@@ -27,6 +33,8 @@ ZRODLA+=("$FW/src/sprzet.cpp" "$FW/src/infekcja.cpp" "$FW/src/kontekst_sk.cpp")
 ZRODLA+=("$FW/src/sekrety.cpp" "$FW/src/formularz.cpp" "$FW/src/ekrany_konfiguracji.cpp")
 # Tabela miast do pogody (src/miasta.cpp)
 ZRODLA+=("$FW/src/miasta.cpp")
+# Aktualizacja firmware z wydań GitHub (ADR-0032, ADR-0038): rdzeń decyzji, wersji, opisu wydania i SHA-256
+ZRODLA+=("$FW/src/aktualizacja.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -50,6 +58,13 @@ TESTY+=("$FW/test/testy_czynniki_odkrycia.cpp" "$FW/test/testy_czynniki_odkrycia
 TESTY+=("$FW/test/testy_profil_publiczny.cpp" "$FW/test/testy_profil_publiczny_brzegowe.cpp") # profil publiczny (5.4.14, R-EKR-43, R-EKR-51)
 TESTY+=("$FW/test/testy_aparat_autoset_brzegowe.cpp") # przypadki brzegowe: aparat AirSense AutoSet
 TESTY+=("$FW/test/testy_zegar_ntp.cpp") # zegar nowego panelu, NTP 3 próby i czas z AirBridge (R-AW-18, T-TEST-327)
+TESTY+=("$FW/test/testy_str_edf.cpp") # STR.edf: czytnik EDF, noce 'S', pierwszeństwo, STR w dyrygencie (ADR-0035)
+TESTY+=("$FW/test/testy_str_edf_brzegowe.cpp") # przypadki brzegowe STR.edf
+TESTY+=("$FW/test/testy_noc_pliki.cpp") # noc z plików sesji: zgodność z noce.py, brzegowe, dyrygent (ADR-0036)
+TESTY+=("$FW/test/testy_noc_pliki_brzegowe.cpp") # przypadki brzegowe nocy z plików sesji
+TESTY+=("$FW/test/testy_porownanie.cpp") # tryb porównawczy: noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv
+TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu porównawczego
+TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
 INCLUDY=(-I"$FW/src" -I"$FW/include" -I"$FW/test/atrapy")
 # Flagi ostrzeżeń. Pełny zestaw dla rdzenia i podglądu.
 OSTRZEZENIA=(-Wall -Wextra -Werror -Wshadow -Wconversion -Wformat=2 -Wduplicated-cond -Wlogical-op -Wnull-dereference)
@@ -69,4 +84,10 @@ TESTY+=("$FW/test/testy_formularz_u03.cpp") # formularz U-03 uzupełniony (miast
 TESTY+=("$FW/test/testy_alarm_baterii.cpp") # E-05: M-25 z napięcia, linia ≤ 15%, S5 ≤ 5%, R-PIE-07 (decyzja 05.11.2026)
 TESTY+=("$FW/test/testy_konfiguracja_z_telefonu.cpp") # sekrety z NVS, formularz konfiguracji, pierwsza konfiguracja
 TESTY+=("$FW/test/testy_konfiguracja_z_telefonu_brzegowe.cpp") # przypadki brzegowe: konfiguracja z telefonu
+TESTY+=("$FW/test/testy_kokpit_legenda_u01_sprzet.cpp") # K1 legenda `↔ stabilnie`, U-01 do odczytu, „Sprzęt” z terminem, slot dzienny przy linii
+TESTY+=("$FW/test/testy_scalenie_u01_stopka.cpp") # U-01: wiersz aktualizacji z dyrygenta, szerokość, odesłania do nazw widocznych na ekranie
+TESTY+=("$FW/test/testy_k2_zwijanie_s7_liczby.cpp") # K2 z wierszami bez danych w jednej linii, S7, „Co znaczą te liczby”, stopka karty
+TESTY+=("$FW/test/testy_slot_ustawienia_sprzet.cpp") # wykres slotu dziennego przy linii uwagi, U-01 i „Sprzęt” na wartościach granicznych
+TESTY+=("$FW/test/testy_zaproszenie_linia_uwagi.cpp") # linia zaproszenia według ekranu dnia, droga do „Sprzętu”, linia uwagi
+TESTY+=("$FW/test/testy_kokpit_karty_przekroj.cpp") # K2 we wszystkich trybach i brakach, krok S-K-35, stopka karty, pusty ekran spraw, E-23
 TESTY+=("$FW/test/testy_siec_panelu_u02_brzegowe.cpp") # przypadki brzegowe: sieć panelu U-02

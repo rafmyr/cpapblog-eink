@@ -50,7 +50,7 @@ jobs:
   # Heavier core gates (about 3–4 min on 2 cores); the same commands as tools/jakosc/sprawdz.sh.
   jakosc:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
         with:

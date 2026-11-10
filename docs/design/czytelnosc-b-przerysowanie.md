@@ -46,7 +46,7 @@ Bez kursywy, bez IBM Plex, nic poniżej 22 px. Strzałki ↔ ↑ ↓ rysowane ja
 | `K1` | opis 22 px nad liczbą, liczby 56/600, nagłówki kolumn `Ostatnie 30 nocy` · `mediana` · `ocena`, 5 wierszy po 48 px (ASV: `EPAP`, `Wsparcie`), wiersz w stanie odchylenia w ramce 2 px z oceną w 2 liniach, `AHI` zamiast `Bezdechy`, stopka z akcjami | `k1` |
 | `F07-kokpit` | Public Sans 22/600 zamiast Plexa, bez kolumny `30 nocy` (opcja A), 10 wierszy po 28 px, etykiety bez `cmH₂O` (`Wyciek l/min`, `EPAP P95`, `Wsparcie PS`), legenda prosto bez `mediana normy`, `–` na środku komórki, stopka wzorem 5.6.1 pkt 3; zdanie K2 na makiecie dowolne | `k2` |
 | `F08-pytanie` | pozycje Public Sans 22/600, zaznaczenie bez pogrubienia, kursor w ramce 3 px, podtytuł `Zaznacz wszystko, co pasuje.`, podpowiedź `Bez odpowiedzi pytanie zniknie o {hh:mm}.` (bez kursywy), stopka `◀ wstecz · 2 s pomiń` · `↻ zaznacz · 2 s zapisz ({k})` · `▶ dalej` | `pytanie` |
-| `K22-dobra-noc`, `EkranD` (i wszystkie karty) | tytuł SB 44/700, fakty 28/700 nad 22/600, etykieta 22 px, zdanie budzika 22/600 w cudzysłowie bez kursywy | `karta-k22`, `karta-s5` |
+| `K22-dobra-noc`, `EkranD` (i wszystkie karty) | tytuł SB 44/700, fakty 28/700 nad 22/600, etykieta 22 px, zdanie budzika (wycofane z ekranu 2026-11-10) 22/600 w cudzysłowie bez kursywy | `karta-k22`, `karta-s5` |
 | brak (S9 A1, A2, A3) | nowe artboardy według 5.8.11 w kroju skali B: A1 bez prawej strony nagłówka, fakt `zwykle z maską`, krok `→ Ekran zostaje do rana, żeby nie błyskać.`; A3 linia `Ekran zostaje do rana, żeby nie błyskać.` | `noc-a1`, `noc-a1-bez-godziny`, `noc-a2`, `noc-a3`, `noc-a3-bez-godziny` |
 | wszystkie stopki z akcjami | wzór 5.6.1 pkt 3 | `stopki` |
 
@@ -56,3 +56,22 @@ Bez kursywy, bez IBM Plex, nic poniżej 22 px. Strzałki ↔ ↑ ↓ rysowane ja
 - S6: `brak nowych nocy` / `norma po 14 nocach` spoza 5.4.8 i R-EKR-21: dopisać do spec albo usunąć z kodu.
 - Noc niepewna z linią E-20: linia i `nie oceniam: duży wyciek` mówią to samo w dwóch strefach (dozwolone, do oceny).
 - `CO2` zamiast `CO₂` w stopce i S2c (glif jest, drobiazg typograficzny).
+
+## Po audycie UX 10.11.2026
+
+Rozbieżności prototypu z kanwą do przerysowania (prototyp i spec są już po zmianie):
+
+- **wszystkie karty z budzikiem (K01…K22, K05, K16, przerywniki K17…K20) i S9 A1, A2, A3:** bez zdania budzika; lewa część stopki karty jak na ekranie danych (pogoda albo podpowiedź, albo podpis akcji), prawa bez zmian; S9 A2 bez linii pod `Dobranoc.` (spec 5.7.2, 5.7.5, 5.8.11; ADR-0009, ADR-0018 „Zmiana 2026-11-10”);
+- **K1:** wiersz ze spokojnym trendem ma sam znak `↔`, legenda `↔ stabilnie` z prawej w wierszu nagłówków kolumn (R-KOK-17);
+- **„Sprzęt” (artboard `Sprzet`):** kolumny `element` · `wiek` · `następna wymiana` (od x 28, 180, 300), wartość `15.01.2027 · co 6 mies.`, bez daty `brak daty · co 4 tyg.` i podpowiedź pod tabelą; stopka na pierwszym wierszu `◀ norma` (R-MAS-15);
+- **U-01 „Ustawienia panelu”** (bez artboardu; makieta `docs/design/ekrany-2026-11-03`): lista bieżących ustawień do odczytu zamiast pozycji z kursorem (R-KONF-55);
+- **SK33-okno, SK36-pylek, SK37-slonce:** wariant z linią uwagi z niższym wykresem (słupki 66 px, pas doby 30 px); podpisy osi `HH:00` (R-KON-63);
+- **K05 (S-K-01):** powód `Powietrze w sypialni jest teraz zastałe.` bez liczby (5.8.4).
+
+Po decyzjach właściciela z 10.11.2026:
+
+- **S8-norma*.dc.html (S8 otwarte jako strona `4 / 6`):** nagłówek `Twoja norma` · `4 / 6` zamiast daty, bez tytułu `Twoja norma` w treści, `Odchylenia liczę od tego.` bez `→` (5.4.8, R-EKR-35); kanwy pokazują jeszcze wariant „z K1” z datą i tytułem; S8 jako ekran dnia (kamień) bez zmian;
+- **P-przeniesione*.dc.html:** tekst `Do tego czasu przypomnę na pasku u góry: {tytuł}.` poprawiony w kanwie 10.11.2026 bez przerysowania układu (szerokość linii do sprawdzenia przy przerysowaniu);
+- **X-otwarte-sprawy-pusto*.dc.html:** przy ocenie niepełnej (`częściowa`, `ograniczona`) tytuł `Nie widzę otwartych spraw.`, powód `W tym, co oceniam, nic nie jest w toku.`, zdanie `Części rzeczy jeszcze nie oceniam.` (R-EKR-50); przy `pełna` bez zmian; karta sprawy z paska: `Koniec: gdy dane przestaną to pokazywać`;
+- **SK35-wymiana:** krok `→ Po wymianie: strona 5 / 6, ramka na filtrze, ◀ 2 s.` (tekst w kanwie poprawiony);
+- **F07-kokpit (K2):** wariant z wierszami bez danych zwiniętymi do linii `brak danych: zdjęcia maski, oddechy` pod tabelą, nad legendą (R-KOK-18); makieta z prototypu: symulator, strona `2 / 6` na zrzucie z nocami bez M-13 i M-17.

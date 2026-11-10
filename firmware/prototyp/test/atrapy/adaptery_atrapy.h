@@ -11,7 +11,22 @@
 #include <string>
 #include <vector>
 #include "adaptery.h"
+#include "aktualizacja.h"
 #include "magazyn.h"
+
+// `sessions[].start_ms` / `end_ms` raportu AirBridge: sekundy kalendarza cywilnego aparatu (czas lokalny zakodowany jak
+// UTC, bez strefy) × 1000. Testy podają chwilę unix `ep` (czas lokalny strefy TZ), a ta funkcja koduje ją jak AirBridge.
+inline unsigned long long cywilneMs(uint32_t ep) {
+  time_t t = (time_t)ep;
+  std::tm l{};
+  localtime_r(&t, &l);
+  long long r = l.tm_year + 1900, m = l.tm_mon + 1, d = l.tm_mday;  // dni od 1970-01-01 (days_from_civil)
+  r -= m <= 2;
+  long long era = (r >= 0 ? r : r - 399) / 400, yoe = r - era * 400;
+  long long doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  long long dni = era * 146097 + doe - 719468;
+  return (unsigned long long)(dni * 86400 + l.tm_hour * 3600 + l.tm_min * 60 + l.tm_sec) * 1000ULL;
+}
 
 // Dziennik zdarzeń wszystkich atrap: „adapter.zdarzenie argumenty”, w kolejności wywołań.
 struct Dziennik {
@@ -591,6 +606,122 @@ class AtrapaDiagnostyki : public Diagnostyka {
   uint32_t zapasStosu() override { return stos; }
 };
 
+// Atrapa wydań GitHub (ADR-0032, ADR-0038): odpowiedź `releases/latest`, `wydanie.json` i obraz z pamięci.
+// Żądanie zasobu binarnego przechodzi przez jedno przekierowanie na HOST_PLIKOW (jak GitHub); nagłówki każdego
+// żądania liczy rdzeń (aktualizacja::naglowki), atrapa je zapisuje, więc test widzi, czy token poszedł po przekierowaniu.
+class AtrapaWydan : public Wydania {
+ public:
+  AtrapaWydan(Dziennik& d, AtrapaZegara& z) : d_(d), z_(z) {}
+  static constexpr const char* HOST_PLIKOW = "objects.githubusercontent.com";
+  struct Zadanie {
+    std::string url, host;
+    std::vector<std::pair<std::string, std::string>> naglowki;
+  };
+  std::vector<Zadanie> zadania;     // każde żądanie (także po przekierowaniu)
+  int kodApi = 200, kodOpisu = 200, kodObrazu = 200;  // kody odpowiedzi; ujemny = brak połączenia
+  bool certyfikatZly = false;       // serwer spoza zestawu certyfikatów: żądanie nie wychodzi
+  bool przekierowanieNaHttp = false;  // przekierowanie na http:// (adapter go nie przyjmuje)
+  std::string odpowiedzApi;         // ciało `releases/latest`
+  std::string opis;                 // ciało `wydanie.json`
+  std::string obraz;                // bajty obrazu
+  size_t uciecObrazPo = 0;          // >0: połączenie zrywa się po tylu bajtach
+  bool startowyOk = true;           // esp_ota_end: obraz przyjęty
+  int restartow = 0, porzucen = 0, ustawien = 0;
+  bool slotStartowyZmieniony = false;
+  uint64_t slot = aktualizacja::SLOT_APLIKACJI;
+  uint32_t msZadania = 300, msObrazu = 60000;
+
+  // Wydanie `wersja` z obrazem `bajty` (opis zgodny z panelem przy `uklad` = ukladWkompilowany()).
+  void ustaw(const std::string& wersja, const std::string& bajty, uint32_t uklad, const std::string& plytka = PLYTKA_WYDANIA) {
+    obraz = bajty;
+    aktualizacja::OpisWydania o;
+    o.wersja = wersja;
+    o.plytka = plytka;
+    o.uklad = uklad;
+    o.rozmiar = bajty.size();
+    o.sha256 = aktualizacja::sha256(bajty);
+    o.plik = aktualizacja::nazwaObrazu(wersja);
+    opis = aktualizacja::zapiszOpis(o);
+    std::string api = std::string("https://api.github.com/repos/") + REPO_WYDAN + "/releases/assets/";
+    odpowiedzApi = "{\"tag_name\":\"v" + wersja + "\",\"name\":\"v" + wersja +
+                   "\",\"body\":\"Nota \\u0142\",\"assets\":[{\"id\":11,\"name\":\"wydanie.json\",\"url\":\"" + api +
+                   "11\",\"size\":" + std::to_string(opis.size()) + "},{\"id\":12,\"name\":\"" + o.plik +
+                   "\",\"url\":\"" + api + "12\",\"size\":" + std::to_string(bajty.size()) + "}]}";
+  }
+  bool tokenPoszedlDo(const std::string& host) const {
+    for (auto& z : zadania)
+      if (z.host == host)
+        for (auto& h : z.naglowki)
+          if (h.first == "Authorization") return true;
+    return false;
+  }
+  OdpowiedzWydania pobierzTekst(const ZadanieWydania& zw) override {
+    OdpowiedzWydania o;
+    d_.dodaj("wydania.tekst " + zw.url);
+    if (certyfikatZly) { o.certyfikatOk = false; o.kod = -1; return o; }
+    bool api = zw.url.find("/releases/latest") != std::string::npos;
+    int kod = api ? kodApi : kodOpisu;
+    zapiszZadanie(zw.url, zw.token, zw.binarne);
+    o.hosty.push_back(aktualizacja::hostZAdresu(zw.url));
+    if (!api && zw.binarne && kod > 0) {  // zasób: przekierowanie na serwer plików
+      std::string u = std::string(przekierowanieNaHttp ? "http://" : "https://") + HOST_PLIKOW + "/x?token=jednorazowy";
+      if (przekierowanieNaHttp) { o.kod = -2; return o; }
+      zapiszZadanie(u, zw.token, true);
+      o.hosty.push_back(HOST_PLIKOW);
+    }
+    z_.przesun(msZadania);
+    o.kod = kod;
+    if (kod == 200) {
+      o.cialo = api ? odpowiedzApi : opis;
+      if (zw.maksBajtow && o.cialo.size() > zw.maksBajtow) { o.cialo.clear(); o.zaDuzo = true; }
+    }
+    return o;
+  }
+  WynikObrazu pobierzObraz(const ZadanieWydania& zw, uint64_t rozmiar, const std::function<void()>& postep) override {
+    WynikObrazu w;
+    d_.dodaj("wydania.obraz " + zw.url);
+    if (certyfikatZly) { w.http.certyfikatOk = false; w.http.kod = -1; return w; }
+    zapiszZadanie(zw.url, zw.token, true);
+    w.http.hosty.push_back(aktualizacja::hostZAdresu(zw.url));
+    std::string u = std::string("https://") + HOST_PLIKOW + "/obraz";
+    zapiszZadanie(u, zw.token, true);
+    w.http.hosty.push_back(HOST_PLIKOW);
+    w.http.kod = kodObrazu;
+    z_.przesun(msObrazu);
+    if (kodObrazu != 200 || rozmiar > slot) return w;
+    std::string b = uciecObrazPo ? obraz.substr(0, uciecObrazPo) : obraz;
+    aktualizacja::Sha256 s;
+    for (size_t i = 0; i < b.size(); i += 4096) {
+      size_t n = std::min<size_t>(4096, b.size() - i);
+      s.dodaj((const uint8_t*)b.data() + i, n);
+      if (postep) postep();
+    }
+    w.bajtow = b.size();
+    w.sha256 = s.hex();
+    w.zapisOk = w.bajtow == rozmiar;
+    zapisane = w.zapisOk;
+    return w;
+  }
+  bool ustawStartowy() override {
+    ustawien++;
+    d_.dodaj("wydania.startowy");
+    if (!zapisane || !startowyOk) return false;
+    slotStartowyZmieniony = true;
+    return true;
+  }
+  void porzuc() override { porzucen++; zapisane = false; d_.dodaj("wydania.porzuc"); }
+  void restart() override { restartow++; d_.dodaj("wydania.restart"); }
+  uint64_t rozmiarSlotu() override { return slot; }
+
+ private:
+  void zapiszZadanie(const std::string& url, const std::string& token, bool bin) {
+    zadania.push_back({url, aktualizacja::hostZAdresu(url), aktualizacja::naglowki(url, token, bin)});
+  }
+  bool zapisane = false;
+  Dziennik& d_;
+  AtrapaZegara& z_;
+};
+
 // Cały komplet atrap jednego panelu, z ustawieniami jak zwykłe wybudzenie zegarem o 07:00 w dobie testu.
 struct Panel {
   Dziennik d;
@@ -607,7 +738,8 @@ struct Panel {
   AtrapaSnu sen{d, start, straznik};
   AtrapaPortu port{d};
   AtrapaDiagnostyki diag;
+  AtrapaWydan wydania{d, zegar};
   Adaptery adaptery() {
-    return Adaptery{zegar, nvs, pliki, siec, ekran, przyciski, czujniki, dzwiek, start, straznik, sen, port, diag};
+    return Adaptery{zegar, nvs, pliki, siec, ekran, przyciski, czujniki, dzwiek, start, straznik, sen, port, diag, &wydania};
   }
 };

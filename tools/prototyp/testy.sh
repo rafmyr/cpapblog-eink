@@ -70,7 +70,16 @@ for z in "$FW/src/main.cpp" "$FW/src/adaptery_esp32.cpp"; do
   g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DZRZUT_EKRANU=1 -DARDUINO_ATRAPA -I"$FW/test/atrapy/arduino" \
     -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$z"
 done
-echo "  składnia main.cpp i adaptery_esp32.cpp: ok"
+# obraz wydania bez sekretów (tools/wydanie/): main.cpp bez secrets.h
+g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DBEZ_SEKRETOW -DWERSJA_WYDANIA='"9.9.9"' -DARDUINO_ATRAPA \
+  -I"$FW/test/atrapy/arduino" -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$FW/src/main.cpp"
+# flagi obrazu wydania obejmują wszystkie pliki (wydaj.py: PLATFORMIO_BUILD_FLAGS), więc żadna nie może zderzyć się
+# z nazwą w rdzeniu (po scaleniu z EDF `-DWERSJA` psuło `edf::Blad::WERSJA`); składnia rdzenia z tymi flagami
+for z in "${ZRODLA[@]}"; do
+  g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DBEZ_SEKRETOW -DWERSJA_WYDANIA='"9.9.9"' \
+    -DREPO_WYDAN='"a/b"' "${INCLUDY[@]}" "$z"
+done
+echo "  składnia main.cpp, adaptery_esp32.cpp i rdzenia z flagami wydania: ok"
 
 echo "podgląd ekranów: $PODGLAD"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/podglad.cpp" "${OBIEKTY[@]}" -o "$BUD/podglad"
@@ -161,6 +170,37 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_silnik_regul_brzego
 echo "testy (test/testy_rekord_nocy.cpp: rekord nocy M-13, M-17, pna, srn; noce wersja 2)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_rekord_nocy.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_rekord_nocy"
 "$BUD/testy_rekord_nocy"
+echo "testy (test/testy_str_edf.cpp: czytnik EDF, noce ze STR.edf, zgodność z tools/kalibracja/noce.py, pierwszeństwo A/K/S, noce w wersji 4, STR w dyrygencie)"
+STRK="$(mktemp -d "${TMPDIR:-/tmp}/cpap-eink-str-XXXXXX")"
+python3 -I "$REPO/tools/kalibracja/syntetyczna.py" --str-panelu "$STRK/STR.edf" >/dev/null
+python3 -I "$REPO/tools/kalibracja/str_wzorzec.py" "$STRK/STR.edf" > "$STRK/wzorzec.txt"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_str_edf.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_str_edf"
+"$BUD/testy_str_edf" "$STRK"
+echo "testy przypadków brzegowych (test/testy_str_edf_brzegowe.cpp: STR.edf)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_str_edf_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_str_edf_brzegowe"
+"$BUD/testy_str_edf_brzegowe"  # blokuje
+echo "testy (test/testy_noc_pliki.cpp: noc z plików sesji, zgodność z tools/kalibracja/noce.py, brzegowe, dyrygent; ADR-0036)"
+NOCK="$(mktemp -d "${TMPDIR:-/tmp}/cpap-eink-noc-XXXXXX")"
+python3 -I "$REPO/tools/kalibracja/syntetyczna.py" "$NOCK/karta" >/dev/null
+python3 -I "$REPO/tools/kalibracja/syntetyczna.py" --ps "$NOCK/karta_ps" >/dev/null
+python3 -I "$REPO/tools/kalibracja/syntetyczna.py" --noce-panelu "$NOCK/karta_panelu" >/dev/null
+for k in karta karta_ps karta_panelu; do
+  python3 -I "$REPO/tools/kalibracja/noc_wzorzec.py" "$NOCK/$k" > "$NOCK/$k.txt"
+done
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_noc_pliki.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_noc_pliki"
+"$BUD/testy_noc_pliki" "$NOCK"  # blokuje
+echo "testy przypadków brzegowych (test/testy_noc_pliki_brzegowe.cpp: noc z plików sesji)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_noc_pliki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_noc_pliki_brzegowe"
+"$BUD/testy_noc_pliki_brzegowe"  # blokuje
+echo "testy (test/testy_porownanie.cpp: tryb porównawczy noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_porownanie.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_porownanie"
+"$BUD/testy_porownanie"  # blokuje
+echo "testy przypadków brzegowych (test/testy_porownanie_brzegowe.cpp: tryb porównawczy)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_porownanie_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_porownanie_brzegowe"
+"$BUD/testy_porownanie_brzegowe"  # blokuje
+echo "testy linii zaproszenia według ekranu dnia, drogi do „Sprzętu” i linii uwagi (test/testy_zaproszenie_linia_uwagi.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_zaproszenie_linia_uwagi.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zaproszenie_linia_uwagi"
+"$BUD/testy_zaproszenie_linia_uwagi"  # wszystkie zielone, więc blokuje
 echo "testy (test/testy_karty_z_budzikiem.cpp: karty z budzikiem, komplet scen, limity, przerywnik S2d)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karty_z_budzikiem.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karty_z_budzikiem"
 "$BUD/testy_karty_z_budzikiem"
@@ -170,7 +210,7 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karty_z_budzikiem_b
 python3 "$REPO/tools/prototyp/sceny_karty.py" --sprawdz
 echo "testy przypadków brzegowych: rekord nocy (test/testy_rekord_nocy_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_rekord_nocy_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_rekord_nocy_brzegowe"
-"$BUD/testy_rekord_nocy_brzegowe" || echo " padające testy przypadków brzegowych (do poprawki)"
+"$BUD/testy_rekord_nocy_brzegowe"  # wszystkie zielone (wersja 4 pliku nocy), więc blokuje
 
 echo "testy (test/testy_kokpit_k1_k2.cpp: K1 i K2 według trybu, słowa rośnie/spada R-KOK-16)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kokpit_k1_k2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kokpit_k1_k2"
@@ -179,6 +219,19 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kokpit_k1_k2.cpp" "
 echo "testy przypadków brzegowych: kokpit K1 i K2 (test/testy_kokpit_k1_k2_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kokpit_k1_k2_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kokpit_k1_k2_brzegowe"
 "$BUD/testy_kokpit_k1_k2_brzegowe"
+echo "testy poprawek czytelności kokpitu, U-01, „Sprzęt”, S-K-01 i slotu dziennego (test/testy_kokpit_legenda_u01_sprzet.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_kokpit_legenda_u01_sprzet.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kokpit_legenda_u01_sprzet"
+"$BUD/testy_kokpit_legenda_u01_sprzet"
+echo "testy wykresu slotu dziennego przy linii uwagi, U-01, „Sprzętu” i stopki karty (test/testy_slot_ustawienia_sprzet.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_ustawienia_sprzet.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_slot_ustawienia_sprzet"
+"$BUD/testy_slot_ustawienia_sprzet"  # wszystkie zielone, więc blokuje
+
+echo "testy K2 z wierszami bez danych w jednej linii, S7, „Co znaczą te liczby” (test/testy_k2_zwijanie_s7_liczby.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_k2_zwijanie_s7_liczby.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k2_zwijanie_s7_liczby"
+"$BUD/testy_k2_zwijanie_s7_liczby"
+echo "testy przekrojowe K2, kroku S-K-35, stopki karty, pustych spraw i E-23 (test/testy_kokpit_karty_przekroj.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kokpit_karty_przekroj.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kokpit_karty_przekroj"
+"$BUD/testy_kokpit_karty_przekroj"  # wszystkie zielone, więc blokuje
 
 echo "testy (test/testy_czynniki_odkrycia.cpp: czynniki nocy, odkrycia O-03…O-12 z testem permutacyjnym, S7, S8, Co znaczą te liczby)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_czynniki_odkrycia.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_czynniki_odkrycia"
@@ -254,6 +307,9 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wieczor_bez_wifi_ob
 echo "testy przypadków brzegowych: ocena wieczorna bez Wi-Fi, obrazki dnia (test/testy_wieczor_bez_wifi_obrazki_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wieczor_bez_wifi_obrazki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wieczor_bez_wifi_obrazki_brzegowe"
 "$BUD/testy_wieczor_bez_wifi_obrazki_brzegowe"  # po poprawkach blokuje
+echo "testy przypadków brzegowych: konfiguracja w zrzucie Z (test/testy_zrzut_konfiguracja_brzegowe.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zrzut_konfiguracja_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zrzut_konfiguracja_brzegowe"
+"$BUD/testy_zrzut_konfiguracja_brzegowe"  # blokuje
 echo "testy (test/testy_sprzet_infekcja_sk.cpp: SPRZĘT, INFEKCJA, pozostałe ekrany S-K, limity 7.4)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_sprzet_infekcja_sk.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_sprzet_infekcja_sk"
 echo "testy przypadków brzegowych: SPRZĘT, INFEKCJA, pozostałe S-K (test/testy_sprzet_infekcja_sk_brzegowe.cpp)"
@@ -337,3 +393,16 @@ echo "  (linie OCZEKUJE to znane przypadki czekające na decyzję, opisane w kom
 echo "  wypisują się dla przejrzystości, nie są błędem i nie blokują testów)"
 "$BUD/testy_styki_modulow_brzegowe"  # blokuje (oczekujące nie)
 python3 "$REPO/tools/test_styki_modulow_brzegowe.py"
+
+echo "testy (test/testy_aktualizacja.cpp: aktualizacja z wydań GitHub, rdzeń: wersje, opis wydania, SHA-256, decyzje, U-07, ikona, formularz)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja"
+"$BUD/testy_aktualizacja"
+echo "scenariusze aktualizacji z dyrygentem na atrapach (test/testy_aktualizacja_dyrygent.cpp: R-NF-32…36, R-KONF-43…46, R-EKR-61)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja_dyrygent"
+"$BUD/testy_aktualizacja_dyrygent"
+echo "testy przypadków brzegowych aktualizacji (test/testy_aktualizacja_brzegowe.cpp)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja_brzegowe"
+"$BUD/testy_aktualizacja_brzegowe"
+echo "testy U-01 z aktualizacją (test/testy_scalenie_u01_stopka.cpp: wiersz aktualizacji z dyrygenta, szerokość, odesłanie do istniejącego elementu)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_scalenie_u01_stopka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_scalenie_u01_stopka"
+"$BUD/testy_scalenie_u01_stopka"

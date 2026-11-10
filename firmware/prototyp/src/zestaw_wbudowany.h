@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:55832972444b39b1537835bfdea83848c24fec3b42e71ceff05a015264e918a1
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:4580060d3e188fdf62119e14e3a0d0228ef9d8b7715d28aa1bf4ceca90821cb1
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -411,8 +411,25 @@ R-HUM-28.tydzien_noce;5;noce;wszystkie
 R-HUM-28.wyciek_niewielki;10;L/min;wszystkie
 R-HUM-28.poprawa_m01;1;h;wszystkie
 R-HUM-28.poprawa_noce;5;noce;wszystkie
+M-31.okno_po_bezdechu;10;s;ASV,ASVAuto
+M-31.margines_ps;0.5;cmH2O;ASV,ASVAuto
+M-32.margines_epap;0.5;cmH2O;ASVAuto
+M-33.cel_wentylacji;90;%;ASV,ASVAuto
+R-NOR-12.delta.M-31;1;/h;ASV,ASVAuto
+R-DANE-52.ua_dolna_granica;1;/h;CPAP,AutoSet
+L-01.asv_bezdechy;5;/h;ASV,ASVAuto
+L-01.asv_noce;3/7;noce (k z n);ASV,ASVAuto
+L-01.asv_udzial_pelne;50;%;ASV,ASVAuto
+L-01.asv_wyjscie;3;/h;ASV,ASVAuto
+L-04.bezdechy_max_epap;5;/h;ASVAuto
+L-04.wyjscie_bezdechy_max_epap;3;/h;ASVAuto
+E-33.asv_mediana;3;/h;ASV,ASVAuto
+R-LEK-40.bezdechy_bezwzgledne;5;/h;ASV,ASVAuto
+M-31.pmax_aparatu;25;cmH2O;ASV,ASVAuto
+R-NOR-12.delta.M-30;1;/h;ASV,ASVAuto
+L-01.asv_min_noce;3;noce;ASV,ASVAuto
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:8f5699e078953d621d446bc4fff26b88a80a699a5779fe59f830a0e60b64281a
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:8f5699e078953d621d446bc4fff26b88a80a699a5779fe59f830a0e60b64281a
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -615,7 +632,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-ef257d8f82e6 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=40f6f5fde31f skrot=sha256:6acdc5371531f470ec1eda7ec42ab73e9f0efda49e65146b9915dd7471527b77
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:3e12c3f942171efcb20ec41e40acf1e87962ad3da616e4707c3596f3b5a5b1ad
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.
@@ -663,8 +680,8 @@ E-22.tytul;tytul;30;Maska nieszczelna
 E-23.krok;krok;60;→ Sprawdź maskę. Gdy wraca, pokaż lekarzowi.
 E-23.podpis_lewo;podpis_lewo;40;wyciek l/min · 30 nocy
 E-23.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-23.przeciek_p95} l/min
-E-23.powod;powod;70;Przez co najmniej 5% czasu terapii.
-E-23.tytul;tytul;30;Wyciek od {prog:E-23.przeciek_p95} l/min w nocy
+E-23.powod;powod;70;{x} l/min lub więcej przez 5% czasu terapii, próg {prog:E-23.przeciek_p95}.
+E-23.tytul;tytul;30;Wyciek w nocy ponad próg
 E-30.krok;krok;60;→ Sprawdź wyciek i obserwuj kolejne noce.
 E-30.podpis_lewo;podpis_lewo;40;AHI · 30 nocy
 E-30.podpis_prawo;podpis_prawo;40;linia przerywana = {prog:E-30.ahi} / h
@@ -678,9 +695,11 @@ E-31.powod;powod;70;Średnio {x} / h, zwykle {norma}.
 E-31.tytul;tytul;30;Bezdechów więcej niż zwykle
 E-33.krok;krok;60;→ Obserwuj kolejne noce.
 E-33.podpis_lewo;podpis_lewo;40;bezdechy centralne / h · 30 nocy
+E-33.podpis_lewo_asv;podpis_lewo;40;przy pełnym wsparciu / h · 30 nocy
 E-33.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
 E-33.powod;powod;70;{x} / h, zwykle {norma}.
 E-33.tytul;tytul;30;Więcej bezdechów centralnych
+E-33.tytul_asv;tytul;30;Bezdechy przy pełnym wsparciu
 E-36.krok;krok;60;→ Obserwuj kolejne noce.
 E-36.krok_lekarz;krok;60;→ Obserwuj kolejne noce.
 E-36.podpis_lewo;podpis_lewo;40;{prog:E-36.slowo_cisnienia} w szczytach nocy · 30 nocy
@@ -695,6 +714,7 @@ H-02.linia_asvauto;ramka;60;Najpewniej do poprawy: zakres EPAP
 H-02.linia_tryb;ramka;60;Najpewniej do poprawy: tryb terapii
 H-02.pytanie;pytanie;200;Ciśnienie przy maksimum {max} ze zdarzeniami {y} / h: czy zakres ciśnienia albo tryb terapii mogą mieć z tym związek, czy szukać innej przyczyny?
 H-02.pytanie_asvauto;pytanie;200;EPAP przy maksimum {max} ze zdarzeniami {y} / h: czy zakres EPAP może mieć z tym związek, czy szukać innej przyczyny?
+H-02.pytanie_asvauto_m32;pytanie;200;EPAP przy maksimum {max}, bezdechy przy nim {y} / h: czy zakres EPAP może mieć z tym związek, czy szukać innej przyczyny?
 H-02.zdanie;ramka;60;Obszar do omówienia z lekarzem.
 H-03.linia;ramka;60;Najpewniej do poprawy: start terapii (rampa)
 H-03.pytanie;pytanie;200;Zdarzenia skupione w pierwszych {prog:H-03.start_min} min sesji: czy start terapii (rampa) może mieć z tym związek, czy szukać innej przyczyny?
@@ -710,31 +730,35 @@ H-09.linia;ramka;60;Najpewniej do poprawy: czas z maską
 H-09.pytanie;pytanie;200;Senność przy medianie {czas} z maską na noc: czy czas z maską może mieć z tym związek, czy szukać innej przyczyny?
 L-01.krok;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
 L-01.powod;powod;70;Centralne średnio {x} / h z {prog:L-01.okno} nocy, zwykle {norma}.
+L-01.powod_asv;powod;70;Bezdechy średnio {x} / h z {prog:L-01.okno} nocy, przy pełnym wsparciu {p}%.
 L-01.tytul;tytul;30;Bezdechy centralne utrwalone
+L-01.tytul_asv;tytul;30;Bezdechy mimo pełnego wsparcia
 L-01.zdanie_po_zmianie;raport;120;Początek wzorca {n} nocy po zmianie ustawień {data}.
 L-02.krok;krok;60;→ Omów wynik z lekarzem w najbliższych tygodniach.
-L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport z K2.
+L-02.linia_asv;raport;120;Oddychanie okresowe: aparat ASV go nie oznacza.
+L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 6.
 L-02.powod_a;powod;70;Oddychanie okresowe w {n} z {prog:L-02.a_okno} nocy, razem {min} min.
 L-02.powod_b;powod;70;Oddychanie okresowe {x}% czasu nocy, zwykle {norma}%.
 L-02.tytul;tytul;30;Urządzenie oznaczyło wzorzec
 L-03.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
-L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport z K2.
+L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 6.
 L-03.powod;powod;70;Mediana z {prog:L-03.okno} nocy {x} / h, wyciek mały.
 L-03.tytul;tytul;30;Bezdechy utrzymują się wyżej
 L-04.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
 L-04.powod;powod;70;Ciśnienie blisko maksimum {max}, bezdechy obturacyjne {y} / h.
 L-04.powod_asvauto;powod;70;EPAP blisko maksimum {max}, bezdechy obturacyjne {y} / h.
+L-04.powod_asvauto_m32;powod;70;EPAP blisko maksimum {max}, bezdechy przy nim {y} / h.
 L-04.tytul;tytul;30;Ciśnienie przy górnej granicy
 L-04.tytul_asvauto;tytul;30;EPAP przy górnej granicy
 L-05.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
 L-05.powod;powod;70;Oddechy {x} / min, zwykle {norma}, od {n} nocy.
 L-05.tytul;tytul;30;Zmiana oddechu od kilku nocy
-L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport z K2.
-L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport z K2.
+L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
+L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
 L-07.tytul;tytul;30;Ciśnienie rośnie od tygodni
 L-07.tytul_asv;tytul;30;EPAP rośnie
 L-08.krok_szybki;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
-L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport z K2.
+L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.
 L-08.powod_szybki;powod;70;Ponad 4 h w {n} z 30 nocy, miesiąc temu {m} z 30.
 L-08.tytul_szybki;tytul;30;Dużo mniej nocy z maską
 L-09.krok;krok;60;→ Zapytaj dostawcę sprzętu o inną maskę.
@@ -742,7 +766,7 @@ L-09.linia;linia;60;Wyciek nie ustępuje od {n} nocy. Pokaż na kontroli.
 L-09.powod;powod;70;Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.
 L-09.tytul;tytul;30;Wyciek nie ustępuje
 L-10.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
-L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport z K2.
+L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 6.
 L-10.powod;powod;70;Od {n} tygodni więcej spłaszczonych wdechów i senność.
 L-10.tytul;tytul;30;Spłaszczone wdechy i senność
 L-11.krok;krok;60;→ Pokaż to lekarzowi, sama liczba nie wystarczy.
@@ -888,10 +912,11 @@ S-K-17.wyciek;powod;70;wyciek wyższy niż zwykle
 S-K-18.etykieta;etykieta;30;Twój tydzień
 S-K-18.krok_czas;krok;60;→ Każda godzina z maską się liczy.
 S-K-18.krok_dane;krok;60;→ Część ocen jeszcze nie działa: za mało nocy.
+S-K-18.krok_dane_pliki;krok;60;→ Bezdechów nie oceniam: brak plików nocy.
 S-K-18.krok_dane_wyciek;krok;60;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-18.krok_linia;krok;60;→ Sprawa z linii wyżej wciąż otwarta.
 S-K-18.krok_nic;krok;60;→ Nic do zrobienia. Tak trzymaj.
-S-K-18.krok_oceny;krok;60;→ Część ocen wyłączona: zobacz K1.
+S-K-18.krok_oceny;krok;60;→ Część ocen wyłączona: zobacz ▶.
 S-K-18.krok_pora;krok;60;→ Stała pora snu, też w weekend.
 S-K-18.krok_przerwy;krok;60;→ Sprawdź, co budzi w nocy.
 S-K-18.krok_reguly;krok;60;→ Część reguł nie działa: zobacz Test sprzętu.

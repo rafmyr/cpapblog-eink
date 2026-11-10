@@ -58,8 +58,8 @@ static const long DOBA_A = nrDnia("2026-11-03");  // noc z poranka 4.11.2026
 // ostatniej nocy jako `end_ms` ostatniej sesji (Załącznik A).
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"
@@ -284,7 +284,7 @@ static bool logMa(const std::vector<Wyb>& v, const std::string& t, int odMin = 0
 #include "slot_dzienny.h"
 
 // ---------- S-K-01 wyzwolony odczytem bieżącym, po powrocie z K1 powód mówi o zeszłej nocy ----------
-// 21:00 CO2 1250 ppm z lokalnego źródła → S-K-01 `Teraz CO2 1250 ppm. Powietrze jest zastałe.`; 22:00 naciśnięcie ▶,
+// 21:00 CO2 1250 ppm z lokalnego źródła → S-K-01 `Powietrze w sypialni jest teraz zastałe.` (1250 w nagłówku i fakcie); 22:00 naciśnięcie ▶,
 // 22:05 powrót (R-PRZ-02): odczyt z 21:00 ma już > 30 min, ocenWieczor() daje BRAK z zOdczytu = false, dyrygent
 // rysuje S-K-01 ponownie z trescSK01() i powodem `Zeszłej nocy CO2 przez {h} h ponad 1000 ppm.` (fałsz: zeszła noc
 // nie spełniła warunku 2 h; przy nocy bez odczytów `0 h`). Oczekiwane: ten sam powód co o 21:00.

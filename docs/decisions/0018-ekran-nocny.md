@@ -45,3 +45,5 @@ Zmiana 2026-11-08: pula „noc” przyjęta przez właściciela projektu 08.11.2
 Zamknięte 30.10.2026: AirBridge v2.2.1 podaje w `GET /api/status` pole `edf_prefix` (start bieżącej sesji) i `rop` (1 = terapia), więc S9 pokazuje godzinę założenia maski przy `rop` = 1 (spec 5.8.11, R-KON-33, Załącznik A pkt 4). Pkt 5 decyzji i ostatni punkt „Konsekwencji” („S9 zawsze w wersji bez godziny maski”) są przez to nieaktualne. Zmiana momentu rysowania na chwilę założenia maski nadal wymaga osobnej decyzji.
 
 Podpis faktu z pkt 6 od 30.10.2026 (audyt UX, decyzja): `zwykle z maską` zamiast `Twój zwykły czas z maską` (spec 5.8.11). Treść decyzji bez zmian; dopisek przeniesiony 31.10.2026 z pkt 6 do adnotacji.
+
+Zmiana 2026-11-10 (decyzja właściciela, „usunąć”; audyt UX 10.11.2026): S9 bez zdania budzika: A1 i A3 bez zdania w stopce (`▶ kokpit` z prawej jak dotąd), A2 bez linii pod `Dobranoc.` (tytuł i linia faktów jak w wariancie bez zdania). Pula „noc” zostaje w danych (spec 5.7.5, 5.8.11).

@@ -497,7 +497,7 @@ static void testRejestrNoceV2() {
   const FormatPliku* f = formatPliku(rejestrFormatow(), "noce");
   SPRAWDZ(f != nullptr);
   if (!f) return;
-  ROWNE_L(f->wersja(), 3);  // wersja 3 (M-18)
+  ROWNE_L(f->wersja(), 4);  // wersja 4 (M-18 w wersji 3, `S` w polu zrodlo, ADR-0035)
   if (f->wersja() < 2) return;
   ROWNE(polaTekst(f->pola[0]), POLA_V1);
   ROWNE(polaTekst(f->pola[1]), POLA_V2);
@@ -524,11 +524,11 @@ static void testMigracja0do2_412() {
   std::map<std::string, std::string> wgDaty;
   for (auto& s : m.sciezki("noce")) {
     std::string t = pl.tresc(s);
-    SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 3\n") == 0);
+    SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 4\n") == 0);
     std::vector<std::string> w = wiersze(t);
     SPRAWDZ(w.size() >= 3 && w[1] == POLA_V3);
     OdczytPliku o = m.czytaj("noce", s);
-    SPRAWDZ(o.stan == StanPliku::DOBRY && o.wersja == 3);
+    SPRAWDZ(o.stan == StanPliku::DOBRY && o.wersja == 4);
     for (auto& x : o.wiersze) {
       SPRAWDZ(dziel(x, ';').size() == 42);
       wgDaty[x.substr(0, 10)] = x;
@@ -572,7 +572,7 @@ static void testMigracja1do2() {
   SPRAWDZ(!pl.istnieje("/dane/noce/2026.csv.tmp"));
   std::vector<std::string> w2;
   for (auto& l : v1) w2.push_back(l + PUSTE_B1 + ";");  // migracja do wersji 3 (puste `m18`)
-  ROWNE(pl.tresc("/dane/noce/2026.csv"), plik("noce", 3, POLA_V3, w2));
+  ROWNE(pl.tresc("/dane/noce/2026.csv"), plik("noce", 4, POLA_V3, w2));
   bool wynik = false;
   for (auto& x : m.migracje()) wynik = wynik || (x.ok && x.przed == 30 && x.po == 30);
   SPRAWDZ(wynik);
@@ -586,7 +586,7 @@ static void testMigracja1do2() {
   w2.back() = wierszNocyV3(n);
   SPRAWDZ(m.zapisz("noce", "/dane/noce/2026.csv", w2));
   OdczytPliku o2 = m.czytaj("noce", "/dane/noce/2026.csv");
-  SPRAWDZ(o2.stan == StanPliku::DOBRY && o2.wersja == 3 && !o2.wiersze.empty() && o2.wiersze.back() == w2.back());
+  SPRAWDZ(o2.stan == StanPliku::DOBRY && o2.wersja == 4 && !o2.wiersze.empty() && o2.wiersze.back() == w2.back());
 }
 
 // Przywracanie ze zrzutu wersji 0 (T-WYM-62) na flash w wersji 2: noc z AirBridge we flash zostaje z polami wersji 2,
@@ -667,7 +667,7 @@ static void testDyrygentZapisujePolaB1() {
   s.p.siec.dodaj(sciezkaNocy(DOBA_A), 200, raportB1(DOBA_A, "2", "16.2"));
   wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
   std::string t = s.p.pliki.tresc("/dane/noce/2026.csv");
-  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 3\n") == 0);
+  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 4\n") == 0);
   std::string w = wierszZData(t, "2026-11-04");
   SPRAWDZ(!w.empty());
   std::vector<std::string> f = dziel(w, ';');
@@ -735,7 +735,7 @@ static void testZrzutZNaV2() {
   for (char c : std::string("Z")) s.p.port.znaki.push_back((unsigned char)c);
   wybudz(s, ep(2026, 11, 4, 9, 0), PowodWybudzenia::START);
   SPRAWDZ(zawiera(s.p.port.log, "PLIK /dane/noce/2026.csv"));
-  SPRAWDZ(zawiera(s.p.port.log, "#cpap-eink noce 3"));
+  SPRAWDZ(zawiera(s.p.port.log, "#cpap-eink noce 4"));
   SPRAWDZ(zawiera(s.p.port.log, wierszNocyV3(a)));
 }
 
@@ -914,7 +914,7 @@ static void testScalenieZPlikiemWersji1() {
     ROWNE_L(rekordyNocy(pl), 60);
     SPRAWDZ(m.migrujWMiejscu());
   }
-  SPRAWDZ(pl.tresc("/dane/noce/2026.csv").compare(0, 18, "#cpap-eink noce 3\n") == 0);
+  SPRAWDZ(pl.tresc("/dane/noce/2026.csv").compare(0, 18, "#cpap-eink noce 4\n") == 0);
   ROWNE_L(rekordyNocy(pl), 60);
   // dyrygent: pierwsze wybudzenie po starcie ma 60 nocy w historii
   PanelB1 s;

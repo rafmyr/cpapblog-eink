@@ -47,8 +47,8 @@ struct KonfiguracjaPanelu {
 // Teksty ostatniego wybudzenia do testów i symulatora (ekran testu jest tylko w pikselach).
 struct TekstyWybudzenia {
   // Teksty U-05 (kanwa) w kolejności: najpierw każdego U-05 narysowanego w tym wybudzeniu, na końcu U-05
-  // według stanu tuż przed snem (także gdy widoczny był inny ekran). Każdy U-05 daje 12 tekstów: 10 wierszy jako
-  // `{nazwa}: {wartość}` (np. `Pamięć panelu: nie zamontowana`, `Źródło otoczenia: przekierowanie`) i obie części
+  // według stanu tuż przed snem (także gdy widoczny był inny ekran). Każdy U-05 daje 13 tekstów: 10 wierszy kolumn
+  // i wiersz `Noce z plików` pod nimi (tryb porównawczy, src/porownanie.h) jako `{nazwa}: {wartość}` (np. `Pamięć panelu: nie zamontowana`, `Źródło otoczenia: przekierowanie`) i obie części
   // ramki (np. `Okno przywracania do 07:10`, T-WYM-87; `Wgrywanie przez Wi-Fi: wyłączone`, T-WYM-45).
   std::vector<std::string> linieTestu;
   // Diagnostyka U-05: blok wierszy, który dyrygent wypisuje w logu portu serwisowego przy każdym

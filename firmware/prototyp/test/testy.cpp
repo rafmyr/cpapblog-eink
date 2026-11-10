@@ -325,26 +325,6 @@ static void testKokpit() {
   ROWNE(kr.kol[6], "pn 2");
 }
 
-// Wszystkie zdania pul ekranu dnia i przerywników (5.7.5, pula przyjęta 08.11.2026) i najszersze z nich w kroju stopki P22B.
-static std::vector<std::string> wszystkieZdaniaBudzika() {
-  std::vector<std::string> w;
-  for (const char* pula : {"dobra_noc", "seria", "kamien", "brak_danych", "synchronizacja", "tydzien", "powrot",
-                           "wyciek", "przerwy", "zuzycie", "po_wymianie", "wietrzenie", "smog", "chlod",
-                           "suche_powietrze", "upal", "pylek", "stala_pora", "z_maska", "weekend", "odkrycie",
-                           "przerywnik", "przerywnik_sceny"})
-    for (int i = 0; i < 40; i++) {
-      std::string z = tekstZdania(std::string(pula) + ":" + std::to_string(i));
-      if (!z.empty()) w.push_back(z);
-    }
-  return w;
-}
-static std::string najszerszeZdanieBudzika() {
-  std::string n;
-  for (auto& z : wszystkieZdaniaBudzika())
-    if (szer(F_P22B, "„" + z + "”") > szer(F_P22B, "„" + n + "”")) n = z;
-  return n;
-}
-
 static WpisHumoru wpis(const std::string& d, const std::string& t, const std::string& k, char tryb, const std::string& sc = "",
                        const std::string& z = "") {
   return {d, t, k, tryb, sc, z};
@@ -1151,7 +1131,7 @@ static void testDobranocLogika() {
     dw.maskaOd = dx.maskaOd = n % 2 ? 23 * 60 + 5 : -1;  // A3 z godziną i bez
     TekstyNocy tw = tekstyNocy(dw), tx = tekstyNocy(dx);
     SPRAWDZ(tx.tytul == tw.tytul && tx.etykieta == tw.etykieta && tx.linie == tw.linie && tx.krok == tw.krok);
-    SPRAWDZ(tx.stopkaLewo.empty() && tx.zdanieA2.empty());
+    SPRAWDZ(tx.stopkaLewo.empty());
   }
   {
     StanNocy s0;
@@ -1253,8 +1233,8 @@ static void testDobranocLogika() {
   ROWNE(t.fakty[0].first + "|" + t.fakty[0].second, "21°|temperatura");
   ROWNE(t.fakty[1].first + "|" + t.fakty[1].second, "45%|wilgotność");
   ROWNE(t.fakty[2].first + "|" + t.fakty[2].second, "7 h 25|zwykle z maską");  // T13
-  ROWNE(t.krok, "→ Ekran zostaje do rana, żeby nie błyskać.");  // T14
-  ROWNE(t.stopkaLewo, "„Kapcie zdjęte. Reszta świata niech poczeka.”");
+  ROWNE(t.krok, "Ekran zostaje do rana, żeby nie błyskać.");  // T14, bez `→`: informacja, nie czynność
+  ROWNE(t.stopkaLewo, "");  // bez zdania budzika od 10.11.2026 (ADR-0009, ADR-0018)
   ROWNE(t.stopkaPrawo, "▶ kokpit");
   dn.maskaOd = -1;  // bez startu sesji (R-KON-33): nagłówek `30.10` bez `maska od`, powód tylko wynik rano
   dn.zwyklySen = -1;  // bez normy: bez faktu „Twój zwykły czas z maską”
@@ -1266,14 +1246,13 @@ static void testDobranocLogika() {
   dn.maskaOd = 22 * 60 + 47;
   ROWNE(tekstyNocy(dn).liniaA2, "maska od 22:47 · przy łóżku 21° · 45% · wynik rano");
   ROWNE(tekstyNocy(dn).tytul, "Dobranoc.");
-  ROWNE(tekstyNocy(dn).zdanieA2, "„Księżyc gra na zwłokę. Ja na sen.”");
-  SPRAWDZ(tekstyNocy(dn).stopkaLewo.empty());
+  SPRAWDZ(tekstyNocy(dn).stopkaLewo.empty());  // A2 bez zdania budzika pod tytułem (od 10.11.2026)
   dn.maskaOd = -1;
   ROWNE(tekstyNocy(dn).liniaA2, "przy łóżku 21° · 45% · wynik rano");
   dn.temp = dn.wilg = NAN;  // bez czujnika panelu
   ROWNE(tekstyNocy(dn).liniaA2, "wynik rano");
-  dn.wybor = wyborNocy(numerPoranka("2026-10-31"), false);  // bez propozycji: pula „noc” przyjęta, zdanie zostaje
-  ROWNE(tekstyNocy(dn).zdanieA2, "„Księżyc gra na zwłokę. Ja na sen.”");
+  dn.wybor = wyborNocy(numerPoranka("2026-10-31"), false);  // pula „noc” zostaje w danych, na ekranie zdania nie ma
+  SPRAWDZ(!dn.wybor.zdanie.empty() && tekstyNocy(dn).stopkaLewo.empty());
   dn.temp = 21.4f;
   dn.wilg = 44.6f;
   dn.wybor = wyborNocy(numerPoranka("2026-11-01"));  // A3, W12
@@ -1286,7 +1265,7 @@ static void testDobranocLogika() {
   SPRAWDZ(t.tytulGodzina && t.linie.size() == 2);
   ROWNE(t.linie[0], "Dobranoc. Wynik nocy rano.");
   ROWNE(t.linie[1], "Ekran zostaje do rana, żeby nie błyskać.");  // T15
-  ROWNE(t.stopkaLewo, "„Dobranoc. Skargi przyjmę we śnie.”");
+  ROWNE(t.stopkaLewo, "");
   dn.maskaOd = -1;  // R-KON-33: bez startu sesji, noc A3
   t = tekstyNocy(dn);
   ROWNE(t.etykieta, "NA DOBRANOC");
@@ -1294,14 +1273,14 @@ static void testDobranocLogika() {
   SPRAWDZ(!t.tytulGodzina);
   ROWNE(t.linie[0], "Wynik nocy rano.");
   dn.wybor = wyborNocy(numerPoranka("2026-11-01"), false);
-  ROWNE(tekstyNocy(dn).stopkaLewo, "„Dobranoc. Skargi przyjmę we śnie.”");  // -DHUMOR_PROPOZYCJE=0: pula przyjęta (08.11.2026)
+  ROWNE(tekstyNocy(dn).stopkaLewo, "");  // bez zdania budzika także bez propozycji
   // ADR-0002: na ekranie nocnym ani słowa o ustawieniach aparatu i ocenie nocy
   for (long n = 0; n < 18; n++)
     for (int g : {-1, 23 * 60 + 41}) {
       dn.wybor = wyborNocy(n);
       dn.maskaOd = g;
       TekstyNocy x = tekstyNocy(dn);
-      std::string all = x.naglowekLewo + x.tytul + x.krok + x.liniaA2 + x.zdanieA2 + x.stopkaLewo;
+      std::string all = x.naglowekLewo + x.tytul + x.krok + x.liniaA2 + x.stopkaLewo;
       for (auto& l : x.linie) all += l;
       for (auto& f : x.fakty) all += f.second;
       for (const char* zakaz : {"ciśnieni", "EPR", "cmH", "ustawie", "AHI", "lekarz", "05:00"})
@@ -2176,6 +2155,8 @@ static void testTytulINaglowek() {
   ROWNE(t.kolumny[0].s, "↔");
   ROWNE(t.kolumny[0].p, "");  // `jak zwykle` mówi legenda paska (wariant B)
   SPRAWDZ(!t.kolumny[0].poza);
+  // mediana czasu z maską w pasku `6:38`, celowo innym zapisem niż noc `6 h 38` nad paskiem (5.4.2, SPEC-B)
+  SPRAWDZ(t.kolumny[0].w.find(':') != std::string::npos && t.kolumny[0].w.find(" h ") == std::string::npos);
   ROWNE(t.kolumny[3].et, "wyciek l/min");
   ROWNE(t.kolumny[3].w, "11");  // mediana 7 nocy wycieku P95: 12, 10, 12, 10, 12, 10, 11 → 11
   // noc z odchyleniem AHI 4,1 (R-CZY-01) → `Noc: 6 h 38, AHI 4,1.`
@@ -3026,23 +3007,27 @@ static void testSkalaB() {
   // (stopka U-05 ma krój P18B i własny układ według kanwy: testU05WedlugKanwy)
   SPRAWDZ(szerStopki(stopkaK2()) <= 744 && szerStopki(stopkaK1(true)) <= 744 && szerStopki(stopkaPytania()) <= 744);
   SPRAWDZ(szerStopki({"◀ ostatnia noc · 2 s ustawienia", "↻ ekran dnia · 2 s sprzęt", "▶ raport"}) <= 744);  // pełna mapa K2
-  // stopka karty: każde zdanie z pul (08.11.2026) mieści się obok akcji `▶ kokpit`; zdanie, które nie mieści się obok
-  // najdłuższego odczytu czujnika, wypiera odczyt, nigdy akcję
-  for (auto& z : wszystkieZdaniaBudzika()) SPRAWDZ(szer(F_P22B, "„" + z + "”") + szerStopki({"▶ kokpit"}) + 24 <= 744);
-  std::string najszersze = najszerszeZdanieBudzika();
-  SPRAWDZ(szer(F_P22B, "„" + najszersze + "”") + szer(F_P22B, "przy łóżku 35° · 100%") + 24 > 744);  // jest co wypierać
+  // stopka karty bez zdania budzika (od 10.11.2026, ADR-0009 „Zmiana 2026-11-10”): lewo jak na ekranie danych
+  // (pogoda albo pusto), prawo bez zmian; najdłuższy odczyt czujnika stoi w całości, lewa część stopki pusta
   {
     TrescEkranu kt;
     kt.tytul = "Noc: 6 h 38 z maską.";
     kt.stopkaPrawo = "przy łóżku 35° · 100%";
     PlotnoTest kp;
-    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "", najszersze);
-    int xk = 28 + szer(F_P22B, "„" + najszersze + "”") + 4;  // koniec zdania (X = 28)
-    SPRAWDZ(kp.czarne(xk, 440, 800, 480) == 0);  // odczyt czujnika ustąpił zdaniu, nic nie nachodzi
+    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "");
+    int x0 = 772 - szer(F_P22B, kt.stopkaPrawo);
+    SPRAWDZ(kp.czarne(x0, 444, 772, 472) > 50);   // odczyt czujnika w całości
+    SPRAWDZ(kp.czarne(0, 440, x0 - 4, 480) == 0);  // bez zdania budzika z lewej
+    // bez obu stron stopka znika (5.4.3): bez kreski na 434
+    TrescEkranu pusta;
+    pusta.tytul = kt.tytul;
+    PlotnoTest kq;
+    rysujKarte(kq, {"cz 30.11", "dane 05:46"}, pusta, "");
+    SPRAWDZ(kq.czarne(0, 433, 800, 480) == 0);
   }
   // S9 A1: fakty i krok w kolumnie tekstu 474 px; A3: linia 2 obok budzika (≤ 500)
   SPRAWDZ(szer(F_P22B, "temperatura") + 22 + szer(F_P22B, "wilgotność") + 22 + szer(F_P28B, "10 h 59") <= 474);
-  SPRAWDZ(szer(F_P22B, "→ Ekran zostaje do rana, żeby nie błyskać.") <= 474);
+  SPRAWDZ(szer(F_P22B, "Ekran zostaje do rana, żeby nie błyskać.") <= 474);
   SPRAWDZ(szer(F_P22B, "Ekran zostaje do rana, żeby nie błyskać.") <= 500 && szer(F_P28B, "Dobranoc. Wynik nocy rano.") <= 500);
   // pytanie: opis nocy obok etykiety, etykieta leków w 2 liniach lewej kolumny (376 − 58)
   SPRAWDZ(28 + szer(F_P22B, "INNA NOC", 1) + 32 + szer(F_P22B, "AHI 12,4 przy zwykłych 10,5–12,3, maska zdjęta 12 razy") <= 772);
@@ -3235,6 +3220,8 @@ static void testSkalaB() {
     n.emed = 8;
     n.ep95 = 9 + (i % 3) * 0.3f;
     n.psmed = 6;
+    n.m13 = 14;  // każdy wiersz z wartością: bez zwinięcia do `brak danych: …` (R-KOK-18), pozycje wierszy stałe
+    n.m17 = 1;
     h.push_back(n);
   }
   Norma nm = liczNorme(h, "2026-10-29", {});
@@ -3480,20 +3467,16 @@ static void testOtoczenie() {
     rysujEkranDanych(p1, {"pt 30.10", "dane 05:40"}, tb);
     rysujEkranDanych(p2r, {"pt 30.10", "dane 05:40"}, trescDnia("S2A", "1", stary));
     SPRAWDZ(p1.px == p2r.px);  // piksel w piksel
-    // karta: dłuższe zdanie budzika wypiera najpierw dopisek CO2, a nie cały odczyt
+    // karta (bez zdania budzika od 10.11.2026): odczyt z dopiskiem CO2 stoi w całości z prawej, pogoda z lewej
     TrescEkranu kt;
     kt.tytul = "Noc: 6 h 38 z maską.";
+    kt.stopkaLewo = "Katowice 7° · pochmurno";
     kt.stopkaPrawo = "przy łóżku 35° · 99% · CO2 4999";
-    std::string zd = najszerszeZdanieBudzika();
-    SPRAWDZ(szer(F_P22B, "„" + zd + "”") + szer(F_P22B, kt.stopkaPrawo) + 24 > 744);
-    SPRAWDZ(szer(F_P22B, "„" + zd + "”") + szer(F_P22B, "przy łóżku 35° · 99%") + 24 > 744);  // tu ustępuje cały
-    PlotnoTest kp;
-    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "", zd);
-    SPRAWDZ(kp.czarne(28 + szer(F_P22B, "„" + zd + "”") + 4, 440, 800, 480) == 0);  // koniec zdania (X = 28)
     PlotnoTest kp2;
-    rysujKarte(kp2, {"cz 30.11", "dane 05:46"}, kt, "", "Dobra noc.");
+    rysujKarte(kp2, {"cz 30.11", "dane 05:46"}, kt, "");
     int x0 = 772 - szer(F_P22B, "przy łóżku 35° · 99% · CO2 4999");
-    SPRAWDZ(kp2.czarne(x0, 444, 772, 472) > 50);  // krótkie zdanie: cały odczyt z CO2 zostaje
+    SPRAWDZ(kp2.czarne(x0, 444, 772, 472) > 50);
+    SPRAWDZ(kp2.czarne(28, 444, 28 + szer(F_P22B, kt.stopkaLewo), 472) > 50);
   }
 
   // E-08 (`co2_milczy`): linia grupy „dane”, biały pasek w ramce, raz na epizod

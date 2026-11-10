@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "ekrany.h"
 #include "infekcja.h"
 #include "kontekst_sk.h"
 #include "sprzet.h"
@@ -515,7 +516,7 @@ static void testSprzet() {
         "# k\nwymiana.filtr=2026-11-04\npylki=brzoza\n");
   ROWNE(sprzet::zapiszWymiane("pylki=brzoza", EL_MASKA, "2026-11-04"), "pylki=brzoza\nwymiana.maska=2026-11-04\n");
   // ◀ ▶ kursor (za końcem listy sąsiednia strona), ◀ 2 s wymienione, ↻ ekran dnia, ↻ 2 s nowy model (maska)
-  ROWNE(sprzet::stopkaSprzetu(EL_MASKA), "◀ wstecz · 2 s wymienione   ▶ niżej   ↻ ekran dnia · 2 s nowy model");
+  ROWNE(sprzet::stopkaSprzetu(EL_MASKA), "◀ norma · 2 s wymienione   ▶ niżej   ↻ ekran dnia · 2 s nowy model");
   ROWNE(sprzet::stopkaSprzetu(EL_FILTR), "◀ wyżej · 2 s wymienione   ▶ ustawienia   ↻ ekran dnia");
   // S-K-31: maska po terminie, wyciek 7 nocy ≥ norma + 10, rośnie od 3 tygodni
   std::vector<Noc> h;
@@ -686,6 +687,13 @@ struct PlotnoTest : Plotno {
     if (x >= 0 && x < 800 && y >= 0 && y < 480 && c) czarne++;
   }
 };
+struct PlotnoPiksele : Plotno {
+  std::vector<uint8_t> px = std::vector<uint8_t>(800 * 480, 0);
+  void piksel(int x, int y, bool c) override {
+    if (x >= 0 && x < 800 && y >= 0 && y < 480) px[(size_t)(y * 800 + x)] = c;
+  }
+  bool cz(int x, int y) const { return px[(size_t)(y * 800 + x)] != 0; }
+};
 static void testRysowanie() {
   std::vector<Noc> h = historia(30);
   h.back().wp95 = 26;
@@ -699,6 +707,34 @@ static void testRysowanie() {
     PlotnoTest p;
     sk::rysuj(p, Naglowek{"pt 30.09", "dane 05:44"}, *t, "", "");
     SPRAWDZ(p.czarne > 800 * 480 / 2);  // negatyw
+  }
+  // R-EKR-62: S-K-10 w negatywie; zaproszenie (informacja) w białej ramce bez białego paska, ostrzeżenie na białym
+  // pasku (wcześniej obie jako czarny pasek z `!`, niewidoczny na czarnym tle)
+  if (t) {
+    sk::Tresc ti = *t;
+    ti.t.linia = "Co było inaczej? ↻ 2 s";
+    ti.t.liniaOstrzezenie = false;
+    PlotnoPiksele pi;
+    sk::rysuj(pi, Naglowek{"pt 30.09", "dane 05:44"}, ti, "", "");
+    SPRAWDZ(pi.cz(780, 70) && !pi.cz(787, 70));
+    ti.t.liniaOstrzezenie = true;
+    ti.t.linia = "Noce mało czytelne: bezdechów nie oceniam.";
+    PlotnoPiksele po;
+    sk::rysuj(po, Naglowek{"pt 30.09", "dane 05:44"}, ti, "", "");
+    SPRAWDZ(!po.cz(780, 70) && !po.cz(787, 70));
+    // R-EKR-61: przy ikonie aktualizacji stopka S-K kończy się przed ikoną (pełne słowa), pas ikony bez tekstu
+    PlotnoPiksele pk;
+    {
+      IkonaStopki ik(true);
+      sk::rysuj(pk, Naglowek{"pt 30.09", "dane 05:44"}, ti, "Katowice −12° · śnieg po 15:00", "przy łóżku 35° · 99%");
+    }
+    int jasne = 0, jasnePrzed = 0;
+    for (int y = 440; y < 476; y++) {
+      for (int x = 772 - BOK_IKONY_AKTUALIZACJI - ODSTEP_IKONY_AKTUALIZACJI + 1; x < 800; x++) jasne += !pk.cz(x, y);
+      for (int x = 28; x < 700; x++) jasnePrzed += !pk.cz(x, y);
+    }
+    SPRAWDZ(jasne == 0);       // negatyw: tekst biały; pas ikony pusty
+    SPRAWDZ(jasnePrzed > 0);   // stopka jest
   }
   ElementWymiany el[EL_N];
   sprzet::Elementy e = sprzet::zOdpowiedziami(el, {}, {});
@@ -877,6 +913,11 @@ static void testDyrygentSK10Opisowy() {
   }
 }
 
+static bool znalezionyWpisCzynnikow(const Panel& p, const std::string& f) {
+  for (auto& x : p.pliki.pliki)
+    if (x.first.find("czynniki") != std::string::npos && x.second.find(f) != std::string::npos) return true;
+  return false;
+}
 // S-K-30 jako pytanie dnia, ▶ = „tak” otwiera okres infekcji: noce okresu poza normą, log bramki 7.3 (R-INF-02)
 static void testDyrygentSK30() {
   std::vector<Noc> h;
@@ -900,6 +941,9 @@ static void testDyrygentSK30() {
   Dyrygent(p.adaptery(), KONF).wybudzenie();
   drukujLog(p);
   SPRAWDZ(wLogu(p, "ekran dnia: pytanie infekcja"));
+  // R-CZY-15: noc z odchyleniem M-13 i S-K-30 tego ranka → bez linii zaproszenia „Co było inaczej?” (wpis czynników
+  // nie czeka, stan C), a na S-K-30 jej nie ma (R-CZY-25: ↻ = pomiń, ↻ 2 s nic); pytanie dostępne z K1 (R-CZY-08)
+  SPRAWDZ(!znalezionyWpisCzynnikow(p, "2026-11-04;C;"));
   nacisnij(p, 7, 31, Ekran::DZIEN, BIT_PRAWY, false);
   drukujLog(p);
   SPRAWDZ(p.pliki.pliki["/dane/odpowiedzi.csv"].find("2026-11-04;infekcja;tak") != std::string::npos);
@@ -908,6 +952,94 @@ static void testDyrygentSK30() {
   drukujLog(p);
   SPRAWDZ(wLogu(p, "okres infekcji od 2026-11-03"));
   SPRAWDZ(!wLogu(p, "ekran dnia: pytanie infekcja"));
+}
+
+// R-CZY-07, R-PIE-10: S-K-17 (ton „problem”, R5b) jako ekran dnia jest prośbą, więc bez linii zaproszenia, choć noc
+// ma odchylenie M-13 (wcześniej dyrygent widział tylko sprawy silnika reguł i zapraszał: na ekranie stało
+// `Co było inaczej? ↻ 2 s`, a ↻ 2 s na problemie porannym to „wiem”)
+static void testDyrygentSK17BezZaproszenia() {
+  std::vector<Noc> h;
+  for (int i = 40; i >= 0; i--) {
+    Noc x = noc(0);
+    x.data = dodajDni("2026-11-04", -i);
+    x.zrodlo = 'A';
+    x.m13 = 13.5f + (float)(i % 3) * 0.5f;
+    if (i <= 1) {
+      x.m13 = 17;
+      x.wp95 = 26;  // drugi sygnał S-K-17 bez sygnału ciśnienia: S-K-30 nie wchodzi
+    }
+    h.push_back(x);
+  }
+  Panel p;
+  p.pliki.pliki["/dane/noce/2026.csv"] = plikNocy(h);
+  p.zegar.epoch = ep(2026, 11, 4, 7, 30);
+  p.start.przyczynaStartu = PrzyczynaStartu::ZASILANIE;
+  p.start.powodWybudzenia = PowodWybudzenia::START;
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  Dyrygent(p.adaptery(), KONF).wybudzenie();
+  drukujLog(p);
+  SPRAWDZ(!wLogu(p, "ekran dnia: pytanie infekcja"));
+  SPRAWDZ(!znalezionyWpisCzynnikow(p, "2026-11-04;C;"));
+}
+
+// S-K-31 jako ekran dnia dopuszcza linię zaproszenia (7.4, 5.11.3, mapa 5.6.2: ↻ 2 s = „Co było inaczej?”), także gdy
+// niżej na liście kandydatów stoi S-K-10 w tonie „problem” (noc z wyciekiem ponad 24 L/min, odchylenie M-07)
+static void testDyrygentSK31Zaproszenie() {
+  std::vector<Noc> h;
+  for (int i = 80; i >= 0; i--) {
+    Noc x = noc(0);
+    x.data = dodajDni("2026-11-04", -i);
+    x.zrodlo = 'A';
+    x.wp95 = i >= 21 ? 9.0f + (float)(i % 3) : 10.0f + 0.8f * (float)(21 - i);  // ostatnia noc 26,8: S-K-10 „problem”
+    h.push_back(x);
+  }
+  Panel p;
+  p.pliki.pliki["/dane/noce/2026.csv"] = plikNocy(h);
+  p.pliki.pliki["/konfiguracja.txt"] = "wymiana.poduszka=2026-03-01\n";
+  p.zegar.epoch = ep(2026, 11, 4, 7, 30);
+  p.start.przyczynaStartu = PrzyczynaStartu::ZASILANIE;
+  p.start.powodWybudzenia = PowodWybudzenia::START;
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  Dyrygent(p.adaptery(), KONF).wybudzenie();
+  drukujLog(p);
+  SPRAWDZ(wLogu(p, "ekran S-K-31"));
+  SPRAWDZ(znalezionyWpisCzynnikow(p, "2026-11-04;C;"));  // wpis czynników czeka: linia zaproszenia stoi
+}
+
+// R-PIE-10, 7.4, R-CZY-25: pytanie `Wymieniona maska?` jest prośbą, więc ani na nim, ani po odpowiedzi tego dnia nie
+// ma linii zaproszenia, choć noc ma odchylenie (M-13); pytanie „Co było inaczej?” zostaje dostępne z K1 (↻ 2 s)
+static void testDyrygentPoduszkaBezZaproszenia() {
+  std::vector<Noc> h;
+  for (int i = 60; i >= 0; i--) {
+    Noc x = noc(0);
+    x.data = dodajDni("2026-11-04", -i);
+    x.zrodlo = 'A';
+    x.wp95 = i >= 3 ? 9.9f : 1.0f;  // 14+ nocy po 9,9, potem 3 po 1 (R-MAS-12: spadek ≥ 8; bez S-K-10, poniżej 10)
+    x.m13 = 13.5f + (float)(i % 3) * 0.5f;
+    if (i == 0) x.m13 = 17;  // odchylenie M-13 ostatniej nocy (R-CZY-01)
+    h.push_back(x);
+  }
+  Panel p;
+  p.pliki.pliki["/dane/noce/2026.csv"] = plikNocy(h);
+  p.zegar.epoch = ep(2026, 11, 4, 7, 30);
+  p.start.przyczynaStartu = PrzyczynaStartu::ZASILANIE;
+  p.start.powodWybudzenia = PowodWybudzenia::START;
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  Dyrygent(p.adaptery(), KONF).wybudzenie();
+  drukujLog(p);
+  bool pytanie = wLogu(p, "ekran dnia: pytanie poduszka");
+  SPRAWDZ(pytanie);
+  SPRAWDZ(!znalezionyWpisCzynnikow(p, "2026-11-04;C;"));
+  // ▶ = „tak”, potem ekran dnia: dalej bez linii zaproszenia (druga prośba tego dnia)
+  nacisnij(p, 7, 31, Ekran::DZIEN, BIT_PRAWY, false);
+  nacisnij(p, 7, 33, p.start.stan.ekran == (uint8_t)Ekran::ZAPISANO ? Ekran::ZAPISANO : Ekran::DZIEN, BIT_SRODEK, false);
+  drukujLog(p);
+  SPRAWDZ(!znalezionyWpisCzynnikow(p, "2026-11-04;C;"));
+  SPRAWDZ(!wLogu(p, "ekran dnia: pytanie poduszka"));
+  // K1, ↻ 2 s → pytanie „Co było inaczej?” dla ostatniej nocy (R-CZY-08)
+  nacisnij(p, 7, 35, Ekran::K1, BIT_SRODEK, true);
+  drukujLog(p);
+  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::PYTANIE);
 }
 
 // karencja po okresie z limitem, koniec miesiąca, blokada L-09
@@ -1159,6 +1291,9 @@ int main() {
   testDyrygentSK31();
   testDyrygentSK10Opisowy();
   testDyrygentSK30();
+  testDyrygentSK17BezZaproszenia();
+  testDyrygentSK31Zaproszenie();
+  testDyrygentPoduszkaBezZaproszenia();
   testKarencjaKoniecMiesiacaBlokadaL09();
   printf("testy_sprzet_infekcja_sk: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;

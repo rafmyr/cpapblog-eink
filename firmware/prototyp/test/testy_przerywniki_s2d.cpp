@@ -378,10 +378,10 @@ static void testUklad() {
       // brak nakładania na rysunek budzika: karta z tekstem i fakty (M-01, AHI) kontra ten sam budzik na pustej karcie
       t.fakty = {{"8 h 00", "z maską"}, {"0,6", "AHI"}};
       Pamiec a, b;
-      rysujKarte(a, n, t, "", "");  // bez sceny: sam tekst
+      rysujKarte(a, n, t, "");  // bez sceny: sam tekst
       TrescEkranu pusta;
       pusta.kartaBezEtykiety = true;
-      rysujKarte(b, n, pusta, sc, "");  // sama scena
+      rysujKarte(b, n, pusta, sc);  // sama scena
       int naklada = 0, czarnych = 0;
       for (int y = 52; y < 430; y++)
         for (int x = 0; x < 800; x++) {
@@ -409,6 +409,14 @@ static void testUklad() {
 }
 
 // ----------: krok zamienny przy braku danych ----------
+// liczba znaków UTF-8 (bajty poza bajtami kontynuacji), jak limit znaków w katalogu tekstów
+static size_t dlugoscZnakow(const std::string& t) {
+  size_t n = 0;
+  for (unsigned char c : t)
+    if ((c & 0xC0) != 0x80) n++;
+  return n;
+}
+
 static void testBrakDanych() {
   // brak danych (powody z rodzajów reguł)
   for (const char* p : {"za malo nocy 9/14", "brak nocy w rekordach", "brak historii", "brak normy", "brak odczytu",
@@ -446,6 +454,16 @@ static void testBrakDanych() {
   ROWNE(sk::tekst("S-K-18.krok_dane"), "→ Część ocen jeszcze nie działa: za mało nocy.");
   ROWNE(sk::tekst("S-K-18.krok_reguly"), "→ Część reguł nie działa: zobacz Test sprzętu.");
   ROWNE(sk::tekst("S-K-18.krok_dane_wyciek"), "→ Bezdechów nie oceniam: noce z wyciekiem.");
+  // krok przy metrykach niewalidowanych: ikona przycisku zamiast nazwy roboczej strony, w limicie kroku karty
+  ROWNE(sk::tekst("S-K-18.krok_oceny"), "→ Część ocen wyłączona: zobacz ▶.");
+  SPRAWDZ(dlugoscZnakow(sk::tekst("S-K-18.krok_oceny")) <= 34);
+  // linie pilności C: droga do raportu przez numer strony, bez `K2`
+  for (const char* id : {"L-02.linia_b", "L-03.linia_5_10", "L-07.linia", "L-07.linia_asv", "L-08.linia", "L-10.linia"}) {
+    std::string t = sk::tekst(id);
+    SPRAWDZ(t.find("K2") == std::string::npos);
+    SPRAWDZ(t.size() > 26 && t.compare(t.size() - 26, 26, "Na kontroli: raport 2 / 6.") == 0);
+    SPRAWDZ(dlugoscZnakow(t) <= 60);
+  }
 }
 
 // 5.4.13 pkt 7 i R-SKI-24: przyczyna braku ocen to wyciek (noce niepewne), nie liczba nocy

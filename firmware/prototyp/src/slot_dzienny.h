@@ -16,6 +16,7 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
+#include <set>
 #include <string>
 #include <vector>
 #include "dobranoc.h"  // hhmm(): 1421 → "23:41"
@@ -185,6 +186,9 @@ Drzemka liczDrzemke(const std::vector<SesjaDoby>& s, uint32_t koniecNocy);
 // drzemki raport nie podaje; gdy P95 doby z drzemką jest wyższe niż P95 samej nocy (rekord nocy), wyciek drzemki był
 // co najmniej taki jak P95 doby, więc to on idzie do S-K-39 (domysł); inaczej NAN (bez S-K-39).
 bool sesjeZRaportu(const std::string& json, std::vector<SesjaDoby>& s, float& wyciekP95Doby);
+// Sekundy kalendarza cywilnego aparatu (`start_ms` / 1000 raportu AirBridge, czas lokalny zakodowany jak UTC) → chwila
+// unix (strefa panelu, z czasem letnim); 0 przy wartości ≤ 0 albo nieczytelnej.
+uint32_t chwilaZCywilnego(long long cyw);
 float wyciekDrzemkiZDoby(float p95Doby, float p95Nocy);
 // Stan drzemki dnia w NVS: `{data};{minut};{p95 × 10 albo -1};{od};{do}`.
 std::string zapiszDrzemke(const std::string& dzis, const Drzemka& d);
@@ -206,6 +210,10 @@ bool prefiksSesji(const std::string& p, std::string& data, int& minuta);
 // „Co znaczą te liczby” z S8); domyślnie prywatny
 //   poczatek_leczenia = RRRR-MM-DD                         „Początek leczenia” (R-SKI-08): karencja L-01 w CPAP
 //                                                          i AutoSet tylko w 56 dniach od tej daty; bez wiersza brak
+//   noc_zrodlo = porownanie|plik|json                      źródło nocy przy AirBridge od v2.3.1 (ADR-0036): raport
+//                                                          JSON z porównaniem z nocą z plików (domyślnie, src/porownanie.h),
+//                                                          pliki sesji liczone na panelu albo sam raport JSON
+//   noc_json = m02,m08                                     metryki, które przy `plik` zostają z raportu JSON
 //   co2 = tak|nie                                          ekrany CO2 (S-K-01, S-K-02, S-K-13, wariant CO2 S-K-33)
 //                                                          i ocena wieczorna z Wi-Fi (R-KON-01); bez wiersza: według
 // lokalnego źródła otoczenia (
@@ -241,6 +249,13 @@ struct UstawieniaDnia {
   // wpisu (dyrygent bierze wtedy `POGODA_LAT` i `POGODA_LON` z secrets.h, a bez nich Katowice). Wpis z konfiguracji
   // ma pierwszeństwo przed secrets.h.
   double pogodaLat = NAN, pogodaLon = NAN;
+  // `noc_zrodlo=porownanie|plik|json` (ADR-0036 pkt 5, „Zmiana 2026-11-09”): źródło nocy przy AirBridge od v2.3.1;
+  // 1 = pliki sesji (src/noc_pliki.h), 0 = `json`, 2 = `porownanie` (noc z raportu JSON i porównanie z nocą z plików,
+  // src/porownanie.h), -1 = bez wiersza (domyślnie jak `porownanie`). `noc_json=` lista metryk (m01, m02, …), które przy `plik`
+  // zostają z raportu JSON; zła lista = wiersz pominięty.
+  int nocZrodlo = -1;
+  std::set<std::string> nocJson;
+  bool nocJsonZly = false;  // wiersz `noc_json` z nieznanym ID: przy `plik` cała noc z raportu JSON (bezpieczny kierunek)
   std::vector<std::string> bledy;
   UstawieniaDnia();
 };

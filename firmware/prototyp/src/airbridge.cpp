@@ -402,6 +402,9 @@ bool cialoKompletne(int rozmiar, int wynikZapisu, size_t odebrane) {
 size_t limitOdpowiedziAB(const std::string& sciezka) {
   if (sciezka.rfind("/api/status", 0) == 0) return AB_MAKS_BAJTOW_STATUSU;
   if (sciezka == sciezkaListy()) return AB_MAKS_BAJTOW_LISTY;
+  if (sciezka == sciezkaPobraniaStr()) return AB_MAKS_BAJTOW_STR;
+  if (sciezka.rfind("/api/storage/download?path=", 0) == 0) return AB_MAKS_BAJTOW_PLIKU_SESJI;
+  if (sciezka.rfind("/api/sessions", 0) == 0) return AB_MAKS_BAJTOW_SESJI;
   return AB_MAKS_BAJTOW_RAPORTU;
 }
 
@@ -532,6 +535,9 @@ bool parsujListeNocy(const std::string& t, std::vector<DzienListy>& dni) {
   if (c.p != c.k || !byloDays) return zle();
   return true;
 }
+
+std::string sciezkaSesjiStr() { return "/api/sessions?order=desc&limit=1"; }
+std::string sciezkaPobraniaStr() { return "/api/storage/download?path=/STR.edf"; }
 
 std::string dataPoranka(long day) { return day < 0 ? std::string() : dataZNr(day + 1); }
 
@@ -678,13 +684,78 @@ static float ustawienieLiczba(const Json& s, const char* tag) {
   return NAN;
 }
 
+void kanalyRaportu(Noc& n, const Json& kanaly, bool& kanalEdf) {
+  kanalEdf = false;
+  for (auto& k : KANALY_AB) {
+    if (!*k.id) continue;
+    bool zEdf = false;  // pierwszy kanał z EDF wygrywa z wartością ze STR
+    for (auto& ch : kanaly.el) {
+      if (tekstPola(ch["id"]) != k.id) continue;
+      bool edf = tekstPola(ch["source"]) == "edf";
+      if (edf && ch["median"].typ == Json::LICZBA) kanalEdf = true;
+      if (k.zrodlo == ZrodloKanalu::TYLKO_EDF && !edf) continue;  // R-NOR-08: ciśnienie docelowe ze STR poza rekordem
+      if (zEdf) break;
+      if (!edf && !std::isnan(n.*k.med)) continue;  // drugi wpis STR nie nadpisuje pierwszego
+      double skala = 1;
+      if (k.med == &Noc::wmed) {
+        skala = mnoznikWycieku(tekstPola(ch["unit"]));
+        if (std::isnan(skala)) continue;  // jednostka wycieku nieznana albo brak: brak danych, nie zła liczba
+      }
+      n.*k.med = (float)(wartoscKanalu(ch["median"]) * skala);
+      n.*k.p95 = (float)(wartoscKanalu(ch["p95"]) * skala);
+      if (k.zrodlo == ZrodloKanalu::EDF_ALBO_STR) n.epapStr = !edf;
+      zEdf = edf;
+    }
+  }
+  if (n.epapStr && std::isnan(n.emed) && std::isnan(n.ep95)) n.epapStr = false;
+  // M-13 (4.3): `median` kanału `RespRate` wprost; wpis z EDF wygrywa, bez EDF pierwszy z liczbą; `null`
+  // albo zły typ = brak (R-DANE-07, R-AW-22)
+  bool respEdf = false;
+  for (auto& ch : kanaly.el) {
+    if (tekstPola(ch["id"]) != "RespRate" || ch["median"].typ != Json::LICZBA) continue;
+    bool edf = tekstPola(ch["source"]) == "edf";
+    if (respEdf || (!edf && !std::isnan(n.m13))) continue;
+    if (!std::isfinite(ch["median"].n)) continue;
+    n.m13 = (float)ch["median"].n;
+    respEdf = edf;
+  }
+  // M-10 (4.3): kanał `FlowLim`, `median` i `p95` wprost (skala 0–1); wpis z EDF wygrywa; brak = NAN (R-AW-22)
+  bool flEdf = false;
+  for (auto& ch : kanaly.el) {
+    if (tekstPola(ch["id"]) != "FlowLim") continue;
+    bool edf = tekstPola(ch["source"]) == "edf";
+    if (flEdf || (!edf && (!std::isnan(n.m10) || !std::isnan(n.m10p)))) continue;
+    double x;
+    n.m10 = ch["median"].liczba(x) && std::isfinite(x) && x >= 0 ? (float)x : NAN;
+    n.m10p = ch["p95"].liczba(x) && std::isfinite(x) && x >= 0 ? (float)x : NAN;
+    flEdf = edf;
+  }
+}
+
+std::string ustawieniaRaportu(Noc& n, const Json& ust, bool& maMop) {
+  n.ustawienia = czystePole(ustawieniaZRaportu(ust));
+  // ustawienia jako liczby, tylko do odczytu w regułach (ADR-0002: nigdy jako wartość docelowa na ekranie)
+  n.mpa = ustawienieLiczba(ust, "MPA");
+  n.mpi = ustawienieLiczba(ust, "MPI");
+  n.ipc = ustawienieLiczba(ust, "IPC");
+  n.eep = ustawienieLiczba(ust, "EEP");
+  n.mns = ustawienieLiczba(ust, "MNS");
+  n.mxs = ustawienieLiczba(ust, "MXS");
+  n.eai = ustawienieLiczba(ust, "EAI");  // ASVAuto (4.11)
+  n.eax = ustawienieLiczba(ust, "EAX");
+  n.ans = ustawienieLiczba(ust, "ANS");
+  n.axs = ustawienieLiczba(ust, "AXS");
+  n.epr = ustawienieLiczba(ust, "EPR");  // CPAP, AutoSet (M-21); w ASV i ASVAuto pomijany przez reguły (4.11) // bez `;` i znaków sterujących
+  return trybZRaportu(ust, maMop);
+}
+
 NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapasowy,
                   const std::string& pna, const std::string& srn) {
   static const FiltrJson KANAL[] = {{"id", nullptr},  {"unit", nullptr},   {"median", nullptr},
                                     {"p95", nullptr}, {"source", nullptr}, {nullptr, nullptr}};
   static const FiltrJson POLE[] = {{"tag", nullptr}, {"value", nullptr}, {"option", nullptr}, {nullptr, nullptr}};
   static const FiltrJson USTAW[] = {{"available", nullptr}, {"fields", POLE}, {nullptr, nullptr}};
-  static const FiltrJson SESJA[] = {{"start_ms", nullptr}, {nullptr, nullptr}};  // M-18
+  static const FiltrJson SESJA[] = {{"start_ms", nullptr}, {"end_ms", nullptr}, {nullptr, nullptr}};  // M-17, M-18
   static const FiltrJson ZDARZ[] = {{"oa", nullptr}, {"ca", nullptr}, {"h", nullptr}, {"ua", nullptr}, {nullptr, nullptr}};
   static const FiltrJson F[] = {{"day", nullptr},          {"present", nullptr},       {"partial", nullptr},
                                 {"used_seconds", nullptr}, {"ahi", nullptr},           {"events_known", nullptr},
@@ -719,16 +790,34 @@ NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapas
   double s;
   if (j["session_count"].liczba(s) && wInt(s)) w.sesje = (int)s;
   Noc& n = w.noc;
-  // M-17 (4.3, fail-path R-DANE-27: panel nie czyta `sessions[]`): `session_count` − 1, najmniej 0; brak,
-  // null, zły typ, liczba ujemna albo niecałkowita = brak (-1)
+  // M-17 (4.3): bez `sessions[]` (fail-path R-DANE-27) `session_count` − 1, najmniej 0; brak, null, zły typ, liczba
+  // ujemna albo niecałkowita = brak (-1)
   if (j["session_count"].liczba(s) && s >= 0 && s < 1000000 && s == std::floor(s)) n.m17 = s >= 1 ? (int)s - 1 : 0;
-  // M-18 = start najwcześniejszej sesji `sessions[].start_ms` (ms od epoki, Załącznik A),
-  // w minutach od 12:00 dnia wieczoru w czasie lokalnym panelu; brak, null albo start spoza doby nocy = -1
+  // M-17 i M-18 według R-DANE-27 z `sessions[]`: `start_ms` i `end_ms` to sekundy kalendarza cywilnego aparatu × 1000
+  // (AirBridge koduje czas lokalny aparatu jak UTC, bez strefy), więc minuty od 12:00 dnia `day` liczone wprost, bez
+  // przeliczania na strefę panelu (ta sama skala co noc z plików sesji, src/noc_pliki.h)
   {
-    double st = -1, sv;
-    for (auto& se : j["sessions"].el)
-      if (se["start_ms"].liczba(sv) && sv > 0 && (st < 0 || sv < st)) st = sv;
-    if (st > 0) n.m18 = m18ZChwili((long long)(st / 1000.0), dataPoranka(dzien));
+    std::vector<SesjaCywilna> ses;
+    for (auto& se : j["sessions"].el) {
+      SesjaCywilna x;
+      double a, b;
+      if (se["start_ms"].liczba(a) && a > 0 && a < AB_MAKS_LICZBY) {
+        x.start = true;
+        x.startS = (double)(long long)a / 1000.0;
+        if (se["end_ms"].liczba(b) && b >= a && b < AB_MAKS_LICZBY) {
+          x.koniec = true;
+          x.koniecS = (double)(long long)b / 1000.0;
+        }
+      }
+      ses.push_back(x);
+    }
+    if (!ses.empty()) {
+      int m17 = -1;
+      double m18 = NAN;
+      m17m18Sesji(ses, dzien, R_DANE_27_START_NOCY_MIN, R_DANE_27_WCZESNY_SEN_S, m17, m18);
+      n.m17 = m17;
+      n.m18 = !std::isnan(m18) && m18 >= 0 && m18 < 1440 ? (int)std::floor(m18) : -1;
+    }
   }
   // model i numer aparatu z `/api/status` tego samego wybudzenia (R-NOR-25)
   n.pna = czystePole(pna);
@@ -741,50 +830,7 @@ NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapas
   n.m01 = used.typ == Json::LICZBA && used.n >= 0 && used.n <= 86400 ? (int)lround(used.n / 60.0) : -1;
   n.ahi = ahi.typ == Json::LICZBA ? (float)ahi.n : NAN;
   bool kanalEdf = false;
-  for (auto& k : KANALY_AB) {
-    if (!*k.id) continue;
-    bool zEdf = false;  // pierwszy kanał z EDF wygrywa z wartością ze STR
-    for (auto& ch : j["channels"].el) {
-      if (tekstPola(ch["id"]) != k.id) continue;
-      bool edf = tekstPola(ch["source"]) == "edf";
-      if (edf && ch["median"].typ == Json::LICZBA) kanalEdf = true;
-      if (k.zrodlo == ZrodloKanalu::TYLKO_EDF && !edf) continue;  // R-NOR-08: ciśnienie docelowe ze STR poza rekordem
-      if (zEdf) break;
-      if (!edf && !std::isnan(n.*k.med)) continue;  // drugi wpis STR nie nadpisuje pierwszego
-      double skala = 1;
-      if (k.med == &Noc::wmed) {
-        skala = mnoznikWycieku(tekstPola(ch["unit"]));
-        if (std::isnan(skala)) continue;  // jednostka wycieku nieznana albo brak: brak danych, nie zła liczba
-      }
-      n.*k.med = (float)(wartoscKanalu(ch["median"]) * skala);
-      n.*k.p95 = (float)(wartoscKanalu(ch["p95"]) * skala);
-      if (k.zrodlo == ZrodloKanalu::EDF_ALBO_STR) n.epapStr = !edf;
-      zEdf = edf;
-    }
-  }
-  if (n.epapStr && std::isnan(n.emed) && std::isnan(n.ep95)) n.epapStr = false;
-  // M-13 (4.3): `median` kanału `RespRate` wprost; wpis z EDF wygrywa, bez EDF pierwszy z liczbą; `null`
-  // albo zły typ = brak (R-DANE-07, R-AW-22)
-  bool respEdf = false;
-  for (auto& ch : j["channels"].el) {
-    if (tekstPola(ch["id"]) != "RespRate" || ch["median"].typ != Json::LICZBA) continue;
-    bool edf = tekstPola(ch["source"]) == "edf";
-    if (respEdf || (!edf && !std::isnan(n.m13))) continue;
-    if (!std::isfinite(ch["median"].n)) continue;
-    n.m13 = (float)ch["median"].n;
-    respEdf = edf;
-  }
-  // M-10 (4.3): kanał `FlowLim`, `median` i `p95` wprost (skala 0–1); wpis z EDF wygrywa; brak = NAN (R-AW-22)
-  bool flEdf = false;
-  for (auto& ch : j["channels"].el) {
-    if (tekstPola(ch["id"]) != "FlowLim") continue;
-    bool edf = tekstPola(ch["source"]) == "edf";
-    if (flEdf || (!edf && (!std::isnan(n.m10) || !std::isnan(n.m10p)))) continue;
-    double x;
-    n.m10 = ch["median"].liczba(x) && std::isfinite(x) && x >= 0 ? (float)x : NAN;
-    n.m10p = ch["p95"].liczba(x) && std::isfinite(x) && x >= 0 ? (float)x : NAN;
-    flEdf = edf;
-  }
+  kanalyRaportu(n, j["channels"], kanalEdf);
   // M-03 (na godzinę) i M-09 (minuty); brak pola albo zły typ = brak danych tej metryki (R-AW-22)
   const Json& cnt = j["counts"];
   if (used.typ == Json::LICZBA && used.n > 0) {
@@ -799,22 +845,8 @@ NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapas
   // M-08 (4.3, R-DANE-23): minuty dużego wycieku (> 24 L/min, próg AirBridge `leak_threshold`); brak pola,
   // null albo zły typ = brak tej metryki (R-AW-22: „–”, bez E-03)
   if (j["leak_high_seconds"].liczba(v) && v >= 0) n.m08 = (float)(v / 60.0);
-  const Json& ust = j["settings"];
-  n.ustawienia = czystePole(ustawieniaZRaportu(ust));
-  // ustawienia jako liczby, tylko do odczytu w regułach (ADR-0002: nigdy jako wartość docelowa na ekranie)
-  n.mpa = ustawienieLiczba(ust, "MPA");
-  n.mpi = ustawienieLiczba(ust, "MPI");
-  n.ipc = ustawienieLiczba(ust, "IPC");
-  n.eep = ustawienieLiczba(ust, "EEP");
-  n.mns = ustawienieLiczba(ust, "MNS");
-  n.mxs = ustawienieLiczba(ust, "MXS");
-  n.eai = ustawienieLiczba(ust, "EAI");  // ASVAuto (4.11)
-  n.eax = ustawienieLiczba(ust, "EAX");
-  n.ans = ustawienieLiczba(ust, "ANS");
-  n.axs = ustawienieLiczba(ust, "AXS");
-  n.epr = ustawienieLiczba(ust, "EPR");  // CPAP, AutoSet (M-21); w ASV i ASVAuto pomijany przez reguły (4.11) // bez `;` i znaków sterujących
   bool maMop;
-  w.tryb = trybZRaportu(ust, maMop);
+  w.tryb = ustawieniaRaportu(n, j["settings"], maMop);
   if (!maMop) w.tryb = trybZapasowy;  // bez tagu MOP tryb z /api/status; MOP nieczytelny = tryb nieznany (R-DANE-29)
   // 4.2 (R-DANE-13) i tryb obsługiwany (R-DANE-29): noc w innym albo nieznanym trybie zapisana, ale nie ważna.
   // Próg 4 h z tej samej zaokrąglonej wartości co M-01, seria (M-20) i kamienie (S-K-28): 14 399,6 s = 240 min = 4 h.
@@ -825,6 +857,64 @@ NocAB nocZRaportu(const std::string& t, long dzien, const std::string& trybZapas
   w.pelna = !n.czesciowa && ev.typ == Json::BOOL && ev.b && kanalEdf;
   w.stan = n.czesciowa ? StanRaportu::CZESCIOWA : StanRaportu::KOMPLETNA;
   return w;
+}
+
+// ---------- R-DANE-27 ----------
+void m17m18Sesji(const std::vector<SesjaCywilna>& sesje, long dzien, double startNocyMin, double wczesnySenS, int& m17,
+                 double& m18) {
+  m18 = NAN;
+  if (sesje.empty()) {
+    m17 = 0;
+    return;
+  }
+  struct S {
+    bool start;
+    double st;
+    bool dl;
+    double d;
+  };
+  double poludnie = (double)dzien * 86400.0 + 12 * 3600.0;
+  std::vector<S> v;
+  v.reserve(sesje.size());
+  for (auto& s : sesje) {
+    if (!s.start) {
+      v.push_back({false, 0, false, 0});
+      continue;
+    }
+    v.push_back({true, (s.startS - poludnie) / 60.0, s.koniec, s.koniec ? s.koniecS - s.startS : 0});
+  }
+  std::vector<S> po18;
+  for (auto& x : v)
+    if (!x.start || x.st >= startNocyMin) po18.push_back(x);
+  bool maDluga = false;
+  for (auto& x : po18) maDluga = maDluga || (x.start && x.dl && x.d >= wczesnySenS);
+  if (!maDluga) {  // wyjątek wczesnego snu: najdłuższa sesja przed 18:00 co najmniej 4 h
+    const S* najdl = nullptr;
+    for (auto& x : v)
+      if (x.start && x.st < startNocyMin && x.dl && (!najdl || x.d > najdl->d)) najdl = &x;
+    if (najdl && najdl->d >= wczesnySenS) {
+      double od = najdl->st;
+      po18.clear();
+      for (auto& x : v)
+        if (!x.start || x.st >= od) po18.push_back(x);
+    }
+  }
+  m17 = std::max(0, (int)po18.size() - 1);
+  std::vector<S> ze;
+  for (auto& x : po18)
+    if (x.start) ze.push_back(x);
+  if (ze.empty()) return;
+  bool wszystkie = true;
+  for (auto& x : ze) wszystkie = wszystkie && x.dl;
+  const S* wyb = &ze[0];
+  for (auto& x : ze) {
+    if (wszystkie) {
+      if (x.d > wyb->d || (x.d == wyb->d && x.st < wyb->st)) wyb = &x;  // najdłuższa, przy remisie wcześniejsza
+    } else if (x.st < wyb->st) {
+      wyb = &x;  // bez długości: najwcześniejsza
+    }
+  }
+  m18 = wyb->st;
 }
 
 // ---------- próby dób ----------
@@ -939,6 +1029,14 @@ std::vector<long> planPobrania(const std::vector<DzienListy>& lista, const std::
     }
     bool ponowne = spr11 && ostatnia;
     if (kompletnaZAirBridge(hist, d) && !ponowne) continue;
+    // noc ze STR aparatu (ADR-0035) na starszej dobie, dla której lista nie podaje sesji (`session_count` 0 albo brak):
+    // AirBridge zna tę dobę tylko ze STR, więc raport byłby niepełny i nie wyparłby nocy 'S' (zbędne pobranie);
+    // doba z sesjami jest pobierana, a pełny raport z EDF zastępuje noc 'S'. Ostatnia noc zawsze (do „pominiętych”
+    // po niepełnym raporcie, R-DANE-18)
+    if (!ostatnia) {
+      const Noc* h = nocZDnia(hist, d);
+      if (h && h->zrodlo == 'S' && x.sesje < 1) continue;
+    }
     if (pominiete.count(x.day) && !ponowne) continue;
     if (czeka) continue;
     w.push_back(x.day);
@@ -1014,7 +1112,9 @@ bool wpiszNocAB(std::vector<Noc>& hist, const Noc& n, bool nadpisz, bool pelna, 
       h = c;
       return true;
     }
-    if (!pelna && rekordPelny(h)) {  // doba niepełna (np. tylko STR) nie wypiera pełniejszego rekordu
+    // doba niepełna (np. tylko STR) nie wypiera pełniejszego rekordu ani nocy ze STR aparatu (ADR-0035 pkt 4: noc
+    // ze STR ustępuje tylko pełnej nocy z AirBridge i nocy z karty)
+    if (!pelna && (rekordPelny(h) || h.zrodlo == 'S')) {
       if (zostawiony) *zostawiony = true;
       return false;
     }

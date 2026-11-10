@@ -12,7 +12,19 @@
 
 #include <Arduino.h>
 #include <esp_heap_caps.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+// Obraz wydania (`-DBEZ_SEKRETOW`, tools/wydanie/): bez secrets.h, więc bez żadnej wartości początkowej. Panel
+// traktuje puste wartości jak brak i zostaje przy tym, co ma w pamięci (src/sekrety.h).
+#ifndef BEZ_SEKRETOW
 #include "secrets.h"
+static const bool OBRAZ_Z_SEKRETAMI = true;
+#else
+static const bool OBRAZ_Z_SEKRETAMI = false;
+// Znacznik obrazu wydania sprawdzany przez tools/wydanie/wydaj.py: obraz bez niego nie jest wydawany.
+extern "C" __attribute__((used)) const char ZNACZNIK_OBRAZU_WYDANIA[] = "cpap-eink:obraz-bez-sekretow:v1";
+#endif
 #include "adaptery_esp32.h"
 #include "dyrygent.h"
 #include "sekrety.h"
@@ -25,7 +37,13 @@
 SET_LOOP_TASK_STACK_SIZE(48 * 1024);
 
 // Numer docelowego wydania (spec techniczna 8.7: przy wydaniu wersja z tagu git). Numer wydania nie zawiera przedrostka „proto”.
-#define WERSJA "1.0.0-beta.1"
+// Narzędzie wydania (tools/wydanie/) podaje numer z tagu: -DWERSJA_WYDANIA=\"1.0.1\". Flaga ma inną nazwę niż
+// stała WERSJA, bo flaga z wiersza poleceń obejmuje wszystkie pliki, a `WERSJA` jest też nazwą wartości
+// `edf::Blad::WERSJA` (src/edf.h): `-DWERSJA=…` psuło kompilację obrazu wydania po scaleniu z EDF.
+#ifndef WERSJA_WYDANIA
+#define WERSJA_WYDANIA "1.0.0-beta.1"
+#endif
+#define WERSJA WERSJA_WYDANIA
 // Skrót commitu z wersja_budowy.py (platformio.ini, extra_scripts); bez gita albo poza PlatformIO „nieznany”.
 #ifndef WERSJA_BUDOWY
 #define WERSJA_BUDOWY "nieznany"
@@ -42,9 +60,9 @@ extern "C" bool verifyRollbackLater() { return true; }
 #ifdef OTA_PASS
 // puste albo krótkie hasło otwierałoby okno wgrywania dla każdego w sieci domowej (sizeof liczy też znak końca)
 static_assert(sizeof(OTA_PASS) > HASLO_OKNA_MIN, "OTA_PASS: co najmniej 16 znaków (np. openssl rand -hex 16)");
-static const char* const HASLO_OKNA = OTA_PASS;
+static const char* const HASLO_OKNA_Z_KOMPILACJI = OTA_PASS;
 #else
-static const char* const HASLO_OKNA = nullptr;
+static const char* const HASLO_OKNA_Z_KOMPILACJI = "";
 #endif
 
 // (src/sekrety.h): sieć i AirBridge z secrets.h tylko jako wartość początkowa dla NVS; brak definicji
@@ -71,7 +89,33 @@ static sekrety::Dane zKompilacji() {
   return d;
 }
 
-static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s) {
+// Adres i token źródła otoczenia oraz współrzędne pogody z secrets.h tylko jako wartość początkowa dla NVS.
+static sekrety::Dodatki dodatkiZKompilacji() {
+  sekrety::Dodatki d;
+#ifdef OTO_URL
+  d.otoUrl = OTO_URL;
+#endif
+#ifdef OTO_TOKEN
+  d.otoToken = OTO_TOKEN;
+#endif
+#if defined(POGODA_LAT) && defined(POGODA_LON)
+  char b[24];
+  snprintf(b, sizeof b, "%.6f", (double)POGODA_LAT);
+  d.pogodaLat = b;
+  snprintf(b, sizeof b, "%.6f", (double)POGODA_LON);
+  d.pogodaLon = b;
+#endif
+  return d;
+}
+
+static double wspolrzedna(const std::string& t, double granica) {
+  if (t.empty()) return NAN;
+  char* e = nullptr;
+  double v = strtod(t.c_str(), &e);
+  return (e && *e == 0 && v >= -granica && v <= granica) ? v : NAN;
+}
+
+static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s, const sekrety::Dodatki& dd, bool oknoZHaslem) {
   KonfiguracjaPanelu k;
   k.abAdres = s.d.abAdres;
   k.abKonto = s.d.abKonto;
@@ -80,17 +124,14 @@ static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s) {
   k.hasloWifi = s.d.hasloWifi;
   k.pierwszaKonfiguracja = s.pierwszaKonfiguracja();
   k.opisSekretow = sekrety::opis(s);
-#ifdef OTO_URL
-  k.otoUrl = OTO_URL;  // lokalne źródło otoczenia (ADR-0019); bez OTO_URL wyłączone (R-AW-07)
-#endif
-#ifdef OTO_TOKEN
-  k.otoToken = OTO_TOKEN;
-#endif
-#if defined(POGODA_LAT) && defined(POGODA_LON)
-  k.pogodaLat = POGODA_LAT;  // prognoza godzinowa Open-Meteo i S-K-37 (R-KON-52, R-KON-49)
-  k.pogodaLon = POGODA_LON;
-#endif
-  k.oknoZHaslem = HASLO_OKNA != nullptr;
+  k.otoUrl = dd.otoUrl;  // lokalne źródło otoczenia (ADR-0019); puste = wyłączone (R-AW-07)
+  k.otoToken = dd.otoToken;
+  double lat = wspolrzedna(dd.pogodaLat, 90), lon = wspolrzedna(dd.pogodaLon, 180);
+  if (!std::isnan(lat) && !std::isnan(lon)) {  // prognoza godzinowa Open-Meteo i S-K-37 (R-KON-52, R-KON-49)
+    k.pogodaLat = lat;
+    k.pogodaLon = lon;
+  }
+  k.oknoZHaslem = oknoZHaslem;
   return k;
 }
 
@@ -102,6 +143,9 @@ void setup() {
   // 162 KB (06.11.2026). Bufory z wymaganym typem pamięci (DMA, Wi-Fi) idą jak dotąd.
   heap_caps_malloc_extmem_enable(8);
   przygotujPanel();
+#ifdef BEZ_SEKRETOW
+  Serial.printf("%s\n", ZNACZNIK_OBRAZU_WYDANIA);  // odwołanie trzyma znacznik w obrazie (linker nie usuwa)
+#endif
   static PrzyciskiEsp32 przyciski;  // próbkowanie przycisków jak najwcześniej (R-PRZ-20): kolejka od startu
   Serial.printf("pamiec start: PSRAM %u KB (wolne %u KB), wewnetrzna wolna %u KB, najwiekszy blok %u KB\n",
                 (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024),
@@ -112,7 +156,11 @@ void setup() {
   static PlikiEsp32 pliki;
   // sekrety z NVS przed siecią i dyrygentem (secrets.h tylko jako wartość początkowa, src/sekrety.h)
   static const sekrety::Wynik sek = sekrety::wczytaj(nvs, zKompilacji());
-  static SiecEsp32 siec({sek.d.ssid, sek.d.hasloWifi, HASLO_OKNA}, pliki);
+  static const sekrety::Dodatki dodatki = sekrety::wczytajDodatki(nvs, dodatkiZKompilacji(), OBRAZ_Z_SEKRETAMI);
+  // hasło okna serwisowego z NVS: OTA_PASS z secrets.h tylko jako wartość początkowa, formularz je zmienia
+  static const std::string hasloOkna = sekrety::wczytajHasloOkna(nvs, HASLO_OKNA_Z_KOMPILACJI, OBRAZ_Z_SEKRETAMI);
+  static SiecEsp32 siec({sek.d.ssid, sek.d.hasloWifi, hasloOkna.empty() ? nullptr : hasloOkna.c_str()}, pliki);
+  static WydaniaEsp32 wydania;  // aktualizacja z wydań GitHub (ADR-0032, ADR-0038)
   static WyswietlaczEsp32 ekran;
   static CzujnikiEsp32 czujniki;
   static DzwiekEsp32 dzwiek;
@@ -121,8 +169,9 @@ void setup() {
   static SenEsp32 sen;
   static PortEsp32 port;
   static DiagnostykaEsp32 diagnostyka;
-  Adaptery a{zegar, nvs, pliki, siec, ekran, przyciski, czujniki, dzwiek, uruchomienie, straznik, sen, port, diagnostyka};
-  Dyrygent(a, konfiguracja(sek)).wybudzenie();
+  Adaptery a{zegar, nvs, pliki, siec, ekran, przyciski, czujniki, dzwiek, uruchomienie, straznik, sen, port, diagnostyka,
+             &wydania};
+  Dyrygent(a, konfiguracja(sek, dodatki, !hasloOkna.empty())).wybudzenie();
   // tu tylko, gdy dyrygent wrócił bez snu (nieudany powrót do poprzedniej wersji): licznik startów od zera jak przed
   // każdym snem (T-WYM-82), potem sen awaryjny
   zerujPrzedSnem(uruchomienie.licznik(), identyfikatorWersji(uruchomienie.wersja()));

@@ -21,3 +21,5 @@ Bez zmiany decyzji: biblioteka ma 70 scen (dodane B04 i B05 dla braku danych S5,
 ## Zmiana 04.11.2026 (bez zmiany decyzji)
 Biblioteka ma 70 scen (68 z decyzji oraz B04 i B05). 18 przerywników G01–G18 ma komplet tekstów (spec 5.7.6), a w wersji beta są losowane (04.11.2026): sceny z konkretną datą (G01, G04…G08) w swoim dniu, G02 w poniedziałek i G03 w piątek tylko kandydatami we wspólnej puli z G09–G18, scena losowana z ziarnem z daty, limity R-HUM-10 i R-HUM-14 bez zmian.
 Uzupełnienie: przy aktywnym wzorcu B przerywnika nie ma (R-HUM-26), nowy przerywnik tylko w oknie porannym 05:00–11:00 (R-HUM-14), etykieta puli ogólnej `Na dzień dobry`. Przerywniki są włączone.
+
+**Zmiana 2026-11-10 (decyzja właściciela, audyt UX 10.11.2026):** budzik nie „mówi” już na ekranie: zdania budzika w stopce kart i na S9 są wycofane (spec 5.7.5, ADR-0009 „Zmiana 2026-11-10”). Postać, sceny i zasady charakteru zostają; zasady zdań dotyczą pul w danych.

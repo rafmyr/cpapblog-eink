@@ -305,22 +305,23 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   }
   d.zdanie = zapisane ? std::to_string(ponad4) + " z 7 nocy z maską ponad 4 h." : std::string("Brak zapisanych nocy w tych 7 dniach.");
   // etykiety T5 (SPEC-KOKPIT 8): jednostka w etykiecie, bez `cmH₂O` i `P95` przy wycieku (kolumna etykiet 148 px)
-  struct Def { const char* e; double prog; Metryka m; bool gr, wc, progRowny; };  // kolejność pól według rozmiaru (clang-tidy Padding)
+  // n: nazwa w linii `brak danych: …` (R-KOK-18)
+  struct Def { const char* e; const char* n; double prog; Metryka m; bool gr, wc, progRowny; };  // kolejność pól według rozmiaru (clang-tidy Padding)
   static const Def AHI_DO_WYCIEKU[7] = {
-      {"AHI", PROG_AHI, M_AHI, false, false, true},  // jedna nazwa M-02 na panelu
-      {"obturacyjne", NAN, M_OA, false, true, false},  // M-03: OA / h (bez UA)
-      {"centralne", NAN, M_CA, false, true, false},    // M-03: CA / h
-      {"spłycenia", NAN, M_H, false, true, false},     // M-03: H / h
-      {"Czas z maską", NAN, M_M01, true, false, false},
-      {"Zdjęcia maski", NAN, M_M17, false, false, false},  // M-17
-      {"Wyciek l/min", PROG_WYCIEK, M_WP95, true, false, false},  // wyciek P95 (M-07)
+      {"AHI", "AHI", PROG_AHI, M_AHI, false, false, true},  // jedna nazwa M-02 na panelu
+      {"obturacyjne", "obturacyjne", NAN, M_OA, false, true, false},  // M-03: OA / h (bez UA)
+      {"centralne", "centralne", NAN, M_CA, false, true, false},    // M-03: CA / h
+      {"spłycenia", "spłycenia", NAN, M_H, false, true, false},     // M-03: H / h
+      {"Czas z maską", "czas z maską", NAN, M_M01, true, false, false},
+      {"Zdjęcia maski", "zdjęcia maski", NAN, M_M17, false, false, false},  // M-17
+      {"Wyciek l/min", "wyciek", PROG_WYCIEK, M_WP95, true, false, false},  // wyciek P95 (M-07)
   };
   static const Def CISNIENIE_ASV[2] = {
-      {"EPAP P95", NAN, M_EP95, false, false, false},      // ADR-0016: zamiast ciśnienia (IPAP) P95
-      {"Wsparcie PS", NAN, M_PSMED, false, false, false},  // mediana PS; bez progu (ADR-0002)
+      {"EPAP P95", "EPAP", NAN, M_EP95, false, false, false},      // ADR-0016: zamiast ciśnienia (IPAP) P95
+      {"Wsparcie PS", "wsparcie PS", NAN, M_PSMED, false, false, false},  // mediana PS; bez progu (ADR-0002)
   };
-  static const Def CISNIENIE_CPAP = {"Ciśnienie P95", NAN, M_CP95, false, false, false};  // M-05p (5.5.3, wiersz 8)
-  static const Def ODDECHY = {"Oddechy /min", NAN, M_M13, false, false, false};  // M-13, bez normy w panelu
+  static const Def CISNIENIE_CPAP = {"Ciśnienie P95", "ciśnienie", NAN, M_CP95, false, false, false};  // M-05p (5.5.3, wiersz 8)
+  static const Def ODDECHY = {"Oddechy /min", "oddechy", NAN, M_M13, false, false, false};  // M-13, bez normy w panelu
   Def def[DaneK2::WIERSZE];
   int n = 0;
   for (const Def& x : AHI_DO_WYCIEKU) def[n++] = x;
@@ -335,6 +336,7 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   for (int r = 0; r < d.wierszy; r++) {
     WierszK2& w = d.w[r];
     w.etykieta = def[r].e;
+    w.nazwaBraku = def[r].n;
     w.grupa = def[r].gr;
     w.wciecie = def[r].wc;
     if (def[r].m == M_BRAK) continue;  // brak danych tej metryki w prototypie: kreski
@@ -366,5 +368,20 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
       }
     }
   }
+  // R-KOK-18: wiersz z samymi kreskami do zwinięcia, tylko gdy tydzień ma jakąkolwiek wartość (bez nocy zostaje
+  // pełna tabela z kreskami i zdaniem `Brak zapisanych nocy…`); stan odchylenia i pasmo normy to informacja,
+  // więc taki wiersz zostaje
+  bool jakasWartosc = false;
+  for (int r = 0; r < d.wierszy; r++)
+    for (const KomorkaK2& k : d.w[r].k) jakasWartosc = jakasWartosc || k.tekst != "–";
+  for (int r = 0; r < d.wierszy && jakasWartosc; r++) {
+    WierszK2& w = d.w[r];
+    bool same = std::all_of(std::begin(w.k), std::end(w.k), [](const KomorkaK2& k) { return k.tekst == "–"; });
+    w.pusty = same && !w.stan && (w.norma == "–" || w.norma == "uczę się");
+  }
+  // wcięte składowe (obturacyjne, centralne, spłycenia) stoją pod AHI: gdy któraś zostaje w tabeli, AHI też zostaje,
+  // żeby wcięcie nie wisiało bez wiersza nadrzędnego
+  for (int r = 1; r < d.wierszy && d.w[0].pusty; r++)
+    if (d.w[r].wciecie && !d.w[r].pusty) d.w[0].pusty = false;
   return d;
 }

@@ -103,7 +103,7 @@ DaneS7 budujS7(const std::string& dzis, const std::vector<Noc>& hist, reguly::Tr
   d.ahi = przecinek1(medianaMetryki(hist, rm, "M-02"));
   d.podpisAhi = "AHI, mediana";
   d.godziny = std::to_string((int)std::lround(minut / 60.0));
-  d.podpisGodzin = "h z maską";
+  d.podpisGodzin = "z maską";  // jednostka `h` stoi już przy dużej liczbie (`202 h`)
   // zdanie porównania (R-EKR-19, R-EKR-20): oba miesiące ≥ 20 nocy ważnych
   if (wazneMiesiaca(hist, rm) < minNocy || wazneMiesiaca(hist, rp) < minNocy) return d;
   bool asv = tryb == reguly::Tryb::ASV || tryb == reguly::Tryb::ASVAUTO;
@@ -212,7 +212,11 @@ DaneS8 budujS8(const WejscieS8& w) {
     d.krok = "→ Otwarte sprawy: strona 3 / 6.";  // numer strony kokpitu
     d.informacja = true;
   } else {
-    d.krok = "→ Odchylenia liczę od tego.";
+    d.krok = "Odchylenia liczę od tego.";  // wyjaśnienie, nie czynność: bez `→` (5.4.3, strefa „Krok”)
+  }
+  if (w.zK1) {  // strona 4 / 6: nazwa strony w nagłówku zamiast daty, tytuł nie powtarza jej w treści (5.4.8)
+    d.naglowek = d.tytul;
+    d.tytul.clear();
   }
   if (w.zK1)  // strona 4 / 6, ◀ strona 3 (albo K2), ▶ „Co znaczą te liczby” (profil publiczny) albo „Sprzęt”
     d.stopkaLewo = std::string(w.sprawy ? "◀ sprawy" : "◀ 7 nocy") +  // grupy co 3 spacje jak w „Sprzęt”
@@ -260,7 +264,7 @@ DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne) {
 
 void rysujLiczby(Plotno& p, const Naglowek& n, const DaneLiczb& d) {
   TrescEkranu t;
-  t.etykieta = wersaliki(d.etykieta);
+  if (!d.etykieta.empty()) t.etykieta = wersaliki(d.etykieta);
   t.krok = d.zdanie;
   t.stopkaLewo = d.stopkaLewo;
   rysujEkranDanych(p, n, t);

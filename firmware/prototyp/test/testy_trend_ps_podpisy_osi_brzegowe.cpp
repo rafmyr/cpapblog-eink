@@ -204,7 +204,7 @@ static void testOcena() {
   sprawy::WejscieSpraw ws;
   ws.dzis = "2026-11-05";
   TRZYMA(sprawy::kartaPusta(ws).ocena == "częściowa");
-  TRZYMA(sprawy::kartaPusta(ws).dopisek == "Część reguł nie ma jeszcze danych.");
+  TRZYMA(sprawy::kartaPusta(ws).dopisek == "Części rzeczy jeszcze nie oceniam.");
   ws.ostatniaNiepewna = true;  // R-EKR-50: noc niepewna ma pierwszeństwo, nigdy `pełna`
   TRZYMA(sprawy::kartaPusta(ws).ocena != "pełna");
 }

@@ -2,6 +2,7 @@
 #include "ekrany_konfiguracji.h"
 
 #include <algorithm>
+#include <cstdio>
 
 #include "nawigacja.h"
 #include "raport_ekran.h"
@@ -10,19 +11,83 @@ namespace {
 const int X = 28, XP = 772;
 }
 
-void rysujUstawienia(Plotno& p, const std::vector<std::string>& poz, int kursor) {
+const char* const U01_PODPOWIEDZ[2] = {"Więcej na telefonie: ▶ 2 s (zmiana ustawień).",
+                                       "Test sprzętu: na formularzu jeszcze raz ▶ 2 s."};
+const char* const U01_GRANICA = "Te ustawienia dotyczą tylko panelu, nie aparatu.";
+
+namespace {
+std::string hhmmU01(int m) {
+  char b[8];
+  snprintf(b, sizeof b, "%02d:%02d", (m / 60) % 24, m % 60);
+  return b;
+}
+// skrócenie z `…` do szerokości w P24B (całe znaki UTF-8)
+std::string dopasujU01(std::string w) {
+  if (szer(F_P24B, w) <= U01_SZER_WARTOSCI) return w;
+  while (!w.empty() && szer(F_P24B, w + "…") > U01_SZER_WARTOSCI) {
+    size_t k = w.size() - 1;
+    while (k > 0 && ((unsigned char)w[k] & 0xC0) == 0x80) k--;
+    w.erase(k);
+  }
+  return w + "…";
+}
+}  // namespace
+
+const char* const MIASTO_ZE_WSPOLRZEDNYCH = "współrzędne z wgrania";
+
+std::vector<WierszUstawien> wierszeUstawien(const DaneUstawien& d) {
+  std::vector<WierszUstawien> w;
+  w.push_back({"Sieć Wi-Fi", d.ssid.empty() ? "nie ustawiona" : d.ssid});
+  w.push_back({"AirBridge", d.abAdres.empty() ? "nie ustawiony" : d.abAdres});
+  w.push_back({"Miasto pogody", d.miasto.empty() ? "nie wybrano" : d.miasto});
+  w.push_back({"Profil", d.profilPubliczny ? "publiczny" : "prywatny"});
+  w.push_back({"Humor", d.humor == 0 ? "wyłączony" : d.humor == 1 ? "oszczędny" : "normalny"});
+  w.push_back({"Dźwięk", d.dzwiek ? "włączony, cisza " + hhmmU01(d.ciszaOd) + "–" + hhmmU01(d.ciszaDo) : "wyłączony"});
+  w.push_back({"Podpowiedź „co do poprawy”", d.podpowiedz ? "włączona" : "wyłączona"});
+  w.push_back({"Czujnik CO2", d.co2 < 0 ? "brak" : d.co2 ? "jest, ekrany CO2 włączone" : "jest, ekrany CO2 wyłączone"});
+  w.push_back({"Oprogramowanie", d.wersja.empty() ? "–" : d.wersja});
+  for (auto& x : w) x.wartosc = dopasujU01(x.wartosc);
+  return w;
+}
+
+std::vector<std::string> stopkaU01() {
+  return {"◀ sprzęt · 2 s sieć", "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"};
+}
+
+// Układ (skala B): nazwa P22B od x 28, wartość P24B od x 350, wiersze co 28 px od linii bazowej 84 (9 wierszy do 308);
+// pod listą cztery linie P22B co 26 px: aktualizacja (338), podpowiedź (364, 390) i zdanie granicy (416), stopka od 434.
+// Stopka z karty aktualizacji (`◀ sprzęt · 2 s sieć panelu …`) ma 790 px > 744 px, stąd `sieć`. Podpowiedź pod listą
+// nazywa formularz `Więcej na telefonie`, bo tak odsyłają do niego wiersz aktualizacji i ekran aktualizacji.
+void rysujUstawienia(Plotno& p, const DaneUstawien& d) {
   p.prostokat(0, 0, 800, 480, false);
   naglowekEkranu(p, {"Ustawienia panelu", numerStronyTekst(Ekran::USTAWIENIA)});  // `6 / 6`
-  const int Y0 = 80, H = 44, KROK = 56;
-  const int n = (int)std::min<size_t>(poz.size(), 5);
-  for (int i = 0; i < n; i++) {
-    int y = Y0 + KROK * i;
-    if (i == kursor) p.ramka(6, y - 6, 788, H + 12, 3, true);
-    else if (i < n - 1 && i + 1 != kursor) p.prostokat(12, y + H + 5, 776, 1, true);
-    tekst(p, F_P24S, X, y + 30, poz[(size_t)i]);
+  std::vector<WierszUstawien> w = wierszeUstawien(d);
+  for (size_t i = 0; i < w.size(); i++) {
+    int y = 84 + 28 * (int)i;
+    tekst(p, F_P22B, X, y, w[i].nazwa);
+    tekst(p, F_P24B, U01_X_WARTOSCI, y, w[i].wartosc);
   }
-  tekst(p, F_P22B, X, 406, "Te ustawienia dotyczą tylko panelu, nie aparatu.");
-  stopkaEkranu(p, {"◀ sprzęt · 2 s sieć panelu", "▶ 2 s telefon", "↻ ekran dnia"}, "");
+  if (!d.aktualizacja.empty()) tekst(p, F_P22B, X, 338, d.aktualizacja);
+  tekst(p, F_P22B, X, 364, U01_PODPOWIEDZ[0]);
+  tekst(p, F_P22B, X, 390, U01_PODPOWIEDZ[1]);
+  tekst(p, F_P22B, X, 416, U01_GRANICA);
+  stopkaEkranu(p, stopkaU01(), "");
+}
+
+void rysujAktualizacje(Plotno& p, const std::vector<std::string>& linie, const std::vector<std::string>& stopka) {
+  p.prostokat(0, 0, 800, 480, false);
+  naglowekEkranu(p, {"Aktualizacja", ""});
+  int y = 110;
+  for (size_t i = 0; i < linie.size(); i++) {
+    const GFXfont* f = i == 0 ? F_P28B : F_P24S;
+    for (auto& w : zawin(f, linie[i], XP - X)) {
+      if (y > 420) break;
+      tekst(p, f, X, y, w);
+      y += i == 0 ? 40 : 36;
+    }
+    y += 10;
+  }
+  if (!stopka.empty()) stopkaEkranu(p, stopka, "");
 }
 
 bool rysujFormularzQr(Plotno& p, const DaneFormularzaQr& d) {

@@ -85,21 +85,27 @@ static void testOcenaCzesciowa() {
   ws.dzis = "2026-11-05";
   sprawy::KartaSprawy k = sprawy::kartaPusta(ws);
   ROWNE(k.ocena, "częściowa");  // „nie oceniam” nie znaczy „w porządku” (ADR-0029 pkt 7)
-  ROWNE(k.dopisek, "Część reguł nie ma jeszcze danych.");
+  ROWNE(k.dopisek, "Części rzeczy jeszcze nie oceniam.");
+  // przy ocenie niepełnej tytuł i powód nie twierdzą, że spraw nie ma
+  ROWNE(k.tytul, "Nie widzę otwartych spraw.");
+  ROWNE(k.powod, "W tym, co oceniam, nic nie jest w toku.");
   DaneSpraw d = trescSpraw({}, 1, ws);
   ROWNE(d.ocena, "częściowa");
-  ROWNE(d.dopisek, "Część reguł nie ma jeszcze danych.");
+  ROWNE(d.dopisek, "Części rzeczy jeszcze nie oceniam.");
   SPRAWDZ(d.n == 0);
   ws.ocenaPelna = true;
   k = sprawy::kartaPusta(ws);
   ROWNE(k.ocena, "pełna");
   SPRAWDZ(k.dopisek.empty());
+  ROWNE(k.tytul, "Brak otwartych spraw.");
+  ROWNE(k.powod, "Nie ma spraw w toku.");
   ws.ostatniaNiepewna = true;
   k = sprawy::kartaPusta(ws);
   ROWNE(k.ocena, "ograniczona: ostatnia noc z dużym wyciekiem");
   SPRAWDZ(k.dopisek.empty());
+  ROWNE(k.tytul, "Nie widzę otwartych spraw.");
   // dopisek mieści się w szerokości treści (744 px) w kroju wiersza wartości (P24 600)
-  SPRAWDZ(szer(F_P24S, "Część reguł nie ma jeszcze danych.") <= 744);
+  SPRAWDZ(szer(F_P24S, "Części rzeczy jeszcze nie oceniam.") <= 744);
 }
 
 // ---------- pkt 12,: słowo trendu wsparcia PS w K1 (R-KOK-16, Δ 2 cmH2O jak EPAP) ----------

@@ -841,6 +841,8 @@ static void testT_WYM_20_kolejnoscKrokow() {
   BezSlotuDziennego bezSlotu;
   PanelSym s;
   zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+  // kroki 7.1 bez trybu porównawczego (domyślny od 09.11.2026 dokłada po czuwaniu osobne połączenie: niżej)
+  s.p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\n";
   s.siec.dodaj("/api/status", 200, STATUS_SPOCZYNEK);
   s.siec.dodaj(sciezkaListy(), 200, lista(DOBA_A, DOBA_A));
   s.siec.dodaj(sciezkaNocy(DOBA_A), 200, raport(DOBA_A));
@@ -863,6 +865,30 @@ static void testT_WYM_20_kolejnoscKrokow() {
   long koniec = (long)t + (long)(w.m.msPrzySnie / 1000) + (long)s.sen.plan.sekund;
   SPRAWDZ(labs(koniec - (long)ep(2026, 11, 4, 11, 0, 5)) <= 1);
   SPRAWDZ(bezNaglowka(s.p.pliki.pliki["/log/wybudzenia.csv"]).find(";zegar:okno_poranne") != std::string::npos);
+  }
+  {  // tryb porównawczy (domyślny, R-DANE-60): kroki 7.1 do rysowania jak wyżej, potem krok porównania przed snem:
+     // drugie połączenie tylko z żądaniami porównania, Wi-Fi wyłączone przed snem
+  BezSlotuDziennego bezSlotu;
+  PanelSym s;
+  zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+  s.siec.dodaj("/api/status", 200, STATUS_SPOCZYNEK);
+  s.siec.dodaj(sciezkaListy(), 200, lista(DOBA_A, DOBA_A));
+  s.siec.dodaj(sciezkaNocy(DOBA_A), 200, raport(DOBA_A));
+  Wyb w = wybudz(s, ep(2026, 11, 4, 7, 0, 5), PowodWybudzenia::ZEGAR);
+  const Dziennik& d = s.p.d;
+  ROWNE_L(w.m.polaczen, 2);
+  int wyl = d.pierwsze("siec.wylacz"), ekr = d.pierwsze("ekran.odswiez");
+  SPRAWDZ(wyl >= 0 && ekr > wyl && d.pierwsze("pliki.nazwa /dane/noce/2026.csv.tmp") > wyl);
+  int drugie = -1, inne = 0;
+  for (size_t i = (size_t)ekr; i < d.z.size(); i++) {
+    if (d.z[i] == "siec.polacz" && drugie < 0) drugie = (int)i;
+    if (d.z[i].compare(0, 8, "siec.get") == 0 && d.z[i].find("/api/sessions?since=") == std::string::npos &&
+        d.z[i].find("/api/storage/download") == std::string::npos)
+      inne++;
+  }
+  SPRAWDZ(drugie > ekr);
+  ROWNE_L(inne, 0);  // po rysowaniu tylko żądania porównania (lista sesji, STR, pliki)
+  SPRAWDZ(!w.m.radioPrzySnie);
   }
   // (R-KON-41): plan zna chwilę importu (07:00:05) → sen do startu slotu dziennego o 08:00:05
   PanelSym s;

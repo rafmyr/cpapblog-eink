@@ -19,5 +19,8 @@ void rysujObrazekDnia(Plotno& p, const ObrazPbm& o, const StopkaDzienna& s);
 // Ekran danych S-K-01, S-K-02, S-K-13 (szablon A, ton „spokój”).
 void rysujEkranKontekstu(Plotno& p, const Naglowek& n, const TrescKontekstu& k, const std::string& stopkaLewo,
                          const std::string& stopkaPrawo);
+// Podpis godziny na osi wykresów slotu dziennego (S-K-33 słupki i linia temperatury, S-K-36, pas doby S-K-37):
+// godzina zegarowa `HH:00` (`20:00`, `07:00`; g modulo 24), żeby nie myliła się z wartością na osi (R-KON-63).
+std::string godzinaOsiSlotu(int g);
 // Nagłówek ekranów slotu dziennego: `wt 03.11`.
 std::string naglowekSlotu(const std::string& dzis);

@@ -39,7 +39,8 @@ static bool wszystkieV2(const AtrapaPlikow& pl) {
   for (auto& kv : pl.pliki) {
     const std::string& s = kv.first;
     if (s.compare(0, 11, "/dane/noce/") != 0 || s.size() != 19 || s.compare(15, 4, ".csv") != 0) continue;
-    b = b && kv.second.compare(0, 18, "#cpap-eink noce 3\n") == 0;
+    // bieżąca wersja pliku nocy (od ADR-0035 wersja 4: pola wersji 3, wartość `S` w polu zrodlo)
+    b = b && kv.second.compare(0, 18, "#cpap-eink noce " + std::to_string(WERSJA_NOCY) + "\n") == 0;
   }
   return b;
 }
@@ -164,8 +165,9 @@ static void m04_uszkodzonyWierszWSrodku() {
 static void m05_plikWersji3() {
   PanelB1 s;
   std::vector<std::string> v;
-  for (auto& l : noceV0(30, "2026-11-03")) v.push_back(l + ";;16.00;1;P;S" + std::string(POLA_NOCY_V2 - 25, ';') + ";;X");  // pola do 41, m18, pole z wersji 4
-  std::string t3 = plik("noce", 4, POLA_V2 + ";m18;test_v4", v);
+  // wersja nowsza niż znana (WERSJA_NOCY + 1): pola do 41, m18, pole dopisane w tej nowszej wersji
+  for (auto& l : noceV0(30, "2026-11-03")) v.push_back(l + ";;16.00;1;P;S" + std::string(POLA_NOCY_V2 - 25, ';') + ";;X");
+  std::string t3 = plik("noce", WERSJA_NOCY + 1, POLA_V2 + ";m18;test_nowsza", v);
   s.p.pliki.pliki["/dane/noce/2026.csv"] = t3;
   s.p.siec.odpowiedzi.clear();
   s.p.siec.dodaj("/api/status", 200, STATUS_B1);
@@ -173,7 +175,8 @@ static void m05_plikWersji3() {
   s.p.siec.dodaj(sciezkaNocy(DOBA_A), 200, raportB1(DOBA_A, "2", "16.2"));
   wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
   R(s.p.pliki.tresc("/dane/noce/2026.csv") == t3);
-  R(!s.p.pliki.istnieje("/dane/noce/2026.csv.v4") && !s.p.pliki.istnieje("/dane/noce/2026.csv.v3") &&
+  R(!s.p.pliki.istnieje("/dane/noce/2026.csv.v5") && !s.p.pliki.istnieje("/dane/noce/2026.csv.v4") &&
+    !s.p.pliki.istnieje("/dane/noce/2026.csv.v3") &&
     !s.p.pliki.istnieje("/dane/noce/2026.csv.v2"));
   Dziennik d;
   AtrapaPlikow pl(d);

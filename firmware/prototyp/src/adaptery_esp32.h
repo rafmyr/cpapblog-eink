@@ -103,6 +103,23 @@ class SiecEsp32 : public Siec {
   bool ap_ = false;  // sieć panelu działa
 };
 
+// Wydania firmware z GitHub (ADR-0032, ADR-0038, src/aktualizacja.h): HTTPS przez NetworkClientSecure
+// z certyfikatami głównymi z src/certyfikaty_github.h, przekierowania ręcznie (token tylko do api.github.com,
+// aktualizacja::naglowki()), obraz strumieniem do drugiego slotu aplikacji (esp_ota_begin/write/end) z SHA-256.
+class WydaniaEsp32 : public Wydania {
+ public:
+  OdpowiedzWydania pobierzTekst(const ZadanieWydania& z) override;
+  WynikObrazu pobierzObraz(const ZadanieWydania& z, uint64_t rozmiar, const std::function<void()>& postep) override;
+  bool ustawStartowy() override;
+  void porzuc() override;
+  void restart() override;
+  uint64_t rozmiarSlotu() override;
+
+ private:
+  uint32_t uchwyt_ = 0;     // esp_ota_handle_t zapisu w toku (0 = brak)
+  bool zapisany_ = false;   // obraz zapisany w całości, czeka na ustawStartowy()
+};
+
 class WyswietlaczEsp32 : public Wyswietlacz {
  public:
   void wlacz() override;

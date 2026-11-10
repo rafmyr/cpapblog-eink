@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "formularz.h"
 
+#include "aktualizacja.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -218,6 +220,7 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
     if (k == "okres.maska") p.okres[0] = v;
     if (k == "okres.filtr_tyg") { p.okres[1] = v; jestTyg = true; }
     if (k == "okres.filtr") staryFiltr = v;
+    if (k == "aktualizacja_auto") p.aktualizacjaAuto = v == "tak" ? "tak" : "nie";  // zła wartość = `nie`
   }
   int m = 0;
   if (!jestTyg && liczbaOkresu(staryFiltr, m)) p.okres[1] = std::to_string(std::min(104, 4 * m));
@@ -378,6 +381,30 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
       else w.plik["uwaga_o_masce"] = n == UWAGA_O_MASCE_DOMYSLNIE ? "" : std::to_string(n);
     }
   }
+  {  // sekcja „Aktualizacje” (ADR-0038): automat w pliku, token i hasło okna do NVS (wołający), nigdy w pliku
+    bool jestA = false;
+    std::string au = wartosc(m, "aktualizacja_auto", jestA);
+    if (jestA) {
+      if (au == "tak") w.plik["aktualizacja_auto"] = "tak";
+      else if (au == "nie") w.plik["aktualizacja_auto"] = "";  // domyślnie `nie`: wiersz znika
+      else w.bledy["aktualizacja_auto"] = "Wybierz z listy.";
+    }
+    bool jestK = false;
+    std::string kl = wartosc(m, "klucz_wydan", jestK);
+    if (jestK && !kl.empty()) {
+      if (aktualizacja::tokenOk(kl)) w.kluczWydan = kl;
+      else w.bledy["klucz_wydan"] = "Klucz: od 20 do 255 znaków, same litery, cyfry i znak _.";
+    } else if (zaznaczone(m, "klucz_usun")) {
+      w.usunKlucz = true;
+    }
+    bool jestH = false;
+    std::string ho = wartosc(m, "haslo_okna", jestH);
+    if (jestH && !ho.empty()) {
+      if (ho.size() < sekrety::HASLO_OKNA_MIN_ZNAKOW || ho.size() > 64 || znakSterujacy(ho))
+        w.bledy["haslo_okna"] = "Hasło okna: od 16 do 64 znaków.";
+      else w.hasloOkna = ho;
+    }
+  }
   {  // czynniki w raporcie dla lekarza (R-CZY-06): `cz_start` = stan pokazany w formularzu, zmiana tylko, gdy wybór jest inny
     bool jestS = false;
     std::string start = wartosc(m, "cz_start", jestS);
@@ -513,6 +540,27 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
        blad(b, "uwaga_o_masce") +
        "<p class=\"s\">Od tej wartości do 15 l/min panel opisuje wyciek ekranem „Wyciek widoczny”, bez rady o masce. "
        "Domyślnie 10, 15 = bez tej informacji.</p>";
+  s += "</fieldset>";
+  // sekcja „Aktualizacje” (przyjęta 09.11.2026); klucz jak pola haseł
+  s += "<fieldset><legend>Aktualizacje</legend><label for=\"aktualizacja_auto\">Instaluj nowe wersje samodzielnie</label>" +
+       opcjeWyboru("aktualizacja_auto", p.aktualizacjaAuto, {{"nie", "nie"}, {"tak", "tak"}}) +
+       blad(b, "aktualizacja_auto") +
+       "<p class=\"s\">Panel instaluje sam tylko w dzień, poza terapią, przy naładowanej baterii. Raz na dobę pyta "
+       "GitHub o nową wersję.</p>"
+       "<label for=\"klucz_wydan\">Klucz wydań (token GitHub)</label>" +
+       pole("password", "klucz_wydan", "",
+            std::string(" maxlength=\"255\" autocomplete=\"off\" autocapitalize=\"none\"") +
+                (p.kluczWydan ? " placeholder=\"ustawiony\"" : "")) +
+       blad(b, "klucz_wydan") +
+       "<label class=\"c\"><input type=\"checkbox\" name=\"klucz_usun\" value=\"1\"> usuń klucz</label>"
+       "<p class=\"s\">Klucz dostajesz od osoby, która instalowała panel. Bez klucza panel nie pobiera aktualizacji.</p>"
+       "<label for=\"haslo_okna\">Hasło okna serwisowego</label>" +
+       pole("password", "haslo_okna", "",
+            std::string(" maxlength=\"64\" autocomplete=\"new-password\"") +
+                (p.hasloOkna ? " placeholder=\"ustawione\"" : "")) +
+       blad(b, "haslo_okna") +
+       "<p class=\"s\">Wgrywanie przez Wi-Fi z komputera w oknie serwisowym. Co najmniej 16 znaków; puste pole = bez "
+       "zmiany.</p>";
   s += "</fieldset><button type=\"submit\">Zapisz</button></form>"
        "<p class=\"r\">Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc.</p>"
        "</body></html>";

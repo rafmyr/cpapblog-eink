@@ -91,7 +91,7 @@ struct Stany {
   // sprawa, linia „zdrowie” albo ocena bez silnika (`→ Otwarte sprawy: strona 3 / 6.`); REGULY = jakaś reguła
   // „nie oceniam”, a z pozostałych co najwyżej punkty, których panel nie liczy (`→ Część reguł nie działa: zobacz
   // Test sprzętu.`, tylko przy awarii zestawu, R-AW-31); OCENY = tylko punkty, których panel nie liczy (pkt 3 w części, pkt 5: `→ Część ocen wyłączona:
-  // zobacz K1.`). Ustawia kolejka::zastosujUspokojenie(); bez wyników silnika SPRAWA.
+  // zobacz ▶.`). Ustawia kolejka::zastosujUspokojenie(); bez wyników silnika SPRAWA.
   // DANE = jakaś reguła „nie oceniam” z braku danych (za mało nocy, brak metryki), bez
   // awarii zestawu: `→ Część ocen jeszcze nie działa: za mało nocy.` (przy bezOcenZWycieku `→ Bezdechów nie oceniam: noce
   // z wyciekiem.`); REGULY = awaria zestawu albo powód nierozpoznany.

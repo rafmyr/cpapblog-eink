@@ -55,6 +55,14 @@ void tekstSrodek(Plotno& p, const GFXfont* f, int xSrodek, int y, const std::str
 std::vector<std::string> zawin(const GFXfont* f, const std::string& utf8, int maxW);
 // Wersaliki ASCII i polskich liter (tytuł paska S2a, S2c, np. `PRZY ŁÓŻKU · OSTATNIA NOC`).
 std::string wersaliki(const std::string& utf8);
+// Linia uwagi pod nagłówkiem (5.4.3, 5.4.5, R-EKR-52, R-EKR-62), jedno miejsce rysowania dla wszystkich ekranów danych:
+// pasek od y = 54, 48 px (B6, linia bazowa 87), linia wzorca A (liniaA) 60 px (B5, linia bazowa 94). Ostrzeżenie
+// (liniaA albo ostrzezenie): pasek w kolorze tekstu ekranu, odwrócony względem tła (na białym czarny, w negatywie
+// biały), znak `!` i tekst w kolorze tła. Informacja albo prośba: tło ekranu, ramka 2 px w kolorze tekstu, tekst
+// w kolorze tekstu, bez `!`. negatyw = ekran z czarnym tłem (S3, L, S-K w tonie „problem”, S-K-39); x0, x1 = granice
+// paska (ekran L w ramce 6 px). Zwraca wysokość paska, 0 bez linii (pusty tekst, nic nie rysuje).
+int liniaUwagiEkranu(Plotno& p, const std::string& t, bool liniaA, bool ostrzezenie, bool negatyw, int x0 = 0,
+                     int x1 = 800);
 // Czy znak (punkt kodowy) ma glif w krojach panelu albo jest ikoną; inaczej panel rysuje `?`. Teksty z zewnątrz
 // (opis pogody i miasto ze źródła otoczenia) pomijają takie znaki.
 bool znakJestWKroju(uint32_t cp);
@@ -133,10 +141,22 @@ bool scenaJest(const std::string& id);
 std::vector<std::string> sceny();
 
 bool kartaPrzerywnikaMiesci(const TrescEkranu& t);  // S2d: tytuł do 2 linii (SB44, albo P34B), powód do 3 linii
-void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& scena, const std::string& zdanie);
+// Karta z budzikiem (ADR-0009, 5.7.2). Od 10.11.2026 bez zdania budzika w stopce: lewo t.stopkaLewo (jak na ekranie
+// danych), prawo t.stopkaPrawo; stopka znika, gdy obie są puste.
+void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& scena);
 void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t);
 void rysujK1(Plotno& p, const DaneK1& d);
+// Słowo oceny wiersza K1 tak, jak stoi na ekranie (5.5.2, R-KOK-16): trend `stabilnie` jako sam znak `↔`, bo słowo
+// stoi raz w legendzie nagłówka kolumny `ocena` (LEGENDA_K1), jak `↔ jak zwykle` w pasku ekranu dnia; pozostałe
+// słowa (`rośnie`, `spada`, `wyżej niż zwykle`, `niżej niż zwykle`, `uczę się`) bez zmian. Puste zostaje puste.
+std::string slowoOcenyK1(const std::string& slowo);
+extern const char* const LEGENDA_K1;  // `↔ stabilnie`: legenda kolumny `ocena` w K1
 void rysujK2(Plotno& p, const DaneK2& d);
+// R-KOK-18: które wiersze K2 rysować jako jedną linię pod tabelą. Przyjmuje dane K2 i tablicę `zwin` na
+// DaneK2::WIERSZE pozycji; ustawia zwin[r] dla wierszy `pusty` w kolejności tabeli, dopóki linia
+// `brak danych: {nazwy}` mieści się w 744 px (22 px, 600); zwraca tę linię albo "" (nic do zwinięcia).
+// Wiersz, który się nie zmieścił, zostaje w tabeli z kreskami.
+std::string zwinieteK2(const DaneK2& d, bool zwin[DaneK2::WIERSZE]);
 
 struct DanePytania {
   std::string dataPoranka;  // RRRR-MM-DD
@@ -150,7 +170,8 @@ void rysujPytanie(Plotno& p, const DanePytania& d);
 
 // ---------- U-05 „Test sprzętu” (kanwa `design/kanwa/U05-test-sprzetu.dc.html`) ----------
 // Nagłówek `Test sprzętu` / `Ustawienia → Test sprzętu`, dwie kolumny po 5 wierszy (`Oprogramowanie i pamięć`,
-// `Łączność i bateria`): nazwa P20 z lewej, wartość P20B z prawej, kreska 1 px pod wierszem; ramka 2 px na dole
+// `Łączność i bateria`), pod nimi jeden wiersz na całą szerokość (`Noce z plików`, tryb porównawczy ADR-0036;
+// 326–373, ten sam krój i kreska co wiersze kolumn, nad ramką od 378): nazwa P20 z lewej, wartość P20B z prawej, kreska 1 px pod wierszem; ramka 2 px na dole
 // (okno serwisowe z lewej, `hasła i dane terapii nie są pokazywane` z prawej); stopka P18B z ikonami bez tła jak na
 // kanwie. Treść wierszy składa dyrygent (src/dyrygent.cpp Przebieg::daneTestu(), T-WYM-39).
 struct WierszTestu {
@@ -158,15 +179,18 @@ struct WierszTestu {
 };
 struct DaneTestu {
   std::vector<WierszTestu> lewa, prawa;  // kolumny; pusta kolumna = bez nazwy kolumny i kresek (tryb awaryjny)
+  std::vector<WierszTestu> dol;          // wiersz na całą szerokość pod kolumnami (najwyżej 1); pusty w trybie awaryjnym
   std::string ramkaLewo, ramkaPrawo;
   bool awaryjny = false;                 // U-05 z U-06 (R-AW-39): stopka tylko `◀ wróć` (spec funkcjonalna 5.6.2)
 };
 const int TEST_KOLUMNA = 360;     // szerokość kolumny: (748 − 28) / 2 (kanwa: siatka 1fr 1fr, odstęp 28 px)
 const int TEST_ODSTEP = 12;       // najmniejszy odstęp nazwy od wartości (kanwa: `gap: 12px`)
-// Szerokość, którą ma wartość obok nazwy w kolumnie: TEST_KOLUMNA − nazwa (P20) − TEST_ODSTEP.
-int miejsceNaWartosc(const std::string& nazwa);
+const int TEST_SZEROKOSC = 748;   // wiersz pod kolumnami: od 26 do 774
+// Szerokość, którą ma wartość obok nazwy w kolumnie: szerokosc − nazwa (P20) − TEST_ODSTEP.
+int miejsceNaWartosc(const std::string& nazwa, int szerokosc = TEST_KOLUMNA);
 // Pierwszy wariant wartości, który mieści się obok nazwy (P20B); gdy żaden, ostatni skrócony z `…` na końcu.
-std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty);
+std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty,
+                           int szerokosc = TEST_KOLUMNA);
 void rysujTest(Plotno& p, const DaneTestu& d);
 
 // Stopka z akcjami (SPEC-KOKPIT 2.1): jedna grupa na przycisk w kolejności ◀ ↻ ▶ (`◀ ostatnia noc · 2 s ustawienia`),
@@ -239,7 +263,7 @@ const char* const KOD_RAPORTU_BRAK = "R0";  // moduł raportu jeszcze nie istnie
 void rysujRaport(Plotno& p, const DaneRaportu& d);
 
 // Ekran „Przeniesione” po „wiem” (5.4.9, R-PRZ-15, artboard P-przeniesione): tytuł `Przeniesione na {d} dni.`, powód
-// `Do tego czasu w linii uwagi: {tytuł}.`, stopka `◀ 2 s cofnij` (w nocy po 30 s bez podpisu, R-PRZ-19).
+// `Do tego czasu przypomnę na pasku u góry: {tytuł}.`, stopka `◀ 2 s cofnij` (w nocy po 30 s bez podpisu, R-PRZ-19).
 // Ekran „Zapisano” po odpowiedzi tak/nie (R-PRZ-10, artboard P-zapisano): nad tytułem treść pytania B5, tytuł
 // `Zapisano: tak.` albo `Zapisano: nie.`, stopka `◀ 2 s cofnij`.
 struct DanePotwierdzenia {
@@ -276,6 +300,29 @@ struct DaneSpraw {
 const int SPRAWY_X_WARTOSCI = 140;
 std::vector<std::string> stopkaSpraw(int i, int n);
 void rysujSprawy(Plotno& p, const DaneSpraw& d);
+
+// R-EKR-61 (decyzja właściciela projektu 09.11.2026): ikona aktualizacji przy prawym marginesie
+// stopki ekranu dnia, gdy panel zna wersję nowszą od własnej. Dyrygent włącza ją na czas rysowania ekranu dnia
+// (IkonaStopki) i wyłącza przed S9, obrazkiem dnia i ekranem L z pilnością A albo B; stopki ekranu dnia kończą
+// treść wyrównaną do prawej na prawyBrzegStopki(), a na końcu rysowania dyrygent kładzie ikonę (ikonaAktualizacji()),
+// która czyści pas stopki od lewej krawędzi ikony minus odstęp: za długa treść stopki skraca się, ikona nie.
+const int BOK_IKONY_AKTUALIZACJI = 24;  // jak ikony przycisków w stopce (StylStopki: min. 24 px)
+const int ODSTEP_IKONY_AKTUALIZACJI = 14;
+void ustawIkoneAktualizacji(bool wl);
+bool ikonaAktualizacjiWlaczona();
+int prawyBrzegStopki();  // 772 albo 772 − bok − odstęp przy włączonej ikonie
+// tekst skrócony do pełnych słów (od końca), tak żeby miał najwyżej `maxW` px w kroju `f`; "" gdy nie mieści się
+// nawet pierwsze słowo. Stopki ekranu dnia przy włączonej ikonie skracają tak treść, zanim ikona ją przykryje.
+std::string skrocDoSlow(const GFXfont* f, const std::string& t, int maxW);
+// Ikona: kwadrat w negatywie ze strzałką w dół nad kreską, dolna krawędź na linii bazowej stopki (465). `tloCzarne`:
+// stopka w negatywie (ikona w kolorach odwróconych). Rysuje tylko przy włączonej ikonie; zwraca true, gdy narysowała.
+bool ikonaAktualizacji(Plotno& p, bool tloCzarne);
+struct IkonaStopki {  // RAII: ikona włączona na czas rysowania ekranu dnia
+  explicit IkonaStopki(bool wl) { ustawIkoneAktualizacji(wl); }
+  ~IkonaStopki() { ustawIkoneAktualizacji(false); }
+  IkonaStopki(const IkonaStopki&) = delete;
+  IkonaStopki& operator=(const IkonaStopki&) = delete;
+};
 
 // Wygląd ekranów danych: wspólny nagłówek i stopka ekranów danych dla ekranów
 // rysowanych poza ekrany.cpp („Sprzęt”, 5.9.3). Nagłówek: lewo P24B, prawo P22B na linii bazowej 35, kreska 2 px na

@@ -164,9 +164,10 @@ bool wierszeV0(Pliki& pl, const std::string& sciezka, bool dopisywany, std::vect
 
 const char* const SYPIALNIA_CO2_V0 = "/sypialnia-co2.csv";  // drugi plik prototypu formatu `sypialnia`
 
-// Format z kolejną wersją: pola poprzedniej wersji i `dodane` na końcu (T-WYM-57).
+// Format z kolejną wersją: pola poprzedniej wersji i `dodane` na końcu (T-WYM-57); `dodane` = "": wersja bez nowych
+// pól (zmiana dozwolonych wartości, np. `noce` 4).
 FormatPliku zWersja(FormatPliku f, const char* dodane) {
-  std::vector<std::string> p = f.pola.back(), d = pola(dodane);
+  std::vector<std::string> p = f.pola.back(), d = *dodane ? pola(dodane) : std::vector<std::string>();
   p.insert(p.end(), d.begin(), d.end());
   f.pola.push_back(p);
   return f;
@@ -180,11 +181,14 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       // wierszNocyV2()); migracja 1 → 2 krokiem ogólnym migrujWMiejscu() (puste pola na końcu, kopia `.v1`)
       // wersja 3 = wersja 2 i `m18` (src/noc.h wierszNocyV3()), migracja 2 → 3 tym samym
       // krokiem ogólnym (puste pole na końcu)
-      zWersja(zWersja(format("noce", "/dane/noce/{RRRR}.csv", "/noce.csv", RodzajZapisu::PRZEPISANIE,
+      // wersja 4 = pola wersji 3 bez zmian i wartość `S` w polu `zrodlo` (noce ze STR.edf, src/noc.h WERSJA_NOCY);
+      // migracja 3 → 4 tylko zmienia nagłówek (bez nowych pól), a firmware znający wersję 3 czyta plik tylko do odczytu
+      zWersja(zWersja(zWersja(format("noce", "/dane/noce/{RRRR}.csv", "/noce.csv", RodzajZapisu::PRZEPISANIE,
                      "data;wazna;m01_min;ahi;cmed;cp95;wmed;wp95;emed;ep95;psmed;psp95;ustawienia;zrodlo;czesciowa;"
                      "epap_str;oa;ca;h;csr;import"),
               "m13;m17;pna;srn;m08;mpa;mpi;ipc;eep;mns;mxs;ua;m10;m10p;eai;eax;ans;axs;epr;tryb"),
               "m18"),
+              ""),
       format("czynniki", "/dane/czynniki.csv", "/czynniki.csv", RodzajZapisu::PRZEPISANIE,
              "data;stan;kody;warstwa;termin;pokazano"),
       // wersja 2 = seria CO2 nocy do S-K-01 i S-K-13 (src/sypialnia.h NocSypialni::co2Ponad…)
@@ -206,6 +210,9 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       format("prognoza", "/dane/prognoza.csv", "", RodzajZapisu::PRZEPISANIE,
              "data;godz;temp;opad;chmury;porywy;pm25;brzoza;trawy;olcha;bylica;pobrano"),
       format("obrazki", "/dane/obrazki.csv", "", RodzajZapisu::DOPISANIE, "data;plik;pula"),
+      // porównanie nocy z plików z raportem JSON (src/porownanie.h, ADR-0036 „Zmiana 2026-11-09”), ostatnie 30 dób
+      format("porownanie", "/dane/porownanie.csv", "", RodzajZapisu::PRZEPISANIE,
+             "data;werdykt;rozjazd;pominiete;przyczyna"),
   };
   return r;
 }
@@ -1209,6 +1216,17 @@ std::string sprawdzKonfiguracjeW(const KomendaW& k, const std::string& tresc) {
   if (!k.rozmiarOk || k.rozmiar > MAKS_KONFIGURACJI_W || tresc.size() != k.rozmiar) return "rozmiar";
   if (k.skrot.empty() || sha256Hex(tresc) != k.skrot) return "skrot";
   if (tresc.find('\0') != std::string::npos) return "tresc";
+  // wiersz równy znacznikowi zrzutu `Z` (także z `\r` na końcu) psułby sekcję pliku w narzędziach czytających wiersze
+  size_t p = 0;
+  while (p <= tresc.size()) {
+    size_t e = tresc.find('\n', p);
+    if (e == std::string::npos) e = tresc.size();
+    std::string w = tresc.substr(p, e - p);
+    if (!w.empty() && w.back() == '\r') w.pop_back();
+    if (w == "PLIK_KONIEC" || w == "PLIKI_KONIEC" || w == "PLIKI_START" || w.compare(0, 5, "PLIK ") == 0)
+      return "znacznik";
+    p = e + 1;
+  }
   return "";
 }
 

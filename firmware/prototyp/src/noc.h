@@ -2,7 +2,8 @@
 // Historia nocy i norma osobista, bez zależności od Arduino.
 // /noce.csv w pamięci flash panelu (LittleFS), 20 pól (wcześniej 14):
 //   data;wazna;m01_min;ahi;cmed;cp95;wmed;wp95;emed;ep95;psmed;psp95;ustawienia;zrodlo;czesciowa;epap_str;oa;ca;h;csr
-// zrodlo: A = AirBridge, K = import z kopii karty SD aparatu. Puste pole = brak danych.
+// zrodlo: A = AirBridge, K = import z kopii karty SD aparatu, S = doba z pliku STR.edf aparatu pobranego z AirBridge
+// (src/str.h, ADR-0035; od wersji 4 pliku `noce`). Puste pole = brak danych.
 // czesciowa: 1 = noc z `partial = true` zapisana jako „częściowa” (R-DANE-15, R-DANE-25): nie jest ważna, kompletny
 // raport ją nadpisze (R-AW-03). epap_str: 1 = emed/ep95 z kanału `EprPress` z `source = "str"` (EPAP docelowe
 // urządzenia): pokazywane z dopiskiem `(urządzenie)`, poza normą i regułami (R-NOR-08, R-KOK-15).
@@ -78,7 +79,7 @@ bool uzupelnijNoc(Noc& cel, const Noc& z, PolaUzupelnienia zakres = PolaUzupelni
 // Tekst pola `/noce.csv` bez separatora `;` i znaków sterujących (CR, LF, tab i inne < 0x20, 0x7F): usunięte.
 std::string czystePole(const std::string& t);
 
-// Wiersz pliku → rekord. Puste pole = brak danych (NAN); śmieci w polu, zła data, źródło inne niż A/K albo liczba
+// Wiersz pliku → rekord. Puste pole = brak danych (NAN); śmieci w polu, zła data, źródło inne niż A/K/S albo liczba
 // pól inna niż 8, 9, 12, 13, 14 lub 20 = błąd wiersza. zapiszNoc pisze zawsze 20 pól.
 bool parsujNoc(const std::string& linia, char domyslneZrodlo, Noc& r);
 std::string zapiszNoc(const Noc& r);  // bez '\n'
@@ -99,6 +100,10 @@ std::string trybNocy(const Noc& n);
 std::string wierszNocyV2(const Noc& r);
 // wersja 3 = pola wersji 2 i `m18` (POLA_NOCY_V3 = 42). Wiersz wersji 1 albo 2 czyta się z m18 = -1.
 const size_t POLA_NOCY_V3 = 42;
+// wersja 4 = te same pola co wersja 3; nowa jest tylko dozwolona wartość `S` w polu `zrodlo` (ADR-0035 pkt 6).
+// Firmware znający wersję 3 odrzuca wiersz z `S`, więc plik wersji 4 czyta tylko do odczytu (ADR-0022 pkt 4,
+// T-WYM-54) i nie przepisuje go z nocami ze STR zgubionymi albo podwojonymi. Wiersze piszą i czytają funkcje wersji 3.
+const int WERSJA_NOCY = 4;
 std::string wierszNocyV3(const Noc& r);
 bool parsujNocV3(const std::string& wiersz, Noc& r);
 // M-18 z chwili startu pierwszej sesji (czas unix UTC) dla nocy z datą poranka `dataPoranka`: minuty od 12:00 dnia

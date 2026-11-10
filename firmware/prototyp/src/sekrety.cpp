@@ -141,4 +141,54 @@ std::string opis(const Wynik& w) {
          (w.zapisanoPoczatkowe ? " (skopiowane do NVS)" : "");
 }
 
+std::string kluczWydan(Nvs& n) { return n.tekst(PRZESTRZEN, "gh_tok", ""); }
+
+bool zapiszKluczWydan(Nvs& n, const std::string& t) {
+  if (n.tekst(PRZESTRZEN, "gh_tok", "") == t) return true;
+  bool ok = n.ustawTekst(PRZESTRZEN, "gh_tok", t);
+  return ok && n.tekst(PRZESTRZEN, "gh_tok", "") == t;
+}
+
+namespace {
+bool zeSterujacym(const std::string& s) {
+  for (unsigned char c : s)
+    if (c < 0x20 || c == 0x7F) return true;
+  return false;
+}
+}  // namespace
+
+std::string wczytajHasloOkna(Nvs& n, const std::string& zk, bool zSekretami) {
+  std::string zr = n.tekst(PRZESTRZEN, "ota_zr", "");
+  std::string h = n.tekst(PRZESTRZEN, "ota_h", "");
+  if ((zr == "f" && !h.empty()) || !zSekretami) return h;  // formularz wygrywa; obraz wydania: NVS bez zmian
+  if (h != zk) n.ustawTekst(PRZESTRZEN, "ota_h", zk);
+  std::string nz = zk.empty() ? "" : "k";
+  if (zr != nz) n.ustawTekst(PRZESTRZEN, "ota_zr", nz);
+  return zk;
+}
+
+bool zapiszHasloOkna(Nvs& n, const std::string& h) {
+  if (h.size() < HASLO_OKNA_MIN_ZNAKOW || h.size() > 64 || zeSterujacym(h)) return false;
+  bool ok = n.ustawTekst(PRZESTRZEN, "ota_h", h);
+  ok = n.ustawTekst(PRZESTRZEN, "ota_zr", "f") && ok;
+  return ok && n.tekst(PRZESTRZEN, "ota_h", "") == h && n.tekst(PRZESTRZEN, "ota_zr", "") == "f";
+}
+
+bool hasloOknaUstawione(Nvs& n) { return !n.tekst(PRZESTRZEN, "ota_h", "").empty(); }
+
+Dodatki wczytajDodatki(Nvs& n, const Dodatki& zk, bool zSekretami) {
+  Dodatki d;
+  auto pole = [&n, zSekretami](const char* k, const std::string& v) {
+    if (!zSekretami) return n.tekst(PRZESTRZEN, k, "");
+    if (n.tekst(PRZESTRZEN, k, "") != v) n.ustawTekst(PRZESTRZEN, k, v);
+    return v;
+  };
+  d.otoUrl = pole("oto_url", zk.otoUrl);
+  d.otoToken = pole("oto_tok", zk.otoToken);
+  bool para = !zk.pogodaLat.empty() && !zk.pogodaLon.empty();  // bez pary: obie puste (bez mieszania miast)
+  d.pogodaLat = pole("pog_lat", para ? zk.pogodaLat : "");
+  d.pogodaLon = pole("pog_lon", para ? zk.pogodaLon : "");
+  return d;
+}
+
 }  // namespace sekrety

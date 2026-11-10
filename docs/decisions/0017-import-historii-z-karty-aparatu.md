@@ -38,9 +38,17 @@ Decyzja 30.10.2026 (adnotacja zamiast nowego ADR). AirBridge v2.2.1 zaciągnął
 - import do pełnego rekordu tej daty dopisuje tylko brakujące pola.
 Skutek: norma i liczba nocy ważnych nie spadają przez pierwsze pobranie historii; noce strojenia mogą mieszać źródła. Wymaganie: R-DANE-31 w wersji 1.2.
 
-## Adnotacja 31.10.2026 (decyzja)
+## Adnotacja 31.10.2026 (decyzja; zastąpiona 09.11.2026, zob. „Zmiana 2026-11-09 (ADR-0037)” niżej)
 Decyzja bez zmian; doprecyzowanie, jak noce z importu wchodzą do okien reguł w trybie ASV. Noc z importu bez rodzaju bezdechu liczy każdy bezdech, także centralny, do UA, czyli do zdarzeń obturacyjnych. W trybie ASV i ASVAuto taka noc nie liczy się do L-04 ani H-02: okno 7 nocy L-04 bierze tylko noce z rodzajem bezdechu, więc po imporcie L-04 milczy do 7 nocy z AirBridge (spec 4.11, R-DANE-31, przypadek 53 w 7.8). Pozostałe reguły liczą noce z importu jak dotąd.
 
 ## Zmiana 04.11.2026 (bez zmiany decyzji)
 
 Import historii z karty aparatu z metrykami EDF (M-03 OA/CA/H, M-08, M-13, M-17) zostaje w kolejności „na koniec”, nie przed wersją beta (decyzja 04.11.2026). Skutek: noce z importu nie mają tych metryk, więc większość wzorców L i część zdarzeń E daje „nie oceniam”, dopóki panel nie zbierze nocy z AirBridge. Ekrany lekarskie wersji beta pokazują scenariusze symulatora z nocami syntetycznymi.
+
+## Zmiana 2026-11-09 (ADR-0035; bez zmiany decyzji)
+
+Obok importu z karty panel ma drugie, automatyczne źródło historii: noce z pliku STR.edf aparatu pobieranego z AirBridge od v2.3.1 (źródło `S`, R-DANE-38…R-DANE-41). Import z karty zostaje bez zmian; dla nowych paneli przestaje być potrzebny, bo historia czasu z maską, AHI i przecieku przychodzi z pierwszym porannym pobraniem. Pierwszeństwo: pełna noc z AirBridge > noc z karty > noc ze STR; noc z karty zastępuje noc ze STR tej samej daty tak jak niepełną dobę z AirBridge i dostaje jej pola, których karta nie ma (`src/airbridge.cpp` `wpiszImport()`). Noce ze STR, jak noce z karty, nie liczą się do okresu testowego WY16 ani do porównania WY9.
+
+## Zmiana 2026-11-09 (ADR-0037; zastępuje adnotację 31.10.2026, decyzja importu bez zmian)
+
+Adnotacja z 31.10.2026 zakładała, że noc z AirBridge ma w trybie ASV rodzaj bezdechu, a noc z karty go nie ma. Sprawdzenie 09.11.2026 ([ADR-0037](0037-asv-bez-rodzaju-bezdechu-i-csr.md)) pokazało, że aparaty ResMed ASV nie zapisują rodzaju bezdechu ani CSR w żadnym źródle, więc różnicy między nocą z karty i z AirBridge nie ma. Od zmiany spec 09.11.2026 (zmiana do akceptacji właściciela projektu, kod po etapie 2 przejścia na EDF): w trybach ASV i ASVAuto OA, CA, CA/h i M-09 każdej nocy, także z karty, mają stan „aparat nie rozróżnia” (R-DANE-50), a czytnik nocy liczy z PLD i EVE kopii karty metryki stanu aparatu przy bezdechu M-30…M-33 (R-DANE-51), więc noce z karty liczą się do L-04, H-02 i wariantów ASV z spec 4.11 jak noce z plików. Wymóg „okno L-04 tylko z nocy z rodzajem bezdechu” wycofany (R-SKI-02, R-DANE-31, przypadek 53 przepisany). W trybach CPAP i AutoSet noc z karty bez rodzaju bezdechu ma OA, CA i CA/h jako brak danych jak dotąd.

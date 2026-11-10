@@ -60,3 +60,19 @@ Spec funkcjonalna zakłada kartę jako główny nośnik: rekordy, raporty, log i
 ## Zmiana 04.11.2026 (bez zmiany decyzji)
 
 Decyzje 1–3 bez zmian. W wersji beta doszły: rekord `noce` wersja 2 i 3 (M-18) z migracją po kolei, `sypialnia` wersja 2 (seria CO2), raporty PDF w `/raporty/`, plik `/konfiguracja.txt` zapisywany atomowo przy „wymienione dziś” i „nowy model”. Nowe klucze NVS przestrzeni `cpap` mają wartość domyślną „brak” i nie wymagają migracji: `sn_noc`, `b9_wiecz`, `buz_a`, `cisza_od`, `cisza_do`, `dzwiek`, `wyj_cof`, `k1_odk`, `b16_sk31`, `sp_kur`, `sp_model`, `sp_cof`. Spec techniczna 9.
+
+## Zmiana 2026-11-09 (ADR-0035; bez zmiany decyzji)
+
+Rekord `noce` wersja 4: te same pola co wersja 3, nowa dozwolona wartość `S` w polu `zrodlo` (noc z pliku STR.edf aparatu). Wersja rośnie bez nowych pól, bo firmware znający wersję 3 odrzuca wiersz z `S`; dzięki pkt 4 tej decyzji czyta plik wersji 4 tylko do odczytu i niczego nie gubi ani nie podwaja. Migracja 3 → 4 krokiem ogólnym `Magazyn::migrujWMiejscu()` (kopia `.v3`, sam nowy nagłówek). Nowy klucz NVS `cpap`/`str_etag` z wartością domyślną „brak”, bez migracji. Źródło: `src/magazyn.cpp` `rejestrFormatow()`, `src/noc.h` `WERSJA_NOCY`, CHANGELOG 09.11.2026.
+
+## Zmiana 2026-11-09 (ADR-0036; bez zmiany decyzji)
+
+Noc z plików sesji (ADR-0036) zapisuje się w tym samym rekordzie `noce` wersji 4 co noc z raportu JSON (źródło `A`), bez nowych pól i bez migracji. Nowe klucze `/konfiguracja.txt` `noc_zrodlo` i `noc_json` mają wartość domyślną „brak” (raport JSON); NVS bez nowych kluczy.
+
+## Zmiana 2026-11-09 (ADR-0036 „Zmiana 2026-11-09”, tryb porównawczy; bez zmiany decyzji)
+
+Klucz `noc_zrodlo` ma nową wartość `porownanie`, która jest domyślna (bez wiersza i przy złej wartości); wcześniejsze zdanie o wartości domyślnej „brak” (raport JSON) dotyczy dziś tylko zapisu nocy, który dalej idzie z raportu JSON. Nowy format `porownanie` w wersji 1: `/dane/porownanie.csv`, przepisanie atomowe z `#koniec {n}`, pola `data;werdykt;rozjazd;pominiete;przyczyna`, bez wersji 0 i bez migracji, 30 ostatnich dób (T-DANE-40). Plik z nowszej wersji jest tylko do odczytu (pkt 4), a panel wtedy w ogóle nie porównuje (bez pobrań plików doby). Plik nie należy do plików przywracania (`plikiZrzutu()`), ale jest w zrzucie `Z`. NVS bez nowych kluczy. Źródło: `src/magazyn.cpp` `rejestrFormatow()`, `src/porownanie.h`, CHANGELOG 09.11.2026.
+
+## Zmiana 2026-11-09 (konfiguracja w zrzucie; bez zmiany decyzji)
+
+Zrzut `Z` obejmuje też `/konfiguracja.txt` (ustawienia i dane wpisane na panelu: daty wymiany, model maski, formularz), z rozmiarem i skrótem SHA-256 przed sekcją pliku; przywracanie z katalogu zrzutu wysyła ją komendą `W konfiguracja.txt` przed `K`. Plik nie należy do plików przywracania (`plikiZrzutu()`), nie ma wersji formatu ani migracji, NVS bez zmian. Źródło: spec techniczna T-WYM-92, 8.6, `src/dyrygent.cpp` `Przebieg::zrzutKonfiguracji()`, CHANGELOG 09.11.2026.

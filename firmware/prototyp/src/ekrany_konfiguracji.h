@@ -9,8 +9,41 @@
 
 #include "ekrany.h"
 
-// U-01: pozycje (nazwy z 5.6.3) i kursor; zdanie stałe `Te ustawienia dotyczą tylko panelu, nie aparatu.`
-void rysujUstawienia(Plotno& p, const std::vector<std::string>& pozycje, int kursor);
+// U-01 (5.6.3, R-KONF-55): lista do odczytu bieżących ustawień panelu, bez kursora i bez przełączników. Hasła
+// (sieci domowej, AirBridge, okna serwisowego), konto AirBridge i token źródła otoczenia nigdy nie stoją na ekranie
+// (R-KONF-38); struktura ich nie ma. Wartości ustawień aparatu też nie (ADR-0002).
+// U-01, wiersz „Miasto pogody” bez miasta z listy, gdy pogoda idzie ze współrzędnych wgranych z panelem (secrets.h)
+extern const char* const MIASTO_ZE_WSPOLRZEDNYCH;  // `współrzędne z wgrania`
+
+struct DaneUstawien {
+  std::string ssid;                 // sieć domowa; "" = `nie ustawiona`
+  std::string abAdres;              // adres AirBridge z portem; "" = `nie ustawiony`
+  std::string miasto;               // miasto do pogody (src/miasta.h); "" = `nie wybrano`; MIASTO_ZE_WSPOLRZEDNYCH
+  bool profilPubliczny = false;     // `publiczny` / `prywatny`
+  int humor = 2;                    // 0 `wyłączony`, 1 `oszczędny`, 2 `normalny`
+  bool dzwiek = true;               // buzzer
+  int ciszaOd = 22 * 60, ciszaDo = 8 * 60;  // cisza nocna, minuty doby
+  bool podpowiedz = true;           // podpowiedź „co do poprawy”
+  int co2 = -1;                     // -1 panel bez czujnika (źródła otoczenia), 0 ekrany CO2 wyłączone, 1 włączone
+  std::string wersja;               // wersja oprogramowania (jak U-05 `Oprogramowanie`, bez slotu)
+  std::string aktualizacja;         // linia pod listą: aktualizacja::wierszU01() (stan wersji i droga do U-07); "" = bez
+};
+struct WierszUstawien {
+  std::string nazwa, wartosc;
+};
+// Wiersze U-01 w kolejności z 5.6.3: `Sieć Wi-Fi`, `AirBridge`, `Miasto pogody`, `Profil`, `Humor`, `Dźwięk`,
+// `Podpowiedź „co do poprawy”`, `Czujnik CO2`, `Oprogramowanie`. Wartość dłuższa niż kolumna wartości
+// (U01_SZER_WARTOSCI px w P24B) skrócona jawnie znakiem `…`.
+std::vector<WierszUstawien> wierszeUstawien(const DaneUstawien& d);
+const int U01_X_WARTOSCI = 350;                       // kolumna wartości od x 350 do 772
+const int U01_SZER_WARTOSCI = 772 - U01_X_WARTOSCI;
+// Pod listą: linia aktualizacji (DaneUstawien::aktualizacja), podpowiedź (dwie linie P22B) i zdanie stałe granicy
+// ADR-0002. Stopka z stopkaU01().
+extern const char* const U01_PODPOWIEDZ[2];
+extern const char* const U01_GRANICA;                 // `Te ustawienia dotyczą tylko panelu, nie aparatu.`
+void rysujUstawienia(Plotno& p, const DaneUstawien& d);
+// Stopka U-01 (mapa 5.6.2): `◀ sprzęt · 2 s sieć`, `▶ 2 s telefon`, `↻ ekran dnia · 2 s aktualizacja`.
+std::vector<std::string> stopkaU01();
 
 struct DaneFormularzaQr {
   std::string adresQr, adresReczny;  // "" = serwer nie działa (bez kodu)
@@ -38,3 +71,8 @@ struct DaneSieciPanelu {
 std::string kodWifi(const std::string& ssid, const std::string& haslo);
 // U-02. Zwraca false, gdy któregoś kodu nie da się zakodować.
 bool rysujSiecPanelu(Plotno& p, const DaneSieciPanelu& d);
+
+// U-07 „Aktualizacja” (R-KONF-43, R-KONF-44): ekran danych bez budzika, nagłówek
+// `Aktualizacja`, zdania z aktualizacja::trescU07() (pierwsze P28B, kolejne P24, zawijane do 744 px), stopka z grup
+// przycisków (pusta = bez stopki: pobieranie i instalacja). Bez danych terapii, ustawień aparatu i tokenu.
+void rysujAktualizacje(Plotno& p, const std::vector<std::string>& linie, const std::vector<std::string>& stopka);

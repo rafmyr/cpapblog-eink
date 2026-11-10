@@ -91,6 +91,11 @@ struct WierszK2 {
   KomorkaK2 k[7];
   std::string norma = "–";
   bool stan = false;  // R-KOK-09: metryka w stanie odchylenia, etykieta wiersza w ramce
+  // R-KOK-18: nazwa metryki w linii `brak danych: …` pod tabelą (małymi literami, bez jednostki, np. `oddechy`)
+  const char* nazwaBraku = "";
+  // R-KOK-18: wiersz bez żadnej wartości w 7 nocach, bez stanu odchylenia i bez pasma normy, w tygodniu,
+  // w którym inny wiersz ma wartość; do zwinięcia w linię `brak danych: …` (zwinieteK2() w src/ekrany.h)
+  bool pusty = false;
 };
 
 struct DaneK2 {

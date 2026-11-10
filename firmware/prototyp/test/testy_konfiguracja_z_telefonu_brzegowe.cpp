@@ -48,20 +48,35 @@ class NvsZawodny : public AtrapaNvs {
   }
 };
 
-// (B): obraz wydania zbudowany z secrets.h z wartościami sieci (np. wzór secrets.example.h z odkomentowanymi
-// przykładami; sam wzór, z którego buduje CI, ma je zakomentowane) i zainstalowany na panelu ze źródłem „k”
-// (panel wgrany wcześniej kablem z własnym secrets.h) nadpisuje prawdziwą sieć wartościami z obrazu. ADR-0032 pkt 7 zakłada jeden obraz dla wszystkich paneli. Panel bez Wi-Fi nie otworzy
-// formularza (wymaga sieci domowej) ani nie pobierze kolejnej aktualizacji: droga powrotu tylko kablem.
+// poprawione razem z aktualizacją z GitHub 09.11.2026: obraz wydania budowany z `-DBEZ_SEKRETOW`
+// (tools/wydanie/) nie wczytuje secrets.h, więc src/main.cpp zKompilacji() daje same puste wartości (konto `admin`
+// z wartości domyślnej). Panel ze źródłem „k” (wgrany wcześniej kablem z własnym secrets.h) zostaje przy swojej
+// sieci i AirBridge. Wcześniej (test oznaczony ZNANE) wydanie ze wzoru secrets.example.h z wartościami przykładowymi
+// nadpisywało prawdziwą sieć.
+static sekrety::Dane zObrazuWydania() {  // jak src/main.cpp zKompilacji() z -DBEZ_SEKRETOW
+  sekrety::Dane d;
+  d.abKonto = "admin";
+  return d;
+}
 static void wydanieZeWzoru() {
   Dziennik dz;
   AtrapaNvs n(dz);
   sekrety::Dane tester = dane("SiecTestera", "Haslo-Testera-1", "192.168.0.40", "Ab-Testera-1");
   sekrety::wczytaj(n, tester);  // wgranie kablem na egzemplarzu testowym: źródło „k”
-  sekrety::Dane wzor = dane("nazwa-sieci", "haslo-wifi", "192.168.1.50", "haslo-airbridge");  // przykłady ze wzoru
-  sekrety::Wynik w = sekrety::wczytaj(n, wzor);  // pierwsza aktualizacja z wydania
-  // znane ograniczenie (CHANGELOG, ADR-0032), poprawka przed pierwszym obrazem wydania
-  ZNANE("obraz wydania zbudowany ze wzoru secrets.example.h", w.d.ssid == "SiecTestera");
-  ZNANE("obraz wydania zbudowany ze wzoru secrets.example.h", n.teksty["sekrety/ssid"] == "SiecTestera");
+  sekrety::Wynik w = sekrety::wczytaj(n, zObrazuWydania());  // pierwsza aktualizacja z wydania
+  SPRAWDZ("obraz wydania bez sekretów", w.d.ssid == "SiecTestera");
+  SPRAWDZ("obraz wydania bez sekretów", n.teksty["sekrety/ssid"] == "SiecTestera");
+  SPRAWDZ("obraz wydania bez sekretów", w.d.abAdres == "192.168.0.40" && w.d.abHaslo == "Ab-Testera-1");
+  SPRAWDZ("obraz wydania bez sekretów", !w.pierwszaKonfiguracja() && !w.zapisanoPoczatkowe);
+  // drugie wybudzenie tego samego obrazu: dalej bez zmian
+  sekrety::Wynik w2 = sekrety::wczytaj(n, zObrazuWydania());
+  SPRAWDZ("obraz wydania bez sekretów", w2.d.ssid == "SiecTestera");
+  // panel z danymi z formularza („f”) też bez zmian
+  Dziennik dz2;
+  AtrapaNvs n2(dz2);
+  sekrety::wczytaj(n2, tester);
+  sekrety::zapiszZFormularza(n2, dane("NowaSiec", "Haslo-Nowe-12", "192.168.0.41", "Ab-2"));
+  SPRAWDZ("obraz wydania bez sekretów", sekrety::wczytaj(n2, zObrazuWydania()).d.ssid == "NowaSiec");
 }
 
 // Zapis z formularza nie sprawdza zapisu NVS. Gdy jeden klucz nie zapisze się (ustawTekst() bez wyniku),

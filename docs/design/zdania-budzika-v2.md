@@ -1,5 +1,7 @@
 # Zdania budzika: zestaw v2 (propozycja)
 
+> **Wycofane z ekranu 2026-11-10** (decyzja właściciela: „usunąć”, „bardziej przeszkadzają niż pomagają”; spec 5.7.5, ADR-0009 „Zmiana 2026-11-10”). Panel nie rysuje zdań budzika na kartach ani na S9; pule zostają w danych. Dokument zostaje jako historia doboru.
+
 Data: 01.11.2026. Status: zestaw wybrany 01.11.2026; w specyfikacji jako **propozycje do akceptacji** (WY15), bo akceptacja pul to osobny krok.
 Uzasadnienie wyboru dla zdań w [specyfikacji, rozdz. 5.7.5](../spec/specyfikacja-funkcjonalna.md). Powód zmiany: na panelu (S9, scena G13) stało `Szach-mat. Księżyc się zamyślił.`, ocenione jako słabe.
 

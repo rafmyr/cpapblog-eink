@@ -23,6 +23,7 @@
 //   proby       /dane/ab-proby.csv         ← /ab_proby.txt       przepisanie  day;proby;ostatnia;stale
 //   reguly      /dane/reguly.csv           (bez wersji 0)        przepisanie  id;wariant;aktywna_od;ostatnio;licznik;
 //                                                                            stan_wzorca;wiem;omowione
+//   porownanie  /dane/porownanie.csv       (bez wersji 0)        przepisanie  data;werdykt;rozjazd;pominiete;przyczyna
 // `{RRRR}` w ścieżce = rok daty poranka (pierwsze pole wiersza).
 // Od `noce` ma wersję 2: pola wersji 1 i pola (src/noc.h wierszNocyV2, POLA_NOCY_V2); krok 1 → 2 to
 // ogólne dopisanie pustych pól (migrujWMiejscu()), a scalenie i przywracanie zapisują plik czekający na ten krok w jego
@@ -397,7 +398,9 @@ std::string sprawdzObrazekW(const KomendaW& k, const std::string& tresc);
 const char* const NAZWA_KONFIGURACJI_W = "konfiguracja.txt";
 // Plik to kilkanaście wierszy `klucz=wartość` [PRÓG]; 16 KB z zapasem, bufor treści leży na stercie.
 const size_t MAKS_KONFIGURACJI_W = (size_t)16 * 1024;
-// Powód odrzucenia: "nazwa", "rozmiar" (ponad MAKS_KONFIGURACJI_W), "skrot", "tresc" (bajt 0: to nie jest tekst); "" = do zapisu.
+// Powód odrzucenia: "nazwa", "rozmiar" (ponad MAKS_KONFIGURACJI_W), "skrot", "tresc" (bajt 0: to nie jest tekst),
+// "znacznik" (wiersz `PLIK_KONIEC`, `PLIKI_KONIEC`, `PLIKI_START` albo zaczynający się od `PLIK `: znaczniki zrzutu `Z`,
+// w którym plik wraca); "" = do zapisu.
 std::string sprawdzKonfiguracjeW(const KomendaW& k, const std::string& tresc);
 
 // SHA-256 bajtów `dane` jako 64 małe znaki szesnastkowe (komenda `W` portu serwisowego, T-WYM-87, R8 karty).

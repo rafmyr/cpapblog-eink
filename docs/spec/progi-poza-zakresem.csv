@@ -21,6 +21,7 @@ R-DANE-03,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min)",czas 
 R-DANE-15,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min)",czas interfejsu,
 R-DANE-18,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min; od drugiej nocy bez danych z rzędu co 3 h od 11:00)",czas interfejsu,"3 h: przegląd architektury 01.11.2026 (energia dób bez danych, AirBridge gaśnie z aparatem), do kalibracji; nie zmienia oceny nocy, tylko porę pobrania"
 R-DANE-11,5 s; 120 s,parametr techniczny,odpytywanie raportu AirBridge
+R-DANE-60,1 doba na wybudzenie,parametr techniczny,tryb porównawczy: najwyżej jedna doba porównania nocy z plików na końcu wybudzenia
 5.1.4|nieobecna,11:00; 23:30; co 30 min,czas interfejsu,
 5.1.4|w budowie,11:00; 23:30; co 30 min,czas interfejsu,
 5.1.4|w budowie (wejście po 11:00),11:00; 23:30; co 30 min,czas interfejsu,
@@ -62,6 +63,7 @@ U-01,czasy powrotu ekranu,czas interfejsu,
 U-02,czasy powrotu ekranu,czas interfejsu,
 U-03,czasy powrotu ekranu,czas interfejsu,
 U-05,10 min,czas interfejsu,"okno serwisowe na ekranie testu sprzętu (ADR-0024), jak R-NF-29"
+U-07,czas powrotu ekranu (5 min),czas interfejsu,aktualizacja z GitHub (09.11.2026)
 5.6.4|Cisza nocna buzzera,22:00–08:00,czas interfejsu,
 5.6.4|Raporty na liście serwera QR,90 dni,parametr techniczny,
 §5.6.5,15 min,czas interfejsu,
@@ -174,6 +176,9 @@ R-EKR-57,"godziny okna (05:00, 11:00, 23:30)",czas interfejsu,"S10 przed 11:00 a
 R-AW-35,"początek okna dnia (05:00)",czas interfejsu,"ekran przy odrzuconym logowaniu od pierwszej próby w oknie dnia; ta sama godzina co R-EKR-57"
 R-AW-32,"początek okna dnia (05:00)",czas interfejsu,"odczyt AirBridge przed tą godziną nie zna jeszcze nocy z tego dnia (licznik nocy bez danych, także R-DANE-18); ta sama godzina co R-EKR-57"
 R-KONF-40,5 s,parametr techniczny,"limit czasu odpowiedzi mDNS przy adresie AirBridge `.local`; po nim brak odpowiedzi jak w R-AW-01, nie ocena nocy"
+R-KONF-44,czas wyboru na U-07 (5 min),czas interfejsu,aktualizacja z GitHub (09.11.2026)
+R-KONF-45,"bateria ≥ 50 %, 3 nieudane próby, 2 zapytania automatu na dobę (`AUTOMAT_ZAPYTAN_NA_DOBE`) i 1 h do ponowienia (`AUTOMAT_PRZERWA_S`)",parametr techniczny,"aktualizacja z GitHub (09.11.2026; limit zapytań 10.11.2026)"
+R-NF-32,"20 s połączenia z TLS (`LIMIT_POLACZENIA_MS`), 20 s przestoju (`LIMIT_PRZESTOJU_MS`), 300 s obrazu (`LIMIT_OBRAZU_MS`)",parametr techniczny,"aktualizacja z GitHub: krócej niż strażnik (10.11.2026)"
 R-AW-39,3 starty,parametr techniczny,"liczba kolejnych startów po nieprawidłowym zakończeniu (błąd programu, strażnik), bez zaśnięcia pomiędzy, po której panel przechodzi w tryb awaryjny (U-06); przegląd architektury 01.11.2026, do sprawdzenia na egzemplarzu: obserwacja własna, brak danych o częstości restartów"
 5.8.2|Dzień,60,czas interfejsu,start slotu dziennego: tyle minut po końcu terapii albo imporcie nocy (to samo co R-KON-41)
 R-KON-41,60,czas interfejsu,start slotu dziennego: tyle minut po końcu terapii albo imporcie nocy

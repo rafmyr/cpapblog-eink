@@ -67,8 +67,8 @@ static const long DOBA_A = nrDnia("2026-11-03");  // noc z poranka 4.11.2026
 // ostatniej nocy jako `end_ms` ostatniej sesji (Załącznik A).
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"
@@ -402,7 +402,7 @@ static sprawy::SprawaL sprawaL(const std::string& kl, reguly::Pilnosc p, const s
   x.pilnosc = p;
   x.ton = sprawy::Ton::LEKARZ;
   x.tytul = kl == "L-11" ? "Senność mimo terapii" : "Saturacja: sprawa dla lekarza";
-  x.linia = kl + ": linia C. Na kontroli: raport z K2.";
+  x.linia = kl + ": linia C. Na kontroli: raport 2 / 6.";
   x.aktywnaOd = od;
   return x;
 }
@@ -582,6 +582,11 @@ static void testWieczorCo30() {
   for (auto& w : v)
     for (auto& z : w.zdarzenia) ocen += z.find("slot_wieczorny") != std::string::npos && w.minuta >= 21 * 60;
   SPRAWDZ(ocen >= 4);  // 21:00, 21:30, 22:00, 22:30, 23:00
+  // ADR-0035 pkt 1: sloty wieczorne tylko ze statusem (R-KON-01) nie pytają o STR.edf
+  int strWieczorem = 0;
+  for (auto& w : v)
+    if (w.minuta >= 21 * 60) strWieczorem += zadanZeSciezka(w, "/api/sessions") + zadanZeSciezka(w, "/api/storage");
+  SPRAWDZ(strWieczorem == 0);
   SPRAWDZ(!logMa(v, "ekran wieczorny SK01", 0, 22 * 60 + 30));
   SPRAWDZ(logMa(v, "ekran wieczorny SK01", 22 * 60 + 30, 22 * 60 + 35));
 }
@@ -679,7 +684,7 @@ static void testOmowione() {
   ws.dzis = "2026-11-04";
   ws.sprawy = &sp;
   std::vector<sprawy::KartaSprawy> ks = sprawy::kartySpraw(ws);
-  SPRAWDZ(ks.size() == 3 && ks[0].dalej == "linia 1. dnia miesiąca, obserwacja trwa" &&
+  SPRAWDZ(ks.size() == 3 && ks[0].dalej == "przypomnę 1. dnia miesiąca, obserwacja trwa" &&
           ks[1].dalej == "wstrzymane do końca okresu infekcji" && ks[2].dalej == "czekam: ekran po 14 nocach trwania");
 }
 

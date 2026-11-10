@@ -73,7 +73,7 @@ enum class EkranWieczoru : uint8_t { BRAK, SK01, SK02 };
 struct WynikWieczoru {
   EkranWieczoru ekran = EkranWieczoru::BRAK;
   bool doLogu = false;       // tryb próbny: tylko wpis w logu (R-KON-05)
-  bool zOdczytu = false;     // S-K-01 wyzwolony odczytem bieżącym (powód `Teraz CO2 {x} ppm.`)
+  bool zOdczytu = false;     // S-K-01 wyzwolony odczytem bieżącym (powód `Powietrze w sypialni jest teraz zastałe.`, liczba w nagłówku i fakcie)
   int wartosc = 0;           // klucz dziennika: minuty ponad próg (noc) albo ppm (teraz)
   const char* dlaczego = "";
 };

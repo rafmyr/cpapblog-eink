@@ -49,10 +49,14 @@ int rangaSprawy(const SprawaL& s) {
   return 4;
 }
 
-// „Na kontroli: raport z K2.” z linii pilności C (5.12.5, „Linie”): karta sprawy i raport mają zdanie bez tej części
+// „Na kontroli: raport 2 / 6.” z linii pilności C (5.12.5, „Linie”): karta sprawy i raport mają zdanie bez tej części
 std::string bezKontroli(const std::string& l) {
-  static const std::string K = " Na kontroli: raport z K2.";
-  if (l.size() >= K.size() && l.compare(l.size() - K.size(), K.size(), K) == 0) return l.substr(0, l.size() - K.size());
+  // druga postać: zestaw danych sprzed 10.11.2026 (nazwa robocza strony zamiast `2 / 6`)
+  static const char* const K[] = {" Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+  for (const char* k : K) {
+    const std::string s(k);
+    if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());
+  }
   return l;
 }
 
@@ -387,13 +391,13 @@ std::string wierszDalej(const SprawaL& s, const WejscieSpraw& w) {
   if (s.wykluczona) return "ustępuje innej sprawie, obserwacja trwa";  // 7.2
   if (problemPoranny(s) && limitProblemu(s, w.dzis)) return "ekran najwyżej 2 razy w tygodniu, obserwacja trwa";
   bool om = omowioneAktywne(s, w.dzis);
-  if (s.jestL() && s.pilnosc == Pilnosc::A && om) return "linia co 3 dni, obserwacja trwa";
+  if (s.jestL() && s.pilnosc == Pilnosc::A && om) return "przypomnę co 3 dni, obserwacja trwa";
   if (s.jestL() && om)
     return "cisza przez " + std::to_string(NOCY_OMOWIONE) + " nocy od " + ddmm(s.omowione) + ", obserwacja trwa";
-  if (s.jestL() && s.wygaszonyB()) return "linia 1. dnia miesiąca, obserwacja trwa";  // R-SKI-09, R-SKI-13
-  if (s.jestL() && s.pilnosc == Pilnosc::B && s.ton == Ton::LEKARZ) return "linia co 3 dni, obserwacja trwa";
-  if (s.jestL() && s.pilnosc == Pilnosc::A) return "linia codziennie, obserwacja trwa";
-  if (s.jestL() && s.pilnosc == Pilnosc::C) return "w niedzielnym podsumowaniu, K2 i raport";
+  if (s.jestL() && s.wygaszonyB()) return "przypomnę 1. dnia miesiąca, obserwacja trwa";  // R-SKI-09, R-SKI-13
+  if (s.jestL() && s.pilnosc == Pilnosc::B && s.ton == Ton::LEKARZ) return "przypomnę co 3 dni, obserwacja trwa";
+  if (s.jestL() && s.pilnosc == Pilnosc::A) return "przypominam codziennie, obserwacja trwa";
+  if (s.jestL() && s.pilnosc == Pilnosc::C) return "w niedzielnym podsumowaniu, strona 2 / 6 i raport";
   return "dziś ekranem jest inna sprawa, obserwacja trwa";
 }
 
@@ -426,7 +430,7 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
       x.ocena = wierszOcena(s);
       x.ty = wierszTy(s, w);
       x.dalej = wierszDalej(s, w);
-      x.koniec = s.jestL() ? "gdy warunek wyjścia wzorca się spełni" : "gdy warunek zdarzenia przestanie być spełniony";
+      x.koniec = s.jestL() ? "gdy kolejne noce przestaną to pokazywać" : "gdy dane przestaną to pokazywać";
       int r = rangaSprawy(s);
       if (r <= 2) k.push_back(x);
       else if (r == 3) c.push_back(x);
@@ -443,7 +447,7 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
       x.powod = m.nazwa + " " + m.x + " przy zwykłych " + m.p10 + "–" + m.p90 + ".";
       x.ocena = "pełna";
       x.ty = "bez potwierdzeń";
-      x.dalej = m.nocy >= 21 ? "bez pełnego ekranu: K2 i raport" : "bez pełnego ekranu: K2";
+      x.dalej = m.nocy >= 21 ? "bez pełnego ekranu: strona 2 / 6 i raport" : "bez pełnego ekranu: strona 2 / 6";
       x.koniec = "po powrocie do normy";
       k.push_back(x);
     }
@@ -451,12 +455,12 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
   k.insert(k.end(), problem.begin(), problem.end());
   for (auto& l : w.linieZdrowia) {
     KartaSprawy x;
-    x.tytul = "Sprawa z linii uwagi";
+    x.tytul = "Sprawa z paska u góry";
     x.powod = l;
     x.ocena = "pełna";
     x.ty = "bez potwierdzeń";
-    x.dalej = "w linii uwagi";
-    x.koniec = "gdy linia zniknie z kolejki";
+    x.dalej = "przypominam na pasku u góry";
+    x.koniec = "gdy dane przestaną to pokazywać";  // warunek linii z jej modułu (6.4), jak przy zdarzeniach
     k.push_back(x);
   }
   return k;
@@ -464,8 +468,9 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
 
 KartaSprawy kartaPusta(const WejscieSpraw& w) {
   KartaSprawy x;
-  x.tytul = "Brak otwartych spraw.";
-  x.powod = "Nie ma spraw w toku.";
+  // przy ocenie niepełnej tytuł i powód nie twierdzą, że spraw nie ma, tylko że panel ich nie widzi w tym, co ocenia
+  x.tytul = w.ocenaPelna && !w.ostatniaNiepewna ? "Brak otwartych spraw." : "Nie widzę otwartych spraw.";
+  x.powod = w.ocenaPelna && !w.ostatniaNiepewna ? "Nie ma spraw w toku." : "W tym, co oceniam, nic nie jest w toku.";
   // R-EKR-50;: `pełna` tylko przy pewnej pełnej ocenie; 
   // inaczej `częściowa` z wierszem pod spodem, bo „nie oceniam” nie znaczy „w porządku” (ADR-0029 pkt 7)
   if (w.ostatniaNiepewna) {
@@ -474,7 +479,7 @@ KartaSprawy kartaPusta(const WejscieSpraw& w) {
     x.ocena = "pełna";
   } else {
     x.ocena = "częściowa";
-    x.dopisek = "Część reguł nie ma jeszcze danych.";
+    x.dopisek = "Części rzeczy jeszcze nie oceniam.";
   }
   return x;
 }

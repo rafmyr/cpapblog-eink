@@ -174,7 +174,9 @@ static TrescEkranu s2a(const DaneDnia& d) {
                            : porownajTydzien(wartosci7(wTrybie, koniec, poleEmed), nm.emed, Strona::BEZ_OCENY);
   Porownanie w = porownajTydzien(wartosci7(h, koniec, poleWp95), nm.wp95, Strona::NIZEJ_LEPIEJ);
   t.kolumny = {
-      kolumna("czas z maską", godzMin(c.mediana), c.slowo, c.spokojne),  // nie „Sen”: aparat nie mierzy snu (A-65)
+      // nie „Sen”: aparat nie mierzy snu (A-65); mediana `6:39` celowo innym zapisem niż noc `6 h 39` nad paskiem,
+      // żeby się nie myliły (5.4.2, SPEC-B)
+      kolumna("czas z maską", godzMin(c.mediana), c.slowo, c.spokojne),
       kolumna("AHI", przecinek1(a.mediana), a.slowo, a.spokojne),  // jedna nazwa M-02
       kolumna(cisnienie ? "ciśnienie" : "EPAP", przecinek1(e.mediana), e.slowo, e.spokojne),
       kolumna("wyciek l/min", brak(w.mediana) ? std::string("–") : calkowita(w.mediana), w.slowo, w.spokojne),
@@ -520,7 +522,7 @@ DanePotwierdzenia trescPrzeniesione(const sprawy::SprawaL& s, const DaneDnia& d,
   DanePotwierdzenia p;
   p.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
   p.tytul = "Przeniesione na " + std::to_string(sprawy::dniWiem(s)) + " dni.";
-  p.powod = "Do tego czasu w linii uwagi: " + s.tytul + ".";
+  p.powod = "Do tego czasu przypomnę na pasku u góry: " + s.tytul + ".";
   if (cofniecie) p.stopka = {"◀ 2 s cofnij"};  // cofnięcie zawsze przytrzymaniem ◀
   return p;
 }

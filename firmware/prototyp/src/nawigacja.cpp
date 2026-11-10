@@ -146,7 +146,8 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
     case Ekran::USTAWIENIA:  // U-01 (6 / 6): ◀ „Sprzęt”, ◀ 2 s sieć panelu (U-02), ▶ nic, ▶ 2 s U-03, ↻ dom
       if (p == Przycisk::LEWY)  // ◀ 2 s = sieć panelu (U-02)
         return dlugo ? Przejscie{Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START} : stronaPrzed(e, k);
-      if (p == Przycisk::SRODEK) return dlugo ? nic : dom;
+      // ↻ 2 s: U-07 ze sprawdzeniem wersji (R-KONF-43); Wi-Fi tylko przytrzymaniem (5.6.1 pkt 4)
+      if (p == Przycisk::SRODEK) return dlugo ? Przejscie{Ekran::AKTUALIZACJA, Akcja::AKT_SPRAWDZ} : dom;
       return dlugo ? stronaPo(e, k) : nic;  // Wi-Fi i serwer formularza tylko przytrzymaniem, nie przeglądaniem
     case Ekran::FORMULARZ:  // U-03: ◀ U-01, ▶ nic, ▶ 2 s U-05, ↻ dom
       if (p == Przycisk::SRODEK) return dlugo ? nic : dom;
@@ -156,6 +157,13 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
       if (p == Przycisk::LEWY) return dlugo ? Przejscie{Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START} : stronaPrzed(e, k);
       if (dlugo) return nic;
       return p == Przycisk::SRODEK ? dom : Przejscie{e, Akcja::PONOW_POBRANIE};
+    case Ekran::AKTUALIZACJA:  // U-07: ◀ U-01 („nie teraz”), ▶ tak / spróbuj ponownie, ↻ dom; przytrzymania nic
+      if (dlugo) return nic;
+      if (p == Przycisk::SRODEK) return dom;
+      if (p == Przycisk::LEWY) return pokaz(Ekran::USTAWIENIA);
+      if (k.aktualizacja == 1) return {e, Akcja::AKT_INSTALUJ};
+      if (k.aktualizacja == 2) return {e, Akcja::AKT_PONOW};
+      return nic;
     case Ekran::SIEC_PANELU:  // U-02: ◀ (także 2 s) anuluj, ↻ dom (też anuluje), ↻ 2 s nowe hasło i kod, ▶ nic
       if (p == Przycisk::LEWY) return {k.zrodlo, Akcja::SIEC_PANELU_ANULUJ};  // tam, skąd uruchomiono (R-KONF-29)
       if (p == Przycisk::SRODEK) return dlugo ? Przejscie{e, Akcja::SIEC_PANELU_START} : Przejscie{Ekran::DZIEN, Akcja::SIEC_PANELU_ANULUJ};

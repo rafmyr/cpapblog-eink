@@ -24,7 +24,7 @@ struct DaneS7 {
   std::string etykieta;                      // `Twój listopad`
   std::string noce, z, podpisNocy;           // `29`, `/30`, `nocy ponad 4 h`
   std::string ahi, podpisAhi;                // `1,0`, `AHI, mediana` (w obu profilach, bez wariantu publicznego)
-  std::string godziny, podpisGodzin;         // `198`, `h z maską`
+  std::string godziny, podpisGodzin;         // `198`, `z maską` (`h` przy liczbie)
   std::string zdanie;                        // zdanie porównania albo "" (R-EKR-20)
   std::string metrykaZdania;                 // do logu: metryka wybrana (R-EKR-19)
 };
@@ -51,6 +51,9 @@ struct DaneS8 {
   std::string krok;
   bool informacja = false;   // ton „informacja” (R-EKR-36): krok w ramce
   std::string stopkaLewo;    // strona kokpitu: `◀ sprawy ▶ sprzęt ↻ ekran dnia` (▶ co znaczą liczby w profilu publicznym)
+  // strona kokpitu: nazwa strony w nagłówku z lewej (`Twoja norma`, jak `Sprzęt`), wtedy bez tytułu w treści, żeby
+  // nie powtarzać nazwy; jako ekran dnia pusto (nagłówek z datą poranka, tytuł `Twoja norma`)
+  std::string naglowek;
 };
 DaneS8 budujS8(const WejscieS8& w);
 // Kandydat R7 jednorazowo (R-EKR-33): panel ma pierwszy raz 30 nocy ważnych w oknie normy i S8 nie było pokazane.
@@ -61,7 +64,9 @@ void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t
 // ---------- „Co znaczą te liczby” (5.4.14, R-EKR-51) ----------
 struct WierszLiczb { std::string nazwa, opis; };  // `Czas z maską:` + ` ile godzin aparat pracował.`
 struct DaneLiczb {
-  std::string etykieta = "Co znaczą te liczby";
+  // strona 4 / 6: nazwa strony w nagłówku obok numeru (jak `Twoja norma`), bez powtórzenia jej etykietą w treści
+  std::string naglowek = "Co znaczą te liczby";
+  std::string etykieta;
   std::vector<WierszLiczb> wiersze;
   std::string zdanie = "Co jest dobre dla ciebie, powie lekarz.";
   std::string stopkaLewo = "◀ norma   ▶ sprzęt   ↻ ekran dnia";  // strona po S8, przed „Sprzęt”

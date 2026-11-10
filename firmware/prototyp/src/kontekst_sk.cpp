@@ -807,6 +807,14 @@ std::vector<Tresc> trendyTygodnia(const Wejscie& w0, const std::string& nd) {
   return o;
 }
 
+bool problemNaEkranieRano(const std::vector<Tresc>& v) {
+  for (const Tresc& t : v) {
+    if (t.doLogu || t.id == "S-K-30") continue;
+    return t.problem && t.id != "S-K-31" && ranga(t.grupa) <= ranga("R5d");
+  }
+  return false;
+}
+
 std::vector<Tresc> rano(const Wejscie& w) {
   std::vector<Tresc> o;
   if (!dataOk(w.dzis)) return o;
@@ -960,24 +968,6 @@ const WpisHumoru* wpisDzis(const std::vector<WpisHumoru>& d, const std::string& 
 namespace {
 const int X = 28, XP = 772, W = XP - X;
 
-// Linia uwagi pod nagłówkiem jak w src/ekrany_kontekst.cpp: 48 px B6 na 87, wzorca A 60 px B5 na 94; ostrzeżenie
-// czarny pasek z `!`, informacja biały pasek w ramce 2 px. Zwraca wysokość (0 = bez linii).
-int liniaUwagi(Plotno& p, const std::string& t, bool a, bool ostrzezenie) {
-  if (t.empty()) return 0;
-  int h = a ? 60 : 48;
-  const GFXfont* f = a ? F_P28B : F_P24B;
-  int y = a ? 94 : 87;
-  if (a || ostrzezenie) {
-    p.prostokat(0, 54, 800, h, true);
-    int x = tekst(p, f, X, y, "!", false);
-    tekst(p, f, x + 12, y, t, false);
-  } else {
-    p.prostokat(0, 54, 800, h, false);
-    p.ramka(12, 57, 776, h - 6, 2);
-    tekst(p, f, X, y, t);
-  }
-  return h;
-}
 
 void przerywana(Plotno& p, int x0, int x1, int y, bool cz) {
   for (int x = x0; x < x1; x += 14) p.prostokat(x, y - 1, std::min(8, x1 - x), 2, cz);
@@ -1079,11 +1069,9 @@ void rysuj(Plotno& p, const Naglowek& n, const Tresc& t, const std::string& sl, 
   tekst(p, F_P24B, X, 35, n.lewo, cz);
   if (!n.prawo.empty()) tekstPrawo(p, F_P24B, XP, 35, n.prawo, cz);
   p.prostokat(0, 52, 800, 2, cz);
-  int dy = 0;
-  if (!t.t.linia.empty()) {  // linia uwagi na białym tle (5.4.5); w negatywie w białej ramce
-    if (neg) p.prostokat(0, 54, 800, t.t.liniaA ? 60 : 48, false);
-    dy = liniaUwagi(p, t.t.linia, t.t.liniaA, t.t.liniaOstrzezenie || neg);
-  }
+  // linia uwagi (5.4.5) jak na każdym ekranie danych (liniaUwagiEkranu(), R-EKR-52, R-EKR-62): w negatywie tonu
+  // „problem” ostrzeżenie na białym pasku z `!`, informacja albo prośba w białej ramce 2 px bez `!`
+  int dy = liniaUwagiEkranu(p, t.t.linia, t.t.liniaA, t.t.liniaOstrzezenie, neg);
   tekst(p, F_P22B, X, 94 + dy, wersaliki(t.t.etykieta), cz, 2);
   auto ty = zawin(F_SB44, t.t.tytul, W);
   tekst(p, F_SB44, X, 145 + dy, ty.empty() ? "" : ty[0], cz);
@@ -1093,12 +1081,13 @@ void rysuj(Plotno& p, const Naglowek& n, const Tresc& t, const std::string& sl, 
   if (!t.t.krok.empty()) tekst(p, F_P28B, X, 418, t.t.krok, cz);
   p.prostokat(0, 434, 800, 2, cz);
   std::string prawo = t.stopkaPrawo.empty() ? sp : t.stopkaPrawo;
-  if (!t.pytanie.empty()) {  // S-K-30: przyciski pytania w stopce (artboard SK30-oddech)
-    tekst(p, F_P22B, X, 465, "↻ pomiń", cz);
-  } else if (!sl.empty()) {
-    tekst(p, F_P22B, X, 465, sl, cz);
+  std::string lewo = !t.pytanie.empty() ? std::string("↻ pomiń") : sl;  // S-K-30: przycisk pytania (SK30-oddech)
+  if (ikonaAktualizacjiWlaczona()) {  // R-EKR-61: pełne słowa przed ikoną aktualizacji, jak w stopce dziennej
+    prawo = skrocDoSlow(F_P22B, prawo, prawyBrzegStopki() - X);
+    lewo = skrocDoSlow(F_P22B, lewo, prawyBrzegStopki() - X - (prawo.empty() ? 0 : szer(F_P22B, prawo) + 26));
   }
-  if (!prawo.empty()) tekstPrawo(p, F_P22B, XP, 465, prawo, cz);
+  if (!lewo.empty()) tekst(p, F_P22B, X, 465, lewo, cz);
+  if (!prawo.empty()) tekstPrawo(p, F_P22B, prawyBrzegStopki(), 465, prawo, cz);
 }
 
 }  // namespace sk

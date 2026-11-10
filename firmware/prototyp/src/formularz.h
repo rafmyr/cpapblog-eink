@@ -44,6 +44,11 @@ struct Pola {
   std::string miasto;                 // "" = nie wybrano, albo nazwa z listy miast (src/miasta.h)
   std::string czynniki = "KL";        // kody zaznaczonych czynników raportu (bez wiersza: stan domyślny 5.13.7)
   std::string uwagaOMasce = "10";     // R-KONF-42 „Uwaga o masce od”, L/min 10–15 (klucz `uwaga_o_masce`)
+  // sekcja „Aktualizacje” (ADR-0038): automat z pliku (`aktualizacja_auto=tak`,
+  // domyślnie `nie`); token wydań i hasło okna serwisowego tylko jako „ustawiony” (wartości nigdy do przeglądarki)
+  std::string aktualizacjaAuto = "nie";  // `tak` | `nie`
+  bool kluczWydan = false;               // token wydań zapisany w pamięci panelu (wołający ustawia z NVS)
+  bool hasloOkna = false;                // hasło okna serwisowego w pamięci panelu (wołający ustawia z NVS)
 };
 // Pola z `/konfiguracja.txt` i sekretów (stan przed formularzem). `zrodloOto` = panel ma lokalne źródło otoczenia.
 // `szerSecrets` i `dlSecrets` = `POGODA_LAT` i `POGODA_LON` z secrets.h (NAN = brak): bez `miasto=` w pliku formularz
@@ -68,6 +73,10 @@ struct Wynik {
   sekrety::Dane sekrety;  // nowe sekrety (z hasłami zapisanymi, gdy pole puste)
   bool zmianaSieci = false;      // inna nazwa albo hasło sieci domowej
   bool zmianaAirBridge = false;  // inny adres, konto albo hasło AirBridge
+  // sekcja „Aktualizacje”: nowy token ("" = bez zmiany), usunięcie tokenu, nowe hasło okna ("" = bez zmiany)
+  std::string kluczWydan;
+  bool usunKlucz = false;
+  std::string hasloOkna;
   bool ok() const { return bledy.empty(); }
 };
 // `dzis` RRRR-MM-DD: daty wymiany z przyszłości odrzucone (R-KONF-34). `obecne` = sekrety przed formularzem.

@@ -436,7 +436,12 @@ static void testR_KON_48_wymiana() {
   TekstySlotu t = teksty(w, we);
   ROWNE(t.tytul, "Wymiana: filtr.");
   ROWNE(zwykle(t.powod), "Termin 10.11, ma 3 tyg.");  // filtr w tygodniach
-  ROWNE(zwykle(t.krok), "→ Po wymianie zapisz: K2, potem ↻ 2 s.");
+  // krok zgodny z mapą przycisków 5.6.2: ◀ 2 s na stronie „Sprzęt” przy wierszu elementu, bez nazw roboczych
+  // stron i bez ↻ 2 s (na wierszu maski to nowy model maski, R-MAS-11); ≤ 60 znaków i 1 linia na 744 px (5.4.4)
+  ROWNE(zwykle(t.krok), "→ Po wymianie: strona 5 / 6, ramka na filtrze, ◀ 2 s.");
+  SPRAWDZ(szer(F_P28B, t.krok) <= 744);
+  SPRAWDZ(t.krok.find("K2") == std::string::npos && t.krok.find("↻") == std::string::npos);
+  SPRAWDZ(szer(F_P28B, t.krok) <= 744);
   WejscieSlotu we2 = wejscie("2026-11-12", 12 * 60, nullptr, 21);
   we2.sprzet = &el;
   ROWNE(zwykle(teksty(wybierzSlot(we2), we2).powod), "Termin minął 10.11, ma 4 tyg.");
@@ -449,6 +454,9 @@ static void testR_KON_48_wymiana() {
   SPRAWDZ(w3.ekran == EkranSlotu::SK35 && w3.wymiana.element == EL_MASKA);
   ROWNE(teksty(w3, we3).tytul, "Wymiana: maska.");
   ROWNE(zwykle(teksty(w3, we3).powod), "Termin 10.11, ma 5 mies.");
+  ROWNE(zwykle(teksty(w3, we3).krok), "→ Po wymianie: strona 5 / 6, ramka na masce, ◀ 2 s.");
+  SPRAWDZ(szer(F_P28B, teksty(w3, we3).krok) <= 744);
+  SPRAWDZ(szer(F_P28B, teksty(w3, we3).krok) <= 744);
   we3.dzis = "2026-11-12";
   WyborSlotu w4 = wybierzSlot(we3);
   SPRAWDZ(w4.ekran == EkranSlotu::SK35 && w4.wymiana.poTerminie);
@@ -737,13 +745,13 @@ static void testSK01() {
   ROWNE(zwykle(t.t.powod), "Zeszłej nocy CO2 przez 5 h ponad 1000 ppm.");
   ROWNE(t.t.krok, "→ Uchyl okno na noc.");
   SPRAWDZ(t.linia.size() == 14);
-  // zeszła noc tylko 1 h ponad progiem → brak; bieżący odczyt ≥ 1000 → wariant `Teraz CO2`
+  // zeszła noc tylko 1 h ponad progiem → brak; bieżący odczyt ≥ 1000 → wariant `Powietrze w sypialni jest teraz zastałe.`
   w.noc = &n1;
   SPRAWDZ(ocenWieczor(w).ekran == EkranWieczoru::BRAK);
   w.co2Teraz = 1150;
   WynikWieczoru rt = ocenWieczor(w);
   SPRAWDZ(rt.ekran == EkranWieczoru::SK01 && rt.zOdczytu);
-  ROWNE(trescSK01(w, rt).t.powod, "Teraz CO2 1150 ppm. Powietrze jest zastałe.");
+  ROWNE(trescSK01(w, rt).t.powod, "Powietrze w sypialni jest teraz zastałe.");
   w.co2Teraz = 999;
   SPRAWDZ(ocenWieczor(w).ekran == EkranWieczoru::BRAK);
   // PM2.5 za oknem blokuje (bez PM2.5 sypialni: próg zastępczy 35)
@@ -852,7 +860,7 @@ static void testSK01() {
   zap.ekran = EkranWieczoru::SK01;
   zap.zOdczytu = true;
   zap.wartosc = 1250;
-  ROWNE(trescSK01(w, zap).t.powod, "Teraz CO2 1250 ppm. Powietrze jest zastałe.");
+  ROWNE(trescSK01(w, zap).t.powod, "Powietrze w sypialni jest teraz zastałe.");
   // r07: prośba dziś i 4 wieczory z krokiem w 7 dniach blokują; wyjątek 25% dla ppm
   WejscieWieczoru pr = w;
   pr.dziennik = nullptr;
@@ -941,8 +949,90 @@ struct PlotnoT : Plotno {
     return n;
   }
 };
+// ---------- R-KON-63: wizualizacja slotu dziennego przy linii uwagi, podpisy godzin osi ----------
+// wymaganie: R-KON-63
+static void testR_KON_63_wykresPrzyLinii() {
+  ROWNE(godzinaOsiSlotu(20), "20:00");
+  ROWNE(godzinaOsiSlotu(7), "07:00");
+  ROWNE(godzinaOsiSlotu(25), "01:00");
+  ROWNE(godzinaOsiSlotu(0), "00:00");
+  // S-K-37 z linią uwagi: pas doby zostaje (y 294…324), wiersz `wschód` / `dzień` na 392 też
+  WejscieSlotu we = wejscie("2026-11-04", 12 * 60, nullptr, 21);
+  we.obrazekJest = false;
+  we.liniaUwagi = true;
+  we.linia = "Wciąż: Noce z AHI powyżej 5.";
+  we.liniaOstrzezenie = true;
+  WyborSlotu w = wybierzSlot(we);
+  SPRAWDZ(w.ekran == EkranSlotu::SK37);
+  PlotnoT a;
+  rysujSlotDzienny(a, {"śr 04.11", ""}, w, tekstySlotu(w, we), we, stopkaDzienna(nullptr, true, 0, NAN, 21));
+  SPRAWDZ(a.czarnych(296, 322) > 8000);   // noc czarna po obu stronach dnia (ok. 440 px × 26)
+  SPRAWDZ(a.czarnych(372, 396) > 500);    // `wschód` / `dzień`
+  SPRAWDZ(a.czarnych(271, 279) < 200);    // nad pasem tylko znacznik i podpis `teraz`
+  // S-K-33 z tytułem B3 i powodem w 2 liniach (wariant bez godziny) przy linii uwagi: wykres ustępuje
+  Prognoza p = prognoza("2026-11-03", 1, 80);  // smog cały dzień: `Dziś bez wietrzenia.`
+  WejscieSlotu ws = wejscie("2026-11-03", 11 * 60, &p, 21);
+  ws.obrazekJest = false;
+  ws.liniaUwagi = true;
+  ws.linia = "Wciąż: Bezdechy częstsze.";
+  WyborSlotu w2 = wybierzSlot(ws);
+  if (w2.ekran == EkranSlotu::SK33) {
+    TekstySlotu t2 = tekstySlotu(w2, ws);
+    PlotnoT b;
+    rysujSlotDzienny(b, {"wt 03.11", ""}, w2, t2, ws, stopkaDzienna(nullptr, true, 0, NAN, 21));
+    bool dwie = t2.godzina.empty() && zawin(F_P28B, t2.powod, 744).size() > 1;
+    if (dwie) SPRAWDZ(b.czarnych(350, 354) < 100);   // ustępuje
+    else SPRAWDZ(b.czarnych(350, 354) > 1000);       // zostaje
+    // gałąź „powód w 2 liniach”: realne teksty S-K-33 jej dziś nie dają, więc treść zbudowana ręcznie
+    TekstySlotu t3 = t2;
+    t3.godzina.clear();
+    t3.tytul = "Dziś bez wietrzenia.";
+    t3.powod = "Smog za oknem przez cały dzień, a w sypialni powietrze jeszcze dość czyste i chłodne.";
+    SPRAWDZ(zawin(F_P28B, t3.powod, 744).size() == 2);
+    PlotnoT c;
+    rysujSlotDzienny(c, {"wt 03.11", ""}, w2, t3, ws, stopkaDzienna(nullptr, true, 0, NAN, 21));
+    SPRAWDZ(c.czarnych(350, 354) < 100);  // oś słupków (352) nie narysowana: wykres ustąpił
+    SPRAWDZ(c.czarnych(410, 422) > 0 || t3.krok.empty());  // krok zostaje
+  }
+  SPRAWDZ(w2.ekran == EkranSlotu::SK33);  // dane testu trafiają w S-K-33
+  // linia wzorca A (60 px zamiast 48): ciasny wykres niższy o 12 px, więc między tekstem a wykresem pas pusty
+  // (S-K-36 słupki pyłku, S-K-37 pas doby; S-K-33 w obu trybach sprawdza testy_slot_ustawienia_sprzet.cpp na całej siatce)
+  for (int ekr = 0; ekr < 2; ekr++) {
+    WejscieSlotu wa = wejscie("2026-11-04", 12 * 60, nullptr, 21);
+    wa.obrazekJest = false;
+    wa.liniaUwagi = true;
+    wa.linia = "Wciąż: Noce z AHI powyżej 5.";
+    wa.liniaA = true;
+    wa.liniaOstrzezenie = true;
+    WyborSlotu wy = wybierzSlot(wa);
+    TekstySlotu ta;
+    if (ekr == 0) {
+      wy.ekran = EkranSlotu::SK36;
+      wy.pylek.rodzaj = 0;
+      wy.pylek.wartosci.assign(12, 40.0f);
+      wy.pylek.wysoko.assign(12, true);
+      ta.etykieta = "PYŁEK";
+      ta.tytul = "Brzoza pyli mocno.";
+      ta.powod = "Najwięcej po południu.";
+    } else {
+      SPRAWDZ(wy.ekran == EkranSlotu::SK37);
+      ta = tekstySlotu(wy, wa);
+    }
+    PlotnoT z;
+    rysujSlotDzienny(z, {"śr 04.11", ""}, wy, ta, wa, stopkaDzienna(nullptr, true, 0, NAN, 21));
+    if (ekr == 0) {
+      SPRAWDZ(z.czarnych(266, 292) == 0);   // pod powodem (255 + ogonki) a nad znacznikiem `teraz` (292) pusto
+      SPRAWDZ(z.czarnych(350, 354) > 1000);  // oś słupków zostaje
+    } else {
+      SPRAWDZ(z.czarnych(308, 334) > 8000);  // pas doby o 12 px niżej (306…336)
+      SPRAWDZ(z.czarnych(372, 396) > 500);   // `wschód` / `dzień` na 392
+    }
+  }
+}
+
 static void testLiniaUwagiIPrzypadkiDodatkowe() {
-  // r04: linia uwagi (ostrzeżenie) pod nagłówkiem S-K-33; wizualizacja ustępuje, krok zostaje
+  // r04: linia uwagi (ostrzeżenie) pod nagłówkiem S-K-33; od 10.11.2026 wizualizacja zostaje, niższa (R-KON-63),
+  // krok zostaje
   Prognoza p = prognoza("2026-11-03", 1, 20);
   WejscieSlotu we = wejscie("2026-11-03", 11 * 60, &p, 21);
   we.linia = "Wciąż: Bezdechy częstsze.";
@@ -958,7 +1048,8 @@ static void testLiniaUwagiIPrzypadkiDodatkowe() {
   bez.liniaUwagi = false;
   rysujSlotDzienny(b, {"wt 03.11", ""}, w, tekstySlotu(w, bez), bez, stopkaDzienna(nullptr, true, 0, NAN, 21));
   SPRAWDZ(b.czarnych(340, 356) > 1000);   // bez linii: oś słupków na 352
-  SPRAWDZ(a.czarnych(350, 354) < 100);    // z linią: słupki ustępują
+  SPRAWDZ(a.czarnych(350, 354) > 1000);   // z linią: oś słupków zostaje (R-KON-63)
+  SPRAWDZ(a.czarnych(271, 279) == 0);     // odstęp między blokiem godziny (do 270) a wykresem (od 280)
   SPRAWDZ(a.czarnych(395, 420) > 500);    // krok zostaje
   // r11: stopka biała pod negatywem S-K-39
   WejscieSlotu wd = wejscie("2026-11-03", 17 * 60, nullptr, 21);
@@ -1033,6 +1124,7 @@ int main() {
   testSK13();
   testR_KON_41_granice();
   testLiniaUwagiIPrzypadkiDodatkowe();
+  testR_KON_63_wykresPrzyLinii();
   printf("testy_slot_dzienny: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

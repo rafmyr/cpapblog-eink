@@ -68,8 +68,8 @@ static const long DOBA_A = nrDnia("2026-11-03");  // noc z poranka 4.11.2026
 // ostatniej nocy jako `end_ms` ostatniej sesji (Załącznik A).
 static std::string raport(long day, uint32_t startEp, uint32_t koniecEp) {
   std::string d = std::to_string(day);
-  std::string s = std::to_string((unsigned long long)startEp * 1000ULL);
-  std::string k = std::to_string((unsigned long long)koniecEp * 1000ULL);
+  std::string s = std::to_string(cywilneMs(startEp));
+  std::string k = std::to_string(cywilneMs(koniecEp));
   return "{\"source\":\"edf\",\"revision\":154,\"data_revision\":11,\"view\":\"day\",\"day\":" + d +
          ",\"first_day\":" + d + ",\"last_day\":" + d + ",\"sessions\":[{\"id\":1,\"day\":" + d +
          ",\"prefix\":\"X\",\"start_ms\":" + s + ",\"end_ms\":" + k + "}],\"present\":true,\"partial\":false"
@@ -638,6 +638,95 @@ static void testWgranieKonfiguracji() {
   SPRAWDZ(q.pliki.tresc("/konfiguracja.txt") == t);
 }
 
+// Sekcja `PLIK {nazwa}` … `PLIK_KONIEC` zrzutu `Z` z logu portu złożona tak jak tools/prototyp/zrzut_plikow.py
+// (wiersze z `\n`); `jest` = sekcja była.
+static std::string sekcjaZrzutu(const Panel& p, const std::string& nazwa, bool& jest) {
+  std::string t;
+  bool w = false;
+  jest = false;
+  for (auto& l : p.port.log) {
+    if (!w && l == "PLIK " + nazwa) {
+      w = jest = true;
+      continue;
+    }
+    if (w && l == "PLIK_KONIEC") break;
+    if (w) t += l + "\n";
+  }
+  return t;
+}
+static std::string wierszSkrotuKonfiguracji(const Panel& p) {
+  for (auto& l : p.port.log)
+    if (l.compare(0, 24, "konfiguracja w zrzucie: ") == 0) return l;
+  return "";
+}
+// (T-WYM-92, 8.9): zrzut `Z` zawiera `/konfiguracja.txt` bajt w bajt (puste wiersze, koniec bez `\n`) z wierszem
+// rozmiaru i skrótu przed sekcją; bez pliku bez sekcji i bez wiersza; plik 16 KB w całości; nic się nie zmienia.
+static void testZrzutKonfiguracji() {
+  const std::string noce = "2026-11-03;1;414;1.20;9.40;11.30;4.00;12.00;;;;;;A;0;0;;;;\n";
+  {
+    Panel p;
+    p.pliki.pliki["/noce.csv"] = noce;
+    const std::string t = "profil=prywatny\n\n# komentarz\nwymiana.maska=2026-10-01\nnoc_zrodlo=porownanie";
+    p.pliki.pliki["/konfiguracja.txt"] = t;
+    doPortu(p, "Z");
+    wybudzZegarem(p, 14, 0);
+    SPRAWDZ(portMa(p, "PLIKI_START") && portMa(p, "PLIKI_KONIEC") && portMa(p, "PLIK /noce.csv"));
+    bool jest = false;
+    std::string z = sekcjaZrzutu(p, "/konfiguracja.txt", jest);
+    SPRAWDZ(jest);
+    ROWNE_S(z, t + "\n");  // narzędzie dokłada `\n` tylko, gdy skrót tego wymaga
+    ROWNE_S(wierszSkrotuKonfiguracji(p),
+            "konfiguracja w zrzucie: " + std::to_string(t.size()) + " B, sha256 " + sha256Hex(t));
+    // wiersz skrótu przed sekcją pliku (narzędzie czyta go poza sekcją), sekcja konfiguracji przed PLIKI_KONIEC
+    size_t iSkrot = 0, iSekcja = 0, iKoniec = 0;
+    for (size_t i = 0; i < p.port.log.size(); i++) {
+      if (p.port.log[i].compare(0, 24, "konfiguracja w zrzucie: ") == 0) iSkrot = i;
+      if (p.port.log[i] == "PLIK /konfiguracja.txt") iSekcja = i;
+      if (p.port.log[i] == "PLIKI_KONIEC") iKoniec = i;
+    }
+    SPRAWDZ(iSkrot > 0 && iSkrot + 1 == iSekcja && iSekcja < iKoniec);
+    // treść tylko w sekcji pliku: wiersz z datą wymiany pojawia się w logu dokładnie raz
+    int ile = 0;
+    for (auto& l : p.port.log) ile += l == "wymiana.maska=2026-10-01";
+    SPRAWDZ(ile == 1);
+    SPRAWDZ(p.pliki.tresc("/konfiguracja.txt") == t && p.pliki.tresc("/noce.csv") == noce);
+  }
+  {  // bez pliku: bez sekcji i bez wiersza skrótu, zrzut kończy się zwykle
+    Panel p;
+    p.pliki.pliki["/noce.csv"] = noce;
+    doPortu(p, "Z");
+    wybudzZegarem(p, 14, 0);
+    bool jest = true;
+    sekcjaZrzutu(p, "/konfiguracja.txt", jest);
+    SPRAWDZ(!jest && wierszSkrotuKonfiguracji(p).empty());
+    SPRAWDZ(portMa(p, "PLIKI_KONIEC") && !p.pliki.pliki.count("/konfiguracja.txt"));
+  }
+  {  // plik pusty: sekcja pusta, skrót pustej treści
+    Panel p;
+    p.pliki.pliki["/konfiguracja.txt"] = "";
+    doPortu(p, "Z");
+    wybudzZegarem(p, 14, 0);
+    bool jest = false;
+    ROWNE_S(sekcjaZrzutu(p, "/konfiguracja.txt", jest), "");
+    SPRAWDZ(jest);
+    ROWNE_S(wierszSkrotuKonfiguracji(p), "konfiguracja w zrzucie: 0 B, sha256 " + sha256Hex(""));
+  }
+  {  // największy plik przyjmowany komendą `W` (16 KB) w całości
+    Panel p;
+    std::string t;
+    while (t.size() + 32 <= MAKS_KONFIGURACJI_W) t += "klucz" + std::to_string(t.size()) + "=wartosc\n";
+    t += std::string(MAKS_KONFIGURACJI_W - t.size() - 1, 'x') + "\n";
+    SPRAWDZ(t.size() == MAKS_KONFIGURACJI_W);
+    p.pliki.pliki["/konfiguracja.txt"] = t;
+    doPortu(p, "Z");
+    wybudzZegarem(p, 14, 0);
+    bool jest = false;
+    std::string z = sekcjaZrzutu(p, "/konfiguracja.txt", jest);
+    SPRAWDZ(jest && z == t && sha256Hex(z) == sha256Hex(t));
+    ROWNE_S(wierszSkrotuKonfiguracji(p), "konfiguracja w zrzucie: 16384 B, sha256 " + sha256Hex(t));
+  }
+}
+
 int main() {
   (void)zadanZeSciezka;
   (void)STATUS_BLOKADA;
@@ -651,6 +740,7 @@ int main() {
   testStopkaZPamieci();
   testTrescNieJestKomenda();
   testWgranieKonfiguracji();
+  testZrzutKonfiguracji();
   printf("testy_wieczor_bez_wifi_obrazki: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

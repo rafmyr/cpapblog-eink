@@ -458,10 +458,15 @@ static void testSzerokosci() {
   PlotnoTest q;
   rysujK1(q, budujK1(okno(U_ASVAUTO), DZIS, normaPelna(), {}));
   SPRAWDZ(q.czarne(0, 384, 800, 430) > 0);
-  // K2 w CPAP: 9 wierszy, legenda o jeden wiersz wyżej niż w ASV
+  // K2 w CPAP: 9 wierszy, legenda o jeden wiersz wyżej niż w ASV; noce z każdą metryką z AirBridge, żeby
+  // żaden wiersz nie zwinął się do linii `brak danych: …` (R-KOK-18)
+  auto komplet = [](std::vector<Noc> v) {
+    for (Noc& n : v) { n.oa = 0.4f; n.ca = 0.3f; n.h = 0.3f; n.m13 = 14.0f; n.m17 = 1; }
+    return v;
+  };
   PlotnoTest r, s;
-  rysujK2(r, budujK2(h, DZIS, normaPelna(), {}));
-  rysujK2(s, budujK2(okno(U_ASVAUTO), DZIS, normaPelna(), {}));
+  rysujK2(r, budujK2(komplet(h), DZIS, normaPelna(), {}));
+  rysujK2(s, budujK2(komplet(okno(U_ASVAUTO)), DZIS, normaPelna(), {}));
   SPRAWDZ(r.czarne(0, 400, 800, 432) < s.czarne(0, 400, 800, 432));
 }
 
@@ -472,6 +477,8 @@ static void testWierszeB1() {
     h[i].m17 = i == 29 ? 3 : 1;
     h[i].m13 = 14.3f;
     h[i].ca = 0.4f;
+    h[i].oa = 0.3f;  // wszystkie wiersze z wartością: bez zwinięcia (R-KOK-18), pozycje wierszy stałe
+    h[i].h = 0.2f;
   }
   h[27].m17 = -1;  // brak pola (noc z karty): `–`
   h[28].m13 = NAN;

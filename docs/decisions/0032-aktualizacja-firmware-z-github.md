@@ -32,3 +32,11 @@ Panel można dziś zaktualizować tylko kablem albo w oknie serwisowym w sieci l
 ## Zmiana 2026-11-08
 
 Repozytorium wydań z pkt 1 to publiczne `rafmyr/cpapblog-eink` (od 06.11.2026). Wydania z gotowym obrazem (`.bin`, SHA-256 do pobrania przez panel) dopiero po opinii prawnika od wyrobów medycznych, zob. [ADR-0033](0033-licencja-i-dwa-repozytoria.md) pkt 6 (decyzja właściciela projektu 08.11.2026). Do tego czasu panele aktualizuje się kablem albo w oknie serwisowym w sieci lokalnej (ADR-0024 wariant A); kod sprawdzania wersji może powstać, ale bez wydania z obrazem panel nie ma czego zainstalować. Pozostałe warunki pierwszego wydania (obraz bez sekretów, adres repozytorium w firmware, podpis przed panelem poza dwoma egzemplarzami) bez zmian.
+
+## Zmiana 2026-11-09
+
+[ADR-0038](0038-wydania-z-prywatnego-repo-i-token.md) (decyzja właściciela projektu 09.11.2026): na czas testów wewnętrznych źródłem wydań jest osobne prywatne repozytorium tylko na wydania, a panel pobiera je z tokenem trzymanym w pamięci panelu (zmienia pkt 1 i dopisek „Zmiana 2026-11-06”). Adres repozytorium jest parametrem budowy z wartością domyślną, nie stałą w kodzie (doprecyzowuje pkt 5). Bez tokenu panel nie pyta GitHuba. Wydania w publicznym `cpapblog-eink` dalej dopiero po opinii prawnika (ADR-0033 pkt 6). Reszta decyzji bez zmian. Wdrożenie:.
+
+## Zmiana 2026-11-09 (wdrożenie)
+
+Kod po przeglądzie 10.11.2026; nic nie wgrane na panel: sprawdzenie i instalacja z wydań (`src/aktualizacja.cpp`, `src/dyrygent.cpp`, adapter `WydaniaEsp32`), ekran U-07, obraz wydania bez sekretów (`-DBEZ_SEKRETOW`, `[env:e1001_wydanie]`, `tools/wydanie/wydaj.py`), hasło okna serwisowego, adres i token źródła otoczenia i współrzędne pogody w pamięci panelu. Pierwszą wersję z aktualizatorem buduje się z `secrets.h` i wgrywa kablem albo oknem serwisowym; obraz wydania (bez sekretów) tylko na panel, który ma już te wartości w pamięci. Wymagania: R-NF-32…R-NF-36, R-KONF-43…R-KONF-46, R-EKR-61; spec techniczna T-WYM-93…T-WYM-96, T-INT-40.

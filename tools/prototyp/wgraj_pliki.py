@@ -32,6 +32,9 @@ Nazwy tylko `[a-z0-9_-]{1,40}.pbm` i `obrazki.json`, plik do 64 KB (src/magazyn.
 wynik "nazwa", "rozmiar" albo "dowiazanie" i nie są wysyłane. Panel słucha portu po starcie i przez 20 s po naciśnięciu przycisku
 albo po komendzie `?`/`W`, więc skrypt najpierw pyta `?` (naciśnij dowolny przycisk panelu, jeśli milczy) i nie wysyła `K`.
 Po `brak odpowiedzi` skrypt przerywa: panel zasnął, naciśnij przycisk panelu i uruchom ponownie.
+Zrzut z `konfiguracja.txt` (zrzut_plikow.py zapisuje ją w korzeniu katalogu zrzutu): przy przywracaniu z katalogu
+skrypt wysyła ją po plikach zrzutu, a przed `K`, tą samą drogą co `--konfiguracja`; zrzut bez niej (starszy) przechodzi
+jak dotąd, a jej odrzucenie nie wstrzymuje `K` (skrypt kończy się wtedy błędem z poleceniem `--konfiguracja`).
 Konfiguracja (spec techniczna 8.6): `--konfiguracja <plik>` wysyła komendą `W` jeden plik pod nazwą
 `konfiguracja.txt` (panel zapisuje go atomowo do `/konfiguracja.txt`, w oknie i poza nim, bez ruszania nocy, NVS i
 `/przywracanie/`), zamiast `uploadfs`. Plik do 16 KB (src/magazyn.h MAKS_KONFIGURACJI_W), tekst bez bajtu 0, nazwa pliku
@@ -68,6 +71,25 @@ MAKS_OBRAZKA = 64 * 1024
 # /konfiguracja.txt komendą `W` (src/magazyn.h NAZWA_KONFIGURACJI_W, MAKS_KONFIGURACJI_W)
 NAZWA_KONFIGURACJI = "konfiguracja.txt"
 MAKS_KONFIGURACJI = 16 * 1024
+# wiersze, których panel nie przyjmuje w konfiguracji (src/magazyn.cpp sprawdzKonfiguracjeW(), powód "znacznik"):
+# znaczniki zrzutu `Z`, w którym plik wraca
+ZNACZNIKI_ZRZUTU = ("PLIK_KONIEC", "PLIKI_KONIEC", "PLIKI_START")
+OPISY_POWODOW = {
+    "znacznik": "wiersz równy znacznikowi zrzutu (PLIK_KONIEC, PLIKI_KONIEC, PLIKI_START albo zaczynający się "
+                "od „PLIK ”): usuń go albo zmień",
+    "tresc": "bajt 0 w pliku: to nie jest plik tekstowy",
+    "rozmiar": "plik ponad 16 KB albo ucięty w drodze",
+    "skrot": "treść zmieniona w drodze (zakłócenie na kablu)",
+}
+
+
+def ma_znacznik(tresc):
+    """True, gdy któryś wiersz `tresc` (bytes, bez `\r` na końcu) to znacznik zrzutu albo zaczyna się od `PLIK `."""
+    for w in tresc.split(b"\n"):
+        w = w[:-1] if w.endswith(b"\r") else w
+        if w.decode("utf-8", "replace") in ZNACZNIKI_ZRZUTU or w.startswith(b"PLIK "):
+            return True
+    return False
 
 
 def komenda(nazwa, tresc):
@@ -95,7 +117,10 @@ def _odpowiedz(port, nazwa, limit_s, log=None):
 def wgraj(port, katalog, zakoncz=True, log=None, ponowien=1):
     """Wysyła komendą `W` każdy plik z PLIKI_ZRZUTU obecny w `katalog`; wynik: nazwa → "OK" albo powód.
 
-    `port` ma write(bytes) i readline() → bytes (pusty przy braku danych w limicie portu). Plik ponad 4 MB nie jest
+    `port` ma write(bytes) i readline() → bytes (pusty przy braku danych w limicie portu). Po plikach zrzutu, a przed
+    `K`, wysyła `konfiguracja.txt` z katalogu, jeśli jest (zrzut_plikow.py zapisuje ją tam), przez wgraj_konfiguracje()
+    (wynik pod kluczem "konfiguracja.txt"); brak pliku nic nie zmienia (starsze zrzuty go nie mają), a jej odrzucenie
+    nie wstrzymuje `K` (pliki_nocy_ok()). Plik ponad 4 MB nie jest
     wysyłany (wynik "rozmiar"). Plik nocy bez żadnej nocy nie jest wysyłany, a gdy
     pliku nocy w katalogu nie ma, wynik "brak pliku" (bez niego panel nie ma kompletu). Plik z `BLAD … skrot` albo
     `BLAD … zapis` idzie jeszcze `ponowien` razy. Przy zakoncz=True na końcu wysyła b"K" (koniec okna, potem
@@ -127,9 +152,20 @@ def wgraj(port, katalog, zakoncz=True, log=None, ponowien=1):
                 log("%s: BLAD %s, wysyłam jeszcze raz" % (nazwa, wynik[nazwa]))
         if wynik[nazwa] == BRAK_ODPOWIEDZI:  # nic więcej do portu; panel wybudzony czytałby treść jako komendy
             break
-    if zakoncz and wynik and all(w == "OK" for w in wynik.values()):
+    konf = os.path.join(katalog, NAZWA_KONFIGURACJI)
+    if BRAK_ODPOWIEDZI not in wynik.values() and (os.path.isfile(konf) or os.path.islink(konf)):
+        # przed `K`: po `K` panel przywraca dane i zasypia; ta sama droga co --konfiguracja (w oknie i poza nim)
+        wynik[NAZWA_KONFIGURACJI] = wgraj_konfiguracje(port, konf, log=log, ponowien=ponowien)[NAZWA_KONFIGURACJI]
+    if zakoncz and pliki_nocy_ok(wynik) and BRAK_ODPOWIEDZI not in wynik.values():
         port.write(b"K")
     return wynik
+
+
+def pliki_nocy_ok(wynik):
+    """True, gdy wynik wgraj() ma co najmniej jeden plik zrzutu i każdy plik zrzutu ma "OK" (wtedy idzie `K`).
+    Wynik konfiguracji się nie liczy: panel przyjmuje ją także poza oknem, a przywrócenie nocy od niej nie zależy."""
+    noce = [w for n, w in wynik.items() if n in PLIKI_ZRZUTU]
+    return bool(noce) and all(w == "OK" for w in noce)
 
 
 def wgraj_obrazki(port, katalog, log=None, ponowien=1):
@@ -180,8 +216,8 @@ def wgraj_obrazki(port, katalog, log=None, ponowien=1):
 def wgraj_konfiguracje(port, plik, log=None, ponowien=1):
     """Wysyła komendą `W` plik `plik` pod nazwą `konfiguracja.txt`; wynik: nazwa pliku → "OK" albo powód.
 
-    Plik ponad 16 KB ("rozmiar"), z bajtem 0 ("tresc"), dowiązanie symboliczne ("dowiazanie") albo nie-plik ("brak")
-    nie jest wysyłany. Po "skrot" i "zapis" jedna ponowna próba, po "brak odpowiedzi" stop (jak wgraj_obrazki()).
+    Plik ponad 16 KB ("rozmiar"), z bajtem 0 ("tresc"), z wierszem-znacznikiem zrzutu ("znacznik", ma_znacznik();
+    panel i tak by go odrzucił), dowiązanie symboliczne ("dowiazanie") albo nie-plik ("brak") nie jest wysyłany. Po "skrot" i "zapis" jedna ponowna próba, po "brak odpowiedzi" stop (jak wgraj_obrazki()).
     """
     n = os.path.basename(plik)
     if os.path.islink(plik):
@@ -194,6 +230,8 @@ def wgraj_konfiguracje(port, plik, log=None, ponowien=1):
         return {n: "rozmiar"}
     if b"\0" in tresc:
         return {n: "tresc"}
+    if ma_znacznik(tresc):
+        return {n: "znacznik"}
     wynik = {}
     for proba in range(ponowien + 1):
         port.write(komenda(NAZWA_KONFIGURACJI, tresc))
@@ -372,16 +410,23 @@ def main(argv=None):
     for n, w in wynik.items():
         print("%-18s %s" % (n, w))
     if not wynik:
-        sys.exit("w katalogu nie ma plików zrzutu: " + ", ".join(PLIKI_ZRZUTU))
+        sys.exit("w katalogu nie ma plików zrzutu: " + ", ".join(PLIKI_ZRZUTU + (NAZWA_KONFIGURACJI,)))
     if BRAK_ODPOWIEDZI in wynik.values():
         sys.exit(ZASNAL)
-    if any(w != "OK" for w in wynik.values()):
+    noce = {n: w for n, w in wynik.items() if n in PLIKI_ZRZUTU}
+    if any(w != "OK" for w in noce.values()):
         sys.exit("nie wszystkie pliki przyjęte, K nie wysłane; popraw plik (pusty albo brak pliku nocy: inny zrzut) "
                  "i uruchom skrypt jeszcze raz w tym oknie albo z --reset: po próbie wgrania okno wraca przy każdym "
                  "starcie zasilania, dopóki przywrócenie nie zakończy się komendą K przy komplecie plików")
-    if not a.bez_k:
+    if noce and not a.bez_k:
         t = czekaj_na_wiersz(s, ["przywrócono", "niezgodna liczba"], 60, log=lambda t: print(t, flush=True))
         print("wynik przywrócenia: " + (t or "brak wiersza w logu w 60 s"))
+    elif not noce:
+        print("w katalogu bez plików zrzutu prototypu: wysłana tylko konfiguracja, K nie wysłane")
+    konf = wynik.get(NAZWA_KONFIGURACJI)
+    if konf not in (None, "OK"):
+        sys.exit("konfiguracja nie przyjęta (%s); wyślij ją osobno (w oknie i poza nim): tools/prototyp/wgraj_pliki.py "
+                 "%s --konfiguracja %s" % (konf, a.port, os.path.join(a.katalog, NAZWA_KONFIGURACJI)))
 
 
 def obrazki_main(s, a):
@@ -425,7 +470,7 @@ def konfiguracja_main(s, a):
         print("%-44s %s" % (n, w))
     if BRAK_ODPOWIEDZI in wynik.values():
         return ZASNAL
-    zle = [n for n, w in wynik.items() if w != "OK"]
+    zle = ["%s: %s" % (w, OPISY_POWODOW[w]) if w in OPISY_POWODOW else w for w in wynik.values() if w != "OK"]
     if zle:
         return "plik nie przyjęty (%s); popraw go i uruchom skrypt jeszcze raz" % ", ".join(zle)
     print("konfiguracja wgrana: /konfiguracja.txt; panel czyta ją przy następnym wybudzeniu")

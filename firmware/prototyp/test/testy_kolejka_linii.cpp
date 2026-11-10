@@ -227,7 +227,7 @@ static void testKolejka() {
   ROWNE_L(cc.kolejka(DZIS).size(), 0);
   auto kn = cc.kolejka(NIEDZIELA);
   ROWNE_L(kn.size(), 1);
-  if (!kn.empty()) ROWNE(kn[0].tekst, "Regularność niższa od 4 tygodni. Na kontroli: raport z K2.");
+  if (!kn.empty()) ROWNE(kn[0].tekst, "Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.");
   // „gorzej” = tak: linia R-SKI-36 przez 3 dni
   reguly::Odpowiedzi g;
   g.gorzej["2026-11-03"] = true;
@@ -252,7 +252,7 @@ static void testTylkoRaport() {
   if (!karty.empty()) {
     ROWNE(karty[0].tytul, "Sprawa w raporcie");
     ROWNE(karty[0].dalej, "w raporcie, bez pilności");
-    ROWNE(karty[0].koniec, "gdy warunek wyjścia wzorca się spełni");
+    ROWNE(karty[0].koniec, "gdy kolejne noce przestaną to pokazywać");
   }
   // reguła „tylko raport” z samą linią C (L-07): powód = linia bez `Na kontroli: …`
   Scena l7;
@@ -348,14 +348,14 @@ static void testKartySpraw() {
   ROWNE_L(k.size(), 4);
   if (k.size() == 4) {
     ROWNE(k[0].tytul, "Senność mimo terapii");
-    ROWNE(k[0].dalej, "linia co 3 dni, obserwacja trwa");  // B w dniu bez pełnego ekranu (R-SKI-37)
+    ROWNE(k[0].dalej, "przypomnę co 3 dni, obserwacja trwa");  // B w dniu bez pełnego ekranu (R-SKI-37)
     ROWNE(k[1].tytul, "Sprawa na kontrolę");
     ROWNE(k[1].powod, "Regularność niższa od 4 tygodni.");
-    ROWNE(k[1].dalej, "w niedzielnym podsumowaniu, K2 i raport");
+    ROWNE(k[1].dalej, "w niedzielnym podsumowaniu, strona 2 / 6 i raport");
     ROWNE(k[2].tytul, "Poza normą od 9 nocy");
     ROWNE(k[2].powod, "AHI 6,2 przy zwykłych 0,8–2,1.");
-    ROWNE(k[3].tytul, "Sprawa z linii uwagi");
-    ROWNE(k[3].dalej, "w linii uwagi");
+    ROWNE(k[3].tytul, "Sprawa z paska u góry");
+    ROWNE(k[3].dalej, "przypominam na pasku u góry");
   }
   ws.ekranDnia = c.sprawa("L-11");
   k = sprawy::kartySpraw(ws);
@@ -363,7 +363,10 @@ static void testKartySpraw() {
   sprawy::WejscieSpraw p;
   p.dzis = DZIS;
   SPRAWDZ(sprawy::kartySpraw(p).empty());
+  ROWNE(sprawy::kartaPusta(p).tytul, "Nie widzę otwartych spraw.");  // ocena niepełna
+  p.ocenaPelna = true;
   ROWNE(sprawy::kartaPusta(p).tytul, "Brak otwartych spraw.");
+  p.ocenaPelna = false;
   p.ostatniaNiepewna = true;
   ROWNE(sprawy::kartaPusta(p).ocena, "ograniczona: ostatnia noc z dużym wyciekiem");
   DaneSpraw d = trescSpraw({}, 1, p);
@@ -691,17 +694,17 @@ static void testSzerokosci() {
                                       "cisza przez 56 nocy od 30.11, obserwacja trwa",
                                       "wraca do wyboru 30.11, obserwacja trwa",
                                       "dziś ekranem jest inna sprawa, obserwacja trwa",
-                                      "w niedzielnym podsumowaniu, K2 i raport",
-                                      "gdy warunek zdarzenia przestanie być spełniony",
-                                      "gdy warunek wyjścia wzorca się spełni", "omówione z lekarzem 30.11"};
+                                      "w niedzielnym podsumowaniu, strona 2 / 6 i raport",
+                                      "gdy dane przestaną to pokazywać",
+                                      "gdy kolejne noce przestaną to pokazywać", "omówione z lekarzem 30.11"};
   for (auto& w : wiersze) {
     SPRAWDZ(znaki(w) <= 60);
     if (szer(F_P24B, w) > 772 - SPRAWY_X_WARTOSCI) printf("  wiersz %s: %d px\n", w.c_str(), szer(F_P24B, w));
     SPRAWDZ(szer(F_P24B, w) <= 772 - SPRAWY_X_WARTOSCI);
     SPRAWDZ(wszystkieZnakiWKroju(w));
   }
-  for (auto& t : {"Sprawa w raporcie", "Sprawa na kontrolę", "Poza normą od 120 nocy", "Sprawa z linii uwagi",
-                  "Brak otwartych spraw."})
+  for (auto& t : {"Sprawa w raporcie", "Sprawa na kontrolę", "Poza normą od 120 nocy", "Sprawa z paska u góry",
+                  "Brak otwartych spraw.", "Nie widzę otwartych spraw."})
     SPRAWDZ(szer(F_SB44, t) <= 744 && wszystkieZnakiWKroju(t));
   for (int n : {1, 3, 12}) SPRAWDZ(szerStopki(stopkaSpraw(2, n)) <= 744);
   // pytania tak/nie
@@ -724,6 +727,14 @@ static void testSzerokosci() {
     DanePotwierdzenia pp = trescPrzeniesione(x, d, true);
     SPRAWDZ(szer(F_SB44, pp.tytul) <= 744 && zawin(F_P28B, pp.powod, 744).size() <= 2);
   }
+  // powód „Przeniesione” bez słów roboczych („linia uwagi”), 2 linie także przy tytule 30 szerokich znaków (5.4.4)
+  {
+    sprawy::SprawaL dl = c.s[0];
+    dl.tytul = std::string(30, 'W');
+    DanePotwierdzenia pp = trescPrzeniesione(dl, d, true);
+    ROWNE(pp.powod, "Do tego czasu przypomnę na pasku u góry: " + dl.tytul + ".");
+    SPRAWDZ(zawin(F_P28B, pp.powod, 744).size() <= 2);
+  }
   for (auto q : {sprawy::Pytanie::SENNOSC, sprawy::Pytanie::GORZEJ, sprawy::Pytanie::PRZERWA}) {
     DanePotwierdzenia z = trescZapisano(q, true, d, true);
     SPRAWDZ(szer(F_P28B, z.nad) <= 744);
@@ -740,6 +751,60 @@ struct PlotnoT : Plotno {
   }
   bool cz(int x, int y) const { return px[(size_t)(y * 800 + x)] != 0; }
 };
+// ---------- R-EKR-52, R-EKR-62: jedno rysowanie linii uwagi, także w negatywie ----------
+// Wzorzec: ten sam pasek narysowany ręcznie (prostokąt, ramka, tekst od x 28, `!` + 12 px) na drugiej kanwie.
+static bool rowneWPasie(const PlotnoT& a, const PlotnoT& b, int h) {
+  for (int y = 54; y < 54 + h; y++)
+    for (int x = 0; x < 800; x++)
+      if (a.cz(x, y) != b.cz(x, y)) return false;
+  return true;
+}
+static void testR_EKR_62_liniaUwagiNegatyw() {
+  const std::string T = "Co było inaczej? ↻ 2 s";
+  for (int neg = 0; neg < 2; neg++) {
+    const bool tlo = neg != 0, kolor = !tlo;  // tło ekranu i kolor tekstu
+    for (int ostrz = 0; ostrz < 2; ostrz++) {
+      PlotnoT a, b;
+      a.prostokat(0, 0, 800, 480, tlo);
+      b.prostokat(0, 0, 800, 480, tlo);
+      SPRAWDZ(liniaUwagiEkranu(a, T, false, ostrz != 0, tlo) == 48);
+      if (ostrz) {  // ostrzeżenie: pasek odwrócony względem tła z `!`, tekst w kolorze tła
+        b.prostokat(0, 54, 800, 48, kolor);
+        int x = tekst(b, F_P24B, 28, 87, "!", tlo);
+        tekst(b, F_P24B, x + 12, 87, T, tlo);
+        SPRAWDZ(a.cz(780, 70) == kolor);
+      } else {  // informacja albo prośba: tło ekranu, ramka 2 px w kolorze tekstu, bez `!`
+        b.ramka(12, 57, 776, 42, 2, kolor);
+        tekst(b, F_P24B, 28, 87, T, kolor);
+        SPRAWDZ(a.cz(780, 70) == tlo && a.cz(787, 70) == kolor);
+      }
+      SPRAWDZ(rowneWPasie(a, b, 48));
+    }
+  }
+  PlotnoT pusty;
+  SPRAWDZ(liniaUwagiEkranu(pusty, "", false, true, false) == 0 && !pusty.cz(400, 70));
+  // linia wzorca A: 60 px, B5 (R-EKR-42), zawsze ostrzeżenie
+  PlotnoT a60;
+  SPRAWDZ(liniaUwagiEkranu(a60, "Wciąż: Saturacja: sprawa dla lekarza.", true, false, false) == 60);
+  SPRAWDZ(a60.cz(780, 56) && a60.cz(780, 112) && !a60.cz(780, 115));
+  // ekran L (negatyw) z linią informacji: biała ramka, czarne wnętrze paska, bez białego paska ostrzeżenia
+  Scena c;
+  c.wynik("L-06", "b", true, true, DZIS);
+  c.licz();
+  DaneDnia d;
+  d.dzis = DZIS;
+  DaneWzorca w = trescWzorca(c.s[0], d);
+  w.linia = "Naładuj ekran: bateria 4%.";
+  w.liniaOstrzezenie = false;
+  PlotnoT l;
+  rysujWzorzec(l, w);
+  SPRAWDZ(l.cz(780, 70) && !l.cz(787, 70));
+  w.liniaOstrzezenie = true;
+  PlotnoT l2;
+  rysujWzorzec(l2, w);
+  SPRAWDZ(!l2.cz(780, 70));
+}
+
 static void testRysowanie() {
   Scena c;
   c.wynik("L-06", "b", true, true, DZIS);
@@ -790,11 +855,11 @@ static void testRysowanie() {
   kp.tytul = "Maska przecieka.";
   kp.tonProblem = true;
   PlotnoT kpp;
-  rysujKarte(kpp, {"pn 09.11", "dane 05:44"}, kp, "", "");
+  rysujKarte(kpp, {"pn 09.11", "dane 05:44"}, kp, "");
   SPRAWDZ(kpp.cz(400, 5) && kpp.cz(400, 44) && kpp.cz(27, 62) && !kpp.cz(400, 300) && !kpp.cz(790, 300));
   kp.tonProblem = false;
   PlotnoT kz;
-  rysujKarte(kz, {"pn 09.11", "dane 05:44"}, kp, "", "");
+  rysujKarte(kz, {"pn 09.11", "dane 05:44"}, kp, "");
   SPRAWDZ(!kz.cz(400, 5) && !kz.cz(27, 62));
 }
 
@@ -1151,6 +1216,7 @@ int main() {
   testPrzyciski();
   testSzerokosci();
   testRysowanie();
+  testR_EKR_62_liniaUwagiNegatyw();
   testDyrygent();
   testSygnaly();
   testS2aTryb();

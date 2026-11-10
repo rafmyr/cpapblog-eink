@@ -24,11 +24,12 @@ enum class Ekran : unsigned char { DZIEN = 0, K1 = 1, K2 = 2, PYTANIE = 3, TEST 
                                    NORMA = 10, LICZBY = 11,  // S8 „Twoja norma”, „Co znaczą te liczby”
                                    SPRZET = 12, SPRZET_ZAPISANO = 13,  // „Sprzęt” (5.9.3), `Nowy model maski zapisany.` (R-MAS-14)
                                    USTAWIENIA = 14, FORMULARZ = 15,  // U-01 „Ustawienia”, U-03 formularz z kodem QR
-                                   SIEC_PANELU = 16 };  // U-02, sieć panelu z formularzem (tylko ręcznie)
+                                   SIEC_PANELU = 16,  // U-02, sieć panelu z formularzem (tylko ręcznie)
+                                   AKTUALIZACJA = 17 };  // U-07 „Aktualizacja” (R-KONF-43, ↻ 2 s na U-01)
 // Ekran zapisany w pamięci RTC (StanRtc::ekran) z kontrolą zakresu: bajt spoza listy (zepsuta pamięć RTC,
 // stary obraz z innym wyliczeniem) daje ekran dnia zamiast wartości spoza `Ekran`. Przykład: 9 → RAPORT, 200 → DZIEN.
 inline Ekran ekranZRtc(unsigned char b) {
-  return b <= static_cast<unsigned char>(Ekran::SIEC_PANELU) ? static_cast<Ekran>(b) : Ekran::DZIEN;
+  return b <= static_cast<unsigned char>(Ekran::AKTUALIZACJA) ? static_cast<Ekran>(b) : Ekran::DZIEN;
 }
 enum class Przycisk : unsigned char { BRAK = 0, LEWY = 1, SRODEK = 2, PRAWY = 3 };
 
@@ -57,6 +58,9 @@ enum class Akcja : unsigned char {
   SIEC_PANELU_START,    // ◀ 2 s na U-01 i U-05 (i na ekranie pierwszego uruchomienia), ↻ 2 s na U-02
   SIEC_PANELU_ANULUJ,   // ◀ na U-02 (R-KONF-29): poprzednia sieć, powrót tam, skąd uruchomiono; ↻ dom
   POMIAR_BATERII,       // ↻ na S5 z E-05 krytycznym: nowy pomiar baterii i nowy wybór ekranu dnia, bez Wi-Fi
+  AKT_SPRAWDZ,          // ↻ 2 s na U-01 (R-KONF-43): U-07, Wi-Fi i sprawdzenie najnowszego wydania
+  AKT_INSTALUJ,         // ▶ na U-07 w stanie „jest nowsza” (R-KONF-44)
+  AKT_PONOW,            // ▶ na U-07 po nieudanej próbie: ta sama czynność jeszcze raz
 };
 
 // numer strony kokpitu w nagłówku (`n / 6`); 0 = ekran poza ciągiem stron. „Co znaczą te liczby” ma numer S8.
@@ -96,6 +100,8 @@ struct KontekstNaw {
   // (R-KONF-07): panel bez sieci domowej albo adresu AirBridge; ekran dnia to instrukcja U-02,
   // a ◀ 2 s na nim uruchamia sieć panelu (tylko ręcznie, nigdy sama)
   bool bezKonfiguracji = false;
+  // U-07 (R-KONF-44): 1 = „jest nowsza” (▶ instaluje), 2 = po nieudanej próbie (▶ spróbuj ponownie), 0 = ▶ nic
+  int aktualizacja = 0;
 };
 
 struct Przejscie {
