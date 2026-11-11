@@ -32,6 +32,7 @@ const int CO_ILE_NOR21 = 7;    // R-NOR-21: najwyżej raz na 7 dni [PRÓG]
 const int NOCY_NOR21 = 21;     // R-NOR-21: od 21 kolejnych nocy ważnych stanu [PRÓG]
 const int CO_ILE_INF = 3;      // R-INF-10: najwyżej raz na 3 dni [PRÓG]
 const int PYTAN_SKI39 = 4;     // R-SKI-39: 4 ostatnie pokazane pytania [PRÓG]
+const int CO_ILE_DOBRA = 7;    // R-KON-68: linia „dobra zmiana” najwyżej raz na 7 dni [PRÓG] (= sk::DOBRA_ZMIANA_CO_DNI)
 
 std::string pokazanaLinia(const WejscieKolejki& w, const std::string& zrodlo) {
   return w.pamiec ? sprawy::ostatniePokazanie(*w.pamiec, "linia:" + zrodlo) : "";
@@ -219,6 +220,9 @@ std::vector<LiniaUwagi> kolejkaLinii(const WejscieKolejki& w) {
                                          : GrupaLinii::NOC;
       dodaj(k, l.tekst, g, l.id);
     }
+  // grupa 4 „norma”, za liniami zdarzeń tej grupy (R-NOR-14, R-MAS-11): dobra zmiana (ADR-0039 pkt 5, R-KON-68)
+  if (!w.dobraZmiana.empty() && rytmLinii(w, "R-KON-68", CO_ILE_DOBRA))
+    dodaj(k, w.dobraZmiana, GrupaLinii::NORMA, "R-KON-68");
   // grupa „noc”: R-SKI-39, 4 ostatnie pokazane pytania o senność bez odpowiedzi (tygodnie bez pytania się nie liczą)
   if (w.odpowiedziPelne) {
     int brak = 0, pokazane = 0;

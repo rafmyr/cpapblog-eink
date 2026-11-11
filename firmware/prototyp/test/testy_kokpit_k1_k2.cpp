@@ -147,12 +147,12 @@ static void testGranice() {
   for (int i = 0; i < 30; i++) h[i].wp95 = i < 23 ? 9.0f : 4.0f;
   ROWNE(slowo(h, "Wyciek"), "spada");
 
-  // EPAP (M-06 mediana) w ASV i ASVAuto: Δ M-06p 2 cmH2O → 1,0
+  // EPAP (M-06 mediana) w ASV i ASVAuto: Δ M-06p 1,5 cmH2O (komplet progów 11.11.2026) → 0,75
   for (const char* u : {U_ASVAUTO, U_ASV}) {
     h = okno(u);
-    for (int i = 23; i < 30; i++) h[i].emed = 8.0f;
+    for (int i = 23; i < 30; i++) h[i].emed = 7.75f;
     ROWNE(slowo(h, "EPAP"), "rośnie");
-    for (int i = 23; i < 30; i++) h[i].emed = 7.9f;
+    for (int i = 23; i < 30; i++) h[i].emed = 7.7f;
     ROWNE(slowo(h, "EPAP"), "stabilnie");
     for (int i = 23; i < 30; i++) h[i].emed = 6.0f;
     ROWNE(slowo(h, "EPAP"), "spada");

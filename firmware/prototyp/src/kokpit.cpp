@@ -147,15 +147,15 @@ void trybZeStatusu(TrybyOkna& t, const std::string& status) {
 // Metryka wiersza zależy od trybu (wiersze `Ciśnienie`, `EPAP`, `Wsparcie` w K1 i K2).
 bool zaleznaOdTrybu(Metryka m) { return m == M_CMED || m == M_CP95 || m == M_EMED || m == M_EP95 || m == M_PSMED; }
 
-// Δ minimalnego efektu z 4.5 (i 4.11 w trybie ASV) dla wierszy K1 [PRÓG]; NAN = metryka bez Δ. M-28 (wsparcie PS) nie
-// ma Δ w 4.5, ale do słowa trendu bierze Δ EPAP (R-KOK-16.delta_ps).
+// Δ minimalnego efektu z 4.5 (i 4.11 w trybie ASV) dla wierszy K1 [PRÓG]; NAN = metryka bez Δ. M-28 (wsparcie PS):
+// Δ M-28 z 4.5 (R-KOK-16.delta_ps).
 // Ciśnienie (M-05 mediana) i EPAP (M-06 mediana) biorą Δ sygnału P95 (M-05p, M-06p).
 double deltaTrendu(Metryka m) {
   switch (m) {
     case M_AHI: return 3.0;    // R-NOR-12.delta.M-02, / h
     case M_M01: return 90.0;   // R-NOR-12.delta.M-01, 1,5 h w minutach (kierunek bez znaczenia dla trendu)
-    case M_CMED:               // R-NOR-12.delta.M-05p, cmH2O
-    case M_EMED: return 2.0;   // R-NOR-12.delta.M-06p, cmH2O
+    case M_CMED: return 2.0;   // R-NOR-12.delta.M-05p, cmH2O
+    case M_EMED: return 1.5;   // R-NOR-12.delta.M-06p, cmH2O (komplet progów 11.11.2026; było 2)
     case M_WP95: return 10.0;  // R-NOR-12.delta.M-07, L/min
     case M_PSMED: return TREND_DELTA_PS;  // R-KOK-16.delta_ps, cmH2O jak EPAP
     default: return NAN;

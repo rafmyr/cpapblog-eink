@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Data | 09.11.2026 |
-| Status | przyjęta 09.11.2026 (decyzja właściciela projektu: wariant B) |
+| Status | przyjęta 09.11.2026 (decyzja właściciela projektu: wariant B); zmiana 2026-11-11: domyślnie `plik` |
 | Źródło | ADR-0035; pomiar 09.11.2026 na AirBridge egzemplarza referencyjnego (v2.3.1); `tools/kalibracja/noce.py` (`noc_z_katalogu`, `metryki`); WY9 |
 
 ## Kontekst
@@ -63,3 +63,12 @@ Pomiar 09.11.2026, jedna noc (ok. 8 h), `/api/storage/download` z komputera w te
 - **U-05:** wiersz `Noce z plików` pod kolumnami: `zgodne {n} z {n}` z ostatnich najwyżej 7 dób z porównaniem, `rozjazd {k} z {n} ({metryki})`, `brak porównania: {przyczyna}`; przy 7 z 7 dopisek `można przełączyć na pliki`. **Panel nie przełącza się sam:** przełączenie to `noc_zrodlo=plik` w konfiguracji, decyzja właściciela panelu.
 - **Koszt:** pliki doby najwyżej raz (doba z wynikiem `zgodna` albo `rozjazd` nie jest pobierana drugi raz); na dobę lista sesji, STR.edf raz w wybudzeniu, `PLD`, `EVE`, `CSL` (ok. 0,5 MB na noc 8 h, na ESP32 `[szacunek]` 2–5 s) i ponowne połączenie Wi-Fi po rysowaniu. Porównanie korzysta tylko z budżetu żądań, który został po raportach i zaległych dobach (najmniej 45 s na start `[stała techniczna]`, 15 s przed każdym żądaniem), inaczej `brak czasu` i ponowienie w kolejnym wybudzeniu z odczytem (doby z przyczyną `czeka`, `brak czasu`, `sesja niezamknięta` z ostatnich 7 dób; raport JSON wtedy jeszcze raz); noc z JSON zapisana zawsze wcześniej i normalnie, bez E-01 i E-03 z powodu plików.
 - **Bez zmian:** `json` (bez pobierania plików), `plik` i `noc_json` jak w etapie 2; ekrany pacjenta, reguły i linie uwagi nie czytają wyniku porównania; porównanie nigdy nie mówi pacjentowi nic o nocy (ADR-0029 pkt 7).
+
+## Zmiana 2026-11-11: domyślnie `plik` (pkt 5)
+
+- **Decyzja właściciela projektu (11.11.2026):** bez wiersza `noc_zrodlo` i przy złej wartości klucza panel liczy noc z plików sesji (`plik`; `NOC_ZRODLO_DOMYSLNE`, `UstawieniaDnia::nocZrodloSkuteczne()` w `src/slot_dzienny.h`). Raport JSON zostaje zapasem przy każdym problemie z plikami według pkt 4 (R-DANE-44): AirBridge starszy niż 2.3.1, 503, sesja niezamknięta, plik niepobrany albo nieczytelny, noc częściowa, za mało czasu. Jawne `noc_zrodlo=porownanie` (tryb z „Zmiany 2026-11-09”) i `json` działają jak dotąd; `noc_json` też.
+- **Dowód:** narzędzie `tools/kalibracja/noc_panelu.sh` (ten sam kod co panel) na wszystkich dobach dostępnych na AirBridge egzemplarza referencyjnego (v2.3.1, tryb ASVAuto): wszystkie porównywane metryki w tolerancji WY9, bez rozjazdów; OA/CA w ASV `pominięte: aparat nie rozróżnia` (ADR-0037), PS `tylko pliki`. Poziom dowodu: obserwacja własna, 1 osoba, 1 aparat; wartości nocy poza repo.
+- **Skutek:** PS (M-28, M-28p) i metryki ASV liczone z plików trafiają do historii nocy, a przez nią do K1, K2 i raportu dla lekarza; w trybie porównawczym PS nowych nocy był pusty. Granica ADR-0002 bez zmian: PS dalej bez reguł oceny.
+- **Noce sprzed zmiany:** zapisane wcześniej z raportu JSON (bez PS) zostają bajt w bajt; panel nie przelicza dób, które już ma w historii (lista dób do pobrania bez zmian: tylko brakujące, ostatnia noc w odczycie i ponowne pobranie R-DANE-24 ostatniej nocy). Plik `/dane/porownanie.csv` zostaje, ale przy `plik` nie przybywa wpisów.
+- **U-05:** wiersz `Noce z plików` w trybie domyślnym pokazuje `włączone (plik)`; diagnostyka w logu `Noce z plików: noc_zrodlo=plik · …`. Przy AirBridge < 2.3.1 wiersz pokazuje tryb, a noce idą z raportu JSON (zachowanie przy starszym AirBridge do decyzji).
+- **Koszt:** w każdym wybudzeniu z pobraniem doby lista sesji, STR.edf raz i `PLD`, `EVE`, `CSL` zamiast jednego raportu JSON (ok. 0,5 MB na noc 8 h; na ESP32 `[szacunek]` 2–5 s, do pomiaru); bez drugiego połączenia Wi-Fi po rysowaniu (tryb porównawczy go dokładał). Przy AirBridge < 2.3.1 jedna lista sesji (404) na wybudzenie, potem raport JSON jak dotąd.

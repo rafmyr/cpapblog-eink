@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Przypadki brzegowe trybu porównawczego (`noc_zrodlo=porownanie`, ADR-0036 „Zmiana 2026-11-09”, R-DANE-60).
+// Przypadki brzegowe trybu porównawczego (`noc_zrodlo=porownanie`, ADR-0036 „Zmiana 2026-11-09”, R-DANE-60). Od
+// ADR-0036 „Zmiana 2026-11-11” tryb domyślny to `plik`, więc każdy przebieg porównawczy ustawia klucz jawnie.
 // Każde sprawdzenie podaje w komunikacie nazwę przypadku; „regresja” = sprawdzenie, które zostaje jako test regresji.
 // Dane wyłącznie syntetyczne.
 //
@@ -366,9 +367,9 @@ static void testBudzet() {
     for (long k = DZIS4 - 5; k <= DZIS4; k++) x.doby.push_back(dobaAB(k));
     x.opPliku = op;
     x.opListy = 2000;
-    PanelN j("noc_zrodlo=json\n"), p("");
+    PanelN j("noc_zrodlo=json\n"), p("noc_zrodlo=porownanie\n");
     przebieg("noc_zrodlo=json\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), j);
-    przebieg("", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
+    przebieg("noc_zrodlo=porownanie\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
     Migawka a = migawka(j), b = migawka(p);
     int raportyJ = zadan(j, "/api/report?source=edf&day="), raportyP = zadan(p, "/api/report?source=edf&day=");
     int plikiP = zadan(p, "/api/storage/download?path=/DATALOG/");
@@ -386,9 +387,9 @@ static void testBudzet() {
     Atrapa x;
     x.doby = {dobaAB(DZIS4)};
     x.opPliku = 4000;
-    PanelN j("noc_zrodlo=json\n"), p("");
+    PanelN j("noc_zrodlo=json\n"), p("noc_zrodlo=porownanie\n");
     przebieg("noc_zrodlo=json\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), j);
-    przebieg("", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
+    przebieg("noc_zrodlo=porownanie\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
     int ekr = p.p.d.pierwsze("ekran.odswiez"), plik = p.p.d.pierwsze("siec.get http://192.168.1.20/api/storage/download?path=/DATALOG/");
     int ekrJ = j.p.d.pierwsze("ekran.odswiez");
     // ms do pierwszego odświeżenia: zdarzeń „siec.get” przed nim
@@ -411,9 +412,9 @@ static void testBudzet() {
     x.opPliku = 14000;
     x.opListy = 14000;
     x.opRaportu = 14000;
-    PanelN j("noc_zrodlo=json\n"), p("");
+    PanelN j("noc_zrodlo=json\n"), p("noc_zrodlo=porownanie\n");
     przebieg("noc_zrodlo=json\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), j);
-    przebieg("", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
+    przebieg("noc_zrodlo=porownanie\n", [&](PanelN& s) { ustaw(s, x); }, ep(2026, 11, 4, 7, 0), p);
     Migawka a = migawka(j), b = migawka(p);
     printf("  wolny AirBridge (14 s na żądanie), STR 10 dób: json %d nocy S, porównanie %d nocy S; wpis %s\n", a.nocyS,
            b.nocyS, wpisyPliku(p).empty() ? "–" : wpisyPliku(p).back().c_str());
@@ -423,7 +424,7 @@ static void testBudzet() {
   {
     Atrapa x;
     x.doby = {dobaAB(DZIS4)};
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     ustaw(s, x);
     s.p.siec.odpowiedzi["/api/sessions?since=" + dzienAB(DZIS4)].clear();
     s.p.siec.dodaj("/api/sessions?since=" + dzienAB(DZIS4), 200, sesjeJson(x.doby[0], false));  // niezamknięta
@@ -456,7 +457,7 @@ static void testPlik() {
   for (const char* zly : {"\xff\xfe garbage;;;\n", "#cpap-eink porownanie 1\ndata;werdykt;rozjazd;pominiete;przyczyna\n"
                                                     "2026-11-03;zgodna;;;\n2026-11-02;zg",
                           "#cpap-eink porownanie 9\ndata;werdykt;rozjazd;pominiete;przyczyna\n#koniec 0\n"}) {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     s.p.pliki.pliki["/dane/porownanie.csv"] = zly;
     ustaw(s, x);
     wybudz(s, ep(2026, 11, 4, 7, 0));
@@ -475,7 +476,7 @@ static void testPlik() {
   }
   // (b) 31. doba wypiera najstarszą; zapis z nagłówkiem i stopką
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     std::string t = "#cpap-eink porownanie 1\n" + std::string(POLA) + "\n";
     for (int i = 0; i < 30; i++) t += dataZNr(nrDnia("2026-10-04") + i) + ";zgodna;;;\n";
     t += "#koniec 30\n";

@@ -45,7 +45,10 @@ Ocena ocenaLiczby(const std::string& id, double p, double r, double tol) {
   if (br && (id == "m28" || id == "m28p")) return Ocena::TYLKO_PLIKI;  // raport JSON nie ma PS
   if (bp) return Ocena::BRAK_W_PLIKACH;
   if (br) return Ocena::BRAK_W_RAPORCIE;
-  return std::fabs(p - r) <= tol + 1e-9 ? Ocena::TAK : Ocena::NIE;
+  // margines względny: wartości przychodzą z float (np. 7.8f − 7.5f = 0.3000002), więc granica tolerancji ma
+  // dawać „tak”, a nie rozjazd z powodu zapisu liczby
+  const double eps = 1e-6 * std::max({1.0, std::fabs(p), std::fabs(r)});
+  return std::fabs(p - r) <= tol + eps ? Ocena::TAK : Ocena::NIE;
 }
 const char* takNie(bool b) { return b ? "tak" : "nie"; }
 }  // namespace
@@ -95,6 +98,8 @@ Wynik porownaj(const NocAB& panel, const NocAB& raport, bool zUstawieniami) {
   num("m10", "M-10 mediana", f(p.m10), f(r.m10), 0.02);
   num("m10p", "M-10 P95", f(p.m10p), f(r.m10p), 0.02);
   num("m13", "M-13", f(p.m13), f(r.m13), 0.5);
+  num("m14", "M-14 objętość mediana", f(p.m14), f(r.m14), 20);  // WY9.tol.M-14
+  num("m15", "M-15 wentylacja mediana", f(p.m15), f(r.m15), 0.3);  // WY9.tol.M-15
   num("m17", "M-17 (R-DANE-27)", calk(p.m17), calk(r.m17), 0);
   num("m18", "M-18 min od 12:00 (R-DANE-27)", calk(p.m18), calk(r.m18), 5);
   if (zUstawieniami) {

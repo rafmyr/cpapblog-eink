@@ -160,16 +160,19 @@ void m17m18(const WynikNocy& w, const Parametry& p, int& m17, double& m18Min);
 // bez tagu MOP); kanały bez próbek EDF ze statystyk STR (`source` = "str"), dalej reguły kanalyRaportu() (ciśnienie
 // wdechowe ze STR pominięte, EPAP ze STR z flagą `epapStr`). M-01 = round(sekundy / 60); AHI i M-03 ze zdarzeń EVE
 // w czasie zapisu sesji; M-09 z CSL (zapasowo z EVE); M-08 = sekundy wycieku > 24 L/min / 60; PS (M-28, M-28p) tylko
-// przy kanale `Press` z próbek EDF; M-13 i M-10 z `RespRate` i `FlowLim`; M-17 i M-18 według R-DANE-27. Ważna jak
-// noc z AirBridge (obecna, nie częściowa, zdarzenia znane, ≥ 240 min, tryb obsługiwany); `pelna` jak przy raporcie.
+// przy kanale `Press` z próbek EDF; M-13, M-14, M-15 i M-10 z `RespRate`, `TidVol` (mediana mL), `MinVent` (mediana
+// L/min) i `FlowLim`; M-17
+// i M-18 według R-DANE-27. Ważna jak noc z AirBridge (obecna, nie częściowa, zdarzenia znane, ≥ 240 min, tryb
+// obsługiwany); `pelna` jak przy raporcie.
 NocAB nocZWyniku(const WynikNocy& w, const Str* str, const std::string& trybZapasowy, const std::string& pna = "",
                  const std::string& srn = "", const Parametry& p = Parametry());
 
 // ---------- źródło nocy i metryki z raportu JSON (bramka ADR-0036 pkt 5) ----------
-// Klucze /konfiguracja.txt: `noc_zrodlo=porownanie|plik|json` (domyślnie porownanie: noc z raportu JSON, noc z plików
-// tylko do porównania, src/porownanie.h) i `noc_json=` lista ID metryk po przecinku,
+// Klucze /konfiguracja.txt: `noc_zrodlo=plik|porownanie|json` (domyślnie plik: noc z plików sesji, raport JSON jako
+// zapas przy każdym problemie, R-DANE-44; `porownanie`: noc z raportu JSON, noc z plików tylko do porównania,
+// src/porownanie.h; ADR-0036 „Zmiana 2026-11-11”) i `noc_json=` lista ID metryk po przecinku,
 // które przy `plik` zostają z raportu JSON (rozjazd w porównaniu poza tolerancją WY9). Dozwolone ID: m01, m02, m03,
-// m05, m06, m07, m08, m09, m10, m13, m17, m18, m21 (ustawienia), m28.
+// m05, m06, m07, m08, m09, m10, m13, m14, m15, m17, m18, m21 (ustawienia), m28.
 bool metrykaJsonOk(const std::string& id);
 // "m02,m08" → zbiór; false przy nieznanym ID albo pustym elemencie (wiersz konfiguracji pominięty).
 bool parsujMetrykiJson(const std::string& tekst, std::set<std::string>& wynik);

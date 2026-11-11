@@ -129,6 +129,27 @@ class KartaNocyPanelu(unittest.TestCase):
         self.assertIn("brak w plikach", p.stdout)
 
     @unittest.skipIf(KOMPILATOR is None, "brak kompilatora C++")
+    def test_narzedzie_m14_m15(self):
+        # M-14 i M-15 (rekord nocy `noce` wersja 5): wiersze w tabeli, w tolerancji WY9 (20 mL, 0,3 L/min);
+        # MinVent w raporcie o 0,5 L/min wyżej = rozjazd
+        p = self._uruchom("2026-11-02")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        w14 = [x for x in p.stdout.splitlines() if x.startswith("M-14 objętość mediana;")]
+        w15 = [x for x in p.stdout.splitlines() if x.startswith("M-15 wentylacja mediana;")]
+        self.assertEqual(len(w14), 1, p.stdout)
+        self.assertEqual(len(w15), 1, p.stdout)
+        self.assertTrue(w14[0].endswith(";20.00;tak"), w14[0])
+        self.assertTrue(w15[0].endswith(";0.30;tak"), w15[0])
+
+        def wiecej(rap):
+            rap["channels"] = [dict(c, median=c["median"] + 0.5) if c["id"] == "MinVent" else c
+                               for c in rap["channels"]]
+        p = self._uruchom("2026-11-02", wiecej)
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        self.assertIn("M-15 wentylacja mediana;", p.stdout)
+        self.assertIn("ROZJAZD", p.stdout)
+
+    @unittest.skipIf(KOMPILATOR is None, "brak kompilatora C++")
     def test_narzedzie_bledne_wejscie(self):
         p = subprocess.run(["bash", SKRYPT, os.path.join(self.tmp, "nie-ma"), os.path.join(self.tmp, "nie-ma.json")],
                            capture_output=True, text=True, timeout=300)

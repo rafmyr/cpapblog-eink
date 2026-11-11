@@ -24,3 +24,7 @@ ADR-0003 opiera odchylenia na normie osobistej z histerezą. Spec v1.0 (4.7, R-N
 
 ## Adnotacja (04.11.2026, konsultacja kliniczna, bez nowego ADR)
 Decyzja po konsultacji klinicznej (04.11.2026): linia z pkt 2 brzmi `Od {n} tyg.: {metryka} {x}. Liczby w raporcie.` zamiast `… Pokaż lekarzowi.`, a krok ekranu zdarzenia tej metryki po 21 nocach (spec R-NOR-23) to `→ Obserwuj kolejne noce.`. Powód (opinia eksperta): wzrost względem normy przez 21 dni może być zmianą z bardzo niskiego na nadal niski AHI; „Pokaż lekarzowi” ma wynikać z aktywnej reguły L albo z utrzymujących się objawów. Reszta decyzji bez zmian: brak nowego poziomu dla metryk zdrowotnych, zdanie w każdym raporcie, linia raz na 7 dni. **Pkt 3 jest uchylony** tą odpowiedzią lekarza (bez nowego ADR): linia i krok ze stanu odchylenia nie mówią już „pokaż lekarzowi”; część pkt 3 o granicy ADR-0002 (bez wartości ustawień i kierunku zmiany) obowiązuje dalej.
+
+## Zmiana 2026-11-11
+
+[ADR-0039](0039-alerty-odchylen-od-normy.md): dla metryk z kartą odchylenia (S-K-40…S-K-47) karta rano co 7 dni zastępuje linię z pkt 2; raport i liczenie od normy sprzed odchylenia bez zmian.

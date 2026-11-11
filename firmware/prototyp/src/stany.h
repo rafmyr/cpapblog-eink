@@ -45,6 +45,12 @@ struct StanMetryki {
   bool wyzej = true;     // `wyżej niż zwykle` (false: `niżej niż zwykle`, czas z maską)
   std::string od;        // data poranka pierwszej nocy stanu
   int nocy = 0;          // noce ważne w stanie do `dzis` włącznie (`od {n} nocy`, R-KOK-03)
+  // ADR-0039 (linia „dobra zmiana”, R-KON-68): noce ważne z wartością od pierwszej nocy z odchyleniem w oknie wejścia
+  // (3 z 5) do `dzis` włącznie; przy wejściu co najmniej 3
+  int odPierwszej = 0;
+  // R-NOR-22: norma zapisana przy wejściu w stan metryki zdrowotnej (pusta poza stanem i dla metryk technicznych);
+  // karty S-K-40…S-K-47 porównują z nią, bo dzisiejsza norma bez nocy stanu (R-NOR-09) po ok. 76 nocach znika
+  NormaMetryki zamrozona;
 };
 
 struct OdchylenieNocy {  // 4.5 dla jednej nocy (z normą tej nocy)
@@ -62,6 +68,19 @@ struct Stany {
   // M-05p ciśnienie P95 (w górę, Δ +2 cmH2O, zdrowotna) z nocy w trybie CPAP albo AutoSet;
   // EPAP P95 (`ep95`) tylko z nocy w trybie ASV albo ASVAuto i z nocy bez znanego trybu (zachowanie), 4.11
   StanMetryki cp95;
+  // ADR-0039 (R-KON-64): kierunki bez własnej karty, każdy z kartą S-K-40…S-K-47 (sk::odchylenia, src/kontekst_odchylenia.cpp);
+  // metryki zdrowotne (4.7): norma zamrożona przy wejściu (R-NOR-22), noce stanu poza normą tego sygnału (R-NOR-09)
+  StanMetryki ps;     // M-28 wsparcie PS w górę (tryb ASV, Δ +1 cmH2O [PRÓG]), S-K-40
+  StanMetryki m13;    // M-13 oddechy na minutę w górę (Δ +2 / min), S-K-45
+  StanMetryki csr;    // M-09 oddychanie okresowe, % nocy, w górę (Δ +5 pp [PRÓG]), S-K-46
+  StanMetryki m10;    // M-10 P95 ograniczenie przepływu w górę (Δ +0,15 [PRÓG]), S-K-47
+  StanMetryki m15g;   // M-15 wentylacja minutowa w górę (Δ +15% mediany normy [PRÓG]), S-K-41
+  StanMetryki m15d;   // M-15 w dół (Δ −15%), S-K-42
+  StanMetryki m14d;   // M-14 objętość oddechowa w dół (Δ −15% mediany normy [PRÓG]), S-K-43
+  StanMetryki m14g;   // M-14 w górę (Δ +15%), S-K-44
+  // „Dobra zmiana” (ADR-0039 pkt 5, R-KON-68): ten sam warunek 3 z 5 w kierunku pożądanym, liczony na tej samej normie;
+  // te noce nie wypadają z normy (to nie stan odchylenia z 4.6) i norma nie jest zamrażana
+  StanMetryki dobraAhi, dobraPs, dobraWp95, dobraM17, dobraM10, dobraM01;
   std::string ostatnia;        // data poranka ostatniej nocy ≤ dzis ("" = brak)
   bool ostatniaNiepewna = false;
   OdchylenieNocy odchylenie;   // ostatniej nocy, z jej normą

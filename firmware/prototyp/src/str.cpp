@@ -242,7 +242,9 @@ double statystykaStr(const Str& s, long rekord, const std::string& id, const std
   double skala = 1;
   if (id == "Leak" && g->jednostka == "L/s") skala = 60;
   if (id == "TidVol" && g->jednostka == "L") skala = 1000;
-  if (skala == 1 && g->jednostka != oczek) return NAN;  // jednostka inna niż oczekiwana: brak, bez zgadywania skali
+  // `ml` i `mL` to ta sama jednostka (jak M-14 z raportu JSON, src/airbridge.cpp kanalyRaportu())
+  bool zgodna = g->jednostka == oczek || (id == "TidVol" && g->jednostka == "ml");
+  if (skala == 1 && !zgodna) return NAN;  // jednostka inna niż oczekiwana: brak, bez zgadywania skali
   return v * skala;
 }
 

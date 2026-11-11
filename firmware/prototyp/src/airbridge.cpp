@@ -719,6 +719,33 @@ void kanalyRaportu(Noc& n, const Json& kanaly, bool& kanalEdf) {
     n.m13 = (float)ch["median"].n;
     respEdf = edf;
   }
+  // M-14 (4.3): `median` kanału `TidVol` w mL (jednostka `L` przeliczona × 1000, inna niż `mL`, `ml` albo pusta = brak)
+  // i M-15 (4.3): `median` kanału `MinVent` w L/min (jednostka inna niż `L/min` albo pusta = brak) wprost, jak M-13: wpis z EDF wygrywa, bez EDF pierwszy z liczbą;
+  // `null`, zły typ, liczba nieskończona albo ujemna = brak (R-DANE-07, R-AW-22)
+  struct Mediana {
+    const char* id;
+    float Noc::*pole;
+  };
+  for (const Mediana& m : {Mediana{"TidVol", &Noc::m14}, Mediana{"MinVent", &Noc::m15}}) {
+    bool zEdf = false;
+    for (auto& ch : kanaly.el) {
+      if (tekstPola(ch["id"]) != m.id || ch["median"].typ != Json::LICZBA) continue;
+      bool edf = tekstPola(ch["source"]) == "edf";
+      if (zEdf || (!edf && !std::isnan(n.*m.pole))) continue;
+      double sk = 1;
+      std::string j = tekstPola(ch["unit"]);
+      if (m.pole == &Noc::m14) {
+        if (j == "L") sk = 1000;
+        else if (!j.empty() && j != "mL" && j != "ml") continue;
+      } else if (!j.empty() && j != "L/min") {
+        continue;  // M-15 tylko w L/min (np. `L/s` = brak, bez zgadywania skali)
+      }
+      double v = ch["median"].n * sk;
+      if (!std::isfinite(v) || v < 0) continue;
+      n.*m.pole = (float)v;
+      zEdf = edf;
+    }
+  }
   // M-10 (4.3): kanał `FlowLim`, `median` i `p95` wprost (skala 0–1); wpis z EDF wygrywa; brak = NAN (R-AW-22)
   bool flEdf = false;
   for (auto& ch : kanaly.el) {

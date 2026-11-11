@@ -1275,6 +1275,58 @@ static void testSk10Opisowy() {
   }
 }
 
+// S-K-30 z sygnałem towarzyszącym M-15 (wentylacja minutowa, `noce` wersja 5, decyzja właściciela 11.11.2026): sam M-15
+// wyzwala (także w ASVAuto, gdzie EPAP stoi), granica +15% mediany normy (S-K-30.m15 = R-NOR-12.delta.M-15, komplet
+// progów 11.11.2026; wcześniej +1,0 L/min), bez M-15 w ostatniej
+// nocy albo bez normy M-15 zachowanie jak przed zmianą (sygnał pominięty, R-INF-01); norma M-14 i M-15 z 30 nocy.
+static void testSK30Wentylacja() {
+  std::vector<Noc> h = historia(40);
+  for (auto& n : h) { n.m15 = 7.5f; n.m14 = 450; n.ep95 = 9; }
+  for (int i : {30, 31}) h[(size_t)i].m13 = 17;  // M-13 + 3 w 2 nocach
+  h[31].m15 = 8.625f;                             // +15% mediany 7,5 (1,125 L/min): na progu
+  Norma n = liczNorme(h, d(31), {});
+  SPRAWDZ(n.m15.jest() && std::fabs(n.m15.med - 7.5) < 1e-6 && n.m15.n == 30);
+  SPRAWDZ(n.m14.jest() && std::fabs(n.m14.med - 450) < 1e-6);
+  infekcja::WynikSK30 r = infekcja::ocenSK30(h, n, d(31), false);  // ciśnienie w normie (cp95 10)
+  SPRAWDZ(r.warunek && r.pierwszaNoc == d(30));
+  ROWNE(r.sygnal, "wentylacja też wyższa");
+  {  // ekran: stopka prawa z sygnałem (5.10.2, artboard SK30-oddech), przy ASVAuto
+    std::vector<Noc> h2(h.begin(), h.begin() + 32);
+    sk::Wejscie w = wejscie(h2, n, 31);
+    w.tryb = reguly::Tryb::ASVAUTO;
+    const sk::Tresc* t = znajdz(sk::rano(w), "S-K-30");
+    SPRAWDZ(t && t->stopkaPrawo == "wentylacja też wyższa");
+  }
+  r = infekcja::ocenSK30(h, n, d(31), true);  // ASVAuto: EPAP w normie, wentylacja wystarcza
+  SPRAWDZ(r.warunek);
+  ROWNE(r.sygnal, "wentylacja też wyższa");
+  h[31].m15 = 8.6f;  // poniżej progu
+  SPRAWDZ(!infekcja::ocenSK30(h, n, d(31), true).warunek);
+  h[31].ep95 = 11;  // EPAP + 2: sygnał ciśnienia jak dotąd
+  r = infekcja::ocenSK30(h, n, d(31), true);
+  SPRAWDZ(r.warunek);
+  ROWNE(r.sygnal, "EPAP też wyższe");
+  h[31].ep95 = 9;
+  // bez M-15 w ostatniej nocy (noc z karty, wiersz sprzed wersji 5): sygnał pominięty
+  h[31].m15 = NAN;
+  SPRAWDZ(!infekcja::ocenSK30(h, n, d(31), false).warunek);
+  h[31].cp95 = 12;
+  r = infekcja::ocenSK30(h, n, d(31), false);
+  SPRAWDZ(r.warunek);
+  ROWNE(r.sygnal, "ciśnienie też wyższe");
+  h[31].cp95 = 10;
+  // bez normy M-15 (mniej niż 14 nocy z M-15): sygnał pominięty mimo wzrostu
+  for (int i = 0; i < 30; i++) h[(size_t)i].m15 = i < 18 ? NAN : 7.5f;  // 13 nocy z M-15 w oknie normy
+  h[31].m15 = 12;
+  Norma n2 = liczNorme(h, d(31), {});
+  SPRAWDZ(!n2.m15.jest() && n2.m13.jest());
+  SPRAWDZ(!infekcja::ocenSK30(h, n2, d(31), false).warunek);
+  // obie wartości z wiersza pliku wersji 5 przechodzą przez zapis i odczyt
+  Noc z;
+  h[31].m14 = 512.5f;
+  SPRAWDZ(parsujNocV5(wierszNocyV5(h[31]), z) && std::fabs(z.m15 - 12) < 1e-3 && std::fabs(z.m14 - 512.5f) < 1e-3);
+}
+
 int main() {
   testTeksty();
   testSk10Opisowy();
@@ -1286,6 +1338,7 @@ int main() {
   testTydzien();
   testSprzet();
   testInfekcja();
+  testSK30Wentylacja();
   testRysowanie();
   testDyrygentSprzet();
   testDyrygentSK31();

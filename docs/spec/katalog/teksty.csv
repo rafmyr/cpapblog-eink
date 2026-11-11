@@ -405,3 +405,68 @@ H-02.pytanie_asvauto_m32;pytanie;200;EPAP przy maksimum {max}, bezdechy przy nim
 E-33.tytul_asv;tytul;30;Bezdechy przy pełnym wsparciu
 E-33.podpis_lewo_asv;podpis_lewo;40;przy pełnym wsparciu / h · 30 nocy
 S-K-18.krok_dane_pliki;krok;;→ Bezdechów nie oceniam: brak plików nocy.
+S-K-40.etykieta;etykieta;30;Ostatnie noce
+S-K-40.tytul;tytul;;PS wyżej niż zwykle
+S-K-40.powod;powod;;PS {x} cmH2O, zwykle {norma}. Bywa przy zatkanym nosie lub na plecach.
+S-K-40.krok;krok;;→ Obserwuj kolejne noce.
+S-K-40.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-40.podpis_lewo;podpis_lewo;40;PS · 14 nocy
+S-K-40.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-41.etykieta;etykieta;30;Ostatnie noce
+S-K-41.tytul;tytul;;Wentylacja wyższa niż zwykle
+S-K-41.powod;powod;;Oddychasz {x} L/min, zwykle {norma}. Bywa przy wysiłku, cieple, stresie.
+S-K-41.krok;krok;;→ Obserwuj kolejne noce.
+S-K-41.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-41.podpis_lewo;podpis_lewo;40;wentylacja · 14 nocy
+S-K-41.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-42.etykieta;etykieta;30;Ostatnie noce
+S-K-42.tytul;tytul;;Wentylacja niższa niż zwykle
+S-K-42.powod;powod;;Oddychasz {x} L/min, zwykle {norma}. Aparat pilnuje celu wentylacji.
+S-K-42.krok;krok;;→ Obserwuj kolejne noce.
+S-K-42.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-42.podpis_lewo;podpis_lewo;40;wentylacja · 14 nocy
+S-K-42.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-43.etykieta;etykieta;30;Ostatnie noce
+S-K-43.tytul;tytul;;Płytszy oddech niż zwykle
+S-K-43.powod;powod;;Objętość oddechu {x} ml, zwykle {norma}. Bywa w innej pozycji snu.
+S-K-43.krok;krok;;→ Obserwuj kolejne noce.
+S-K-43.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-43.podpis_lewo;podpis_lewo;40;objętość oddechu · 14 nocy
+S-K-43.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-44.etykieta;etykieta;30;Ostatnie noce
+S-K-44.tytul;tytul;;Głębszy oddech niż zwykle
+S-K-44.powod;powod;;Objętość oddechu {x} ml, zwykle {norma}. Bywa przy wysiłku lub cieple.
+S-K-44.krok;krok;;→ Obserwuj kolejne noce.
+S-K-44.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-44.podpis_lewo;podpis_lewo;40;objętość oddechu · 14 nocy
+S-K-44.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-45.etykieta;etykieta;30;Ostatnie noce
+S-K-45.tytul;tytul;;Oddech szybszy niż zwykle
+S-K-45.powod;powod;;Oddechy {x} / min, zwykle {norma}. Bywa przy katarze, cieple, stresie.
+S-K-45.krok;krok;;→ Obserwuj kolejne noce.
+S-K-45.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-45.podpis_lewo;podpis_lewo;40;oddechy na minutę · 14 nocy
+S-K-45.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-46.etykieta;etykieta;30;Ostatnie noce
+S-K-46.tytul;tytul;;Więcej oddychania okresowego
+S-K-46.powod;powod;;{x}% nocy, zwykle {norma}%. Aparat ASV ma ten wzorzec wyrównywać.
+S-K-46.krok;krok;;→ Obserwuj kolejne noce.
+S-K-46.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-46.podpis_lewo;podpis_lewo;40;oddychanie okresowe · 14 nocy
+S-K-46.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}%
+S-K-47.etykieta;etykieta;30;Ostatnie noce
+S-K-47.tytul;tytul;;Wdechy bardziej spłaszczone
+S-K-47.powod;powod;;Ograniczenie przepływu {x}, zwykle {norma}. Bywa przy zatkanym nosie.
+S-K-47.krok;krok;;→ Obserwuj kolejne noce.
+S-K-47.krok_lekarz;krok;;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-47.podpis_lewo;podpis_lewo;40;ograniczenie przepływu · 14 nocy
+S-K-47.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+R-KON-68.linia;linia;60;Dobra zmiana: {wskaznik} {kierunek} niż zwykle od {n} nocy.
+R-KON-68.ahi;nazwa;17;AHI
+R-KON-68.ps;nazwa;17;PS
+R-KON-68.wyciek;nazwa;17;wyciek
+R-KON-68.przerwy;nazwa;17;przerwy
+R-KON-68.przeplyw;nazwa;17;spłaszczenie
+R-KON-68.czas;nazwa;17;czas z maską
+R-KON-68.nizej;nazwa;5;niżej
+R-KON-68.wyzej;nazwa;5;wyżej

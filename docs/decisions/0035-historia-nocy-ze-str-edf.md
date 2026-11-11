@@ -69,3 +69,7 @@ Przy `noc_zrodlo=plik` (ADR-0036 pkt 5) panel pobiera STR.edf w wybudzeniu z noc
 ## Zmiana 2026-11-09 (ADR-0036 „Zmiana 2026-11-09”: tryb porównawczy domyślny)
 
 Domyślnym źródłem nocy jest teraz `noc_zrodlo=porownanie` (R-DANE-60): noc z raportu JSON, a na końcu wybudzenia porównanie z nocą z plików, które też bierze ustawienia z doby STR (`Przebieg::strDoNocy()`). STR.edf jest więc pobierany niezależnie od źródła nocy: przy zmianie etagu przez historię ze STR (pkt 1, jak dotąd), a przy `plik` i w porównaniu także przy niezmienionym etagu, gdy w tym wybudzeniu nie był jeszcze pobrany (najwyżej jedno pobranie na wybudzenie zostaje). Zdanie wyżej „Bez `noc_zrodlo=plik` bez zmian” jest nieaktualne: bez zmian jest tylko `noc_zrodlo=json`. Noce 'S' z pliku pobranego do porównania wpisują się według tych samych zasad (R-DANE-41, pierwszeństwo bez zmian).
+
+## Zmiana 2026-11-11 (ADR-0036 „Zmiana 2026-11-11”: domyślnie `plik`; bez zmiany decyzji)
+
+Domyślnym źródłem nocy jest od 11.11.2026 `plik`: STR.edf pobierany w wybudzeniu z nocą z plików także przy niezmienionym etagu, najwyżej raz (jak wyżej przy `plik`). Tryb porównawczy tylko jawnie (`noc_zrodlo=porownanie`); bez dodatkowych pobrań STR zostaje tylko `noc_zrodlo=json`.

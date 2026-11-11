@@ -73,6 +73,15 @@ Noc z plików sesji (ADR-0036) zapisuje się w tym samym rekordzie `noce` wersji
 
 Klucz `noc_zrodlo` ma nową wartość `porownanie`, która jest domyślna (bez wiersza i przy złej wartości); wcześniejsze zdanie o wartości domyślnej „brak” (raport JSON) dotyczy dziś tylko zapisu nocy, który dalej idzie z raportu JSON. Nowy format `porownanie` w wersji 1: `/dane/porownanie.csv`, przepisanie atomowe z `#koniec {n}`, pola `data;werdykt;rozjazd;pominiete;przyczyna`, bez wersji 0 i bez migracji, 30 ostatnich dób (T-DANE-40). Plik z nowszej wersji jest tylko do odczytu (pkt 4), a panel wtedy w ogóle nie porównuje (bez pobrań plików doby). Plik nie należy do plików przywracania (`plikiZrzutu()`), ale jest w zrzucie `Z`. NVS bez nowych kluczy. Źródło: `src/magazyn.cpp` `rejestrFormatow()`, `src/porownanie.h`, CHANGELOG 09.11.2026.
 
+## Zmiana 2026-11-11 (ADR-0036 „Zmiana 2026-11-11”, domyślnie `plik`; bez zmiany decyzji)
+
+Wartość domyślna klucza `noc_zrodlo` (bez wiersza i przy złej wartości) to od 11.11.2026 `plik`: noc z plików sesji zapisuje się w tym samym rekordzie `noce` wersji 4 (źródło `A`), bez nowych pól, bez migracji i bez przeliczania nocy zapisanych wcześniej z raportu JSON. `/dane/porownanie.csv` zostaje bez zmian formatu; przy `plik` nie przybywa wpisów. NVS bez nowych kluczy.
+
 ## Zmiana 2026-11-09 (konfiguracja w zrzucie; bez zmiany decyzji)
 
 Zrzut `Z` obejmuje też `/konfiguracja.txt` (ustawienia i dane wpisane na panelu: daty wymiany, model maski, formularz), z rozmiarem i skrótem SHA-256 przed sekcją pliku; przywracanie z katalogu zrzutu wysyła ją komendą `W konfiguracja.txt` przed `K`. Plik nie należy do plików przywracania (`plikiZrzutu()`), nie ma wersji formatu ani migracji, NVS bez zmian. Źródło: spec techniczna T-WYM-92, 8.6, `src/dyrygent.cpp` `Przebieg::zrzutKonfiguracji()`, CHANGELOG 09.11.2026.
+
+## Zmiana 2026-11-11 (M-14 i M-15 w rekordzie nocy; bez zmiany decyzji)
+
+Rekord `noce` wersja 5 = pola wersji 4 i na końcu `m14;m15` (M-14 objętość oddechowa w mL, M-15 wentylacja minutowa w L/min, mediany kanałów `TidVol` i `MinVent`; decyzja właściciela projektu 11.11.2026, M-14 dołożone w tej samej zmianie formatu). Zgodnie z pkt o wersjach: nowe pola tylko na końcu, migracja 4 → 5 krokiem ogólnym `migrujWMiejscu()` (puste pola na końcu, kopia `.v4` przed zmianą; pliki wersji 1–3 krok po kroku), firmware znający wersję 4 czyta plik wersji 5 tylko do odczytu (pierwsze 42 pola). Noce z karty, ze starszych plików i z raportu bez tych kanałów mają pola puste (brak danych, nigdy 0).
+

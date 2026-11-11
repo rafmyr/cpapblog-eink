@@ -574,6 +574,31 @@ static void podgladB16(PlotnoPamiec& p) {
     for (auto& x : h) x.m13 = 14;
     h[29].cp95 = 10;
   }
+  {  // S-K-40 i S-K-43 (ADR-0039): stan odchylenia PS w górę i objętości oddechowej w dół, linia normy, ton „informacja”
+    std::vector<Noc> ho;
+    for (int i = 34; i >= 0; i--) {
+      Noc x = nocB16(dodajDni(koniec, -i));
+      x.ustawienia = "ASVAuto/6/10/3/15";
+      x.tryb = "ASVAuto";
+      int k = (34 - i) % 5;
+      x.psmed = i < 5 ? 8.4f - 0.1f * (float)k : 6.0f + 0.1f * (float)k;
+      x.m14 = 460.0f + 5.0f * (float)k;
+      ho.push_back(x);
+    }
+    Stany so = liczStany(ho, koniec, {});
+    sk::Wejscie wo = w;
+    wo.hist = &ho;
+    wo.norma = &so.norma;
+    wo.stany = &so;
+    wo.tryb = reguly::Tryb::ASVAUTO;
+    skB16(p, sk::rano(wo), "S-K-40", "b16-sk40-ps", rano, "Katowice 3° · mgła", stopkaCzujnika(21, 44));
+    for (int i = 30; i < 35; i++) ho[(size_t)i].psmed = 6.2f;
+    for (int i = 30; i < 35; i++) ho[(size_t)i].m14 = 385.0f + 3.0f * (float)i - 90.0f;
+    so = liczStany(ho, koniec, {});
+    wo.norma = &so.norma;
+    wo.stany = &so;
+    skB16(p, sk::rano(wo), "S-K-43", "b16-sk43-objetosc", rano, "Katowice 3° · mgła", stopkaCzujnika(21, 44));
+  }
   {  // S-K-31: maska po terminie, wyciek rośnie od 4 tygodni
     std::vector<Noc> h31;
     for (int i = 40; i >= 0; i--) {

@@ -90,6 +90,7 @@ static const char* POLA_V1 =
 static const std::string POLA_V2 = std::string(POLA_V1) + ";m13;m17;pna;srn;m08;mpa;mpi;ipc;eep;mns;mxs;ua;m10;m10p;eai;eax;ans;axs;epr;tryb";
 // bieżąca wersja `noce` to 3 (pole `m18` na końcu); testy zapisu sprawdzają wersję 3
 static const std::string POLA_V3 = POLA_V2 + ";m18";
+static const std::string POLA_V5 = POLA_V3 + ";m14;m15";  // wersja 5 (M-14, M-15)
 // Puste pola wersji 2 wiersza wersji 2 (po polu `import`) i puste pola po M-08.
 static const std::string PUSTE_B1(20, ';');
 static const std::string PUSTE_USTAW(15, ';');
@@ -497,7 +498,7 @@ static void testRejestrNoceV2() {
   const FormatPliku* f = formatPliku(rejestrFormatow(), "noce");
   SPRAWDZ(f != nullptr);
   if (!f) return;
-  ROWNE_L(f->wersja(), 4);  // wersja 4 (M-18 w wersji 3, `S` w polu zrodlo, ADR-0035)
+  ROWNE_L(f->wersja(), 5);  // wersja 5 (M-18 w wersji 3, `S` w polu zrodlo w 4, ADR-0035; M-15 w 5)
   if (f->wersja() < 2) return;
   ROWNE(polaTekst(f->pola[0]), POLA_V1);
   ROWNE(polaTekst(f->pola[1]), POLA_V2);
@@ -524,13 +525,13 @@ static void testMigracja0do2_412() {
   std::map<std::string, std::string> wgDaty;
   for (auto& s : m.sciezki("noce")) {
     std::string t = pl.tresc(s);
-    SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 4\n") == 0);
+    SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 5\n") == 0);
     std::vector<std::string> w = wiersze(t);
-    SPRAWDZ(w.size() >= 3 && w[1] == POLA_V3);
+    SPRAWDZ(w.size() >= 3 && w[1] == POLA_V5);
     OdczytPliku o = m.czytaj("noce", s);
-    SPRAWDZ(o.stan == StanPliku::DOBRY && o.wersja == 4);
+    SPRAWDZ(o.stan == StanPliku::DOBRY && o.wersja == 5);
     for (auto& x : o.wiersze) {
-      SPRAWDZ(dziel(x, ';').size() == 42);
+      SPRAWDZ(dziel(x, ';').size() == 44);
       wgDaty[x.substr(0, 10)] = x;
     }
   }
@@ -571,8 +572,8 @@ static void testMigracja1do2() {
   ROWNE(pl.tresc("/dane/noce/2026.csv.v1"), t1);
   SPRAWDZ(!pl.istnieje("/dane/noce/2026.csv.tmp"));
   std::vector<std::string> w2;
-  for (auto& l : v1) w2.push_back(l + PUSTE_B1 + ";");  // migracja do wersji 3 (puste `m18`)
-  ROWNE(pl.tresc("/dane/noce/2026.csv"), plik("noce", 4, POLA_V3, w2));
+  for (auto& l : v1) w2.push_back(l + PUSTE_B1 + ";;;");  // migracja do wersji 5 (puste `m18`, `m14`, `m15`)
+  ROWNE(pl.tresc("/dane/noce/2026.csv"), plik("noce", 5, POLA_V5, w2));
   bool wynik = false;
   for (auto& x : m.migracje()) wynik = wynik || (x.ok && x.przed == 30 && x.po == 30);
   SPRAWDZ(wynik);
@@ -583,10 +584,14 @@ static void testMigracja1do2() {
   n.m17 = 1;
   n.pna = "P";
   n.srn = "S";
-  w2.back() = wierszNocyV3(n);
+  n.m14 = 455.0f;
+  n.m15 = 8.4f;
+  w2.back() = wierszNocyV5(n);
   SPRAWDZ(m.zapisz("noce", "/dane/noce/2026.csv", w2));
   OdczytPliku o2 = m.czytaj("noce", "/dane/noce/2026.csv");
-  SPRAWDZ(o2.stan == StanPliku::DOBRY && o2.wersja == 4 && !o2.wiersze.empty() && o2.wiersze.back() == w2.back());
+  Noc n2;
+  SPRAWDZ(!o2.wiersze.empty() && parsujNocV5(o2.wiersze.back(), n2) && std::fabs(n2.m15 - 8.4f) < 1e-3 && std::fabs(n2.m14 - 455.0f) < 1e-3);
+  SPRAWDZ(o2.stan == StanPliku::DOBRY && o2.wersja == 5 && !o2.wiersze.empty() && o2.wiersze.back() == w2.back());
 }
 
 // Przywracanie ze zrzutu wersji 0 (T-WYM-62) na flash w wersji 2: noc z AirBridge we flash zostaje z polami wersji 2,
@@ -667,12 +672,12 @@ static void testDyrygentZapisujePolaB1() {
   s.p.siec.dodaj(sciezkaNocy(DOBA_A), 200, raportB1(DOBA_A, "2", "16.2"));
   wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
   std::string t = s.p.pliki.tresc("/dane/noce/2026.csv");
-  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 4\n") == 0);
+  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 5\n") == 0);
   std::string w = wierszZData(t, "2026-11-04");
   SPRAWDZ(!w.empty());
   std::vector<std::string> f = dziel(w, ';');
-  ROWNE_L(f.size(), 42);  // wersja 3
-  if (f.size() == 42) {
+  ROWNE_L(f.size(), 44);  // wersja 5
+  if (f.size() == 44) {
     ROWNE(f[21], "16.20");
     ROWNE(f[22], "1");
     ROWNE(f[23], "AirCurve_10_CS_PaceWave");
@@ -704,7 +709,7 @@ static void testDyrygentZapisujePolaB1() {
   wybudz(s2, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
   std::string t2 = s2.p.pliki.tresc("/dane/noce/2026.csv");
   SPRAWDZ(t2 != t2przed);  // plik przepisany (noc 4.11 dopisana)
-  ROWNE(wierszZData(t2, "2026-11-02"), wierszNocyV3(n2));
+  ROWNE(wierszZData(t2, "2026-11-02"), wierszNocyV5(n2));
   SPRAWDZ(!wierszZData(t2, "2026-11-04").empty());
   SPRAWDZ(!s2.p.pliki.istnieje("/dane/noce/2026.csv.v1"));  // plik już w wersji 2: bez migracji
   // status bez `srn`: noc bez odczytu numeru (brak odczytu nie jest zmianą, R-NOR-25 fail-path)
@@ -735,8 +740,8 @@ static void testZrzutZNaV2() {
   for (char c : std::string("Z")) s.p.port.znaki.push_back((unsigned char)c);
   wybudz(s, ep(2026, 11, 4, 9, 0), PowodWybudzenia::START);
   SPRAWDZ(zawiera(s.p.port.log, "PLIK /dane/noce/2026.csv"));
-  SPRAWDZ(zawiera(s.p.port.log, "#cpap-eink noce 4"));
-  SPRAWDZ(zawiera(s.p.port.log, wierszNocyV3(a)));
+  SPRAWDZ(zawiera(s.p.port.log, "#cpap-eink noce 5"));
+  SPRAWDZ(zawiera(s.p.port.log, wierszNocyV5(a)));
 }
 
 // ============================================================================================================
@@ -914,7 +919,7 @@ static void testScalenieZPlikiemWersji1() {
     ROWNE_L(rekordyNocy(pl), 60);
     SPRAWDZ(m.migrujWMiejscu());
   }
-  SPRAWDZ(pl.tresc("/dane/noce/2026.csv").compare(0, 18, "#cpap-eink noce 4\n") == 0);
+  SPRAWDZ(pl.tresc("/dane/noce/2026.csv").compare(0, 18, "#cpap-eink noce 5\n") == 0);
   ROWNE_L(rekordyNocy(pl), 60);
   // dyrygent: pierwsze wybudzenie po starcie ma 60 nocy w historii
   PanelB1 s;
@@ -1052,10 +1057,40 @@ static void testStanM05pTrybami() {
   SPRAWDZ(liczStany(he, dodajDni(d, 4), {}).e36);
 }
 
+// M-14 i M-15 z raportu JSON (`noce` wersja 5): jednostki. MinVent tylko w `L/min` albo bez jednostki (`L/s` = brak);
+// TidVol w `mL`, `ml` albo bez jednostki wprost, w `L` × 1000, inna = brak; wpis z EDF wygrywa ze STR.
+static void testM14M15ZRaportu() {
+  auto rap = [](const std::string& kanaly) {
+    return "{\"day\":" + std::to_string(DOBA) +
+           ",\"present\":true,\"partial\":false,\"used_seconds\":25200,\"ahi\":1.4,\"events_known\":true,"
+           "\"counts\":{\"oa\":1,\"ca\":5,\"h\":4},\"channels\":[" + kanaly +
+           "],\"settings\":{\"available\":true,\"fields\":[{\"tag\":\"MOP\",\"value\":\"ASVAuto\",\"option\":8}]}}";
+  };
+  auto k = [](const char* id, const char* unit, const char* med, const char* src = "edf") {
+    return std::string("{\"id\":\"") + id + "\",\"unit\":\"" + unit + "\",\"median\":" + med + ",\"p95\":1,\"source\":\"" + src + "\"}";
+  };
+  NocAB a = nocZRaportu(rap(k("MinVent", "L/min", "7.6") + "," + k("TidVol", "mL", "455")), DOBA, "ASVAuto");
+  BLISKO(a.noc.m15, 7.6);
+  BLISKO(a.noc.m14, 455);
+  a = nocZRaportu(rap(k("MinVent", "", "7.6") + "," + k("TidVol", "ml", "455")), DOBA, "ASVAuto");
+  BLISKO(a.noc.m15, 7.6);
+  BLISKO(a.noc.m14, 455);
+  a = nocZRaportu(rap(k("MinVent", "L/s", "0.13") + "," + k("TidVol", "L", "0.455")), DOBA, "ASVAuto");
+  SPRAWDZ(std::isnan(a.noc.m15));
+  BLISKO(a.noc.m14, 455);
+  a = nocZRaportu(rap(k("TidVol", "cl", "45.5") + "," + k("MinVent", "L/min", "-1")), DOBA, "ASVAuto");
+  SPRAWDZ(std::isnan(a.noc.m14) && std::isnan(a.noc.m15));
+  a = nocZRaportu(rap(k("MinVent", "L/min", "6.0", "str") + "," + k("MinVent", "L/min", "7.2")), DOBA, "ASVAuto");
+  BLISKO(a.noc.m15, 7.2);  // EDF wygrywa
+  a = nocZRaportu(rap(k("MinVent", "L/min", "null")), DOBA, "ASVAuto");
+  SPRAWDZ(std::isnan(a.noc.m15) && std::isnan(a.noc.m14));
+}
+
 int main() {
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
   testPolaDomyslne();
+  testM14M15ZRaportu();
   testWierszV2();
   testPnaZSrednikiem();
   testPolaUstawienUaM10();

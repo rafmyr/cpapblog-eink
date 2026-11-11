@@ -9,7 +9,6 @@ miejsce,wartosc,powod,opis
 "2.4|Sprzęt: ESP32-S3, 8 MB PSRAM, e-ink 800×",18 px; 2 s,wygląd ekranu,
 2.5|Sen główny jest w nocy: główna sesja ter,18:00; 4 h,powtórzenie,"= R-DANE-27.start_nocy, R-DANE-27.wczesny_sen_min"
 §4.1,11:00,czas interfejsu,
-§4.5,"60 mL; 1,0 L/min",powtórzenie,"= R-NOR-12.delta.M-14, R-NOR-12.delta.M-15"
 R-DANE-02,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min)",czas interfejsu,
 R-DANE-19,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min)",czas interfejsu,
 R-DANE-20,"godziny i odstępy pobierania (05:00, 11:00, 23:30, co 30 min)",czas interfejsu,

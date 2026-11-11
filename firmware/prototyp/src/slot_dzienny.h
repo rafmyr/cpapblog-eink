@@ -210,9 +210,10 @@ bool prefiksSesji(const std::string& p, std::string& data, int& minuta);
 // „Co znaczą te liczby” z S8); domyślnie prywatny
 //   poczatek_leczenia = RRRR-MM-DD                         „Początek leczenia” (R-SKI-08): karencja L-01 w CPAP
 //                                                          i AutoSet tylko w 56 dniach od tej daty; bez wiersza brak
-//   noc_zrodlo = porownanie|plik|json                      źródło nocy przy AirBridge od v2.3.1 (ADR-0036): raport
-//                                                          JSON z porównaniem z nocą z plików (domyślnie, src/porownanie.h),
-//                                                          pliki sesji liczone na panelu albo sam raport JSON
+//   noc_zrodlo = plik|porownanie|json                      źródło nocy przy AirBridge od v2.3.1 (ADR-0036): pliki
+//                                                          sesji liczone na panelu, raport JSON jako zapas (domyślnie,
+//                                                          od 11.11.2026), raport JSON z porównaniem z nocą z plików
+//                                                          (src/porownanie.h) albo sam raport JSON
 //   noc_json = m02,m08                                     metryki, które przy `plik` zostają z raportu JSON
 //   co2 = tak|nie                                          ekrany CO2 (S-K-01, S-K-02, S-K-13, wariant CO2 S-K-33)
 //                                                          i ocena wieczorna z Wi-Fi (R-KON-01); bez wiersza: według
@@ -223,6 +224,8 @@ const float PYLEK_PROG_DOMYSLNY[PYL_N] = {100, 50, 50, 30};  // [PRÓG] zastępc
 // 5.6.4 „Uwaga o masce od” (R-KONF-42): zakres [PRÓG R-KONF-42.zakres_min, R-KONF-42.zakres_max] i wartość domyślna
 // [PRÓG S-K-10.uwaga_o_masce], L/min
 // (model pasm wycieku: 10–15 L/min „istotny, odczyty prawidłowe”): 10–15, domyślnie 10
+// Źródło nocy bez wiersza `noc_zrodlo` (ADR-0036 „Zmiana 2026-11-11”): 1 = `plik`
+const int NOC_ZRODLO_DOMYSLNE = 1;
 const int UWAGA_O_MASCE_MIN = 10, UWAGA_O_MASCE_MAX = 15, UWAGA_O_MASCE_DOMYSLNIE = 10;
 struct UstawieniaDnia {
   ElementWymiany sprzet[EL_N];
@@ -249,11 +252,14 @@ struct UstawieniaDnia {
   // wpisu (dyrygent bierze wtedy `POGODA_LAT` i `POGODA_LON` z secrets.h, a bez nich Katowice). Wpis z konfiguracji
   // ma pierwszeństwo przed secrets.h.
   double pogodaLat = NAN, pogodaLon = NAN;
-  // `noc_zrodlo=porownanie|plik|json` (ADR-0036 pkt 5, „Zmiana 2026-11-09”): źródło nocy przy AirBridge od v2.3.1;
-  // 1 = pliki sesji (src/noc_pliki.h), 0 = `json`, 2 = `porownanie` (noc z raportu JSON i porównanie z nocą z plików,
-  // src/porownanie.h), -1 = bez wiersza (domyślnie jak `porownanie`). `noc_json=` lista metryk (m01, m02, …), które przy `plik`
-  // zostają z raportu JSON; zła lista = wiersz pominięty.
+  // `noc_zrodlo=plik|porownanie|json` (ADR-0036 pkt 5, „Zmiana 2026-11-09” i „Zmiana 2026-11-11”): źródło nocy przy
+  // AirBridge od v2.3.1; 1 = pliki sesji (src/noc_pliki.h), 0 = `json`, 2 = `porownanie` (noc z raportu JSON
+  // i porównanie z nocą z plików, src/porownanie.h), -1 = bez wiersza albo zła wartość (domyślnie jak `plik`,
+  // NOC_ZRODLO_DOMYSLNE, decyzja właściciela 11.11.2026). `noc_json=` lista metryk (m01, m02, …), które przy
+  // `plik` zostają z raportu JSON; zła lista = wiersz pominięty.
   int nocZrodlo = -1;
+  // Źródło nocy po zastosowaniu wartości domyślnej: 1 `plik`, 0 `json`, 2 `porownanie` (nigdy -1).
+  int nocZrodloSkuteczne() const { return nocZrodlo < 0 ? NOC_ZRODLO_DOMYSLNE : nocZrodlo; }
   std::set<std::string> nocJson;
   bool nocJsonZly = false;  // wiersz `noc_json` z nieznanym ID: przy `plik` cała noc z raportu JSON (bezpieczny kierunek)
   std::vector<std::string> bledy;

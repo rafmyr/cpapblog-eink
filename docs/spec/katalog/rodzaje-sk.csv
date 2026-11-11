@@ -6,3 +6,4 @@ sk_tydzien;rodzaj;
 sk_infekcja;rodzaj;
 sk_sprzet;rodzaj;
 sk_dzien;rodzaj;
+sk_odchylenie;rodzaj;sygnal,kierunek

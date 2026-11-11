@@ -23,7 +23,7 @@
 //    23 wcześniejszych; różnica ≥ 0,5 × Δ metryki (4.5; ciśnienie: Δ M-05p, EPAP: Δ M-06p) w górę `rośnie`, w dół
 //    `spada`, mniejsza `stabilnie`; mniej niż 4 noce w oknie 7 albo mniej niż 14 w oknie 23: `uczę się`. Noce jak
 //    w linii 30 nocy, bez nocy w trybie spoza wydania (R-DANE-29), dla AHI bez nocy niepewnych (R-NOR-19);
-// - `Wsparcie` (M-28) nie ma Δ w 4.5; do słowa trendu Δ 2 cmH2O jak EPAP (TREND_DELTA_PS);
+// - `Wsparcie` (M-28): do słowa trendu Δ M-28 z 4.5, 1 cmH2O (TREND_DELTA_PS, od 11.11.2026);
 // - jedna legenda panelu: ramka = poza twoją normą, czarne pole = ponad próg (tylko K2).
 // Wiersz `Wyciek` bez stanu odchylenia z medianą 30 nocy (w dokładności ekranu) powyżej 10 L/min [PRÓG]: w drugiej
 // linii oceny `wyciek widoczny`, bez ramki (R-EKR-59).
@@ -130,6 +130,6 @@ const double PROG_AHI = 5.0, PROG_WYCIEK = 24.0;
 const double TREND_CZESC_DELTY = 0.5;
 const int TREND_NOCY_7 = 4, TREND_NOCY_23 = 14;
 // R-KOK-16.delta_ps [PRÓG]: Δ wiersza `Wsparcie` (M-28) do słowa trendu, ta sama co EPAP.
-const double TREND_DELTA_PS = 2.0;
+const double TREND_DELTA_PS = 1.0;  // R-KOK-16.delta_ps = Δ M-28 (komplet progów 11.11.2026)
 // R-EKR-59 [PRÓG]: mediana wycieku P95 z 30 nocy powyżej tylu L/min daje `wyciek widoczny` w K1.
 const double WYCIEK_WIDOCZNY = 10.0;

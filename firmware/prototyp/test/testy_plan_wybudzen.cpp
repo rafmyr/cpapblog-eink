@@ -841,7 +841,7 @@ static void testT_WYM_20_kolejnoscKrokow() {
   BezSlotuDziennego bezSlotu;
   PanelSym s;
   zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
-  // kroki 7.1 bez trybu porównawczego (domyślny od 09.11.2026 dokłada po czuwaniu osobne połączenie: niżej)
+  // kroki 7.1 bez trybu porównawczego (`noc_zrodlo=porownanie` dokłada po czuwaniu osobne połączenie: niżej)
   s.p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\n";
   s.siec.dodaj("/api/status", 200, STATUS_SPOCZYNEK);
   s.siec.dodaj(sciezkaListy(), 200, lista(DOBA_A, DOBA_A));
@@ -866,11 +866,12 @@ static void testT_WYM_20_kolejnoscKrokow() {
   SPRAWDZ(labs(koniec - (long)ep(2026, 11, 4, 11, 0, 5)) <= 1);
   SPRAWDZ(bezNaglowka(s.p.pliki.pliki["/log/wybudzenia.csv"]).find(";zegar:okno_poranne") != std::string::npos);
   }
-  {  // tryb porównawczy (domyślny, R-DANE-60): kroki 7.1 do rysowania jak wyżej, potem krok porównania przed snem:
-     // drugie połączenie tylko z żądaniami porównania, Wi-Fi wyłączone przed snem
+  {  // tryb porównawczy (`noc_zrodlo=porownanie`, R-DANE-60; od 11.11.2026 tylko jawnie): kroki 7.1 do rysowania jak
+     // wyżej, potem krok porównania przed snem: drugie połączenie tylko z żądaniami porównania, Wi-Fi wyłączone przed snem
   BezSlotuDziennego bezSlotu;
   PanelSym s;
   zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+  s.p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=porownanie\n";
   s.siec.dodaj("/api/status", 200, STATUS_SPOCZYNEK);
   s.siec.dodaj(sciezkaListy(), 200, lista(DOBA_A, DOBA_A));
   s.siec.dodaj(sciezkaNocy(DOBA_A), 200, raport(DOBA_A));

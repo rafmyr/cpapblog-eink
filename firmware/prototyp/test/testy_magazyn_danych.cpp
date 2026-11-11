@@ -317,7 +317,7 @@ static void testT_WYM_50_naglowkiPlikow() {
     ROWNE(f->sciezka, e.sciezka);
     ROWNE(f->sciezkaV0, e.v0);
     SPRAWDZ(f->rodzaj == e.rodzaj);
-    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 4 : std::string(e.nazwa) == "sypialnia" ? 2 : 1);
+    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 5 : std::string(e.nazwa) == "sypialnia" ? 2 : 1);
     if (f->wersja() >= 1) ROWNE(polaTekst(f->pola[0]), e.pola);
   }
   Dziennik d;
@@ -2351,8 +2351,8 @@ static void testT_WYM_62_regulaScalania() {
   ROWNE(w[1], wierszNocyV1(pelnaF));  // pełna we flash zostaje
   Noc oczek = czescZ;
   oczek.import = czescF.import;
-  ROWNE(w[2], wierszNocyV3(oczek));  // wersja 3 // zastąpiona noc w wersji 2 (pola wersji 2 z flash)
-  ROWNE(w[3], wierszNocyV3(pustaZ));
+  ROWNE(w[2], wierszNocyV5(oczek));  // wersja 5 (M-15) // zastąpiona noc (pola wersji 2 z flash)
+  ROWNE(w[3], wierszNocyV5(pustaZ));
   // noc częściowa w obu źródłach: flash
   Noc c2 = czescZ;
   c2.czesciowa = true;
@@ -2568,7 +2568,7 @@ static void testU05_wierszeZDanychFirmware() {
   std::vector<std::string> ocz = {"Oprogramowanie: 1.0.0 (app0)", "Zestaw reguł: wbudowany", "Pamięć panelu: wolne 23 MB",
                                   "Karta: brak karty", "Źródło otoczenia: wyłączone", "Panel: 192.168.1.50",
                                   "Wi-Fi: Dom −60 dBm", "AirBridge: 192.168.1.20 · v2.2.1", "Ostatnie pobranie: –",
-                                  "Bateria: 70%", "Noce z plików: jeszcze bez porównania",
+                                  "Bateria: 70%", "Noce z plików: włączone (plik)",  // domyślnie `plik`
                                   "Wgrywanie przez Wi-Fi do 10:10", "hasła i dane terapii nie są pokazywane"};
   SPRAWDZ(t.linieTestu.size() >= ocz.size());
   for (size_t i = 0; i < ocz.size() && i < t.linieTestu.size(); i++) ROWNE(t.linieTestu[i], ocz[i]);
@@ -2576,7 +2576,7 @@ static void testU05_wierszeZDanychFirmware() {
   SPRAWDZ(logMa(s, "U-05 · Wersja: 1.0.0+abc1234 · slot app0"));
   for (const char* d : {"U-05 · Wybudzenie: przycisk", "U-05 · Wi-Fi: 192.168.1.50 · RSSI -60 dBm", "U-05 · AirBridge: 192.168.1.20",
                         "historia 30 nocy", "U-05 · Czynniki: ", "U-05 · Bateria 3,95 V", "U-05 · Otoczenie: wyłączone",
-                        "U-05 · Pamięć: min. sterta", "U-05 · Dane: wersja plików 4"})  // noce w wersji 4 (S w polu zrodlo, ADR-0035)
+                        "U-05 · Pamięć: min. sterta", "U-05 · Dane: wersja plików 5"})  // noce w wersji 5 (M-15)
     SPRAWDZ(logMa(s, d));
   SPRAWDZ(!s.p.ekran.klatki.empty() && ukladU05(s.p.ekran.klatki.front(), 5, 5));
   if (!s.p.ekran.klatki.empty()) zapiszU05(s.p.ekran.klatki.front(), "u05-okno-wifi");

@@ -96,6 +96,8 @@ class KartaSyntetyczna(unittest.TestCase):
         self.assertAlmostEqual(m["m03_ca_h"], 1.0)
         self.assertAlmostEqual(m["m03_obturacyjne_h"], 1.0)      # (3 + 0 + 4) / 7 h
         self.assertAlmostEqual(m["m04_rera_h"], 2 / 7.0)
+        self.assertAlmostEqual(m["m14_objetosc_med"], 460.0)    # M-14 = mediana TidVol.2s w mL (rekord panelu `m14`)
+        self.assertAlmostEqual(m["m15_wentylacja_med"], 7.5)    # M-15 = mediana MinVent.2s w L/min (`m15`)
         self.assertAlmostEqual(m["m08_przeciek_wysoki_min"], 30.0)
         self.assertAlmostEqual(m["m08_przeciek_wysoki_proc"], 100 * 30 / 420.0)
         self.assertAlmostEqual(m["m09_csr_min"], 20.0)

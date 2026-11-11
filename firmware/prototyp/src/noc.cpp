@@ -120,7 +120,8 @@ std::string trybNocy(const Noc& n) {
 }
 
 std::string trescNocy(const Noc& r) {
-  return zapiszNoc(r) + ";" + polaB1(r) + ";" + (r.m18 >= 0 ? std::to_string(r.m18) : std::string());
+  return zapiszNoc(r) + ";" + polaB1(r) + ";" + (r.m18 >= 0 ? std::to_string(r.m18) : std::string()) + ";" +
+         pole(r.m14) + ";" + pole(r.m15);
 }
 
 std::string wierszNocyV3(const Noc& r) {
@@ -145,6 +146,30 @@ bool parsujNocV3(const std::string& w, Noc& r) {
       int v = (int)strtol(p.c_str(), nullptr, 10);
       if (v < 24 * 60) n.m18 = v;
     }
+  }
+  r = n;
+  return true;
+}
+
+std::string wierszNocyV5(const Noc& r) { return wierszNocyV3(r) + ";" + pole(r.m14) + ";" + pole(r.m15); }
+
+bool parsujNocV5(const std::string& w, Noc& r) {
+  Noc n;
+  if (!parsujNocV3(w, n)) return false;
+  size_t i = 0;  // pola 43 i 44 (po 42. średniku); brak albo nieczytelne = brak (NAN)
+  for (int k = 0; k < 42 && i != std::string::npos; k++) {
+    i = w.find(';', i);
+    if (i != std::string::npos) i++;
+  }
+  float Noc::* const pola[] = {&Noc::m14, &Noc::m15};
+  for (auto pl : pola) {
+    if (i == std::string::npos) break;
+    size_t j = w.find(';', i);
+    std::string p = w.substr(i, j == std::string::npos ? std::string::npos : j - i);
+    if (!p.empty() && p.back() == '\r') p.pop_back();
+    float v;
+    if (liczbaOk(p, v) && std::isfinite(v) && v >= 0) n.*pl = v;
+    i = j == std::string::npos ? j : j + 1;
   }
   r = n;
   return true;
@@ -223,6 +248,7 @@ bool uzupelnijNoc(Noc& c, const Noc& z, PolaUzupelnienia zakres) {
   if (c.ustawienia.empty() && !z.ustawienia.empty()) { c.ustawienia = z.ustawienia; zm = true; }
   // M-13, M-17, model i numer aparatu, M-08, ustawienia, UA/h, M-10 (pola z AirBridge; noc z karty ich nie ma)
   f(&Noc::m13);
+  f(&Noc::m14); f(&Noc::m15);  // M-14, M-15 (`noce` wersja 5)
   for (auto p : LICZBY_B1) f(p);
   if (c.m17 < 0 && z.m17 >= 0) { c.m17 = z.m17; zm = true; }
   if (c.m18 < 0 && z.m18 >= 0) { c.m18 = z.m18; zm = true; }  // M-18
@@ -329,7 +355,14 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
   size_t poDzis = doDzis;
   while (poDzis < hp.noce.size() && hp.noce[poDzis]->data == dzis) poDzis++;
   if (poDzis > 0) nm.ustawienia = *hp.ust[poDzis - 1];
-  std::vector<double> m01, ahi, cmed, cp95, wp95, emed, ep95, psmed, psp95, oa, ca, hh, m17, m13, csrp;
+  // R-NOR-07 (zmiana 11.11.2026, decyzja właściciela projektu): w trybach ASV i ASVAuto norma oddechu (M-13, M-14,
+  // M-15) też tylko z nocy z ustawieniami najnowszej nocy; w CPAP i AutoSet bez filtra
+  bool oddechZUstawien = false;
+  if (poDzis > 0) {
+    std::string t = trybNocy(*hp.noce[poDzis - 1]);
+    oddechZUstawien = t == "ASV" || t == "ASVAuto";
+  }
+  std::vector<double> m01, ahi, cmed, cp95, wp95, emed, ep95, psmed, psp95, oa, ca, hh, m17, m13, m14, m15, csrp, m10p;
   auto dodaj = [](std::vector<double>& v, float x) { if (!std::isnan(x) && v.size() < 30) v.push_back(x); };
   auto bez = [&](const std::set<std::string> WykluczeniaNormy::*pole, const std::string& d) {
     return wm && (wm->*pole).count(d);
@@ -350,16 +383,24 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
       dodaj(hh, r->h);
     }
     if (r->m17 >= 0 && !bez(&WykluczeniaNormy::m17, r->data)) dodaj(m17, (float)r->m17);
-    dodaj(m13, r->m13);  // M-13 bez wyłączeń ponad 4.4 (tabela sygnałów 4.4)
-    if (r->m01 > 0 && !std::isnan(r->csr)) dodaj(csrp, r->csr / (float)r->m01 * 100.0f);  // CSR% = M-09 / M-01
+    // M-13, M-14, M-15 bez wyłączeń ponad 4.4 (tabela sygnałów 4.4); noce stanu odchylenia poza normą (R-NOR-09,
+    // ADR-0039); w ASV i ASVAuto tylko z nocy z ustawieniami najnowszej nocy (R-NOR-07 od 11.11.2026)
+    bool inneUst = !nm.ustawienia.empty() && *hp.ust[i] != nm.ustawienia;
+    bool oddech = !(oddechZUstawien && inneUst);
+    if (oddech && !bez(&WykluczeniaNormy::m13, r->data)) dodaj(m13, r->m13);
+    if (oddech && !bez(&WykluczeniaNormy::m14, r->data)) dodaj(m14, r->m14);
+    if (oddech && !bez(&WykluczeniaNormy::m15, r->data)) dodaj(m15, r->m15);
+    if (r->m01 > 0 && !std::isnan(r->csr) && !bez(&WykluczeniaNormy::csr, r->data))
+      dodaj(csrp, r->csr / (float)r->m01 * 100.0f);  // CSR% = M-09 / M-01
     if (!nm.ustawienia.empty() && *hp.ust[i] != nm.ustawienia) continue;  // R-NOR-07: inne ustawienia
     dodaj(cmed, r->cmed);
     if (!bez(&WykluczeniaNormy::cp95, r->data)) dodaj(cp95, r->cp95);
     if (!bez(&WykluczeniaNormy::wp95, r->data)) dodaj(wp95, r->wp95);
     dodaj(emed, epapMed(*r));  // R-NOR-08: EPAP docelowe urządzenia (STR) poza normą
     if (!bez(&WykluczeniaNormy::ep95, r->data)) dodaj(ep95, epapP95(*r));
-    dodaj(psmed, r->psmed);
+    if (!bez(&WykluczeniaNormy::ps, r->data)) dodaj(psmed, r->psmed);  // R-NOR-09 (ADR-0039, S-K-40)
     dodaj(psp95, r->psp95);
+    if (!bez(&WykluczeniaNormy::m10, r->data)) dodaj(m10p, r->m10p);  // M-10 P95 (R-NOR-07, R-NOR-09, ADR-0039)
   }
   nm.n = (int)m01.size();
   nm.m01 = zbierz(m01);
@@ -376,7 +417,10 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
   nm.h = zbierz(hh);
   nm.m17 = zbierz(m17);
   nm.m13 = zbierz(m13);
+  nm.m14 = zbierz(m14);
+  nm.m15 = zbierz(m15);
   nm.csrp = zbierz(csrp);
+  nm.m10p = zbierz(m10p);
   return nm;
 }
 

@@ -144,6 +144,10 @@ NAJDLUZSZE = {
     "element": "komora nawilżacza",  # S-K-35 (ADR-0027)
     "elemencie": "filtrze",  # S-K-35 krok `przy {elemencie}` (masce, filtrze)
     "v": "150",  # S-K-34: porywy wiatru w km/h  # R-AW-36: 15, 30, 45 min albo 1…99 h, od 100 h „99+ h”
+    # karty odchyleń S-K-40…S-K-47 (ADR-0039, 5.8.4): wartość i mediana normy wskaźnika (do 4 znaków: `12,5`, `450`)
+    "wartość": "99,9", "mediana": "99,9",
+    # linia „dobra zmiana” (R-KON-68): najdłuższa nazwa wskaźnika i słowo kierunku
+    "wskaźnik": "czas z maską", "niżej|wyżej": "niżej", "niżej\\|wyżej": "niżej",
 }
 # {Metryka} wielką literą stoi tylko w tekstach odkryć O-xx (metryki M-01, M-02,
 # M-03, M-07, M-17: najdłuższa nazwa „Czas na masce”); {metryka} małą literą

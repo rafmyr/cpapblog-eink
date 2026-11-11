@@ -36,3 +36,7 @@ Przy `noc_zrodlo=plik` panel liczy noc sam z plików sesji aparatu pobranych z A
 ## Zmiana 2026-11-09 (tryb porównawczy, ADR-0036 „Zmiana 2026-11-09”; bez zmiany decyzji)
 
 Domyślny tryb porównawczy (`noc_zrodlo=porownanie`, R-DANE-60) liczy noc z plików sesji i porównuje ją z raportem AirBridge wyłącznie na panelu; wynik (`/dane/porownanie.csv`) zostaje w pamięci panelu i wychodzi tylko przez zrzut plików portem serwisowym na komputer właściciela. Bez nowego ruchu poza sieć domową.
+
+## Zmiana 2026-11-11 (domyślnie `plik`, ADR-0036 „Zmiana 2026-11-11”; bez zmiany decyzji)
+
+Od 11.11.2026 bez wiersza `noc_zrodlo` panel liczy noc sam z plików sesji pobranych z AirBridge w sieci domowej; zdanie wyżej o „domyślnym trybie porównawczym” dotyczy dziś tylko jawnego `noc_zrodlo=porownanie`. Bez nowego ruchu poza sieć domową.

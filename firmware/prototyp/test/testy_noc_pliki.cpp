@@ -346,6 +346,9 @@ static void testZgodnosc(const std::string& karta, const std::string& plikWzorca
     SPRAWDZ(!n.noc.epapStr || !r.kanaly.count("EprPress"));
     BLISKO(n.noc.m18, std::isnan(m18) ? -1 : std::floor(m18));
     ROWNE_L(n.noc.m17, m17);
+    // M-14 i M-15 rekordu (`noce` wersja 5): mediana `TidVol.2s` (mL) i `MinVent.2s` (L/min), jak metryki() w noce.py
+    liczba("m14", n.noc.m14);
+    liczba("m15", n.noc.m15);
     // ustawienia ze STR tej doby
     if (ds != st.doby.end()) {
       Json u = ustawieniaStr(st, ds->second);
@@ -896,7 +899,7 @@ static void testDyrygentZapas() {
     std::vector<std::string> w = wiersz(s, "2026-11-04");
     return w.size() > 10 && w[2] == "300" && w[10].empty();  // noc z raportu JSON: 300 min, bez PS
   };
-  // `noc_zrodlo=json`: bez /api/sessions?since (domyślny tryb porównawczy: test/testy_porownanie.cpp)
+  // `noc_zrodlo=json`: bez /api/sessions?since (tryb porównawczy i domyślny `plik` bez klucza: test/testy_porownanie.cpp)
   for (const char* k : {"noc_zrodlo=json\n"}) {
     PanelN s(k);
     odpowiedzi(s, d);

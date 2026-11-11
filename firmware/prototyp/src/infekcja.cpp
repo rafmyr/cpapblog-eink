@@ -30,12 +30,16 @@ WynikSK30 ocenSK30(const std::vector<Noc>& h, const Norma& nm, const std::string
   for (size_t i = v.size() - (size_t)SK30_NOCE; i < v.size(); i++)
     if (std::isnan(v[i]->m13) || !(v[i]->m13 >= nm.m13.med + SK30_WZROST)) { r.dlaczego = "M-13 w normie"; return r; }
   const Noc& o = *v.back();
-  // sygnał towarzyszący w ostatniej nocy: ciśnienie (M-05p, w ASV M-06p); M-15 i puls nie są zbierane
+  // sygnał towarzyszący w ostatniej nocy (5.10.2): wentylacja minutowa M-15, ciśnienie (M-05p, w ASV M-06p); sygnał
+  // bez normy albo bez wartości pomijany (R-INF-01); puls nie jest zbierany
+  const bool went = nm.m15.jest() && nm.m15.med > 0 && !std::isnan(o.m15) &&
+                    o.m15 >= nm.m15.med * (1.0 + SK30_WENTYLACJA / 100.0) - 1e-6;  // Δ M-15 = 15% mediany normy (4.5)
   const NormaMetryki& nc = asv ? nm.ep95 : nm.cp95;
   float c = asv ? epapP95(o) : o.cp95;
-  if (!nc.jest() || std::isnan(c) || !(c >= nc.med + SK30_CISNIENIE)) { r.dlaczego = "bez sygnału towarzyszącego"; return r; }
+  const bool cisn = nc.jest() && !std::isnan(c) && c >= nc.med + (asv ? SK30_EPAP : SK30_CISNIENIE) - 1e-6;
+  if (!went && !cisn) { r.dlaczego = "bez sygnału towarzyszącego"; return r; }
   r.warunek = true;
-  r.sygnal = asv ? "EPAP też wyższe" : "ciśnienie też wyższe";
+  r.sygnal = went ? "wentylacja też wyższa" : asv ? "EPAP też wyższe" : "ciśnienie też wyższe";
   r.pierwszaNoc = v[v.size() - (size_t)SK30_NOCE]->data;
   r.x = o.m13;
   return r;

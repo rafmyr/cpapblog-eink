@@ -478,7 +478,7 @@ static void testPierwszenstwo() {
   }
 }
 
-// ============================ migracja dwóch plików rocznych 3 → 4 ============================
+// ============================ migracja dwóch plików rocznych 3 → 5 i 4 → 5 ============================
 static const char* POLA3 =
     "data;wazna;m01_min;ahi;cmed;cp95;wmed;wp95;emed;ep95;psmed;psp95;ustawienia;zrodlo;czesciowa;epap_str;oa;ca;h;csr;"
     "import;m13;m17;pna;srn;m08;mpa;mpi;ipc;eep;mns;mxs;ua;m10;m10p;eai;eax;ans;axs;epr;tryb;m18";
@@ -495,11 +495,16 @@ static void testMigracja() {
   std::vector<std::string> log;
   Magazyn m(pl, [&](const std::string& s) { log.push_back(s); });
   SPRAWDZ("migracja plików", m.migrujWMiejscu());
-  SPRAWDZ("migracja plików", pl.tresc("/dane/noce/2025.csv").compare(0, 18, "#cpap-eink noce 4\n") == 0);
+  // od 11.11.2026 wersja 5 (`m14;m15` na końcu, puste po migracji)
+  SPRAWDZ("migracja plików", pl.tresc("/dane/noce/2025.csv").compare(0, 18, "#cpap-eink noce 5\n") == 0);
+  SPRAWDZ("migracja plików", pl.tresc("/dane/noce/2026.csv").compare(0, 18, "#cpap-eink noce 5\n") == 0);
   SPRAWDZ("migracja plików", pl.istnieje("/dane/noce/2025.csv.v3") && !pl.istnieje("/dane/noce/2026.csv.v3"));
+  SPRAWDZ("migracja plików", pl.istnieje("/dane/noce/2026.csv.v4"));
   OdczytPliku a = m.czytaj("noce", "/dane/noce/2025.csv"), b = m.czytaj("noce", "/dane/noce/2026.csv");
-  SPRAWDZ("migracja plików", a.stan == StanPliku::DOBRY && a.wiersze.size() == 1 && a.wiersze[0] == w25);
-  SPRAWDZ("migracja plików", b.stan == StanPliku::DOBRY && b.wiersze.size() == 2 && b.wiersze[1] == w26s);
+  SPRAWDZ("migracja plików", a.stan == StanPliku::DOBRY && a.wiersze.size() == 1 && a.wiersze[0] == w25 + ";;");
+  SPRAWDZ("migracja plików", b.stan == StanPliku::DOBRY && b.wiersze.size() == 2 && b.wiersze[1] == w26s + ";;");
+  Noc zb;
+  SPRAWDZ("migracja plików", b.wiersze.size() == 2 && parsujNocV5(b.wiersze[0], zb) && zb.m01 == 410 && std::isnan(zb.m14) && std::isnan(zb.m15));
   // plik wersji 3 z wierszem `S` (nie powinien istnieć, ale np. po ręcznym wgraniu): wiersz nie ginie po migracji
   pl.pliki["/dane/noce/2027.csv"] = std::string("#cpap-eink noce 3\n") + POLA3 + "\n" + wierszNocyV3(nS("2027-01-01")) + "\n#koniec 1\n";
   SPRAWDZ("migracja plików", m.migrujWMiejscu());

@@ -52,6 +52,7 @@ TESTY+=("$FW/test/testy_raport_a4.cpp") # raport A4, kod QR, serwer raportu, śc
 TESTY+=("$FW/test/testy_stany_nocy_sloty_wieczorne.cpp") # stany nocy 5.1.4, sloty wieczór i tydzień, rytm ekranu L, linie kolejki
 TESTY+=("$FW/test/testy_sprzet_infekcja_sk.cpp") # SPRZĘT, INFEKCJA, pozostałe S-K
 TESTY+=("$FW/test/testy_sprzet_infekcja_sk_brzegowe.cpp") # przypadki brzegowe: SPRZĘT, INFEKCJA, pozostałe S-K
+TESTY+=("$FW/test/testy_alerty_odchylen.cpp") # alerty odchyleń od normy S-K-40…S-K-47, linia „dobra zmiana” (ADR-0039)
 TESTY+=("$FW/test/testy_ekrany_zdarzen_e.cpp") # pełne ekrany zdarzeń E (S3), R-KON-14, linia „Wciąż”, koniec slotu dziennego
 TESTY+=("$FW/test/testy_ekrany_zdarzen_e_brzegowe.cpp") # przypadki brzegowe: ekrany zdarzeń E
 TESTY+=("$FW/test/testy_czynniki_odkrycia.cpp" "$FW/test/testy_czynniki_odkrycia_brzegowe.cpp")  # czynniki nocy, odkrycia i przypadki brzegowe

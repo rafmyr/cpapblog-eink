@@ -577,7 +577,7 @@ static void testR_DANE_24_przyciskPrzedTerminem() {
   panel(p, 10, 59, PowodWybudzenia::PRZYCISK);
   p.zegar.epoch += 50;
   p.pliki.pliki["/noce.csv"] = NOC_DZIS;
-  // tryb porównawczy (domyślny od 09.11.2026) łączyłby się drugi raz na końcu wybudzenia (R-DANE-60): tu tylko
+  // tryb porównawczy (`noc_zrodlo=porownanie`) łączyłby się drugi raz na końcu wybudzenia (R-DANE-60): tu tylko
   // termin 11:00 (R-DANE-24), więc `json`
   p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\n";
   p.nvs.teksty["cpap/ab_rano"] = "2026-11-04";

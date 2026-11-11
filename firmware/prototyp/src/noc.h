@@ -20,7 +20,8 @@
 //   14 pól /noce.csv: jak 13 + zrodlo
 //   20 pól /noce.csv: jak 14 + czesciowa;epap_str;oa;ca;h;csr
 // Od pliki roczne `/dane/noce/RRRR.csv` z magazynu (src/magazyn.h): wersja 1 = 20 pól i `import`; od wersji beta
-// wersja 2 = wersja 1 i pola (21 pól, lista przy wierszNocyV2; parsujNocV2).
+// wersja 2 = wersja 1 i pola (21 pól, lista przy wierszNocyV2; parsujNocV2); wersja 3 = 42 pola (`m18`), wersja 4
+// bez nowych pól (źródło `S`), wersja 5 = 44 pola (`m14;m15`, wierszNocyV5; parsujNocV5).
 #pragma once
 #include <cmath>
 #include <cstddef>
@@ -66,12 +67,17 @@ struct Noc {
   // AirBridge w czasie lokalnym panelu, w minutach od 12:00 dnia wieczoru (0…1439; 23:10 = 670, 00:30 = 750);
   // -1 = brak (noce z karty, `start_ms` = null). Tylko w pliku `noce` wersji 3 (pole `m18` na końcu).
   int m18 = -1;
+  // M-14 (4.3): objętość oddechowa w mL, kanał `TidVol`: `median`; M-15 (4.3): wentylacja minutowa w L/min, kanał
+  // `MinVent`: `median` (raport JSON i noc z plików sesji, PLD `TidVol.2s` i `MinVent.2s`); NAN = brak (noce z karty,
+  // starsze rekordy). Tylko w pliku `noce` wersji 5 (pola `m14;m15` na końcu).
+  float m14 = NAN;
+  float m15 = NAN;
 };
 // EPAP do normy, reguł i porównań (tylko z EDF, R-NOR-08); NAN dla EPAP docelowego urządzenia
 float epapMed(const Noc& n);
 float epapP95(const Noc& n);
 // Uzupełnia puste pola rekordu `cel` wartościami z `z` tej samej nocy (pola kanałów, PS, ustawienia, M-03, M-09,
-// także M-13, M-17, `pna`, `srn`, M-08, ustawienia `mpa`…`mxs`, UA/h i M-10);
+// także M-13, M-14, M-15, M-17, M-18, `pna`, `srn`, M-08, ustawienia `mpa`…`mxs`, UA/h i M-10);
 // m01, AHI, ważność i źródło zostają z `cel`. TYLKO_SPOZA_AIRBRIDGE: tylko wsparcie PS (raport AirBridge go nie ma),
 // np. z rekordu A, który dostał PS z karty. Zwraca true, gdy coś dopisano.
 enum class PolaUzupelnienia : unsigned char { WSZYSTKIE, TYLKO_SPOZA_AIRBRIDGE };
@@ -102,10 +108,18 @@ std::string wierszNocyV2(const Noc& r);
 const size_t POLA_NOCY_V3 = 42;
 // wersja 4 = te same pola co wersja 3; nowa jest tylko dozwolona wartość `S` w polu `zrodlo` (ADR-0035 pkt 6).
 // Firmware znający wersję 3 odrzuca wiersz z `S`, więc plik wersji 4 czyta tylko do odczytu (ADR-0022 pkt 4,
-// T-WYM-54) i nie przepisuje go z nocami ze STR zgubionymi albo podwojonymi. Wiersze piszą i czytają funkcje wersji 3.
-const int WERSJA_NOCY = 4;
+// T-WYM-54) i nie przepisuje go z nocami ze STR zgubionymi albo podwojonymi.
+// wersja 5 (11.11.2026) = pola wersji 4 i `m14;m15` (M-14, M-15, POLA_NOCY_V5 = 44); migracja 4 → 5 krokiem
+// ogólnym (puste pola na końcu, kopia `.v4`). Wiersze piszą i czytają wierszNocyV5() i parsujNocV5().
+const int WERSJA_NOCY = 5;
 std::string wierszNocyV3(const Noc& r);
 bool parsujNocV3(const std::string& wiersz, Noc& r);
+const size_t POLA_NOCY_V5 = 44;
+std::string wierszNocyV5(const Noc& r);
+// Wiersz wersji 1…5 (pola dalsze, np. z nowszej wersji, pominięte) → rekord: pierwsze 42 pola parserem parsujNocV3(),
+// pola 43 i 44 → `m14`, `m15` (liczba skończona ≥ 0; brak, puste albo nieczytelne = brak, NAN: zły znacznik nie usuwa
+// rekordu nocy). false jak parsujNocV3().
+bool parsujNocV5(const std::string& wiersz, Noc& r);
 // M-18 z chwili startu pierwszej sesji (czas unix UTC) dla nocy z datą poranka `dataPoranka`: minuty od 12:00 dnia
 // wieczoru w czasie lokalnym (strefa z TZ); -1, gdy start nie wypada między 12:00 wieczoru a 12:00 poranka.
 int m18ZChwili(long long epoch, const std::string& dataPoranka);
@@ -113,7 +127,7 @@ int m18ZChwili(long long epoch, const std::string& dataPoranka);
 // parserem parsujNocV1(), pola 22–41 → pola wersji 2 w kolejności wyżej. Brakujące pola (wiersz wersji 1) = brak danych;
 // nieczytelne pole liczbowe = brak danych (jak `import`: zły znacznik nie usuwa rekordu nocy). false jak parsujNocV1().
 bool parsujNocV2(const std::string& wiersz, Noc& r);
-// Treść rekordu do porównań (czy noc się zmieniła): pola zapiszNoc i pola (bez `import`).
+// Treść rekordu do porównań (czy noc się zmieniła): pola zapiszNoc i pola (bez `import`), z M-18, M-14 i M-15.
 std::string trescNocy(const Noc& r);
 const Noc* nocZDnia(const std::vector<Noc>& hist, const std::string& data);
 const Noc* ostatniaNoc(const std::vector<Noc>& hist, const std::string& najpozniej);  // ostatni rekord ≤ data
@@ -152,6 +166,9 @@ struct WykluczeniaNormy {
   // noce w stanie odchylenia CA/h (M-03ca, poza normą `ca` razem z `m03`) i M-17 (R-NOR-09)
   std::set<std::string> ca, m17;
   std::set<std::string> cp95;  // noce w stanie odchylenia M-05p (tryby CPAP i AutoSet)
+  // ADR-0039: noce w stanie odchylenia M-28 (PS), M-13, CSR% (M-09), M-10 P95, M-14 i M-15 (R-NOR-09)
+  std::set<std::string> ps, m13, csr, m10;
+  std::set<std::string> m14, m15;  // M-14 w górę i w dół, M-15 w górę i w dół (S-K-41…S-K-44)
 };
 
 struct NormaMetryki {
@@ -168,7 +185,12 @@ struct Norma {
   NormaMetryki oa, ca, h;                 // M-03 na godzinę (K2); CA/h ze stanem odchylenia od wersji beta
   NormaMetryki m17;                       // M-17 zdjęcia maski: stan odchylenia, E-14
   NormaMetryki m13;                       // M-13 oddechy na minutę: K2, L-05, S-K-17, S-K-30
-  NormaMetryki csrp;                      // M-09 / M-01 w % (CSR%): L-02(b), raport
+  NormaMetryki m14;                       // M-14 objętość oddechowa (4.4): S-K-43, S-K-44 (ADR-0039)
+  NormaMetryki m15;                       // M-15 wentylacja minutowa: sygnał towarzyszący S-K-30 (5.10.2), S-K-41, S-K-42
+  NormaMetryki csrp;                      // M-09 / M-01 w % (CSR%): L-02(b), S-K-46, raport
+  // M-10 P95 (`FlowLim`): S-K-47 i linia „dobra zmiana” (ADR-0039); jak normy ciśnienia tylko z nocy z ustawieniami
+  // najnowszej nocy (R-NOR-07; 4.4: 14 nocy bez oceny po zmianie, R-KON-30)
+  NormaMetryki m10p;
   std::string ustawienia;                 // ustawienia, z których liczone są normy ciśnienia i wycieku ("" = bez filtra)
 };
 

@@ -881,10 +881,11 @@ StopkaDzienna stopkaDzienna(const Noc* noc, bool nocUbiegla, int drzemkaMin, flo
 // ---------- wybór i teksty ----------
 // Grupa tabeli 7.2 (część „Rano”) typu ekranu dnia: R0 pytanie, R1 S5, R2/R3 ekran L, R4 S-K-12, R5a–R5d problem
 // poranny (zdarzenia E, S-K-10 bez wariantu opisowego SK10W, S-K-11, S-K-14, S-K-16, S-K-17, S-K-30, S-K-31, L-09), R6 S7, R7 kamienie milowe,
-// R8 odkrycia i trendy, R9 dowód spokoju i rozruch. D0 = R0…R5d; R6…R9 ustępują ekranowi dziennemu (ADR-0027 pkt 1).
+// R8 odkrycia i trendy, R9 dowód spokoju i rozruch. D0 = R0…R5d; R5e i R6…R9 ustępują ekranowi dziennemu (ADR-0027 pkt 1).
+// R5e (ADR-0039): karty odchyleń S-K-40…S-K-47, ton „informacja”, nie są prośbą (7.4): wynik 6, jak R6.
 // Typ nieznany (np. z nowej) zostaje: lepiej nie zasłonić sprawy niż ją ukryć.
 int grupaRano(const std::string& typ) {
-  static const char* const R6[] = {"S7"};
+  static const char* const R6[] = {"S7", "SK40", "SK41", "SK42", "SK43", "SK44", "SK45", "SK46", "SK47"};
   static const char* const R7[] = {"KM", "SK27", "SK28", "SK29"};
   // SK10W: wariant opisowy S-K-10 `Wyciek widoczny` (R-KONF-42, ton „informacja”, R8), nie problem poranny
   static const char* const R8[] = {"S1", "SK10W", "SK13", "SK15", "SK19", "SK20", "SK21", "SK32", "O"};

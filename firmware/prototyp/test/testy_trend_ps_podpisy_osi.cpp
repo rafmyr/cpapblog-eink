@@ -138,11 +138,12 @@ static std::string slowoPs(float stare, float nowe) {
 }
 
 static void testTrendPs() {
-  ROWNE(slowoPs(5.0f, 6.0f), "rośnie");  // różnica 1,0 = 0,5 × 2 cmH2O
-  ROWNE(slowoPs(5.0f, 5.9f), "stabilnie");
-  ROWNE(slowoPs(6.0f, 5.0f), "spada");
+  // od 11.11.2026 Δ M-28 = 1 cmH2O (komplet progów; R-KOK-16.delta_ps = R-NOR-12.delta.M-28), próg słowa 0,5
+  ROWNE(slowoPs(5.0f, 5.5f), "rośnie");  // różnica 0,5 = 0,5 × 1 cmH2O
+  ROWNE(slowoPs(5.0f, 5.4f), "stabilnie");
+  ROWNE(slowoPs(5.5f, 5.0f), "spada");
   ROWNE(slowoPs(5.0f, 10.0f), "rośnie");
-  SPRAWDZ(std::fabs(TREND_DELTA_PS - 2.0) < 1e-9);  // R-KOK-16.delta_ps w progi.csv
+  SPRAWDZ(std::fabs(TREND_DELTA_PS - 1.0) < 1e-9);  // R-KOK-16.delta_ps w progi.csv
 }
 
 // ---------- pkt 10 i 11: tytuły L-07 (CPAP, AutoSet) i O-09 w zestawie ----------

@@ -339,7 +339,7 @@ class Przebieg {
   // noc z plików sesji (ADR-0036): /api/sessions w tym wybudzeniu: -1 nie pytano, 0 niedostępne (404, błąd), 1 działa
   int sesjeAB = -1;
   porownanie::Przyczyna sesjeABPowod = porownanie::Przyczyna::BLAD_LISTY;  // powód sesjeAB == 0 (404 albo błąd listy)
-  // tryb porównawczy (`noc_zrodlo=porownanie`, domyślny): wyniki z /dane/porownanie.csv, zapis odłożony jak historia
+  // tryb porównawczy (`noc_zrodlo=porownanie`, od 11.11.2026 tylko jawnie): wyniki z /dane/porownanie.csv, zapis odłożony jak historia
   std::vector<porownanie::Wpis> porWpisy;
   bool porWczytany = false, porZm = false;
   std::map<long, NocAB> porNoce;     // noce z raportu JSON tego wybudzenia czekające na porównanie (doba → noc)
@@ -470,7 +470,7 @@ class Przebieg {
     std::vector<std::string> w;
     if (!fsOk()) return w;
     // noce w polach wersji 2 (parsujNocV2 rozumie wszystkie pola wersji 2), pozostałe formaty w polach wersji 1
-    size_t ile = std::strcmp(nazwa, "noce") == 0 ? POLA_NOCY_V3 : polV1(nazwa);
+    size_t ile = std::strcmp(nazwa, "noce") == 0 ? POLA_NOCY_V5 : polV1(nazwa);
     if (std::strcmp(nazwa, "sypialnia") == 0) {  // wersja 2 (seria CO2 nocy) rozumiana przez parsujSypialnie
       const FormatPliku* f = formatPliku(rej, nazwa);
       if (f && !f->pola.empty()) ile = f->pola.back().size();
@@ -524,7 +524,7 @@ class Przebieg {
   bool zapiszHistorie() {
     std::map<std::string, std::vector<std::string>> lata;  // ścieżka pliku roku → wiersze
     for (auto& n : hist)
-      if (n.data.size() == 10) lata[mag.sciezkaRoku("noce", n.data.substr(0, 4))].push_back(wierszNocyV3(n));  // wersja 3 (M-18)
+      if (n.data.size() == 10) lata[mag.sciezkaRoku("noce", n.data.substr(0, 4))].push_back(wierszNocyV5(n));  // wersja 5 (M-14, M-15)
     // wiersz, którego parser nie czyta, wraca do swojego pliku dosłownie, na miejsce
     // według pierwszego pola (przed wierszami z tym samym albo późniejszym), więc przepisanie pliku roku go nie gubi
     for (auto& kv : nieczytelneNoce) {
@@ -936,8 +936,8 @@ class Przebieg {
       std::vector<std::string> wn = wczytaj("noce", "", &sc);
       for (size_t i = 0; i < wn.size(); i++) {
         Noc n;
-        if (parsujNocV3(wn[i], n)) {
-          hist.push_back(n);  // wiersze wersji 1 i 2
+        if (parsujNocV5(wn[i], n)) {
+          hist.push_back(n);  // wiersze wersji 1…5
         } else {  // zachowany dosłownie do następnego przepisania pliku
           nieczytelneNoce[sc[i]].push_back(wn[i]);
           log("noce: wiersz nieczytelny w %s zachowany bez zmian (%s)", nazwaPliku(sc[i]).c_str(),
@@ -1309,6 +1309,9 @@ class Przebieg {
     wk.metryki = &b5.metryki;
     wk.odpowiedziPelne = &odpowiedzi;
     wk.nocyNieczytelne = stany(dzis).nocyNieczytelne;  // R-SKI-24
+    // ADR-0039 pkt 5 (R-KON-68): linia „dobra zmiana” w grupie „norma”, raz na 7 dni od pokazania
+    wk.dobraZmiana = sk::liniaDobrejZmiany(stany(dzis), trybHist() == reguly::Tryb::ASV ||
+                                                        trybHist() == reguly::Tryb::ASVAUTO);
     b5.linieE = linieZdarzenB11();  // E-10, E-04 i inne linie zdarzeń w kolejce 7.5
     liniaZmianyUstawienB21(dzis);  // R-NOR-14 (grupa 4, przed R-MAS-11)
     liniaTrybuB21(dzis);           // R-DANE-29 (grupa 3)
@@ -1647,12 +1650,15 @@ class Przebieg {
         ustawieniaB9_ = parsujUstawieniaDnia(t);
         for (auto& b : ustawieniaB9_.bledy) log("konfiguracja: pominięty wiersz '%s'", b.c_str());
         if (ustawieniaB9_.profilPubliczny) log("konfiguracja: profil publiczny (5.6.4, R-EKR-51)");
-        if (ustawieniaB9_.nocZrodlo == 1 && ustawieniaB9_.nocJsonZly)
-          log("konfiguracja: noc_zrodlo=plik, ale lista noc_json nieczytelna: noce z raportu JSON (ADR-0036 pkt 5)");
-        else if (ustawieniaB9_.nocZrodlo == 1)
-          log("konfiguracja: noc z plików sesji (noc_zrodlo=plik, ADR-0036), z raportu JSON %d metryk",
+        const int zr = ustawieniaB9_.nocZrodloSkuteczne();
+        const char* jak = ustawieniaB9_.nocZrodlo < 0 ? "domyślnie" : "noc_zrodlo=plik";
+        if (zr == 1 && ustawieniaB9_.nocJsonZly)
+          log("konfiguracja: noc z plików (%s), ale lista noc_json nieczytelna: noce z raportu JSON (ADR-0036 pkt 5)",
+              jak);
+        else if (zr == 1)
+          log("konfiguracja: noc z plików sesji (%s, ADR-0036), z raportu JSON %d metryk", jak,
               (int)ustawieniaB9_.nocJson.size());
-        else if (ustawieniaB9_.nocZrodlo == 0)
+        else if (zr == 0)
           log("konfiguracja: noc z raportu JSON bez porównania z plikami (noc_zrodlo=json)");
       }
     }
@@ -1732,6 +1738,7 @@ class Przebieg {
   // stan tego wybudzenia (norma i okresy do wskaźników sk::Wejscie, log trybu próbnego raz na ekran i dzień)
   struct StanB16 {
     Norma norma;
+    Stany stany;  // ADR-0039: stany odchylenia dnia do kart S-K-40…S-K-47
     std::vector<infekcja::Okres> okresy;
     sprzet::Elementy sprzet;
     std::set<std::string> zalogowane;
@@ -1802,6 +1809,8 @@ class Przebieg {
     w.hist = &hist;
     b16.norma = stany(dzis).norma;
     w.norma = &b16.norma;
+    b16.stany = stany(dzis);  // ADR-0039: karty odchyleń S-K-40…S-K-47
+    w.stany = &b16.stany;
     w.tryb = trybHist();
     w.sypialnia = &sypNoce;
     w.tempTeraz = tempStopki();  // przy ocenie bez Wi-Fi liczba na S-K jak na wyświetlonej klatce …
@@ -4602,7 +4611,8 @@ class Przebieg {
         {"Bateria", bateriaZOdczytu && procentBat >= 0 ? std::to_string(procentBat) + "%" : "–"},
     };
     // tryb porównawczy (ADR-0036 „Zmiana 2026-11-09”): ostatnie 7 dób z porównaniem nocy z plików z raportem JSON;
-    // przy 7 z 7 zgodnych dopisek „można przełączyć”, przełączenie tylko kluczem `noc_zrodlo=plik` (decyzja właściciela)
+    // przy 7 z 7 zgodnych dopisek „można przełączyć”, przełączenie kluczem `noc_zrodlo=plik` albo usunięciem wiersza
+    // (od 11.11.2026 domyślnie `plik`, ADR-0036 „Zmiana 2026-11-11”); w trybie `plik` wiersz `włączone (plik)`
     d.dol = {{"Noce z plików", dopasujWartosc("Noce z plików",
                                               porownanie::wartosciU05(porownanie::policz(wpisyPorownania()), zrodloNocy()),
                                               TEST_SZEROKOSC)}};
@@ -5402,10 +5412,10 @@ class Przebieg {
         plikow, (unsigned)bajty, (unsigned)licz.bajtyLicznikow());
     return ZPlikow::NOC;
   }
-  // ---------- tryb porównawczy (`noc_zrodlo=porownanie`, domyślny; ADR-0036 „Zmiana 2026-11-09”) ----------
-  static bool trybPorownania(const UstawieniaDnia& u) { return u.nocZrodlo == 2 || u.nocZrodlo == -1; }
+  // ---------- tryb porównawczy (`noc_zrodlo=porownanie`, tylko jawnie; ADR-0036 „Zmiana 2026-11-09” i „2026-11-11”) ----------
+  static bool trybPorownania(const UstawieniaDnia& u) { return u.nocZrodloSkuteczne() == 2; }
   porownanie::Zrodlo zrodloNocy() {
-    int z = ustawieniaB9().nocZrodlo;
+    int z = ustawieniaB9().nocZrodloSkuteczne();
     return z == 1 ? porownanie::Zrodlo::PLIK : z == 0 ? porownanie::Zrodlo::JSON : porownanie::Zrodlo::POROWNANIE;
   }
   std::vector<porownanie::Wpis>& wpisyPorownania() {
@@ -5644,11 +5654,12 @@ class Przebieg {
     bool ostatnia = data == dzis;
     bool ponownie = spr11 && ostatnia;  // R-DANE-24
     bool stale = staleNaLiscie(day);
-    // ADR-0036: `noc_zrodlo=plik` → noc z plików sesji liczona na panelu, raport JSON tylko jako zapas; z listą
+    // ADR-0036: `noc_zrodlo=plik` (i bez wiersza, „Zmiana 2026-11-11”) → noc z plików sesji liczona na panelu, raport
+    // JSON tylko jako zapas; z listą
     // `noc_json` najpierw raport JSON (jak dotąd), potem pliki, a wymienione metryki zostają z raportu
     const UstawieniaDnia& ust = ustawieniaB9();
     // zła lista `noc_json` (choć jedno nieznane ID): bezpieczny kierunek, cała noc z raportu JSON
-    const bool zPlikowUst = ust.nocZrodlo == 1 && !ust.nocJsonZly;
+    const bool zPlikowUst = ust.nocZrodloSkuteczne() == 1 && !ust.nocJsonZly;
     NocAB n;
     bool zPlikow = false;
     kodBledu = 200;

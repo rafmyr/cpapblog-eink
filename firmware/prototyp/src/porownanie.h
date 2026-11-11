@@ -43,7 +43,8 @@ struct Wynik {
 };
 // Noc z plików `panel` (nocZWyniku()) wobec nocy z raportu JSON `raport` (nocZRaportu()) tej samej doby. Tolerancje
 // WY9 [PRÓG] jak w narzędziu porównania: M-01 1 min, AHI i M-03 0,5/h, ciśnienia 0,5 cmH2O, wyciek 2 L/min, M-08 i M-09
-// 2 min, M-10 0,02, M-13 0,5, M-17 0, M-18 5 min, flagi i M-21 ten sam tekst. `zUstawieniami` = false: M-21 jako
+// 2 min, M-10 0,02, M-13 0,5, M-14 20 mL, M-15 0,3 L/min, M-17 0, M-18 5 min, flagi i M-21 ten sam tekst; granica
+// z marginesem względnym 1e-6 (wartości z float). `zUstawieniami` = false: M-21 jako
 // BEZ_STR (narzędzie bez STR.edf).
 Wynik porownaj(const NocAB& panel, const NocAB& raport, bool zUstawieniami = true);
 std::string liczba(double v, int miejsca = 2);  // "–" dla NAN

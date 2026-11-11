@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:4580060d3e188fdf62119e14e3a0d0228ef9d8b7715d28aa1bf4ceca90821cb1
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:bac68319f7afdc89b8a6beb35f9c4e8034d215c6ea02b1a09e11970e2bf29d37
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -43,13 +43,13 @@ R-NOR-12.delta.M-01;-1.5;h;wszystkie
 R-NOR-12.delta.M-02;3;/h;wszystkie
 R-NOR-12.delta.M-03;1;/h;wszystkie
 R-NOR-12.delta.M-05p;2;cmH2O;wszystkie
-R-NOR-12.delta.M-06p;2;cmH2O;ASV,ASVAuto
+R-NOR-12.delta.M-06p;1.5;cmH2O;ASV,ASVAuto
 R-NOR-12.delta.M-07;10;L/min;wszystkie
 R-NOR-12.delta.M-11;0.3;GI;wszystkie
 R-NOR-12.delta.M-13;2;/min;wszystkie
 R-NOR-12.delta.M-17;2;przerwy;wszystkie
-R-NOR-12.delta.M-14;60;mL;wszystkie
-R-NOR-12.delta.M-15;1.0;L/min;wszystkie
+R-NOR-12.delta.M-14;15;% mediany normy;wszystkie
+R-NOR-12.delta.M-15;15;% mediany normy;wszystkie
 R-NOR-03.wejscie;3/5;noce (k z n);wszystkie
 R-NOR-04.wyjscie_noce;3;noce;wszystkie
 R-NOR-04.wyjscie_ulamek_delta;0.5;× Δ;wszystkie
@@ -243,6 +243,7 @@ S-K-29.noce_bez;3;noce;wszystkie
 S-K-30.wzrost;2;/min;wszystkie
 S-K-30.noce;2;noce;wszystkie
 S-K-30.m05p;2;cmH2O;wszystkie
+S-K-30.m15;15;% mediany normy;wszystkie
 S-K-30.puls;5;/min;wszystkie
 R-INF-06.koniec_wzrost;1;/min;wszystkie
 R-INF-06.koniec_noce;2;noce;wszystkie
@@ -310,7 +311,7 @@ R-KOK-12.noce;3/7;noce (k z n);wszystkie
 R-KOK-16.trend_delta;0.5;× Δ;wszystkie
 R-KOK-16.noce_7;4;noce;wszystkie
 R-KOK-16.noce_23;14;noce;wszystkie
-R-KOK-16.delta_ps;2;cmH2O;ASV,ASVAuto
+R-KOK-16.delta_ps;1;cmH2O;ASV,ASVAuto
 R-AW-04.pokrycie_przeplywu;80;%;wszystkie
 H-01.gi_okno;30;min;wszystkie
 S-K-20.wzrost_m05p;2;cmH2O;wszystkie
@@ -415,7 +416,7 @@ M-31.okno_po_bezdechu;10;s;ASV,ASVAuto
 M-31.margines_ps;0.5;cmH2O;ASV,ASVAuto
 M-32.margines_epap;0.5;cmH2O;ASVAuto
 M-33.cel_wentylacji;90;%;ASV,ASVAuto
-R-NOR-12.delta.M-31;1;/h;ASV,ASVAuto
+R-NOR-12.delta.M-31;2;/h;ASV,ASVAuto
 R-DANE-52.ua_dolna_granica;1;/h;CPAP,AutoSet
 L-01.asv_bezdechy;5;/h;ASV,ASVAuto
 L-01.asv_noce;3/7;noce (k z n);ASV,ASVAuto
@@ -428,8 +429,16 @@ R-LEK-40.bezdechy_bezwzgledne;5;/h;ASV,ASVAuto
 M-31.pmax_aparatu;25;cmH2O;ASV,ASVAuto
 R-NOR-12.delta.M-30;1;/h;ASV,ASVAuto
 L-01.asv_min_noce;3;noce;ASV,ASVAuto
+R-NOR-12.delta.M-28;1;cmH2O;ASV,ASVAuto
+R-NOR-12.delta.M-09p;5;pp;ASV,ASVAuto
+R-NOR-12.delta.M-10p;0.15;FlowLim;wszystkie
+R-KON-65.co_dni;7;dni;wszystkie
+R-KON-64.krok_lekarz;7;noce;wszystkie
+R-KON-68.co_dni;7;dni;wszystkie
+R-NOR-12.delta.M-28p;2;cmH2O;ASV,ASVAuto
+S-K-30.m06p;1.5;cmH2O;ASV,ASVAuto
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:8f5699e078953d621d446bc4fff26b88a80a699a5779fe59f830a0e60b64281a
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -454,7 +463,7 @@ E-21;;stan_odchylenia_n;metryka=M-07;wazne;;problem;R5c;rano;wszystkie;tak;nie;S
 E-21;wilgotnosc;prog_biezacy_wyjscie;metryka=wilgotnosc_min_nocy,prog=E-21.wilgotnosc_linia,wyjscie=E-21.wilgotnosc_linia,por=lt;;;linia;noc;rano;wszystkie;tak;nie;;E-21;;;E-21.linia;aktywna;
 E-10;problem;noce_bez_terapii;prog=E-10.noc_bez_terapii_m01,n=E-10.noce_problem,wyjscie=R-DANE-13.m01_min;kompletne;E-10.noce_problem;problem;R5d;rano;wszystkie;nie;tak;E-10/linia,E-13,E-14;;;;E-10.tytul,E-10.powod,E-10.krok,E-10.podpis_lewo,E-10.podpis_prawo;aktywna;
 E-12;;regularnosc_okna;prog=E-12.noc_min,odsetek=E-12.odsetek_min,min=E-12.historia_min,przerwa=E-12.okno_po_przerwie,wyjscie=E-12.wyjscie_dni;kompletne;;problem;R5d;rano;wszystkie;nie;tak;;;;;E-12.tytul,E-12.powod,E-12.krok,E-12.podpis_lewo,E-12.podpis_prawo;aktywna;
-E-13;;stan_odchylenia;metryka=M-01;wazne;;problem;R5d;rano;wszystkie;tak;nie;;;;;E-13.tytul,E-13.powod,E-13.krok,E-13.podpis_lewo,E-13.podpis_prawo;aktywna;
+E-13;;stan_odchylenia;metryka=M-01;z_terapia;;problem;R5d;rano;wszystkie;tak;nie;;;;;E-13.tytul,E-13.powod,E-13.krok,E-13.podpis_lewo,E-13.podpis_prawo;aktywna;
 E-14;;stan_odchylenia;metryka=M-17;wazne;;problem;R5d;rano;wszystkie;tak;nie;S-K-16;;;;E-14.tytul,E-14.powod,E-14.krok,E-14.podpis_lewo,E-14.podpis_prawo;aktywna;
 E-10;linia;noce_bez_terapii;prog=E-10.noc_bez_terapii_m01;kompletne;;linia;noc;rano;wszystkie;nie;tak;;;;;E-10.linia;aktywna;
 E-11;;przedzial_nocy;metryka=M-01,min=E-11.terapia_min,max=E-11.krotka_noc_max;kompletne;;linia;noc;rano;wszystkie;nie;tak;;;;;E-11.linia;aktywna;
@@ -632,7 +641,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-4c871f19ae16 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=67c59237a7f3 skrot=sha256:3e12c3f942171efcb20ec41e40acf1e87962ad3da616e4707c3596f3b5a5b1ad
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:58de5724063f57a4c94b8f05ebbf501b98ab78410410225946c4ed646f90f75f
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.
@@ -821,6 +830,15 @@ O-12.tytul_ukryty;tytul;30;Odkrycie o czynniku nocy
 R-DANE-29.linia_nieznany;linia;60;Nie znam trybu aparatu: tej nocy nie oceniam.
 R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
 R-INF-10.linia;linia;60;Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.
+R-KON-68.ahi;nazwa;17;AHI
+R-KON-68.czas;nazwa;17;czas z maską
+R-KON-68.linia;linia;60;Dobra zmiana: {wskaznik} {kierunek} niż zwykle od {n} nocy.
+R-KON-68.nizej;nazwa;5;niżej
+R-KON-68.przeplyw;nazwa;17;spłaszczenie
+R-KON-68.przerwy;nazwa;17;przerwy
+R-KON-68.ps;nazwa;17;PS
+R-KON-68.wyciek;nazwa;17;wyciek
+R-KON-68.wyzej;nazwa;5;wyżej
 R-MAS-01.filtr;powod;70;Filtr: wymieniony dziś.
 R-MAS-01.maska;powod;70;Maska: wymieniona dziś.
 R-MAS-01.tytul;tytul;30;Wymiana zapisana.
@@ -969,6 +987,62 @@ S-K-32.etykieta;etykieta;30;Sprzęt
 S-K-32.krok;krok;60;→ Wymiana co {m} mies. się opłaca.
 S-K-32.powod;powod;70;Wyciek {x} l/min, przed wymianą {y}.
 S-K-32.tytul;tytul;30;Nowa maska działa
+S-K-40.etykieta;etykieta;30;Ostatnie noce
+S-K-40.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-40.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-40.podpis_lewo;podpis_lewo;40;PS · 14 nocy
+S-K-40.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-40.powod;powod;70;PS {x} cmH2O, zwykle {norma}. Bywa przy zatkanym nosie lub na plecach.
+S-K-40.tytul;tytul;30;PS wyżej niż zwykle
+S-K-41.etykieta;etykieta;30;Ostatnie noce
+S-K-41.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-41.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-41.podpis_lewo;podpis_lewo;40;wentylacja · 14 nocy
+S-K-41.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-41.powod;powod;70;Oddychasz {x} L/min, zwykle {norma}. Bywa przy wysiłku, cieple, stresie.
+S-K-41.tytul;tytul;30;Wentylacja wyższa niż zwykle
+S-K-42.etykieta;etykieta;30;Ostatnie noce
+S-K-42.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-42.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-42.podpis_lewo;podpis_lewo;40;wentylacja · 14 nocy
+S-K-42.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-42.powod;powod;70;Oddychasz {x} L/min, zwykle {norma}. Aparat pilnuje celu wentylacji.
+S-K-42.tytul;tytul;30;Wentylacja niższa niż zwykle
+S-K-43.etykieta;etykieta;30;Ostatnie noce
+S-K-43.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-43.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-43.podpis_lewo;podpis_lewo;40;objętość oddechu · 14 nocy
+S-K-43.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-43.powod;powod;70;Objętość oddechu {x} ml, zwykle {norma}. Bywa w innej pozycji snu.
+S-K-43.tytul;tytul;30;Płytszy oddech niż zwykle
+S-K-44.etykieta;etykieta;30;Ostatnie noce
+S-K-44.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-44.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-44.podpis_lewo;podpis_lewo;40;objętość oddechu · 14 nocy
+S-K-44.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-44.powod;powod;70;Objętość oddechu {x} ml, zwykle {norma}. Bywa przy wysiłku lub cieple.
+S-K-44.tytul;tytul;30;Głębszy oddech niż zwykle
+S-K-45.etykieta;etykieta;30;Ostatnie noce
+S-K-45.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-45.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-45.podpis_lewo;podpis_lewo;40;oddechy na minutę · 14 nocy
+S-K-45.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-45.powod;powod;70;Oddechy {x} / min, zwykle {norma}. Bywa przy katarze, cieple, stresie.
+S-K-45.tytul;tytul;30;Oddech szybszy niż zwykle
+S-K-46.etykieta;etykieta;30;Ostatnie noce
+S-K-46.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-46.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-46.podpis_lewo;podpis_lewo;40;oddychanie okresowe · 14 nocy
+S-K-46.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}%
+S-K-46.powod;powod;70;{x}% nocy, zwykle {norma}%. Aparat ASV ma ten wzorzec wyrównywać.
+S-K-46.tytul;tytul;30;Więcej oddychania okresowego
+S-K-47.etykieta;etykieta;30;Ostatnie noce
+S-K-47.krok;krok;60;→ Obserwuj kolejne noce.
+S-K-47.krok_lekarz;krok;60;→ Trwa od tygodnia. Omów to z lekarzem.
+S-K-47.podpis_lewo;podpis_lewo;40;ograniczenie przepływu · 14 nocy
+S-K-47.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
+S-K-47.powod;powod;70;Ograniczenie przepływu {x}, zwykle {norma}. Bywa przy zatkanym nosie.
+S-K-47.tytul;tytul;30;Wdechy bardziej spłaszczone
 S2D.G01.neutralna.powod;powod;100;Podobno zyskaliśmy godzinę. Księgowość snu nie potwierdza.
 S2D.G01.neutralna.tytul;tytul;90;Czas zmienił się w nocy.
 S2D.G01.neutralna_marzec.tytul;tytul;90;Dzisiaj śpisz godzinę krócej.

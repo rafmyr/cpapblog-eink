@@ -144,7 +144,9 @@ bool limitOdkrycia(const Wejscie& w, const std::string& typ, const std::string& 
 bool probny(const Wejscie& w, const std::string& id) {
   if (!w.trybProbny) return false;
   // R-KON-24: S-K-08, S-K-18, S-K-27…S-K-32 zawsze; S-K-01…S-K-07, S-K-09…S-K-17, S-K-19…S-K-21 tylko do logu
-  static const char* const ZAWSZE[] = {"S-K-08", "S-K-18", "S-K-27", "S-K-28", "S-K-29", "S-K-30", "S-K-31", "S-K-32"};
+  // ADR-0039: S-K-40…S-K-47 od pierwszego dnia, jak S-K-30 (sygnał z normy osobistej, nie wskazówka kontekstowa)
+  static const char* const ZAWSZE[] = {"S-K-08", "S-K-18", "S-K-27", "S-K-28", "S-K-29", "S-K-30", "S-K-31", "S-K-32",
+                                       "S-K-40", "S-K-41", "S-K-42", "S-K-43", "S-K-44", "S-K-45", "S-K-46", "S-K-47"};
   for (auto z : ZAWSZE)
     if (id == z) return false;
   return true;
@@ -538,7 +540,8 @@ void sk17(const Wejscie& w, std::vector<Tresc>& o, bool sk30) {
       s.push_back({a ? "S-K-17.epap" : "S-K-17.cisnienie", (c - nc.med) / dc, c - nc.med});
     if (nm.wp95.jest() && !std::isnan(n.wp95) && n.wp95 > nm.wp95.p90 && n.wp95 - nm.wp95.med >= DELTA_M07)
       s.push_back({"S-K-17.wyciek", (n.wp95 - nm.wp95.med) / DELTA_M07, n.wp95 - nm.wp95.med});
-    // M-14, M-15: nie ma ich w rekordzie nocy (sygnał bez danych pomijany)
+    // M-14, M-15: od 11.11.2026 w rekordzie nocy (`noce` wersja 5) i z normą, ale jeszcze nie jako sygnały S-K-17
+    // (brak tekstów powodu w teksty.csv; do decyzji właściciela projektu): pomijane jak sygnał bez danych
     return s;
   };
   std::vector<const Noc*> v = wazneDo(w, w.dzis);
@@ -698,6 +701,143 @@ void sk32(const Wejscie& w, std::vector<Tresc>& o) {
 
 }  // namespace
 
+// ---------- odchylenia od normy (ADR-0039, S-K-40…S-K-47) ----------
+namespace {
+
+float wartPs(const Noc& n) { return n.psmed; }
+float wartM13(const Noc& n) { return n.m13; }
+float wartCsrp(const Noc& n) { return n.m01 > 0 && !std::isnan(n.csr) ? n.csr / (float)n.m01 * 100.0f : NAN; }
+float wartM10p(const Noc& n) { return n.m10p; }
+float wartM14(const Noc& n) { return n.m14; }
+float wartM15(const Noc& n) { return n.m15; }
+
+std::string dwaMiejsca(double v) {  // 0,054 → "0,05" (M-10, skala 0–1)
+  if (std::isnan(v)) return "–";
+  char b[16];
+  snprintf(b, sizeof b, "%.2f", v);
+  std::string t = b;
+  for (auto& c : t)
+    if (c == '.') c = ',';
+  return t;
+}
+
+enum class Format : unsigned char { JEDNO_MIEJSCE, CALKOWITA, DWA_MIEJSCA };
+std::string formatuj(double v, Format f) {
+  if (f == Format::CALKOWITA) return calkowita(v);
+  if (f == Format::DWA_MIEJSCA) return dwaMiejsca(v);
+  return przecinek1(v);
+}
+
+// Rodzaj `sk_odchylenie` (rodzaje-sk.csv): jedna karta = sygnał (stan, norma, wartość nocy) i kierunek.
+// Wiersze w kolejności ID (remis najdłużej trwającego stanu: niższe ID). M-14 i M-15 (S-K-41…S-K-44) ze zmiany
+// „wentylacja minutowa” (rekord nocy w formacie `noce` 5).
+struct KartaOdchylenia {
+  const char* id;
+  const char* typ;
+  StanMetryki Stany::*stan;
+  NormaMetryki Norma::*norma;
+  float (*wart)(const Noc&);
+  Format format;
+};
+const KartaOdchylenia KARTY_ODCHYLEN[] = {
+    {"S-K-40", "SK40", &Stany::ps, &Norma::psmed, wartPs, Format::JEDNO_MIEJSCE},        // PS ↑ (M-28)
+    {"S-K-41", "SK41", &Stany::m15g, &Norma::m15, wartM15, Format::JEDNO_MIEJSCE},      // wentylacja ↑ (M-15)
+    {"S-K-42", "SK42", &Stany::m15d, &Norma::m15, wartM15, Format::JEDNO_MIEJSCE},      // wentylacja ↓
+    {"S-K-43", "SK43", &Stany::m14d, &Norma::m14, wartM14, Format::CALKOWITA},          // objętość oddechowa ↓ (M-14)
+    {"S-K-44", "SK44", &Stany::m14g, &Norma::m14, wartM14, Format::CALKOWITA},          // objętość oddechowa ↑
+    {"S-K-45", "SK45", &Stany::m13, &Norma::m13, wartM13, Format::JEDNO_MIEJSCE},        // oddechy ↑ (M-13)
+    {"S-K-46", "SK46", &Stany::csr, &Norma::csrp, wartCsrp, Format::JEDNO_MIEJSCE},      // oddychanie okresowe ↑
+    {"S-K-47", "SK47", &Stany::m10, &Norma::m10p, wartM10p, Format::DWA_MIEJSCA},         // ograniczenie przepływu ↑
+};
+
+bool kandydatJest(const std::vector<Tresc>& o, const char* id) {
+  for (auto& t : o)
+    if (t.id == id) return true;
+  return false;
+}
+
+}  // namespace
+
+void odchylenia(const Wejscie& w, std::vector<Tresc>& o) {
+  if (!w.stany || !w.norma || !w.hist) return;
+  const Noc* ost = nocZ(w.hist, w.dzis);
+  const KartaOdchylenia* wybor = nullptr;
+  int najdluzej = -1;
+  bool wyborDzis = false;
+  for (const KartaOdchylenia& k : KARTY_ODCHYLEN) {
+    const StanMetryki& st = w.stany->*(k.stan);
+    if (!st.aktywny || st.nocy < 1) continue;
+    // norma stanu: zamrożona przy wejściu (R-NOR-22), bez niej dzisiejsza; bez normy brak karty (R-NOR-10, R-NOR-07)
+    if (!(st.zamrozona.jest() ? st.zamrozona : w.norma->*(k.norma)).jest()) continue;
+    std::string id = k.id;
+    if (id == "S-K-45" && (w.okresInfekcji || kandydatJest(o, "S-K-30") || kandydatJest(o, "S-K-17"))) continue;
+    if (id == "S-K-46" && (!asv(w.tryb) || !ost || std::isnan(ost->csr))) continue;  // ADR-0037: tylko z wartością M-09
+    if (limitCoDni(w, k.typ, ODCHYLENIE_CO_DNI)) continue;  // R-KON-64: ta sama karta wraca po 7 dniach
+    bool dzis = dzisJest(w, k.typ);
+    if (wyborDzis && !dzis) continue;
+    if (dzis && !wyborDzis) {  // pokazana dziś: zostaje przy ponownej ocenie tego dnia (jedna karta dziennie)
+      wybor = &k;
+      najdluzej = st.nocy;
+      wyborDzis = true;
+      continue;
+    }
+    if (st.nocy > najdluzej) {
+      wybor = &k;
+      najdluzej = st.nocy;
+    }
+  }
+  if (!wybor) return;
+  // jedna karta dziennie: inna karta odchylenia pokazana dziś blokuje nową
+  if (!wyborDzis)
+    for (const KartaOdchylenia& k : KARTY_ODCHYLEN)
+      if (dzisJest(w, k.typ)) return;
+  const StanMetryki& st = w.stany->*(wybor->stan);
+  const NormaMetryki& nm = st.zamrozona.jest() ? st.zamrozona : w.norma->*(wybor->norma);  // R-NOR-22
+  std::vector<double> ost5;
+  std::vector<const Noc*> v = wazneDo(w, w.dzis);
+  for (auto it = v.rbegin(); it != v.rend() && ost5.size() < 5; ++it) {
+    float x = wybor->wart(**it);
+    if (!std::isnan(x)) ost5.push_back(x);
+  }
+  if (ost5.empty()) return;
+  Tresc t = nowa(wybor->id, wybor->typ, "R5e", 0, false, false);
+  std::string pref = wybor->id;
+  Z z = {{"x", formatuj(mediana(ost5), wybor->format)}, {"norma", formatuj(nm.med, wybor->format)}};
+  teksty(t, pref, z, "powod", st.nocy >= ODCHYLENIE_KROK_LEKARZ ? "krok_lekarz" : "krok");
+  t.sprawa = pref + "/" + st.od;
+  t.wartosc = st.nocy;
+  t.wiz = Wiz::LINIA;
+  for (int i = 13; i >= 0; i--) {
+    const Noc* n = nocZ(w.hist, dodajDni(w.dzis, -i));
+    t.linia.push_back(n && n->wazna ? wybor->wart(*n) : NAN);
+  }
+  t.prog = (float)nm.med;
+  t.podpisLewo = tekst(pref + ".podpis_lewo", z);
+  t.podpisPrawo = tekst(pref + ".podpis_prawo", z);
+  t.dlaczego = "stan odchylenia (ADR-0039)";
+  o.push_back(t);
+}
+
+std::string liniaDobrejZmiany(const Stany& st, bool asvTryb) {
+  struct D {
+    const StanMetryki* s;
+    const char* nazwa;  // id tekstu wskaźnika
+    bool tylkoAsv;
+  };
+  const D lista[] = {{&st.dobraAhi, "R-KON-68.ahi", false},   {&st.dobraPs, "R-KON-68.ps", true},
+                     {&st.dobraWp95, "R-KON-68.wyciek", false}, {&st.dobraM17, "R-KON-68.przerwy", false},
+                     {&st.dobraM10, "R-KON-68.przeplyw", false}, {&st.dobraM01, "R-KON-68.czas", false}};
+  const D* wybor = nullptr;
+  for (const D& d : lista) {
+    if (!d.s->aktywny || d.s->odPierwszej < 1 || (d.tylkoAsv && !asvTryb)) continue;
+    if (!wybor || d.s->odPierwszej > wybor->s->odPierwszej) wybor = &d;
+  }
+  if (!wybor) return "";
+  return tekst("R-KON-68.linia", {{"wskaznik", tekst(wybor->nazwa)},
+                                  {"kierunek", tekst(wybor->s->wyzej ? "R-KON-68.wyzej" : "R-KON-68.nizej")},
+                                  {"n", std::to_string(wybor->s->odPierwszej)}});
+}
+
 int nocyWaznych(const Wejscie& w) { return w.hist ? liczbaNocyWaznych(*w.hist, w.dzis) : 0; }
 bool rozruch(const Wejscie& w) { return nocyWaznych(w) < ROZRUCH_NOCY; }
 
@@ -831,6 +971,7 @@ std::vector<Tresc> rano(const Wejscie& w) {
   sk29(w, o);
   sk15(w, o);
   sk32(w, o);
+  if (!r) odchylenia(w, o);  // ADR-0039: po S-K-30 i S-K-17 (S-K-45 je sprawdza), grupa R5e
   if (dzienTygodnia(w.dzis) == 1)  // poniedziałek: trendy tygodnia T3 w R8 (R-KON-27)
     for (auto& t : trendyTygodnia(w, dodajDni(w.dzis, -1))) o.push_back(t);
   for (auto& t : o) t.doLogu = probny(w, t.id);
@@ -929,8 +1070,9 @@ bool tydzien(const Wejscie& w, Tresc& t) {
 }
 
 int ranga(const std::string& g) {
-  static const char* const RANO[] = {"R0", "R1", "R2", "R3", "R4", "R5a", "R5b", "R5c", "R5d", "R6", "R7", "R8", "R9"};
-  for (int i = 0; i < 13; i++)
+  static const char* const RANO[] = {"R0",  "R1",  "R2", "R3", "R4", "R5a", "R5b",
+                                     "R5c", "R5d", "R5e", "R6", "R7", "R8", "R9"};
+  for (int i = 0; i < 14; i++)
     if (g == RANO[i]) return i;
   if (g == "W1") return 20;
   if (g == "W2") return 21;
@@ -940,11 +1082,11 @@ int ranga(const std::string& g) {
 }
 
 int rangaTypu(const std::string& typ) {
-  if (typ == "S5" || typ == "S10") return 1;
-  if (typ == "S7") return 9;
-  if (typ == "KM") return 10;
-  if (typ == "SK13" || typ == "S1" || (typ.size() > 2 && typ.compare(0, 2, "O-") == 0)) return 11;
-  if (typ == "S6" || typ == "S2A" || typ == "S2B" || typ == "S2C" || typ == "S2D" || typ == "S8") return 12;
+  if (typ == "S5" || typ == "S10") return ranga("R1");
+  if (typ == "S7") return ranga("R6");
+  if (typ == "KM") return ranga("R7");
+  if (typ == "SK13" || typ == "S1" || (typ.size() > 2 && typ.compare(0, 2, "O-") == 0)) return ranga("R8");
+  if (typ == "S6" || typ == "S2A" || typ == "S2B" || typ == "S2C" || typ == "S2D" || typ == "S8") return ranga("R9");
   return 0;  // nieznany: zostaje (lepiej nie zasłonić)
 }
 
@@ -952,7 +1094,7 @@ bool typWieczorny(const std::string& t) { return t.size() == 4 && t.compare(0, 3
 bool typB16(const std::string& t) {
   static const char* const T[] = {"SK03", "SK04", "SK05", "SK06", "SK07", "SK08", "SK09", "SK10", "SK10W", "SK12", "SK14",
                                   "SK15", "SK16", "SK17", "SK18", "SK19", "SK20", "SK21", "SK27", "SK29", "SK30",
-                                  "SK31", "SK32"};
+                                  "SK31", "SK32", "SK40", "SK41", "SK42", "SK43", "SK44", "SK45", "SK46", "SK47"};
   for (auto x : T)
     if (t == x) return true;
   return false;

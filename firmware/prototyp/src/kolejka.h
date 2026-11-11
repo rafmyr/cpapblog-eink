@@ -57,6 +57,9 @@ struct WejscieKolejki {
   // przegląd: linie zdarzeń E z wyników w grupach 7.5 (E-10 `Noc {data} bez terapii.` w grupie „noc”,
   // E-04 w grupie „dane”, E-05 w „awariach”)
   const std::vector<sprawy::LiniaZdarzenia>* linieE = nullptr;
+  // ADR-0039 pkt 5 (R-KON-68): gotowa linia `Dobra zmiana: …` (sk::liniaDobrejZmiany()); grupa „norma” za liniami
+  // R-NOR-14, R-NOR-13 i R-MAS-11, najwyżej raz na 7 dni od pokazania [PRÓG R-KON-68.co_dni]; "" = brak
+  std::string dobraZmiana;
 };
 // Źródło linii do zapisu pokazania (sprawy::zapiszPokazanie(pamiec, "linia:" + zrodlo, dzis)), gdy linia rzeczywiście
 // stanęła na ekranie (R-PIE-08): rytmy R-NOR-21 (7 dni), R-INF-10 (3 dni), rotacja C (R-SKI-41) i naprzemienność

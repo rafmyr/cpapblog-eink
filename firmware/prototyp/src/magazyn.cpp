@@ -183,12 +183,15 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       // krokiem ogólnym (puste pole na końcu)
       // wersja 4 = pola wersji 3 bez zmian i wartość `S` w polu `zrodlo` (noce ze STR.edf, src/noc.h WERSJA_NOCY);
       // migracja 3 → 4 tylko zmienia nagłówek (bez nowych pól), a firmware znający wersję 3 czyta plik tylko do odczytu
-      zWersja(zWersja(zWersja(format("noce", "/dane/noce/{RRRR}.csv", "/noce.csv", RodzajZapisu::PRZEPISANIE,
+      // wersja 5 = wersja 4 i `m14;m15` (M-14 objętość oddechowa, M-15 wentylacja minutowa, src/noc.h
+      // wierszNocyV5()), migracja 4 → 5 krokiem ogólnym (puste pola na końcu, kopia `.v4`)
+      zWersja(zWersja(zWersja(zWersja(format("noce", "/dane/noce/{RRRR}.csv", "/noce.csv", RodzajZapisu::PRZEPISANIE,
                      "data;wazna;m01_min;ahi;cmed;cp95;wmed;wp95;emed;ep95;psmed;psp95;ustawienia;zrodlo;czesciowa;"
                      "epap_str;oa;ca;h;csr;import"),
               "m13;m17;pna;srn;m08;mpa;mpi;ipc;eep;mns;mxs;ua;m10;m10p;eai;eax;ans;axs;epr;tryb"),
               "m18"),
               ""),
+              "m14;m15"),
       format("czynniki", "/dane/czynniki.csv", "/czynniki.csv", RodzajZapisu::PRZEPISANIE,
              "data;stan;kody;warstwa;termin;pokazano"),
       // wersja 2 = seria CO2 nocy do S-K-01 i S-K-13 (src/sypialnia.h NocSypialni::co2Ponad…)
@@ -528,7 +531,7 @@ bool maOdpowiedz(const std::vector<std::string>& w) {
 }
 // Noc pusta (bez minut z maską) albo częściowa: do zastąpienia pełnym rekordem z drugiego źródła.
 bool nocSlaba(const std::string& w, Noc& n) {
-  if (!parsujNocV3(w, n)) return true;  // z polami wersji 2; wersja 3
+  if (!parsujNocV5(w, n)) return true;  // wiersze wersji 1…5
   return n.czesciowa || n.m01 < 0;
 }
 const char* const ZNACZNIK_W_TOKU = "w toku";
@@ -566,7 +569,7 @@ std::vector<std::string> scalWiersze(const std::string& nazwa, const std::vector
       // puste pola nocy z drugiego źródła (zrzut z karty nie ma pól wersji 2, M-03, M-09)
       // dostają wartości z rekordu we flash, jak wpiszImport() (ZASTAPIONA); wiersz w wersji 2
       uzupelnijNoc(nz, nf);
-      v.push_back(wierszNocyV3(nz));  // wersja 3 (M-18)
+      v.push_back(wierszNocyV5(nz));  // wersja 5 (M-14, M-15)
       d++;
       continue;
     }

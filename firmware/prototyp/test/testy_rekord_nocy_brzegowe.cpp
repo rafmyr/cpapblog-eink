@@ -39,7 +39,7 @@ static bool wszystkieV2(const AtrapaPlikow& pl) {
   for (auto& kv : pl.pliki) {
     const std::string& s = kv.first;
     if (s.compare(0, 11, "/dane/noce/") != 0 || s.size() != 19 || s.compare(15, 4, ".csv") != 0) continue;
-    // bieżąca wersja pliku nocy (od ADR-0035 wersja 4: pola wersji 3, wartość `S` w polu zrodlo)
+    // bieżąca wersja pliku nocy (od 11.11.2026 wersja 5: pola wersji 4 i `m14;m15`)
     b = b && kv.second.compare(0, 18, "#cpap-eink noce " + std::to_string(WERSJA_NOCY) + "\n") == 0;
   }
   return b;
@@ -71,7 +71,7 @@ static void m01_v0PrzezDyrygenta(int ile) {
   for (auto& kv : przed) {
     auto i = po.find(kv.first);
     Noc n;
-    if (i != po.end() && parsujNocV2(i->second, n) && zapiszNoc(n) == kv.second && dziel(i->second, ';').size() == POLA_NOCY_V3)  /* 41 pól, 42 (M-18) */ zgodne++;
+    if (i != po.end() && parsujNocV2(i->second, n) && zapiszNoc(n) == kv.second && dziel(i->second, ';').size() == POLA_NOCY_V5)  /* 41 pól, 42 (M-18), 43–44 (M-14, M-15) */ zgodne++;
   }
   R(zgodne == ile);
 }
@@ -165,9 +165,9 @@ static void m04_uszkodzonyWierszWSrodku() {
 static void m05_plikWersji3() {
   PanelB1 s;
   std::vector<std::string> v;
-  // wersja nowsza niż znana (WERSJA_NOCY + 1): pola do 41, m18, pole dopisane w tej nowszej wersji
-  for (auto& l : noceV0(30, "2026-11-03")) v.push_back(l + ";;16.00;1;P;S" + std::string(POLA_NOCY_V2 - 25, ';') + ";;X");
-  std::string t3 = plik("noce", WERSJA_NOCY + 1, POLA_V2 + ";m18;test_nowsza", v);
+  // wersja nowsza niż znana (WERSJA_NOCY + 1): pola do 41, m18, m14, m15, pole dopisane w tej nowszej wersji
+  for (auto& l : noceV0(30, "2026-11-03")) v.push_back(l + ";;16.00;1;P;S" + std::string(POLA_NOCY_V2 - 25, ';') + ";;;;X");
+  std::string t3 = plik("noce", WERSJA_NOCY + 1, POLA_V2 + ";m18;m14;m15;test_nowsza", v);
   s.p.pliki.pliki["/dane/noce/2026.csv"] = t3;
   s.p.siec.odpowiedzi.clear();
   s.p.siec.dodaj("/api/status", 200, STATUS_B1);
@@ -453,7 +453,7 @@ static void z01_parsujV1NaV2() {
   Noc x, y;
   R(parsujNocV1(wierszNocyV2(a), x) && parsujNocV1(wierszNocyV1(a), y));
   R(zapiszNoc(x) == zapiszNoc(y) && x.import == y.import && std::isnan(x.m13) && x.pna.empty());
-  R(POLA_NOCY_V3 == formatPliku(rejestrFormatow(), "noce")->pola.back().size());  // wersja 3
+  R(POLA_NOCY_V5 == formatPliku(rejestrFormatow(), "noce")->pola.back().size());  // wersja 5
 }
 
 int main() {

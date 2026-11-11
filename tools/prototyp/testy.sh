@@ -324,6 +324,9 @@ echo "testy przypadków brzegowych: SPRZĘT, INFEKCJA, pozostałe S-K (test/test
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_sprzet_infekcja_sk_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_sprzet_infekcja_sk_brzegowe"
 "$BUD/testy_sprzet_infekcja_sk_brzegowe"  # po poprawkach wszystkie zielone, więc blokuje
 "$BUD/testy_sprzet_infekcja_sk"
+echo "testy (test/testy_alerty_odchylen.cpp: karty S-K-40…S-K-47, stany w kierunkach kart, linia „dobra zmiana”, ADR-0039)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_alerty_odchylen.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_alerty_odchylen"
+"$BUD/testy_alerty_odchylen"
 
 echo "testy (test/testy_ekrany_zdarzen_e.cpp: pełne ekrany zdarzeń E (S3), wybór 7.2, limit R-KON-14, „wiem” 7 dni, linia „Wciąż”, R-EKR-48, koniec slotu dziennego wobec okna wieczornego)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_ekrany_zdarzen_e.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ekrany_zdarzen_e"

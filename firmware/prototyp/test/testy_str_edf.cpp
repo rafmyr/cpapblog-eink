@@ -466,6 +466,18 @@ static void testWartosciIJednostki() {
   SPRAWDZ(std::isnan(statystykaStr(s, r, "Leak", "95")));
   SPRAWDZ(std::isnan(statystykaStr(s, r, "RespRate", "50")));
   BLISKO(statystykaStr(s, r, "TidVol", "50"), 500);
+  // TidVol w `ml` i `mL` wprost (jak M-14 z raportu JSON), w innej jednostce brak
+  for (const char* j : {"ml", "mL", "cl"}) {
+    std::vector<SygT> sm = SYG_STR;
+    sm.push_back({"TidVol.50", j, 0, 4000, 0, 4000, 1});
+    DobaT cm = dobaAsvAuto(400);
+    cm["TidVol.50"] = 470;
+    Str sx;
+    SPRAWDZ(czytajStr(strTestowy(D0, {cm}, sm), sx) == edf::Blad::BRAK);
+    double v = statystykaStr(sx, sx.doby.begin()->second, "TidVol", "50");
+    if (std::string(j) == "cl") SPRAWDZ(std::isnan(v));
+    else BLISKO(v, 470);
+  }
   SPRAWDZ(nocZeStr(s, D0, n));
   BLISKO(n.wmed, 30);
   SPRAWDZ(std::isnan(n.wp95) && std::isnan(n.m13));
@@ -621,9 +633,10 @@ static void testFormatPliku() {
   SPRAWDZ(parsujNoc("2026-11-01;1;420;2.00;;;6.00;24.00;7.00;8.00;;;ASVAuto/6/10/3/15;S", 'A', n) && n.zrodlo == 'S');
   SPRAWDZ(!parsujNoc("2026-11-01;1;420;2.00;;;6.00;24.00;7.00;8.00;;;ASVAuto/6/10/3/15;X", 'A', n));
   const FormatPliku* f = formatPliku(rejestrFormatow(), "noce");
-  SPRAWDZ(f && f->wersja() == WERSJA_NOCY && WERSJA_NOCY == 4);
+  SPRAWDZ(f && f->wersja() == WERSJA_NOCY && WERSJA_NOCY == 5);
   if (f && f->wersja() >= 4) ROWNE_L(f->pola[3].size(), POLA_NOCY_V3);  // wersja 4 bez nowych pól
-  // migracja 3 → 4: kopia `.v3`, nagłówek 4, wiersze bez zmian
+  if (f && f->wersja() >= 5) ROWNE_L(f->pola[4].size(), POLA_NOCY_V5);  // wersja 5: `m14;m15` (11.11.2026)
+  // migracja 3 → 4 → 5: kopia `.v3`, nagłówek 5, wiersze bez zmian i puste `m14;m15` na końcu
   Dziennik d;
   AtrapaPlikow pl(d);
   pl.montujeSie = true;
@@ -636,16 +649,17 @@ static void testFormatPliku() {
   {
     Magazyn m(pl, [&](const std::string& s) { log.push_back(s); });
     SPRAWDZ(m.migrujWMiejscu());
-    ROWNE(pl.tresc("/dane/noce/2026.csv"), std::string("#cpap-eink noce 4\n") + POLA_V3 + "\n" + w + "\n#koniec 1\n");
+    ROWNE(pl.tresc("/dane/noce/2026.csv"),
+          std::string("#cpap-eink noce 5\n") + POLA_V3 + ";m14;m15\n" + w + ";;\n#koniec 1\n");
     ROWNE(pl.tresc("/dane/noce/2026.csv.v3"), v3);
   }
-  // starszy firmware (zna wersję 3) widzi plik wersji 4 jako nowszy: tylko do odczytu, bez zapisu (ADR-0022 pkt 4)
+  // starszy firmware (zna wersję 3) widzi plik wersji 5 jako nowszy: tylko do odczytu, bez zapisu (ADR-0022 pkt 4)
   std::vector<FormatPliku> stary = rejestrFormatow();
   for (auto& x : stary)
     if (x.nazwa == "noce") x.pola.resize(3);
   Magazyn ms(pl, [&](const std::string& s) { log.push_back(s); }, stary);
   OdczytPliku o = ms.czytaj("noce", "/dane/noce/2026.csv");
-  SPRAWDZ(o.stan == StanPliku::NOWSZY && o.wersja == 4);
+  SPRAWDZ(o.stan == StanPliku::NOWSZY && o.wersja == 5);
   SPRAWDZ(ms.tylkoDoOdczytu("/dane/noce/2026.csv"));
   SPRAWDZ(!ms.zapisz("noce", "/dane/noce/2026.csv", {w}));
   Noc z;
@@ -712,8 +726,8 @@ struct PanelS {
     p.pliki.montujeSie = true;
     p.pliki.montowane = true;
     p.pliki.pliki["/dane/noce/2026.csv"] = std::string("#cpap-eink noce 4\n") + POLA_V3 + "\n#koniec 0\n";
-    // historia ze STR bez trybu porównawczego (domyślny od ADR-0036 „Zmiana 2026-11-09” pyta też o listę sesji doby;
-    // STR wspólny z nocą z plików: test/testy_porownanie.cpp)
+    // historia ze STR z samego raportu JSON (domyślny `plik` od ADR-0036 „Zmiana 2026-11-11” i `porownanie` pytają też
+    // o listę sesji doby; STR wspólny z nocą z plików: test/testy_porownanie.cpp)
     p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\n";
   }
 };
@@ -775,7 +789,7 @@ static void testDyrygentPobieraStr() {
   ROWNE(etag(s), "\"aaaa0001\"");
   SPRAWDZ(zawiera(s.p.port.log, "STR: "));
   std::string t = s.p.pliki.tresc("/dane/noce/2026.csv");
-  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 4\n") == 0);
+  SPRAWDZ(t.compare(0, 18, "#cpap-eink noce 5\n") == 0);
   SPRAWDZ(t.find("2026-10-26;1;400;") != std::string::npos);
   SPRAWDZ(t.find("2026-11-04;1;420;") != std::string::npos);  // noc z AirBridge, nie ze STR (409 min)
   // następny ranek, ten sam etag: tylko /api/sessions, bez pobrania pliku

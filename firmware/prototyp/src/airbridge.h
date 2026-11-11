@@ -198,7 +198,8 @@ struct NocAB {
 // brakujące pola puste, nigdy 0 (R-AW-22).
 // M-08 = `leak_high_seconds` / 60 (minuty; brak, null, zły typ albo ujemne = NAN, R-AW-22);
 // M-13 = `median` kanału `RespRate` (liczba; pierwszy wpis z `source` = "edf" wygrywa, bez EDF pierwszy
-// z liczbą; brak kanału albo `null` = NAN, R-DANE-07); M-17 i M-18 według R-DANE-27 z `sessions[]` (`start_ms`,
+// z liczbą; brak kanału albo `null` = NAN, R-DANE-07); M-14 = `median` kanału `TidVol` (mL; `L` × 1000) i M-15 =
+// `median` kanału `MinVent` (L/min) tak samo (liczba nieskończona albo ujemna = NAN); M-17 i M-18 według R-DANE-27 z `sessions[]` (`start_ms`,
 // `end_ms` w czasie cywilnym aparatu, m17m18Sesji()); bez `sessions[]` M-17 = `session_count` − 1, najmniej 0
 // (fail-path R-DANE-27) i M-18 brak; brak `session_count` albo zły typ = -1. `pna`, `srn`: model i numer aparatu
 // z `/api/status` tego samego wybudzenia (R-NOR-25,; raport dnia ich nie ma), zapisane przez czystePole;
@@ -225,7 +226,7 @@ void m17m18Sesji(const std::vector<SesjaCywilna>& sesje, long dzien, double star
 
 // Części nocZRaportu() wspólne z nocą ze STR (src/str.h nocZeStr()), żeby reguły kanałów i ustawień były jedne:
 // kanalyRaportu(): `channels[]` → pola kanałów (KANALY_AB z regułami źródła: TYLKO_EDF pomija `source` inne niż "edf",
-// EDF_ALBO_STR ustawia Noc::epapStr), M-13 (`RespRate`) i M-10 (`FlowLim`); kanalEdf = któryś kanał KANALY_AB ma
+// EDF_ALBO_STR ustawia Noc::epapStr), M-13 (`RespRate`), M-14 (`TidVol`), M-15 (`MinVent`) i M-10 (`FlowLim`); kanalEdf = któryś kanał KANALY_AB ma
 // `source` = "edf" i liczbę w `median`.
 // ustawieniaRaportu(): `settings` → Noc::ustawienia, mpa…epr; zwraca tryb z tagu MOP (maMop = tag obecny).
 void kanalyRaportu(Noc& n, const Json& kanaly, bool& kanalEdf);

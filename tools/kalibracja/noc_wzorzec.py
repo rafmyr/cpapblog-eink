@@ -6,7 +6,7 @@ Liczy noce karty `noc_z_katalogu()` i `metryki()` z noce.py i wypisuje na standa
   N;dzień;klucz;wartość
 Klucze: partial, events_known, present, klasyfikacja, used_seconds, oa, ca, ua, h, rera, ahi, csr_seconds,
 csr_zrodlo, leak_high_seconds, leak_27_seconds, session_count, sesja.{i}.start_ms, sesja.{i}.end_ms,
-kanal.{id}.{median|p95|min|max|source}, ps.median, ps.p95, m17, m18_start_min, tryb, m21, wazna,
+kanal.{id}.{median|p95|min|max|source}, ps.median, ps.p95, m17, m18_start_min, m14, m15, tryb, m21, wazna,
 ustawienie.{tag}. Brak wartości = `brak`; liczby w zapisie repr; prawda/fałsz jako 1/0.
 
 Użycie: python3 -I tools/kalibracja/noc_wzorzec.py KARTA > wzorzec.txt
@@ -56,6 +56,8 @@ def wzorzec(karta):
         dodaj("ps.p95", r["wsparcie"]["p95"])
         dodaj("m17", m["m17_przerwy"])
         dodaj("m18_start_min", m["m18_start_min"])
+        dodaj("m14", m["m14_objetosc_med"])
+        dodaj("m15", m["m15_wentylacja_med"])
         dodaj("tryb", m["tryb"])
         dodaj("wazna", m["wazna"])
         for p in r["settings"]["fields"]:

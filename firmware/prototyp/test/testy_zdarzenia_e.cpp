@@ -365,6 +365,20 @@ static void testE13() {
   auto h4 = spokojne(10);
   for (int i = 0; i < 3; i++) dopisz(h4).m01 = 300;
   SPRAWDZ(nieOceniam(ocena(h4, ostatni(h4)), "E-13"), "E-13: bez normy → nie oceniam");
+  // Przypadek brzegowy: 3 noce z terapią krótsze niż 4 h → stan M-01, a `{x}` w powodzie to średnia tych
+  // nocy (okno `z_terapia`), nie nocy ważnych sprzed spadku
+  auto h5 = spokojne(30);
+  for (int i = 0; i < 3; i++) {
+    Noc& n = dopisz(h5);
+    n.m01 = 180;
+    n.wazna = false;
+  }
+  auto w5 = ocena(h5, ostatni(h5));
+  SPRAWDZ(aktywna(w5, "E-13"), "E-13: 3 noce po 3 h (krótsze niż 4 h) → stan odchylenia M-01");
+  const Wynik* e13 = znajdz(w5, "E-13", "");
+  std::string pow13 = e13 ? reguly::tekst(reguly::zestawWbudowany(), "E-13.powod", *e13, Tryb::ASVAUTO) : "";
+  // (3 × 3 h + 2 × 7 h) / 5 = 4 h 36; przed poprawką średnia 5 nocy ważnych = 7 h 00, czyli tyle co norma
+  SPRAWDZ(pow13 == "Średnio 4 h 36, zwykle 7 h 00 (ostatnie 5 nocy).", "E-13: {x} ze średniej nocy z terapią");
 }
 static void testE14() {
   auto h = spokojne(30);
@@ -507,8 +521,11 @@ static void testE36() {
   SPRAWDZ(aktywna(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: dokładnie 5 z 7 i Δ 2");
   h = ep(30, {10, 10, 10, 12.5f, 12.5f, 12.5f, 12.5f});
   SPRAWDZ(ocenionaNiespelniona(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: 4 z 7");
-  h = ep(30, {11.9f, 11.9f, 11.9f, 11.9f, 11.9f, 11.9f, 11.9f});
-  SPRAWDZ(ocenionaNiespelniona(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: Δ 1,9 to nie odchylenie");
+  // Δ M-06p = 1,5 cmH2O od 11.11.2026 (komplet progów z 11.11.2026; wcześniej 2)
+  h = ep(30, {11.4f, 11.4f, 11.4f, 11.4f, 11.4f, 11.4f, 11.4f});
+  SPRAWDZ(ocenionaNiespelniona(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: Δ 1,4 to nie odchylenie");
+  h = ep(30, {10, 10, 11.5f, 11.5f, 11.5f, 11.5f, 11.5f});
+  SPRAWDZ(aktywna(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: dokładnie 5 z 7 i Δ 1,5 (R-NOR-12.delta.M-06p)");
   h = ep(5, {12.5f, 12.5f, 12.5f, 12.5f, 12.5f, 12.5f, 12.5f});  // 12 nocy: norma M-06p wymaga 14
   SPRAWDZ(nieOceniam(ocena(h, ostatni(h)), "E-36", "obserwuj"), "E-36: bez normy → nie oceniam");
   std::vector<Noc> krotka;

@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Testy trybu porównawczego (`noc_zrodlo=porownanie`, domyślny; src/porownanie.h, ADR-0036 „Zmiana 2026-11-09”):
+// Testy trybu porównawczego (`noc_zrodlo=porownanie`, src/porownanie.h, ADR-0036 „Zmiana 2026-11-09”; od „Zmiany
+// 2026-11-11” tylko jawnie, domyślny jest `plik`, więc testy trybu porównawczego ustawiają klucz):
 //  (a) rdzeń: porownanie::porownaj() w tolerancjach WY9 (ta sama funkcja co tools/kalibracja/noc_panelu.cpp), wiersze
 //      pominięte (OA/CA „nieznane” w plikach przy 0 w raporcie, PS tylko w plikach), brak w plikach = rozjazd;
 //  (b) wpisy /dane/porownanie.csv: zapis i odczyt, złe wiersze, zastąpienie doby, limit 30 dób;
 //  (c) wiersz U-05 `Noce z plików`: licznik z ostatnich 7 dób z porównaniem, dopisek przy 7 z 7, brak porównania
 //      z przyczyną, szerokość w kolumnie;
-//  (d) dyrygent z atrapami: domyślny tryb, noc w historii zawsze z raportu JSON (bajt w bajt jak przy `json`), wpis
+//  (d) dyrygent z atrapami: tryb `porownanie`, noc w historii zawsze z raportu JSON (bajt w bajt jak przy `json`), wpis
 //      zgodna / rozjazd / brak z każdą przyczyną, 404, plik ucięty, bez powtórnych pobrań, `json` nic nie pobiera,
-//      `plik` bez zmian, U-05 i diagnostyka.
+//      `plik` bez zmian, U-05 i diagnostyka;
+//  (e) tryb domyślny `plik` (decyzja właściciela 11.11.2026): bez wiersza i przy złej wartości noc z plików
+//      z PS, zapas JSON przy problemie z plikami (R-DANE-44), bez wpisów porównania, noce zapisane wcześniej bez zmian.
 // Dane wyłącznie syntetyczne. Pomocnicze funkcje z test/testy_noc_pliki.cpp (dołączony bez main()).
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -50,6 +53,8 @@ static NocAB nocWzorcowa() {
   x.m10 = 0.05f;
   x.m10p = 0.05f;
   x.m13 = 15;
+  x.m14 = 450;
+  x.m15 = 7.5f;
   x.m17 = 0;
   x.m18 = 660;
   x.ustawienia = "ASVAuto/6/10/3/15";
@@ -76,7 +81,7 @@ static void testRdzen() {
   ROWNE_L(w.rozjazdy, 0);
   SPRAWDZ(ocena(w, "m03oa") == Ocena::POMINIETE_APARAT && ocena(w, "m03ca") == Ocena::POMINIETE_APARAT);
   SPRAWDZ(ocena(w, "m28") == Ocena::TYLKO_PLIKI && ocena(w, "m28p") == Ocena::TYLKO_PLIKI);
-  ROWNE_L(w.wiersze.size(), 26);  // 3 flagi, sesje, 19 metryk liczbowych, M-21 i PS ×2 jak w tabeli narzędzia
+  ROWNE_L(w.wiersze.size(), 28);  // 3 flagi, sesje, 21 metryk liczbowych (z M-14, M-15), M-21 i PS ×2 jak w tabeli narzędzia
   Wpis e = wpisZWyniku("2026-11-04", w);
   SPRAWDZ(e.werdykt == Werdykt::ZGODNA);
   ROWNE(e.rozjazd, "");
@@ -109,6 +114,35 @@ static void testRdzen() {
   w = porownaj(p, r);
   SPRAWDZ(ocena(w, "m08") == Ocena::BRAK_W_PLIKACH && ocena(w, "m13") == Ocena::BRAK_W_RAPORCIE);
   ROWNE_L(w.rozjazdy, 1);
+  // M-15 (wentylacja minutowa, 11.11.2026): tolerancja WY9 0,3 L/min; brak w plikach przy wartości w raporcie = rozjazd
+  r = nocWzorcowa();
+  p = nocWzorcowa();
+  p.noc.m15 = 7.75f;
+  w = porownaj(p, r);
+  SPRAWDZ(ocena(w, "m15") == Ocena::TAK);
+  ROWNE_L(w.rozjazdy, 0);
+  p.noc.m15 = 7.85f;
+  w = porownaj(p, r);
+  SPRAWDZ(ocena(w, "m15") == Ocena::NIE);
+  ROWNE_L(w.rozjazdy, 1);
+  p.noc.m15 = NAN;
+  SPRAWDZ(ocena(porownaj(p, r), "m15") == Ocena::BRAK_W_PLIKACH);
+  // granica tolerancji z liczb float (margines względny): 7.8f − 7.5f = 0.3000002 → tak, 7.81f → NIE
+  p.noc.m15 = 7.8f;
+  SPRAWDZ(ocena(porownaj(p, r), "m15") == Ocena::TAK);
+  p.noc.m15 = 7.81f;
+  SPRAWDZ(ocena(porownaj(p, r), "m15") == Ocena::NIE);
+  p = nocWzorcowa();
+  p.noc.cmed = 14.5f;  // M-05 na granicy 0,5
+  SPRAWDZ(ocena(porownaj(p, r), "m05") == Ocena::TAK);
+  p.noc.cmed = 14.51f;
+  SPRAWDZ(ocena(porownaj(p, r), "m05") == Ocena::NIE);
+  // M-14 (objętość oddechowa): tolerancja WY9 20 mL
+  p = nocWzorcowa();
+  p.noc.m14 = 470;
+  SPRAWDZ(ocena(porownaj(p, r), "m14") == Ocena::TAK);
+  p.noc.m14 = 471;
+  SPRAWDZ(ocena(porownaj(p, r), "m14") == Ocena::NIE);
   // ustawienia: inny tekst = rozjazd; bez STR (narzędzie) = pominięte
   p = nocWzorcowa();
   p.noc.ustawienia = "ASVAuto/6/10/3/14";
@@ -256,11 +290,12 @@ static std::string historiaJson(const DobaAB& d, const std::string& rap) {
   return noce(s);
 }
 
-static void testDyrygentDomyslny() {
+static void testDyrygentPorownanie() {
   DobaAB d = dobaAB(DZIS4);
-  // bez klucza = porównanie: noc z raportu JSON (300 min, bez PS), pliki pobrane raz, wpis `rozjazd`
+  // `noc_zrodlo=porownanie` (do 10.11.2026 tryb domyślny): noc z raportu JSON (300 min, bez PS), pliki pobrane raz,
+  // wpis `rozjazd`
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d);
     wybudz(s, ep(2026, 11, 4, 7, 0));
     ROWNE_L(zadan(s, sciezkaNocy(DZIS4)), 1);
@@ -334,19 +369,19 @@ static void testDyrygentBrak() {
     SPRAWDZ(dobrze);
   };
   for (int kod : {404, 503}) {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d, kod);
     sprawdz(s, kod == 404 ? "AirBridge < 2.3.1" : "błąd listy sesji", __LINE__);
     ROWNE_L(zadan(s, "/api/storage/download?path=/DATALOG/"), 0);
   }
   for (int war = 0; war < 2; war++) {  // sesja niezamknięta albo `.part`
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d, 200, sesjeJson(d, war == 1, war == 1));
     sprawdz(s, "sesja niezamknięta", __LINE__);
     ROWNE_L(zadan(s, "/api/storage/download?path=/DATALOG/"), 0);
   }
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d, 200, "{\"sessions\":[],\"str\":null,\"next_cursor\":null}");
     sprawdz(s, "brak plików", __LINE__);
   }
@@ -354,7 +389,7 @@ static void testDyrygentBrak() {
   for (auto& x : d.pliki)
     if (rodzajPliku(x.first) == Rodzaj::PLD) pldN = x.first;
   for (int war = 0; war < 3; war++) {  // PLD 404, ucięty, ponad limit
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d);
     std::string sc = sciezkaPobraniaPliku(d.katalog + pldN);
     s.p.siec.odpowiedzi[sc].clear();
@@ -364,14 +399,14 @@ static void testDyrygentBrak() {
     sprawdz(s, war == 1 ? "plik nieczytelny" : "plik niepobrany", __LINE__);
   }
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d);
     s.p.siec.odpowiedzi[sciezkaPobraniaStr()].clear();
     s.p.siec.dodaj(sciezkaPobraniaStr(), 500, "");
     sprawdz(s, "brak STR.edf", __LINE__);
   }
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d);
     s.p.siec.odpowiedzi[sciezkaPobraniaStr()].clear();
     s.p.siec.dodaj(sciezkaPobraniaStr(), 200, strDoby(DZIS4 - 1));
@@ -381,12 +416,12 @@ static void testDyrygentBrak() {
     DobaAB e = d;
     for (auto it = e.pliki.begin(); it != e.pliki.end();)
       it = rodzajPliku(it->first) == Rodzaj::EVE ? e.pliki.erase(it) : std::next(it);
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, e);
     sprawdz(s, "noc z plików częściowa", __LINE__);
   }
   {  // raport JSON odpowiada po 80 s: na porównanie zostaje mniej niż CZAS_POROWNANIA_MS
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d);
     s.p.siec.odpowiedzi[sciezkaNocy(DZIS4)].clear();
     s.p.siec.dodaj(sciezkaNocy(DZIS4), 200, raport(DZIS4), 80000);
@@ -396,7 +431,7 @@ static void testDyrygentBrak() {
   }
   // brak porównania nie blokuje następnej próby: po 404 w następnym wybudzeniu z pobraniem doby lista znowu
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     odpowiedzi(s, d, 404);
     wybudz(s, ep(2026, 11, 4, 7, 0));
     SPRAWDZ(!gotowe(parsujWpisy(wpisyPliku(s)), "2026-11-04"));
@@ -424,23 +459,34 @@ static void testDyrygentTryby() {
     SPRAWDZ(w.size() > 10 && w[2] == "480" && w[10] == "7.00");
     ROWNE(plikPor(s), "");
   }
-  // zła wartość klucza: wiersz pominięty, tryb domyślny (porównanie)
+  // zła wartość klucza: wiersz pominięty, tryb domyślny (`plik` od 11.11.2026): noc z plików, bez raportu
+  // JSON i bez wpisu porównania
   {
     PanelN s("noc_zrodlo=pliki\n");
     odpowiedzi(s, d);
     wybudz(s, ep(2026, 11, 4, 7, 0));
     SPRAWDZ(wLogu(s, "pominięty wiersz"));
-    ROWNE_L(wpisyPliku(s).size(), 1);
+    ROWNE_L(zadan(s, sciezkaNocy(DZIS4)), 0);
+    ROWNE_L(zadan(s, "/api/storage/download?path=/DATALOG/"), 3);
+    std::vector<std::string> w = wiersz(s, "2026-11-04");
+    SPRAWDZ(w.size() > 13 && w[2] == "480" && w[10] == "7.00" && w[13] == "A");
+    ROWNE(plikPor(s), "");
+    SPRAWDZ(wLogu(s, "konfiguracja: noc z plików sesji (domyślnie, ADR-0036)"));
   }
   // `porównanie` z polskimi znakami też
   {
     UstawieniaDnia u = parsujUstawieniaDnia("noc_zrodlo=porównanie\n");
     ROWNE_L(u.nocZrodlo, 2);
     ROWNE_L(parsujUstawieniaDnia("").nocZrodlo, -1);
+    ROWNE_L(parsujUstawieniaDnia("").nocZrodloSkuteczne(), 1);  // bez wiersza: `plik`
+    ROWNE_L(parsujUstawieniaDnia("noc_zrodlo=edf\n").nocZrodloSkuteczne(), 1);
+    ROWNE_L(u.nocZrodloSkuteczne(), 2);
+    ROWNE_L(parsujUstawieniaDnia("noc_zrodlo=json\n").nocZrodloSkuteczne(), 0);
+    ROWNE_L(NOC_ZRODLO_DOMYSLNE, 1);
   }
   // porównanie zapisane wcześniej (zgodne) = bez pobrań plików; plik bez zmian
   {
-    PanelN s("");
+    PanelN s("noc_zrodlo=porownanie\n");
     std::string t = "#cpap-eink porownanie 1\n" + std::string(POLA) + "\n2026-11-04;zgodna;;;\n#koniec 1\n";
     s.p.pliki.pliki["/dane/porownanie.csv"] = t;
     odpowiedzi(s, d);
@@ -455,7 +501,7 @@ static void testDyrygentTryby() {
 // jak przy `json`; pobrania plików dopiero po nim; „brak czasu” ponawiany w kolejnym wybudzeniu (raport JSON ponownie)
 static void testDyrygentKoniecWybudzenia() {
   DobaAB d = dobaAB(DZIS4);
-  PanelN j("noc_zrodlo=json\n"), p("");
+  PanelN j("noc_zrodlo=json\n"), p("noc_zrodlo=porownanie\n");
   odpowiedzi(j, d);
   odpowiedzi(p, d);
   wybudz(j, ep(2026, 11, 4, 7, 0));
@@ -487,7 +533,7 @@ static void testDyrygentKoniecWybudzenia() {
   ROWNE(noce(p), noce(j));  // także pole `import` (chwila zapisu) jak przy `json`
   // brak czasu (raport po 80 s): wpis `brak czasu`, bez Wi-Fi na końcu; następne wybudzenie zegarem z odczytem:
   // raport JSON ponownie (pamięć wybudzenia go nie ma), pliki, wynik
-  PanelN s("");
+  PanelN s("noc_zrodlo=porownanie\n");
   odpowiedzi(s, d);
   s.p.siec.odpowiedzi[sciezkaNocy(DZIS4)].clear();
   s.p.siec.dodaj(sciezkaNocy(DZIS4), 200, raport(DZIS4), 80000);
@@ -516,7 +562,7 @@ static void testDyrygentKoniecWybudzenia() {
 
 // U-05: wiersz `Noce z plików` z pliku porównań (7 zgodnych = dopisek), diagnostyka w logu
 static void testDyrygentU05() {
-  PanelN s("");
+  PanelN s("noc_zrodlo=porownanie\n");
   std::string t = "#cpap-eink porownanie 1\n" + std::string(POLA) + "\n";
   for (int i = 0; i < 7; i++) t += dataZNr(nrDnia("2026-10-27") + i) + ";zgodna;;m28:pliki;\n";
   t += "#koniec 7\n";
@@ -546,13 +592,112 @@ static void testDyrygentU05() {
   ROWNE(s.p.pliki.tresc("/dane/porownanie.csv"), t);  // odczyt nie przepisuje pliku
 }
 
+// ============================================================================================================
+// (e) tryb domyślny `plik` (ADR-0036 „Zmiana 2026-11-11”)
+// ============================================================================================================
+static void testDyrygentDomyslnyPlik() {
+  DobaAB d = dobaAB(DZIS4);
+  // bez pliku konfiguracji i z plikiem bez wiersza `noc_zrodlo`: noc z plików sesji, PS (M-28) w historii, bez raportu
+  // JSON i bez wpisu porównania
+  for (const char* k : {"", "profil=prywatny\n"}) {
+    PanelN s(k);
+    odpowiedzi(s, d);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    ROWNE_L(zadan(s, sciezkaNocy(DZIS4)), 0);
+    ROWNE_L(zadan(s, "/api/sessions?since=20261103"), 1);
+    ROWNE_L(zadan(s, "/api/storage/download?path=/DATALOG/"), 3);
+    std::vector<std::string> w = wiersz(s, "2026-11-04");
+    SPRAWDZ(w.size() >= 42);
+    if (w.size() >= 42) {
+      ROWNE(w[1], "1");
+      ROWNE(w[2], "480");                 // M-01 z plików (raport JSON miał 300)
+      ROWNE(w[10], "7.00");               // PS (M-28) z plików: 14 − 7
+      ROWNE(w[12], "ASVAuto/6/10/3/15");  // ustawienia ze STR doby
+      ROWNE(w[13], "A");
+    }
+    ROWNE(plikPor(s), "");
+    SPRAWDZ(!wLogu(s, "E-03"));
+    SPRAWDZ(*k == 0 || wLogu(s, "konfiguracja: noc z plików sesji (domyślnie, ADR-0036)"));
+  }
+  // problem z plikami (R-DANE-44): ta doba z raportu JSON w tym samym wybudzeniu (300 min, bez PS), bez E-03 i bez
+  // wpisu porównania; 404 (AirBridge < 2.3.1), 503, noc z plików częściowa (bez EVE)
+  auto zJson = [](PanelN& s) {
+    std::vector<std::string> w = wiersz(s, "2026-11-04");
+    return w.size() > 13 && w[2] == "300" && w[10].empty() && w[13] == "A";
+  };
+  for (int kod : {404, 503}) {
+    PanelN s("");
+    odpowiedzi(s, d, kod);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    ROWNE_L(zadan(s, "/api/sessions?since="), 1);
+    ROWNE_L(zadan(s, sciezkaNocy(DZIS4)), 1);
+    ROWNE_L(zadan(s, "/api/storage/download?path=/DATALOG/"), 0);
+    SPRAWDZ(zJson(s));
+    ROWNE(plikPor(s), "");
+    SPRAWDZ(!wLogu(s, "E-03"));
+  }
+  {
+    DobaAB e = d;
+    for (auto it = e.pliki.begin(); it != e.pliki.end();)
+      it = rodzajPliku(it->first) == Rodzaj::EVE ? e.pliki.erase(it) : std::next(it);
+    PanelN s("");
+    odpowiedzi(s, e);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    ROWNE_L(zadan(s, sciezkaNocy(DZIS4)), 1);
+    SPRAWDZ(zJson(s) && wLogu(s, "częściowa"));
+    ROWNE(plikPor(s), "");
+  }
+  // noc zapisana wcześniej z raportu JSON (bez PS, np. w trybie `porownanie` przed zmianą) zostaje bajt w bajt:
+  // bez przeliczania wstecz, bez żądań o tę dobę; nowa doba już z plików
+  {
+    Noc n;
+    n.data = "2026-11-03";
+    n.zrodlo = 'A';
+    n.m01 = 300;
+    n.ahi = 3;
+    n.wazna = true;
+    // plik wersji 4: po migracji 4 → 5 wiersz z pustym `m15` na końcu, reszta bajt w bajt
+    std::string stara = wierszNocyV5(n);
+    PanelN s("");
+    s.p.pliki.pliki["/dane/noce/2026.csv"] =
+        std::string("#cpap-eink noce 4\n") + POLA_V3 + "\n" + wierszNocyV3(n) + "\n#koniec 1\n";
+    odpowiedzi(s, d);
+    s.p.siec.odpowiedzi[sciezkaListy()].clear();
+    s.p.siec.dodaj(sciezkaListy(), 200, lista(DZIS4 - 1, DZIS4));
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    ROWNE_L(zadan(s, sciezkaNocy(DZIS4 - 1)), 0);
+    ROWNE_L(zadan(s, "/api/sessions?since=" + dzienAB(DZIS4 - 1)), 0);
+    bool jest = false;
+    for (auto& l : dziel(noce(s), '\n')) jest = jest || l == stara;
+    SPRAWDZ(jest);
+    std::vector<std::string> w = wiersz(s, "2026-11-04");
+    SPRAWDZ(w.size() > 13 && w[2] == "480" && w[10] == "7.00");
+  }
+  // U-05 w trybie domyślnym: `włączone (plik)`, diagnostyka z trybem `plik`
+  {
+    PanelN s("");
+    s.p.siec.siecJest = false;
+    s.p.zegar.epoch = ep(2026, 11, 3, 12, 0);
+    s.p.zegar.msTeraz = 0;
+    s.p.start.stan = StanRtc();
+    s.p.start.przyczynaStartu = PrzyczynaStartu::ZASILANIE;
+    s.p.start.powodWybudzenia = PowodWybudzenia::START;
+    Dyrygent dy(s.p.adaptery(), KONF);
+    dy.wybudzenie();
+    TekstyWybudzenia tk = dy.teksty();
+    SPRAWDZ(zawiera(tk.linieTestu, "Noce z plików: włączone (plik)"));
+    SPRAWDZ(zawiera(tk.diagnostykaTestu, "Noce z plików: noc_zrodlo=plik"));
+  }
+}
+
 int main() {
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
   testRdzen();
   testWpisy();
   testU05();
-  testDyrygentDomyslny();
+  testDyrygentPorownanie();
+  testDyrygentDomyslnyPlik();
   testDyrygentBrak();
   testDyrygentTryby();
   testDyrygentKoniecWybudzenia();

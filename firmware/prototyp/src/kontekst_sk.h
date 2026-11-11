@@ -29,6 +29,7 @@
 #include "reguly.h"
 #include "slot_dzienny.h"
 #include "sprzet.h"
+#include "stany.h"
 #include "sypialnia.h"
 
 namespace sk {
@@ -114,10 +115,16 @@ const double DELTA_M01_H = -1.5;
 const double DELTA_M13 = 2;
 // próg: R-NOR-12.delta.M-05p = 2
 const double DELTA_M05P = 2;
-// próg: R-NOR-12.delta.M-06p = 2
-const double DELTA_M06P = 2;
+// próg: R-NOR-12.delta.M-06p = 1.5
+const double DELTA_M06P = 1.5;  // S-K-17, sygnał EPAP w trybie ASV: Δ M-06p (komplet progów 11.11.2026)
 // próg: R-NOR-12.delta.M-07 = 10
 const double DELTA_M07 = 10;
+// próg: R-KON-65.co_dni = 7
+const int ODCHYLENIE_CO_DNI = 7;  // ADR-0039: ta sama karta S-K-40…S-K-47 wraca po 7 dniach, dopóki trwa stan
+// próg: R-KON-64.krok_lekarz = 7
+const int ODCHYLENIE_KROK_LEKARZ = 7;  // od 7. nocy stanu krok `→ Trwa od tygodnia. Omów to z lekarzem.`
+// próg: R-KON-68.co_dni = 7
+const int DOBRA_ZMIANA_CO_DNI = 7;  // linia „dobra zmiana” raz na 7 dni (kolejka 7.5, grupa „norma”)
 const int EKRANOW_SK_NA_DOBE = 3;  // 7.4: najwyżej 3 różne ekrany S-K w dobie [PRÓG]
 const int TEN_SAM_WIECZOR_DNI = 3;  // 7.4: ten sam ekran wieczorny raz na 3 dni [PRÓG]
 const int ROZRUCH_NOCY = 14;        // 7.3: rozruch globalny < 14 nocy ważnych (ADR-0003)
@@ -155,6 +162,8 @@ struct Wejscie {
   std::string dzis;                                 // data poranka (rano) albo data wieczoru (zeszła noc = noc `dzis`)
   const std::vector<Noc>* hist = nullptr;           // po dacie rosnąco
   const Norma* norma = nullptr;                     // norma z dnia `dzis` (bez nocy wyłączonych, R-CZY-05)
+  // stany odchylenia z dnia `dzis` (src/stany.h): karty odchyleń S-K-40…S-K-47 (ADR-0039); nullptr = bez tych kart
+  const Stany* stany = nullptr;
   reguly::Tryb tryb = reguly::Tryb::NIEZNANY;       // ASV, ASVAuto: M-06p zamiast M-05p (4.11)
   const std::vector<NocSypialni>* sypialnia = nullptr;
   float tempTeraz = NAN, wilgTeraz = NAN;           // czujnik panelu (M-22) z tego wybudzenia; NAN = brak (R-AW-13)
@@ -208,7 +217,29 @@ bool tydzien(const Wejscie& w, Tresc& t);
 // w poniedziałek w R8 (R-KON-27); rano() woła je sama w poniedziałek.
 std::vector<Tresc> trendyTygodnia(const Wejscie& w, const std::string& niedziela);
 
-// Pozycja grupy z tabeli 7.2 (rano: R0 = 0 … R9 = 12; wieczór W1 = 20 … W3 = 22; tydzień T2 = 30), mniejsza wygrywa.
+// ---------- odchylenia od normy (ADR-0039, R-KON-64, R-KON-68) ----------
+// Karty S-K-40…S-K-47: jeden rodzaj `sk_odchylenie` (docs/spec/katalog/rodzaje-sk.csv, parametry `sygnal`, `kierunek`),
+// tabela kart w src/kontekst_sk.cpp (KARTY_ODCHYLEN, w kolejności ID). Kandydat rano (grupa R5e, pod problemami porannymi
+// R5a…R5d, ton „informacja”, zawsze ekran danych), gdy:
+//   - metryka jest w stanie odchylenia w kierunku karty (Stany, 4.6: 3 z 5 nocy ważnych poza granicą i ≥ Δ od mediany)
+//     i ma dziś normę (bez normy brak karty, R-NOR-10, R-NOR-07);
+//   - ta karta nie była pokazana w ostatnich 7 dniach [PRÓG R-KON-65.co_dni] (dziś pokazana zostaje);
+//   - S-K-45 (oddechy ↑): tego ranka nie ma kandydata S-K-30 ani S-K-17 i nie trwa okres infekcji (R-INF-02);
+//   - S-K-46 (oddychanie okresowe ↑): tryb bieżący ASV albo ASVAuto i M-09 ostatniej nocy ma wartość (ADR-0037).
+// Z kilku kandydatów jeden: dziś już pokazany, inaczej najdłużej trwający stan (`StanMetryki::nocy`), potem niższe ID.
+// Powód: {x} = mediana z 5 ostatnich nocy ważnych z wartością, {norma} = mediana normy; krok: noc stanu 1–6
+// `→ Obserwuj kolejne noce.`, od 7. [PRÓG R-KON-64.krok_lekarz] `→ Trwa od tygodnia. Omów to z lekarzem.`
+// Wizualizacja: linia 14 nocy (NAN = brak nocy albo wartości) z linią przerywaną mediany normy.
+// Dopisuje najwyżej jedną kartę do `o`; bez `w.stany` albo `w.norma` nic.
+void odchylenia(const Wejscie& w, std::vector<Tresc>& o);
+// Linia „dobra zmiana” (ADR-0039 pkt 5, R-KON-68): `Dobra zmiana: {wskaźnik} {niżej|wyżej} niż zwykle od {n} nocy.` dla
+// stanu dobrej zmiany (Stany::dobra*: AHI, PS w trybie ASV, wyciek, przerwy, ograniczenie przepływu w dół, czas z maską
+// w górę); z kilku najdłuższa (StanMetryki::odPierwszej), potem kolejność listy. "" = brak. Rytm raz na 7 dni od
+// pokazania liczy kolejka (src/kolejka.h, WejscieKolejki::dobraZmiana). `asv` = tryb bieżący ASV albo ASVAuto.
+std::string liniaDobrejZmiany(const Stany& st, bool asv);
+
+// Pozycja grupy z tabeli 7.2 (rano: R0 = 0 … R5d = 8, R5e = 9, R6 = 10 … R9 = 13; wieczór W1 = 20 … W3 = 22; tydzień
+// T2 = 30), mniejsza wygrywa.
 int ranga(const std::string& grupa);
 // Czy rano jako ekran dnia stanie ekran S-K w tonie „problem” z grup R5b…R5d, czyli prośba (7.4, R-PIE-10), na
 // której ↻ 2 s znaczy „wiem” (R-CZY-07). Przyjmuje listę z rano(); patrzy tylko na kandydata, który się pokaże:

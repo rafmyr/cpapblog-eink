@@ -682,7 +682,7 @@ NocAB nocZWyniku(const WynikNocy& w, const Str* str, const std::string& trybZapa
 
 // ---------- metryki z JSON ----------
 static const char* const METRYKI_JSON[] = {"m01", "m02", "m03", "m05", "m06", "m07", "m08",
-                                           "m09", "m10", "m13", "m17", "m18", "m21", "m28"};
+                                           "m09", "m10", "m13", "m14", "m15", "m17", "m18", "m21", "m28"};
 
 bool metrykaJsonOk(const std::string& id) {
   for (const char* m : METRYKI_JSON)
@@ -728,6 +728,8 @@ void scalZJson(NocAB& p, const NocAB& j, const std::set<std::string>& m) {
   if (ma("m09")) n.csr = z.csr;
   if (ma("m10")) { n.m10 = z.m10; n.m10p = z.m10p; }
   if (ma("m13")) n.m13 = z.m13;
+  if (ma("m14")) n.m14 = z.m14;
+  if (ma("m15")) n.m15 = z.m15;
   if (ma("m17")) n.m17 = z.m17;
   if (ma("m18")) n.m18 = z.m18;
   if (ma("m21")) {
