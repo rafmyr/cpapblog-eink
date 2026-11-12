@@ -31,7 +31,7 @@
 5. **Nazwa.** Publicznie projekt występuje jako `cpapblog-eink`: tak brzmi nazwa repozytorium i tytuł README, a w kodzie, nazwach sieci i plików zostaje wewnętrzny prefiks `cpap-eink`. README nie wprowadza żadnej innej nazwy produktu; nazwa produktu jest nierozstrzygnięta.
 6. **Warunek do opinii prawnika:**
    - **żadnych wydań z gotowym obrazem** (`.bin`, scalony plik do wgrania, strona z instalatorem z przeglądarki) w `cpapblog-eink`; tag bez obrazu jest dozwolony;
-   - **żadnej zapowiedzi w grupie pacjentów**;
+   - **żadnej zapowiedzi w grupie pacjentów** (zmienione 11.11.2026: dozwolony pokaz panelu na warunkach, zob. „Zmiana 2026-11-11” niżej);
    - **skan jako bramka:** każde przeniesienie zmian do publicznego repozytorium tylko po skanie z wynikiem 0 trafień (sekrety, dane z prawdziwych nocy, prywatne obrazki, adresy);
    - README dalej mówi „zbuduj i wgraj sam”, zastrzeżenie ma brzmienie z ADR-0015 (bez stwierdzania statusu wobec MDR), a przeznaczenie jest podane według ADR-0015 pkt 1 (zrobione 08.11.2026).
 7. **Testy w zamkniętym gronie bez zmian:** panel u znanych osób z pełną funkcjonalnością, wgrywany przez autora; publikacja kodu tego nie rozszerza.
@@ -44,3 +44,14 @@
 - **`NOTICE`** odsyła do `LICENSES/GPL-3.0-or-later.txt`.
 - **Tag `spec-v1.2`** wskazuje kandydata specyfikacji 1.2 sprzed przeglądu zbiorczego, nie wydaną specyfikację.
 - **Zmiana tego ADR** wymaga nowego ADR. Pierwsze wydanie z obrazem dodatkowo wymaga opinii prawnika.
+
+## Zmiana 2026-11-11: pokaz panelu w grupie pacjentów
+
+Decyzja właściciela projektu (11.11.2026): warunek „żadnej zapowiedzi w grupie pacjentów” z pkt 6 zmienia się w jednym zakresie. Dozwolony jest pokaz panelu w grupie pacjentów (zdjęcie albo film) na tych warunkach:
+
+- bez obietnic medycznych i bez słów o ocenie stanu zdrowia; opis tego, co panel pokazuje (rysunek nocy, liczby z aparatu), w granicach [ADR-0002](0002-panel-nie-zmienia-ustawien.md) i [ADR-0015](0015-przeznaczenie-panelu.md);
+- bez gotowego obrazu do wgrania, bez linku do instalatora i bez obietnicy wydania;
+- na zdjęciu i filmie tylko noce właściciela albo dane syntetyczne, bez danych innej osoby;
+- współpraca komercyjna, jeśli będzie, jasno oznaczona.
+
+Pozostałe warunki pkt 6 bez zmian, w tym zakaz wydań z gotowym obrazem w tym repozytorium.
