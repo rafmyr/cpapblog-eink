@@ -41,8 +41,6 @@ struct WejscieS8 {
   bool profilPubliczny = false;
   bool p199 = false;      // test zaliczony (krok o paśmie centralnych poza ASV); dziś nie
   bool wzorzecL = false;  // aktywny wzorzec L (także wyciszony) albo „tylko raport” ze spełnionym warunkiem (R-SKI-44)
-  bool zK1 = false;       // strona 4 / 6 kokpitu: stopka akcji zamiast pogody
-  bool sprawy = true;     // strona „Otwarte sprawy” jest (◀ sprawy), inaczej ◀ wraca do K2
 };
 struct DaneS8 {
   std::string etykieta = "Norma osobista", tytul = "Twoja norma";
@@ -50,10 +48,6 @@ struct DaneS8 {
   bool centralne = false;    // wiersz `Centralne` (CA/h z normą)
   std::string krok;
   bool informacja = false;   // ton „informacja” (R-EKR-36): krok w ramce
-  std::string stopkaLewo;    // strona kokpitu: `◀ sprawy ▶ sprzęt ↻ ekran dnia` (▶ co znaczą liczby w profilu publicznym)
-  // strona kokpitu: nazwa strony w nagłówku z lewej (`Twoja norma`, jak `Sprzęt`), wtedy bez tytułu w treści, żeby
-  // nie powtarzać nazwy; jako ekran dnia pusto (nagłówek z datą poranka, tytuł `Twoja norma`)
-  std::string naglowek;
 };
 DaneS8 budujS8(const WejscieS8& w);
 // Kandydat R7 jednorazowo (R-EKR-33): panel ma pierwszy raz 30 nocy ważnych w oknie normy i S8 nie było pokazane.
@@ -64,14 +58,15 @@ void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t
 // ---------- „Co znaczą te liczby” (5.4.14, R-EKR-51) ----------
 struct WierszLiczb { std::string nazwa, opis; };  // `Czas z maską:` + ` ile godzin aparat pracował.`
 struct DaneLiczb {
-  // strona 4 / 6: nazwa strony w nagłówku obok numeru (jak `Twoja norma`), bez powtórzenia jej etykietą w treści
+  // strona kokpitu bez numeru po K2 (R-KOK-22): nazwa strony w nagłówku, bez powtórzenia jej etykietą w treści
   std::string naglowek = "Co znaczą te liczby";
   std::string etykieta;
   std::vector<WierszLiczb> wiersze;
   std::string zdanie = "Co jest dobre dla ciebie, powie lekarz.";
-  std::string stopkaLewo = "◀ norma   ▶ sprzęt   ↻ ekran dnia";  // strona po S8, przed „Sprzęt”
+  std::string stopkaLewo = "◀ 7 nocy   ▶ ustawienia   ↻ ekran dnia";  // 5.5.7 „Stopki stron”
 };
-DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne);
+// `sprawy`: za tą stroną stoją „Otwarte sprawy” (▶ sprawy), inaczej U-01 (▶ ustawienia), R-KOK-22.
+DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy = false);
 void rysujLiczby(Plotno& p, const Naglowek& n, const DaneLiczb& d);
 
 // ---------- S1: odkrycie jako ekran danych (6.5, R-HUM-13) ----------

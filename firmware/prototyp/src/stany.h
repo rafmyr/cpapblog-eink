@@ -107,7 +107,7 @@ struct Stany {
   // punktów, których panel nie liczy. Ustawia kolejka::zastosujUspokojenie(); do kart pochwalnych S2d.
   bool bezSpraw = false;
   // (R-EKR-32, 5.4.13 pkt 5 i 7): dlaczego uspokojenie jest niespełnione, do kroku zamiennego. SPRAWA =
-  // sprawa, linia „zdrowie” albo ocena bez silnika (`→ Otwarte sprawy: strona 3 / 6.`); REGULY = jakaś reguła
+  // sprawa, linia „zdrowie” albo ocena bez silnika (`→ Otwarte sprawy: za stroną 2 / 3.`); REGULY = jakaś reguła
   // „nie oceniam”, a z pozostałych co najwyżej punkty, których panel nie liczy (`→ Część reguł nie działa: zobacz
   // Test sprzętu.`, tylko przy awarii zestawu, R-AW-31); OCENY = tylko punkty, których panel nie liczy (pkt 3 w części, pkt 5: `→ Część ocen wyłączona:
   // zobacz ▶.`). Ustawia kolejka::zastosujUspokojenie(); bez wyników silnika SPRAWA.

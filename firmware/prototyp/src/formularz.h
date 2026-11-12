@@ -34,6 +34,11 @@ struct Pola {
   std::string profil = "prywatny";   // `publiczny` | `prywatny`
   std::string wymiana[ELEMENTY];     // RRRR-MM-DD albo ""
   std::string okres[ELEMENTY];       // maska: miesiące, filtr: tygodnie, "" = domyślny okres
+  // R-MAS-17: termin następnej wymiany przy polu daty (sprzet::terminFormularza(), z datami po odpowiedzi „tak” na
+  // `Wymieniona maska?`, R-MAS-13); ustawia wołający (dyrygent), zPliku() zostawia puste = bez wiersza terminu
+  std::string termin[ELEMENTY];
+  // R-MAS-19: nowy model maski zapisany dziś (NVS `sp_model` = dziś, ustawia wołający): pole `Cofnij nowy model z dziś`
+  bool nowyModelDzis = false;
   // (5.6.4). Wartości domyślne ze spec, gdy w pliku nie ma wiersza.
   bool zrodloOto = false;             // panel ma źródło otoczenia (OTO_URL): tylko wtedy jest pole CO2
   std::string co2 = "tak";            // `tak` | `nie`
@@ -77,6 +82,11 @@ struct Wynik {
   std::string kluczWydan;
   bool usunKlucz = false;
   std::string hasloOkna;
+  // R-MAS-16: pole `Nowy model maski od dziś` zaznaczone (data wymiany maski = dziś już w `plik`); wołający zapisuje
+  // datę nowego modelu (zerowanie normy M-07 i linia R-MAS-16, dawniej R-MAS-11) po zapisie pliku
+  bool nowyModelMaski = false;
+  // R-MAS-19: pole `Cofnij nowy model z dziś` zaznaczone; wołający przywraca datę maski i `sp_model` sprzed dziś
+  bool cofnijNowyModel = false;
   bool ok() const { return bledy.empty(); }
 };
 // `dzis` RRRR-MM-DD: daty wymiany z przyszłości odrzucone (R-KONF-34). `obecne` = sekrety przed formularzem.

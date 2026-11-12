@@ -32,6 +32,8 @@
 #include "sprzet.h"
 #include "ekrany_zdarzen.h"
 #include "zdarzenia_ekrany_e.h"
+#include "portret.h"
+#include "portret_ekran.h"
 
 struct PlotnoPamiec : Plotno {
   std::vector<uint8_t> px = std::vector<uint8_t>(800 * 480, 0);
@@ -281,7 +283,7 @@ static void makiety(PlotnoPamiec& p) {
            "→ Sprawdź zasilanie AirBridge."));  // jedna godzina: w powodzie
   rysuj("s5-e01-3noc", {"cz 30.11", "dane z 27.11"},
         s5("Brak danych od 999 nocy", "AirBridge nie odpowiada od 30.11. Ponawiam co\xC2\xA0" "30 min.", "",
-           "→ Sprawdź AirBridge i sieć. Ustawienia: strona 6 / 6."));
+           "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3."));
   rysuj("s5-e03", {"cz 30.11", "dane z 29.11"},
         s5("Nie rozumiem danych AirBridge", "Format raportu zmienił się (AirBridge v1.12.10).", "ostatnie dane: 29.11 23:59",
            "→ Daj znać osobie, która instalowała panel."));
@@ -381,6 +383,9 @@ static void makiety(PlotnoPamiec& p) {
     kc.w[8] = k2.w[9];
     rysujK2(p, kc);
     zapisz(p, "mak-k2-cpap");
+    kc.krokPasma = "→ Pasmo AHI wysokie. Obserwuj kolejne noce.";  // R-KOK-24 (wariant b
+    rysujK2(p, kc);
+    zapisz(p, "mak-k2-cpap-pasmo-ahi");
   }
 
   DanePytania q;
@@ -642,16 +647,6 @@ static void podgladB16(PlotnoPamiec& p) {
     w3.hist = &h3;
     skB16(p, sk::rano(w3), "S-K-21", "b16-sk21-weekend", Naglowek{"pn 02.11", "dane 05:44"}, "", "");
   }
-  {  // „Sprzęt”: poduszka po terminie (negatyw), kursor na masce
-    ElementWymiany el[EL_N];
-    el[EL_MASKA] = {"2026-04-01", 6, false};
-    el[EL_FILTR] = {"2026-10-14", 4, true};
-    sprzet::Elementy e = sprzet::zOdpowiedziami(el, {}, {});
-    sprzet::rysujSprzet(p, sprzet::wierszeSprzetu(e, koniec), EL_MASKA);
-    zapisz(p, "b16-sprzet");
-    sprzet::rysujSprzet(p, sprzet::wierszeSprzetu(e, koniec), EL_FILTR);
-    zapisz(p, "b16-sprzet-filtr");
-  }
   {  // pytanie `Wymieniona poduszka?` (R-MAS-12, artboard Q-poduszka)
     DaneDnia dd;
     dd.dzis = koniec;
@@ -660,17 +655,17 @@ static void podgladB16(PlotnoPamiec& p) {
     rysujPytanieTN(p, q);
     zapisz(p, "b16-pytanie-poduszka");
   }
-  {  // `Nowy model maski zapisany.` (R-MAS-14, artboardy P-nowy-model, P-nowy-model-noc)
+  {  // `Wymiana zapisana.` (R-MAS-01, R-MAS-18; od ADR-0041 jedyny ekran zapisu wymiany, artboard P-nowy-model)
     DanePotwierdzenia d;
     d.naglowek = {"Sprzęt", ""};
-    d.tytul = sk::tekst("R-MAS-14.tytul");
-    d.powod = sk::tekst("R-MAS-14.powod");
+    d.tytul = sk::tekst("R-MAS-01.tytul");
+    d.powod = sk::tekst("R-MAS-01.filtr");
     d.stopka = {"◀ 2 s cofnij"};
     rysujPotwierdzenie(p, d);
-    zapisz(p, "b16-nowy-model");
+    zapisz(p, "b16-wymiana-zapisana");
     d.stopka.clear();
     rysujPotwierdzenie(p, d);
-    zapisz(p, "b16-nowy-model-noc");
+    zapisz(p, "b16-wymiana-zapisana-noc");
   }
 }
 static void podgladB9(PlotnoPamiec& p) {
@@ -851,13 +846,11 @@ static void podgladB15(PlotnoPamiec& p) {
   podsumowanie::WejscieS8 w;
   w.norma = &n;
   w.tryb = reguly::Tryb::ASVAUTO;
-  w.zK1 = true;
-  Naglowek n8{"Twoja norma", "4 / 6"};  // S8 jako strona 4 / 6 kokpitu: nazwa strony w nagłówku
+  Naglowek n8{"wt 03.11", "dane 05:44"};  // S8 tylko jako ekran dnia (kamień milowy R7, ADR-0041)
   podsumowanie::DaneS8 s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-norma");
   n.ahi.p10 = 1.2; n.ahi.p90 = 5.4;
-  w.zK1 = false;
   s8 = podsumowanie::budujS8(w);
   t = podsumowanie::trescS8(s8);
   t.stopkaLewo = "Katowice 4° · pochmurno";
@@ -867,13 +860,12 @@ static void podgladB15(PlotnoPamiec& p) {
   n.ahi.n = 0;
   n.ca.n = 0;
   w.profilPubliczny = true;
-  w.zK1 = true;
   s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-publiczny-uczesie");
-  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", "4 / 6"}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true));
+  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true, true));
   zapisz(p, "b15-co-znacza-liczby");
-  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", "4 / 6"}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
+  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
   zapisz(p, "b15-co-znacza-liczby-asv");
   // odkrycia: O-12 (alkohol) z archiwum z wagami R-CZY-24, O-08 (weekend), O-03 (linia 30 nocy)
   std::vector<Noc> ho;
@@ -1010,6 +1002,144 @@ static void podgladB15(PlotnoPamiec& p) {
   q.stopka = tw.stopka;
   rysujPytanieTN(p, q);
   zapisz(p, "b15-pytanie-wyjazd");
+}
+
+// Portret nocy S11 (5.4.16, ADR-0040): pełny ekran (nagłówek, tarcza, kolumna, stopka) na
+// przebiegach zbudowanych w kodzie (bez plików zewnętrznych): AutoSet z pikami, centralnymi i wyciekiem; ASVAuto
+// z kropkami i wsparciem; noc niepewna; noc spokojna; wariant z linią uwagi (z podpisem zbiorczym braków); strona
+// pod ▶ ze stopką `◀ ekran dnia   ▶ ostatnia noc   ↻ ekran dnia` (R-POR-24); start okna na pierścieniu (znacznik startu
+// okna przez czarny łuk maski, R-POR-06, od 12.11.2026) i wyciek na starcie okna.
+static portret::Odcinek odcinekS11(int od) {
+  portret::Odcinek o;
+  o.od = od;
+  o.minuty = 5;
+  o.wyciek95 = 6;
+  o.wycS = 0;
+  o.zew = 0;
+  o.centr = 0;
+  return o;
+}
+// noc 23:10–06:55 z przerwą 03:05–03:20 (minuty od 12:00); `asv`: PS w odcinkach i kropki zdarzeń
+static portret::Przebieg przebiegS11(bool asv, bool wyciek, bool zdarzenia) {
+  portret::Przebieg pr;
+  pr.data = "2026-11-12";
+  pr.sesje = {{670, 905}, {920, 1135}};
+  for (int m = 670; m < 1135; m += 5) {
+    if (m >= 905 && m < 920) continue;
+    portret::Odcinek o = odcinekS11(m);
+    if (asv) o.ps = 50;
+    pr.odcinki.push_back(o);
+  }
+  auto odc = [&](int m) -> portret::Odcinek& {
+    for (auto& o : pr.odcinki)
+      if (o.od == m) return o;
+    return pr.odcinki.front();
+  };
+  if (wyciek)  // 04:00–04:20 białe (300 s), 05:40 rozproszony 20 s (bez białego)
+    for (int m = 960; m < 980; m += 5) odc(m).wycS = 300, odc(m).wyciek95 = 22;
+  if (wyciek) odc(1060).wycS = 20;
+  if (zdarzenia && !asv) {
+    const int zew[][2] = {{780, 1}, {840, 3}, {845, 7}, {850, 5}, {855, 2}, {1010, 4}, {1015, 2}, {1090, 1}};
+    for (auto& z : zew) odc(z[0]).zew = z[1];
+    odc(870).centr = 2;
+    odc(875).centr = 1;
+    odc(1020).centr = 3;
+  }
+  if (asv) {
+    odc(840).ps = 70;
+    odc(845).ps = 110;
+    odc(850).ps = 90;
+    odc(1000).ps = 75;
+    for (int m : {700, 842, 846, 851, 930, 1003, 1080}) pr.zdarzenia.push_back({m, true, false});
+  }
+  return pr;
+}
+static void portretS11(PlotnoPamiec& p, const char* plik, const DanePortretu& d, const std::string& linia,
+                       const std::string& prawo = "dane 07:12") {
+  TrescEkranu t;
+  t.uklad = Uklad::PORTRET;
+  t.portret = &d;
+  t.linia = linia;
+  t.stopkaStandardowa = true;
+  t.stopkaLewo = "Katowice 8° · pochmurno";
+  t.stopkaPrawo = "przy łóżku 21° · 45%";
+  rysujEkranDanych(p, Naglowek{"cz 12.11", prawo}, t);
+  zapisz(p, plik);
+}
+static void podgladPortretu(PlotnoPamiec& p) {
+  DanePortretu d;
+  d.tryb = "AutoSet";
+  d.zwykla = 11 * 60 + 30;  // 23:30, okno 21:30–09:30
+  d.czas = "7 h 30";
+  d.ahi = "3,4";
+  d.pierwszy = "Tydzień: AHI wyżej niż zwykle.";
+  portret::Przebieg autoset = przebiegS11(false, true, true);
+  d.przebieg = &autoset;
+  portretS11(p, "s11-autoset-piki-centralne-wyciek", d, "");
+  portret::Przebieg asv = przebiegS11(true, true, false);
+  DanePortretu a = d;
+  a.tryb = "ASVAuto";
+  a.przebieg = &asv;
+  a.normaPs10 = 50;
+  a.ahi = "1,1";
+  a.pierwszy = "Noc w normie. Tydzień jak zwykle.";
+  portretS11(p, "s11-asvauto-kropki-wsparcie", a, "");
+  DanePortretu n = d;  // noc niepewna: sam czas z maską, jeden komunikat, nagłówek `· ocena ograniczona`
+  n.niepewna = true;
+  portretS11(p, "s11-noc-niepewna", n, "", "dane 07:12 · ocena ograniczona");
+  portret::Przebieg spok = przebiegS11(false, false, false);
+  spok.sesje = {{670, 1135}};
+  spok.odcinki.clear();
+  for (int m = 670; m < 1135; m += 5) spok.odcinki.push_back(odcinekS11(m));
+  DanePortretu c = d;
+  c.przebieg = &spok;
+  c.ahi = "0,4";
+  c.pierwszy = "Noc w normie. Tydzień jak zwykle.";
+  portretS11(p, "s11-noc-spokojna", c, "");
+  DanePortretu l = d;  // linia uwagi: tarcza 0,85, 1 podpis po pierwszym; braki L i E w podpisie zbiorczym
+  portret::Przebieg brakiLE = przebiegS11(false, false, false);  // bez `Leak` i bez `EVE`: bez białych i bez pików
+  brakiLE.braki = "LE";
+  for (auto& o : brakiLE.odcinki) o.wycS = o.wyciek95 = o.zew = o.centr = portret::BRAK;
+  l.przebieg = &brakiLE;
+  portretS11(p, "s11-linia-uwagi-braki", l, "Co było inaczej? ↻ 2 s");
+  portretS11(p, "s11-linia-uwagi", d, "Co było inaczej? ↻ 2 s");
+  {  // 3 braki przy linii uwagi (AutoSet: bez `Leak`, bezdechy bez rodzaju, maksimum nieznane): podpis zbiorczy w 2 liniach
+    portret::Przebieg b3 = przebiegS11(false, false, true);
+    b3.braki = "LRM";
+    for (auto& o : b3.odcinki) o.wycS = o.wyciek95 = o.centr = portret::BRAK;
+    DanePortretu l3 = d;
+    l3.przebieg = &b3;
+    portretS11(p, "s11-linia-uwagi-3-braki", l3, "Co było inaczej? ↻ 2 s");
+  }
+  {  // znacznik startu okna na pierścieniu (R-POR-06, zmiana 2026-11-12 (2)): noc zaczęta wcześniej niż zwykle, pierwsza
+     // sesja 21:20–22:00 przez start okna 21:30 (zwykła pora 23:30), więc znacznik przecina czarny łuk maski
+    portret::Przebieg wcz = przebiegS11(false, false, true);
+    wcz.sesje.insert(wcz.sesje.begin(), portret::Sesja{560, 600});
+    std::vector<portret::Odcinek> pierwsze;
+    for (int m = 560; m < 600; m += 5) pierwsze.push_back(odcinekS11(m));
+    wcz.odcinki.insert(wcz.odcinki.begin(), pierwsze.begin(), pierwsze.end());
+    DanePortretu e = d;
+    e.przebieg = &wcz;
+    e.czas = "8 h 10";
+    portretS11(p, "s11-start-okna-na-pierscieniu", e, "");
+    // wyciek w pierwszym odcinku okna (21:30–21:35, 300 s): biały odcinek z obrysem nietknięty, znacznik tylko
+    // pod pierścieniem, nad nim i grot
+    portret::Przebieg wyc = wcz;
+    for (auto& o : wyc.odcinki)
+      if (o.od == 570) o.wycS = 300, o.wyciek95 = 22;
+    DanePortretu f = e;
+    f.przebieg = &wyc;
+    portretS11(p, "s11-start-okna-wyciek", f, "");
+  }
+  {  // strona pod ▶ (R-POR-24): bez linii, stopka z akcjami jak w src/dyrygent.cpp rysujPortretStrony()
+    TrescEkranu t;
+    t.uklad = Uklad::PORTRET;
+    t.portret = &d;
+    rysujEkranDanych(p, Naglowek{"cz 12.11", "dane 07:12"}, t);
+    p.prostokat(0, 434, 800, 46, false);
+    stopkaEkranu(p, {"◀ ekran dnia", "▶ ostatnia noc", "↻ ekran dnia"}, "");
+    zapisz(p, "s11-strona-pod-prawym");
+  }
 }
 
 int main(int argc, char** argv) {
@@ -1568,7 +1698,7 @@ int main(int argc, char** argv) {
     rysujRaportQr(p, e);
     zapisz(p, "b13-raport-ogolny-starsze");
     // U-01 „Ustawienia” i U-03 formularz z kodem QR (stany: kod, zapisano, wynik sprawdzenia, bez Wi-Fi)
-    // U-01 jako strona 6 / 6, bez kursora: lista bieżących ustawień do odczytu (R-KONF-55)
+    // U-01 jako strona 3 / 3, bez kursora: lista bieżących ustawień do odczytu (R-KONF-55)
     {
       DaneUstawien u;
       u.ssid = "Dom-2.4GHz";
@@ -1714,5 +1844,6 @@ int main(int argc, char** argv) {
   }
   makiety(p);
   podgladB15(p);
+  podgladPortretu(p);
   return 0;
 }

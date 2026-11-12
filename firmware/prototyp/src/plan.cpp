@@ -135,6 +135,8 @@ Powody powodyMinuty(const WejsciePlanu& w, int m) {
   // ocena R-KON-42, także bez Wi-Fi przy E-01)
   if (!(p & (SIECIOWE | POWOD_SLOT_DZIENNY_BEZ_SIECI)) && m == minutaOdswiezenia(w) && !wSlocieDziennym(w, m))
     p |= POWOD_ODSWIEZENIE;
+  // R-POR-04: drugi ekran poranka 30 min po pierwszym narysowaniu Portretu, gdy slot dzienny jeszcze nie wystartował
+  if (w.drugiEkranPortretu >= 0 && m == w.drugiEkranPortretu && w.slotDziennyOd < 0) p |= POWOD_ODSWIEZENIE;
   return p;
 }
 
@@ -166,6 +168,7 @@ WejsciePlanu nowaDoba(const WejsciePlanu& w) {
   n.nocBezTerapii = false;
   n.przetwarzaOd = -1;  // przetwarzanie i powtórki R-DANE-62 liczą się w obrębie doby
   n.powtorekDzis = 0;
+  n.drugiEkranPortretu = -1;
   if (n.e01) n.nocyBezDanych++;
   return n;
 }

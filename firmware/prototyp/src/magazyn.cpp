@@ -216,6 +216,9 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       // porównanie nocy z plików z raportem JSON (src/porownanie.h, ADR-0036 „Zmiana 2026-11-09”), ostatnie 30 dób
       format("porownanie", "/dane/porownanie.csv", "", RodzajZapisu::PRZEPISANIE,
              "data;werdykt;rozjazd;pominiete;przyczyna"),
+      // przebieg ostatniej nocy w odcinkach 5 min do Portretu nocy (src/portret.h, T-DANE-38, ADR-0040)
+      format("portret", "/dane/portret.csv", "", RodzajZapisu::PRZEPISANIE,
+             "data;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki"),
   };
   return r;
 }

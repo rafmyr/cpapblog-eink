@@ -2,7 +2,7 @@
 // Testy: nowa nawigacja panelu (spec 5.6.1,
 // 5.6.2). Jedna reguła: ▶ dalej / więcej / „tak”, ◀ wstecz / „nie”, ↻ ekran dnia; przytrzymanie tylko zapisuje (albo
 // uruchamia usługę z Wi-Fi: raport ogólny, sieć panelu), nigdy nie otwiera strony; kokpit to ciąg stron K1 … U-01
-// z numerem `n / 6`; jedyny wyjątek to siatka „Co było inaczej?”. Uruchomienie: tools/prototyp/testy.sh (testy_nawigacja).
+// z numerem `n / 3` (5.5.7, R-KOK-19); jedyny wyjątek to siatka „Co było inaczej?”. Uruchomienie: tools/prototyp/testy.sh (testy_nawigacja).
 #include <cstdio>
 #include <ctime>
 #include <set>
@@ -32,11 +32,11 @@ static const Ekran WSZYSTKIE[] = {Ekran::DZIEN, Ekran::K1, Ekran::K2, Ekran::PYT
                                   Ekran::SPRAWY, Ekran::PRZENIESIONE, Ekran::ZAPISANO, Ekran::RAPORT, Ekran::NORMA,
                                   Ekran::LICZBY, Ekran::SPRZET, Ekran::SPRZET_ZAPISANO, Ekran::USTAWIENIA,
                                   Ekran::FORMULARZ, Ekran::SIEC_PANELU, Ekran::AKTUALIZACJA};
-static const Ekran STRONY[] = {Ekran::K1, Ekran::K2, Ekran::SPRAWY, Ekran::NORMA, Ekran::LICZBY, Ekran::SPRZET,
-                               Ekran::USTAWIENIA, Ekran::FORMULARZ, Ekran::TEST};
+static const Ekran STRONY[] = {Ekran::K1, Ekran::K2, Ekran::SPRAWY, Ekran::LICZBY, Ekran::USTAWIENIA, Ekran::FORMULARZ,
+                               Ekran::TEST};
 
 // Warianty kontekstu: zwykły ekran dnia, S5, S9, L lekarz, S3, pytanie tak/nie, S-K-31, z zaproszeniem, profil
-// publiczny, bez wyników silnika, sprawy w środku listy, kursor „Sprzęt” na filtrze, bez cofnięcia, blokada omówienia.
+// publiczny, bez spraw, sprawy w środku listy, bez cofnięcia, blokada omówienia.
 static std::vector<KontekstNaw> konteksty() {
   std::vector<KontekstNaw> w;
   KontekstNaw k;
@@ -54,7 +54,6 @@ static std::vector<KontekstNaw> konteksty() {
   x = k; x.profilPubliczny = true; w.push_back(x);
   x = k; x.sprawyDostepne = false; x.spraw = 0; w.push_back(x);
   x = k; x.sprawa = 2; w.push_back(x);
-  x = k; x.kursorSprzetu = 1; w.push_back(x);
   x = k; x.cofniecie = false; w.push_back(x);
   x = k; x.omowienieZablokowane = true; w.push_back(x);
   x = k; x.zrodlo = Ekran::K2; w.push_back(x);
@@ -63,7 +62,7 @@ static std::vector<KontekstNaw> konteksty() {
 }
 
 // ---------- ciąg stron w obie strony (bez dyrygenta) ----------
-// Krok ▶ albo ◀ z ekranu `e` z kursorami list (sprawy, „Sprzęt”) prowadzonymi tak, jak robi to dyrygent.
+// Krok ▶ albo ◀ z ekranu `e` z kursorem kart „Otwartych spraw” prowadzonym tak, jak robi to dyrygent.
 struct Stan {
   Ekran e = Ekran::DZIEN;
   KontekstNaw k;
@@ -75,10 +74,6 @@ static void krok(Stan& s, Przycisk p) {
     case Akcja::SPRAWY_OD_KONCA: s.k.sprawa = s.k.spraw > 0 ? s.k.spraw : 1; break;
     case Akcja::SPRAWY_DALEJ: s.k.sprawa++; break;
     case Akcja::SPRAWY_WSTECZ: s.k.sprawa--; break;
-    case Akcja::SPRZET_OTWORZ: s.k.kursorSprzetu = 0; break;
-    case Akcja::SPRZET_OD_KONCA: s.k.kursorSprzetu = s.k.wierszySprzetu - 1; break;
-    case Akcja::SPRZET_DALEJ: s.k.kursorSprzetu++; break;
-    case Akcja::SPRZET_WSTECZ: s.k.kursorSprzetu--; break;
     default: break;
   }
   s.e = pr.ekran;
@@ -94,6 +89,7 @@ static void testCiagStron() {
   for (bool sprawy : {true, false})
     for (bool pub : {false, true})
       for (int spraw : {0, 1, 3}) {
+        if (sprawy != (spraw > 0)) continue;  // R-KOK-20: strona „Otwarte sprawy” tylko przy co najmniej jednej sprawie
         Stan s;
         s.k.sprawyDostepne = sprawy;
         s.k.profilPubliczny = pub;
@@ -104,14 +100,12 @@ static void testCiagStron() {
           krok(s, Przycisk::PRAWY);
         }
         naprzod.push_back(nazwa(s.e));
-        // oczekiwany ciąg ▶: dzień, K1, K2, sprawy (każda karta), S8, [liczby], sprzęt × 2, U-01;: U-03 i U-05
-        // tylko przez ▶ 2 s (Wi-Fi), krótkie ▶ na U-01 kończy ciąg przeglądania
+        // oczekiwany ciąg ▶ (R-KOK-19): dzień, K1, K2, [liczby], sprawy (każda karta), U-01; U-03 i U-05 tylko przez
+        // ▶ 2 s (Wi-Fi), krótkie ▶ na U-01 kończy ciąg przeglądania; bez S8 i „Sprzętu”
         std::vector<std::string> ocz = {"DZIEN", "K1", "K2"};
-        if (sprawy)
-          for (int c = 0; c < (spraw > 0 ? spraw : 1); c++) ocz.push_back("SPRAWY");
-        ocz.push_back("NORMA");
         if (pub) ocz.push_back("LICZBY");
-        for (const char* n : {"SPRZET", "SPRZET", "USTAWIENIA"}) ocz.push_back(n);
+        for (int c = 0; c < spraw; c++) ocz.push_back("SPRAWY");
+        ocz.push_back("USTAWIENIA");
         SPRAWDZ(naprzod == ocz);
         if (naprzod != ocz) {
           for (auto& n : naprzod) printf(" %s", n.c_str());
@@ -143,10 +137,13 @@ static void testCiagStron() {
         SPRAWDZ(nacisniecie(Ekran::DZIEN, Przycisk::LEWY, false, s.k).akcja == Akcja::NIC);
       }
   // numery stron w nagłówkach
-  SPRAWDZ(numerStronyTekst(Ekran::K1) == "1 / 6" && numerStronyTekst(Ekran::K2) == "2 / 6");
-  SPRAWDZ(numerStronyTekst(Ekran::SPRAWY) == "3 / 6" && numerStronyTekst(Ekran::NORMA) == "4 / 6");
-  SPRAWDZ(numerStronyTekst(Ekran::LICZBY) == "4 / 6" && numerStronyTekst(Ekran::SPRZET) == "5 / 6");
-  SPRAWDZ(numerStronyTekst(Ekran::USTAWIENIA) == "6 / 6" && numerStronyTekst(Ekran::DZIEN).empty());
+  // numery stron w nagłówkach (R-KOK-19): `n / 3`; „Otwarte sprawy” i „Co znaczą te liczby” bez numeru
+  SPRAWDZ(numerStronyTekst(Ekran::K1) == "1 / 3" && numerStronyTekst(Ekran::K2) == "2 / 3");
+  SPRAWDZ(numerStronyTekst(Ekran::SPRAWY).empty() && numerStronyTekst(Ekran::NORMA).empty());
+  SPRAWDZ(numerStronyTekst(Ekran::LICZBY).empty() && numerStronyTekst(Ekran::SPRZET).empty());
+  SPRAWDZ(numerStronyTekst(Ekran::USTAWIENIA) == "3 / 3" && numerStronyTekst(Ekran::DZIEN).empty());
+  SPRAWDZ(stronaKokpitu(Ekran::SPRAWY) && stronaKokpitu(Ekran::LICZBY) && !stronaKokpitu(Ekran::NORMA) &&
+          !stronaKokpitu(Ekran::SPRZET) && !stronaKokpitu(Ekran::FORMULARZ));
   SPRAWDZ(numerStronyTekst(Ekran::TEST).empty() && numerStronyTekst(Ekran::RAPORT).empty());
 }
 
@@ -177,12 +174,12 @@ static void testZielonyDom() {
 
 // ---------- każde przytrzymanie = zapis; żadne nie otwiera strony ----------
 static void testPrzytrzymaniaToZapis() {
-  const std::set<Akcja> zapisy = {Akcja::WIEM, Akcja::SPRZET_WYMIENIONE, Akcja::SPRZET_NOWY_MODEL, Akcja::COFNIJ_WIEM,
+  const std::set<Akcja> zapisy = {Akcja::WIEM, Akcja::SPRZET_WYMIENIONE, Akcja::COFNIJ_WIEM,
                                   Akcja::COFNIJ_ODP, Akcja::SPRZET_COFNIJ, Akcja::PYT_ZAPISZ, Akcja::PYT_POMIN,
                                   Akcja::OTWORZ_PYTANIE, Akcja::RAPORT_STARSZE, Akcja::SIEC_PANELU_START,
                                   Akcja::AKT_SPRAWDZ};  // usługa z Wi-Fi (R-KONF-43)
   // ekrany, na które przytrzymanie może prowadzić: zapis z potwierdzeniem albo cofnięciem, odpowiedź na pytanie,
-  // usługa z Wi-Fi (raport ogólny, sieć panelu); wyjście z ekranu potwierdzenia na ekran dnia albo „Sprzęt”
+  // usługa z Wi-Fi (raport ogólny, sieć panelu); wyjście z ekranu potwierdzenia na ekran dnia
   const std::set<Ekran> celePrzytrzyman = {Ekran::DZIEN, Ekran::PRZENIESIONE, Ekran::OMOWIONE, Ekran::SPRZET_ZAPISANO,
                                            Ekran::PYTANIE, Ekran::RAPORT, Ekran::SIEC_PANELU};
   for (const KontekstNaw& k : konteksty())
@@ -195,7 +192,7 @@ static void testPrzytrzymaniaToZapis() {
                     // aktualizacja z GitHub: ↻ 2 s na U-01 uruchamia sprawdzenie wersji (Wi-Fi), R-KONF-43
                     (p == Przycisk::SRODEK && e == Ekran::USTAWIENIA && pr.ekran == Ekran::AKTUALIZACJA &&
                      pr.akcja == Akcja::AKT_SPRAWDZ);  // usługi z Wi-Fi
-        bool cel = celePrzytrzyman.count(pr.ekran) > 0 || (e == Ekran::SPRZET_ZAPISANO && pr.ekran == Ekran::SPRZET) ||
+        bool cel = celePrzytrzyman.count(pr.ekran) > 0 ||
                    (e == Ekran::SIEC_PANELU && pr.ekran == k.zrodlo) || wifi;
         SPRAWDZ(zostaje || cel);
         if (!(zostaje || cel)) printf("  2 s %d na %s → %s\n", (int)p, nazwa(e).c_str(), nazwa(pr.ekran).c_str());
@@ -207,11 +204,11 @@ static void testPrzytrzymaniaToZapis() {
                           e == Ekran::PRZENIESIONE || e == Ekran::ZAPISANO || e == Ekran::SPRZET_ZAPISANO);
         SPRAWDZ(pr.akcja == Akcja::NIC || zapisy.count(pr.akcja) || pokazDozw ||
                 (e == Ekran::SIEC_PANELU && pr.akcja == Akcja::SIEC_PANELU_ANULUJ));
-        // żadne przytrzymanie nie otwiera strony kokpitu ani ekranu Ustawień (poza wyjściem z ekranu potwierdzenia
-        // nowego modelu do „Sprzęt” i anulowaniem U-02 ◀ 2 s, które wraca tam, skąd uruchomiono)
+        // żadne przytrzymanie nie otwiera strony kokpitu ani ekranu Ustawień (poza anulowaniem U-02 ◀ 2 s, które
+        // wraca tam, skąd uruchomiono)
         for (Ekran s : STRONY)
           if (pr.ekran == s && e != s)
-            SPRAWDZ((e == Ekran::SPRZET_ZAPISANO && s == Ekran::SPRZET) || (e == Ekran::SIEC_PANELU && s == k.zrodlo) || wifi);
+            SPRAWDZ((e == Ekran::SIEC_PANELU && s == k.zrodlo) || wifi);
       }
 }
 
@@ -257,7 +254,7 @@ static void testOmowione() {
 static void testEkranySzczegolne() {
   KontekstNaw k;
   k.sprawyDostepne = true;
-  // raport z L: ◀ wraca na ekran dnia, ▶ dalej (K1); z K2: ◀ do K2, ▶ dalej (strona 3)
+  // raport z L: ◀ wraca na ekran dnia, ▶ dalej (K1); z K2: ◀ do K2, ▶ dalej („Otwarte sprawy” przy sprawie)
   k.zrodlo = Ekran::DZIEN;
   SPRAWDZ(nacisniecie(Ekran::RAPORT, Przycisk::LEWY, false, k).ekran == Ekran::DZIEN);
   SPRAWDZ(nacisniecie(Ekran::RAPORT, Przycisk::PRAWY, false, k).ekran == Ekran::K1);
@@ -335,31 +332,30 @@ static void testStopki() {
   std::vector<std::vector<std::string>> st = {stopkaK1(false), stopkaK1(true), stopkaK2(true), stopkaK2(false),
                                               stopkaTestu(false)};
   for (int n : {0, 1, 3})
-    for (int i = 1; i <= std::max(1, n); i++) st.push_back(stopkaSpraw(i, n));
+    for (int i = 1; i <= std::max(1, n); i++)
+      for (bool l : {false, true}) st.push_back(stopkaSpraw(i, n, l));
+  for (bool spr : {false, true})
+    for (bool l : {false, true}) {
+      st.push_back(stopkaK2(spr, l));
+      st.push_back(stopkaU01(spr, l));
+    }
   for (auto& g : st) {
     SPRAWDZ(maGrupe(g, "◀") && maGrupe(g, "▶") && maGrupe(g, "↻"));
     SPRAWDZ(szerStopki(g) <= 744);
   }
-  for (int k = 0; k < EL_N; k++) {
-    std::string s = sprzet::stopkaSprzetu(k);
+  // 5.5.7 „Stopki stron”: podpis celu według ciągu stron
+  SPRAWDZ(stopkaK2(true)[1] == "▶ sprawy · 2 s raport" && stopkaK2(false)[1] == "▶ ustawienia · 2 s raport");
+  SPRAWDZ(stopkaK2(false, true)[1] == "▶ liczby · 2 s raport" && stopkaK2(true, true)[1] == "▶ liczby · 2 s raport");
+  SPRAWDZ(stopkaSpraw(1, 3)[0] == "◀ 7 nocy" && stopkaSpraw(3, 3)[1] == "▶ ustawienia");
+  SPRAWDZ(stopkaSpraw(1, 3, true)[0] == "◀ liczby" && stopkaSpraw(2, 3, true)[0] == "◀ poprzednia");
+  SPRAWDZ(stopkaU01(true)[0] == "◀ sprawy · 2 s sieć" && stopkaU01(false)[0] == "◀ 7 nocy · 2 s sieć");
+  SPRAWDZ(stopkaU01(false, true)[0] == "◀ liczby · 2 s sieć" && stopkaU01(true, true)[0] == "◀ sprawy · 2 s sieć");
+  SPRAWDZ(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));
+  for (bool spr : {false, true}) {
+    std::string s = podsumowanie::budujLiczby(reguly::Tryb::ASV, true, spr).stopkaLewo;
     SPRAWDZ(s.find("◀") != std::string::npos && s.find("▶") != std::string::npos && s.find("↻") != std::string::npos);
     SPRAWDZ(szerStopki({s}) <= 744);
   }
-  SPRAWDZ(stopkaK2(true)[1] == "▶ sprawy · 2 s raport" && stopkaK2(false)[1] == "▶ norma · 2 s raport");
-  SPRAWDZ(stopkaSpraw(1, 3)[0] == "◀ 7 nocy" && stopkaSpraw(3, 3)[1] == "▶ norma");
-  SPRAWDZ(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));
-  podsumowanie::WejscieS8 w;
-  Norma n;
-  w.norma = &n;
-  w.zK1 = true;
-  for (bool pub : {false, true})
-    for (bool spr : {false, true}) {
-      w.profilPubliczny = pub;
-      w.sprawy = spr;
-      std::string s = podsumowanie::budujS8(w).stopkaLewo;
-      SPRAWDZ(s.find("◀") != std::string::npos && s.find("▶") != std::string::npos && s.find("↻") != std::string::npos);
-      SPRAWDZ(szerStopki({s}) <= 744);
-    }
 }
 
 // ---------- dyrygent: cały ciąg ▶ od ekranu dnia do U-05 i z powrotem ◀, ↻ z każdej strony ----------
@@ -411,28 +407,25 @@ static void testDyrygentCiag() {
   SPRAWDZ(ekran(p) == Ekran::TEST);
   przycisk(p, t += 30, BIT_LEWY);
   SPRAWDZ(ekran(p) == Ekran::USTAWIENIA);
-  // kolejne strony w kolejności numerów; „Sprzęt” dwa razy (kursor maska, filtr)
+  // kolejne strony w kolejności numerów 1 / 3 … 3 / 3 (R-KOK-19); bez S8 i „Sprzętu”
   std::vector<int> nr;
   for (Ekran e : naprzod)
     if (numerStrony(e) && (nr.empty() || nr.back() != numerStrony(e))) nr.push_back(numerStrony(e));
-  SPRAWDZ(nr.size() >= 5 && nr.front() == 1 && nr.back() == 6);
+  SPRAWDZ(nr.size() == 3 && nr.front() == 1 && nr.back() == 3);
   for (size_t i = 1; i < nr.size(); i++) SPRAWDZ(nr[i] == nr[i - 1] + 1);
-  int sprzet = 0;
-  for (Ekran e : naprzod) sprzet += e == Ekran::SPRZET;
-  SPRAWDZ(sprzet == EL_N);
-  // ◀ z U-05: U-01, potem „Sprzęt” od ostatniego wiersza, … aż do ekranu dnia
+  for (Ekran e : naprzod) SPRAWDZ(e != Ekran::SPRZET && e != Ekran::NORMA);
+  // ◀ z U-05: U-01, potem wstecz aż do ekranu dnia
   std::vector<Ekran> wstecz;
   for (int i = 0; i < 20 && ekran(p) != Ekran::DZIEN; i++) {
     przycisk(p, t += 30, BIT_LEWY);
     wstecz.push_back(ekran(p));
   }
   SPRAWDZ(ekran(p) == Ekran::DZIEN);
-  SPRAWDZ(!wstecz.empty() && wstecz.front() == Ekran::SPRZET);
+  SPRAWDZ(!wstecz.empty() && (wstecz.front() == Ekran::K2 || wstecz.front() == Ekran::SPRAWY));
   // od U-01 wstecz to dokładnie ciąg naprzód od U-01 odwrócony (bez U-03 i U-05)
   std::vector<Ekran> ocz;
   for (auto it = naprzod.rbegin() + 1; it != naprzod.rend(); ++it) ocz.push_back(*it);  // bez U-01, na którym stoimy
   SPRAWDZ(wstecz == ocz);
-  SPRAWDZ(p.nvs.liczbaU("cpap", "sp_kur", 9) == 0);  // ◀ przeszło przez filtr i maskę
   // ↻ z każdej strony: ekran dnia
   for (Ekran e : STRONY) {
     if (e == Ekran::LICZBY) continue;  // tylko w profilu publicznym
@@ -459,30 +452,23 @@ static void testWymianaZCofnieciem() {
   p.zegar.epoch = ep(10, 0);
   zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
   p.pliki.pliki["/konfiguracja.txt"] = "wymiana.filtr=2026-10-01\n";
-  p.nvs.liczbyU["cpap/sp_kur"] = 1;  // kursor „Sprzęt” na filtrze
-  p.start.stan.ekran = (uint8_t)Ekran::SPRZET;
+  p.nvs.liczbyU["cpap/b16_sk31"] = EL_FILTR + 1;  // ekran dnia S-K-35 „Wymiana: filtr.” (R-MAS-18)
+  p.start.stan.ekran = (uint8_t)Ekran::DZIEN;
   uint32_t t = ep(10, 0);
   przycisk(p, t += 30, BIT_LEWY, true);  // ◀ 2 s: zapis i ekran z cofnięciem, nie cichy zapis
   SPRAWDZ(ekran(p) == Ekran::SPRZET_ZAPISANO);
   SPRAWDZ(konfiguracja(p).find("wymiana.filtr=2026-11-04") != std::string::npos);
-  przycisk(p, t += 10, BIT_LEWY, true);  // ◀ 2 s na ekranie potwierdzenia: data sprzed zapisu, powrót do „Sprzęt”
-  SPRAWDZ(ekran(p) == Ekran::SPRZET);
+  przycisk(p, t += 10, BIT_LEWY, true);  // ◀ 2 s na ekranie potwierdzenia: data sprzed zapisu, ekran dnia
+  SPRAWDZ(ekran(p) == Ekran::DZIEN);
   SPRAWDZ(konfiguracja(p).find("wymiana.filtr=2026-10-01") != std::string::npos);
   SPRAWDZ(konfiguracja(p).find("2026-11-04") == std::string::npos);
   // ↻ z ekranu potwierdzenia zostawia zapis
+  p.nvs.liczbyU["cpap/b16_sk31"] = EL_FILTR + 1;
   przycisk(p, t += 30, BIT_LEWY, true);
   SPRAWDZ(ekran(p) == Ekran::SPRZET_ZAPISANO);
   przycisk(p, t += 10, BIT_SRODEK);
   SPRAWDZ(ekran(p) == Ekran::DZIEN);
   SPRAWDZ(konfiguracja(p).find("wymiana.filtr=2026-11-04") != std::string::npos);
-  // wymiana nie psuje cofnięcia nowego modelu maski: ↻ 2 s przy masce nadal zapisuje i cofa po swojemu
-  p.nvs.liczbyU["cpap/sp_kur"] = 0;
-  p.start.stan.ekran = (uint8_t)Ekran::SPRZET;
-  przycisk(p, t += 30, BIT_SRODEK, true);
-  SPRAWDZ(ekran(p) == Ekran::SPRZET_ZAPISANO);
-  przycisk(p, t += 10, BIT_LEWY, true);
-  SPRAWDZ(ekran(p) == Ekran::SPRZET);
-  SPRAWDZ(konfiguracja(p).find("wymiana.filtr=2026-11-04") != std::string::npos);  // filtr bez zmian
   // karta spraw przycięta do liczby kart
   SPRAWDZ(przytnijKarte(4, 2) == 2 && przytnijKarte(0, 3) == 1 && przytnijKarte(2, 0) == 1 && przytnijKarte(2, 3) == 2);
 }
@@ -490,13 +476,16 @@ static void testWymianaZCofnieciem() {
 // ---------- kolejka naciśnięć z czasu rysowania (spec 5.6.1) ----------
 // wymaganie: R-PRZ-20
 static void testKolejkaNacisniec() {
-  // czysta funkcja: tylko krótkie naciśnięcie na ekranie dnia albo stronie `n / 6`
+  // czysta funkcja: tylko krótkie naciśnięcie na ekranie dnia albo stronie kokpitu (także bez numeru)
   SPRAWDZ(zKolejkiWolno(Ekran::DZIEN, false));
   SPRAWDZ(zKolejkiWolno(Ekran::K1, false) && zKolejkiWolno(Ekran::SPRAWY, false) && zKolejkiWolno(Ekran::USTAWIENIA, false));
+  SPRAWDZ(zKolejkiWolno(Ekran::LICZBY, false) && !zKolejkiWolno(Ekran::NORMA, false) && !zKolejkiWolno(Ekran::SPRZET, false));
   SPRAWDZ(!zKolejkiWolno(Ekran::K1, true));         // przytrzymanie zapisuje: nie z kolejki
   SPRAWDZ(!zKolejkiWolno(Ekran::PYTANIE, false));   // odpowiedź na niewidziane pytanie: nie
   SPRAWDZ(!zKolejkiWolno(Ekran::OMOWIONE, false));  // potwierdzenie: nie
   SPRAWDZ(!zKolejkiWolno(Ekran::FORMULARZ, false) && !zKolejkiWolno(Ekran::TEST, false));
+  // strona Portretu pod ▶ (R-POR-24): krótkie naciśnięcie nic nie zapisuje, więc z kolejki tak; przytrzymanie nie
+  SPRAWDZ(zKolejkiWolno(Ekran::PORTRET, false) && !zKolejkiWolno(Ekran::PORTRET, true));
   // 6 szybkich ▶ (budzące i 5 z kolejki) = ten sam ekran co 6 osobnych ▶, przy dwóch odświeżeniach zamiast sześciu
   const int N = 6;
   Panel a;
@@ -567,12 +556,33 @@ static void testSkrotTestu() {
 static void testEkranZRtc() {
   SPRAWDZ(ekranZRtc(0) == Ekran::DZIEN && ekranZRtc(9) == Ekran::RAPORT);
   SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU) == Ekran::SIEC_PANELU);
-  SPRAWDZ(ekranZRtc((unsigned char)Ekran::AKTUALIZACJA + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::PORTRET) == Ekran::PORTRET);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::PORTRET + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
+  // powrót po uśpieniu (pamięć RTC, R-KOK-19): strony kokpitu `n / 3` i bez numeru wracają same, dawne S8 i „Sprzęt”
+  // (obraz sprzed ADR-0041) dają ekran dnia; numery wyliczenia za nimi bez zmian (U-01 = 14)
+  SPRAWDZ((int)Ekran::USTAWIENIA == 14 && (int)Ekran::SPRZET_ZAPISANO == 13 && (int)Ekran::LICZBY == 11);
+  for (Ekran e : {Ekran::K1, Ekran::K2, Ekran::LICZBY, Ekran::SPRAWY, Ekran::USTAWIENIA}) {
+    SPRAWDZ(ekranZRtc((unsigned char)e) == e);
+    SPRAWDZ(ekranPoStarcie(PowodWybudzenia::PRZYCISK, ekranZRtc((unsigned char)e), true, 60, 10 * 60) == e);
+    SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, ekranZRtc((unsigned char)e), true, 60, 10 * 60) == e);  // przed 5 min
+  }
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::NORMA) == Ekran::DZIEN && ekranZRtc((unsigned char)Ekran::SPRZET) == Ekran::DZIEN);
+  // przez dyrygenta: obudzony przyciskiem panel z K2 w RTC idzie dalej po ciągu, z dawnym „Sprzęt” od ekranu dnia
+  Panel p;
+  p.zegar.epoch = ep(10, 0);
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  p.pliki.pliki["/konfiguracja.txt"] = "";
+  p.start.stan.ekran = (uint8_t)Ekran::K2;
+  przycisk(p, ep(10, 1), BIT_LEWY);
+  SPRAWDZ(ekran(p) == Ekran::K1);
+  p.start.stan.ekran = (uint8_t)Ekran::SPRZET;
+  przycisk(p, ep(10, 2), BIT_PRAWY);
+  SPRAWDZ(ekran(p) == Ekran::K1);  // ekran dnia ▶ K1
 }
 
 int main() {
-  testEkranZRtc();
   testCiagStron();
+  testEkranZRtc();
   testZielonyDom();
   testPrzytrzymaniaToZapis();
   testOmowione();

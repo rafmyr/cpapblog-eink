@@ -206,6 +206,12 @@ reguly::Tryb trybBiezacy(const std::vector<Noc>& hist, const std::string& koniec
   }
 }
 
+std::string ocenaNaglowkaK1(const Stany* st) {
+  if (!st) return "ocena częściowa";
+  if (st->ostatniaNiepewna) return "ocena ograniczona";  // silniejsza przyczyna (fail-path R-KOK-21)
+  return st->ocenaNiepelna ? "ocena częściowa" : "";
+}
+
 DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norma& nm,
                const std::vector<WpisCzynnikow>& cz, const Stany* st, const std::string& trybStatusu) {
   DaneK1 d;
@@ -216,6 +222,7 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   else d.naglowek = "Noc " + ddmm(ost->data);  // R-KOK-04
   d.romb = ost && romb(wpisZDnia(cz, ost->data));
   d.jestNoc = ost != nullptr;
+  d.ocena = ocenaNaglowkaK1(st);  // R-KOK-21
   TrybyOkna tr = trybyOkna(hist, koniec);
   if (!ost) trybZeStatusu(tr, trybStatusu);
   bool asv = tr.asv();
@@ -383,5 +390,24 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   // żeby wcięcie nie wisiało bez wiersza nadrzędnego
   for (int r = 1; r < d.wierszy && d.w[0].pusty; r++)
     if (d.w[r].wciecie && !d.w[r].pusty) d.w[0].pusty = false;
+  // R-KOK-24 (wariant b, decyzja właściciela projektu 11.11.2026): krok S8 przy wysokim paśmie AHI w K2, gdy jest miejsce.
+  // Miejsce jest tylko w CPAP i AutoSet (9 wierszy: 32 px pod legendą); w ASV i ASVAuto (10 wierszy) pod legendą
+  // zostają 4 px, a linia P22B potrzebuje 26 px, więc tam bez kroku (raport: warianty do decyzji).
+  // wariant c, decyzja właściciela projektu 11.11.2026: w każdym trybie także krótki tekst w linii legendy (rysowany, gdy
+  // pełnej linii pod legendą nie ma albo się nie mieści).
+  if (nm.ahi.jest()) {
+    reguly::Tryb tb = trybBiezacy(hist, koniec);
+    const reguly::Zestaw& z = reguly::zestawWbudowany();
+    const reguly::Prog* pr = z.prog("R-EKR-36.p90_ahi", tb);
+    double prog = pr ? pr->wartosc : 5;
+    if (nm.ahi.p90 >= prog - 1e-9) {
+      if (!asv) {
+        auto t = z.teksty.find("R-KOK-24.krok");
+        d.krokPasma = t == z.teksty.end() ? std::string("→ Pasmo AHI wysokie. Obserwuj kolejne noce.") : t->second.tekst;
+      }
+      auto k = z.teksty.find("R-KOK-24.krok_krotki");
+      d.krokPasmaKrotki = k == z.teksty.end() ? std::string("→ Pasmo AHI wysokie.") : k->second.tekst;
+    }
+  }
   return d;
 }

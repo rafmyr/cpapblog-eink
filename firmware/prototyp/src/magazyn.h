@@ -24,6 +24,8 @@
 //   reguly      /dane/reguly.csv           (bez wersji 0)        przepisanie  id;wariant;aktywna_od;ostatnio;licznik;
 //                                                                            stan_wzorca;wiem;omowione
 //   porownanie  /dane/porownanie.csv       (bez wersji 0)        przepisanie  data;werdykt;rozjazd;pominiete;przyczyna
+//   portret     /dane/portret.csv          (bez wersji 0)        przepisanie  data;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;
+//                                                                            maks;braki (Portret nocy, src/portret.h)
 // `{RRRR}` w ścieżce = rok daty poranka (pierwsze pole wiersza).
 // Od `noce` ma wersję 2: pola wersji 1 i pola (src/noc.h wierszNocyV2, POLA_NOCY_V2); krok 1 → 2 to
 // ogólne dopisanie pustych pól (migrujWMiejscu()), a scalenie i przywracanie zapisują plik czekający na ten krok w jego

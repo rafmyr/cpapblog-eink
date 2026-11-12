@@ -147,7 +147,7 @@ def przyciski(plik):
             continue
         if reszta and reszta not in DLUGO:
             raise Blad(f"plik przycisków, wiersz {nr}: „{reszta}” — po nazwie przycisku może być tylko 2s "
-                       "(przytrzymanie) albo do:{ekran}, np. do:sprzet")
+                       "(przytrzymanie) albo do:{ekran}, np. do:ustawienia")
         wynik.append(f"{kiedy:%Y-%m-%dT%H:%M:%S} {ktory}" + (" 2s" if reszta else ""))
     return wynik
 
@@ -587,18 +587,17 @@ OPISY = {"S5": "brak danych z aparatu (S5, E-01)", "S10": "noc jeszcze w drodze,
 
 def opis_ekranu(nazwa):
     """Nazwa ekranu z nazwy obrazka (`dzien-S2A`, `K1`, `dzien-wzorzec-L-03_ge10` …) → opis po polsku."""
-    stale = {"K1": "kokpit K1, strona 1 / 6", "K2": "kokpit K2 (trendy), strona 2 / 6",
-             "sprawy": "Otwarte sprawy (karta), strona 3 / 6",
+    stale = {"K1": "kokpit K1, strona 1 / 3", "K2": "kokpit K2 (trendy), strona 2 / 3",
+             "sprawy": "Otwarte sprawy (karta), bez numeru strony",
              "zapisano": "potwierdzenie „Zapisano”", "omowione": "„Omówione z lekarzem?”",
              "przeniesione": "„wiem”: przeniesione do Otwartych spraw", "raport": "raport dla lekarza",
              "pytanie": "pytanie o czynniki nocy", "test": "ekran testu", "Dobranoc": "ekran nocny „Dobranoc”",
              "dzien-nieznany": "ekran dnia (typ nieznany)",
              # ekrany i otwierane przyciskami
-             # strony kokpitu w ciągu ▶ (nowa nawigacja, decyzja 05.11.2026)
-             "norma": "„Twoja norma” (S8), strona 4 / 6", "liczby": "„Co znaczą te liczby”, strona 4 / 6",
-             "sprzet": "„Sprzęt”: wiek maski i filtra, strona 5 / 6",
-             "sprzet-zapisano": "„Nowy model maski zapisany.” z ◀ 2 s cofnij przez 30 s (R-MAS-14)",
-             "ustawienia": "„Ustawienia panelu” (U-01), strona 6 / 6", "formularz": "formularz na telefonie (U-03)",
+             # strony kokpitu w ciągu ▶ (ADR-0041: `1 / 3` … `3 / 3`, bez S8 i „Sprzętu”)
+             "liczby": "„Co znaczą te liczby”, bez numeru strony (profil publiczny)",
+             "sprzet-zapisano": "`Wymiana zapisana.` z ◀ 2 s cofnij przez 30 s (R-MAS-01)",
+             "ustawienia": "„Ustawienia panelu” (U-01), strona 3 / 3", "formularz": "formularz na telefonie (U-03)",
              "siec-panelu": "sieć panelu (U-02)"}
     if nazwa in stale:
         return stale[nazwa]
@@ -771,7 +770,7 @@ def tekst_spisu(spis, plan=None, wciecie="", skroty=None, przyciski=None):
     while i < len(spis):
         plik, nazwa, linia, buzzer = spis[i]
         j = i + 1
-        # tylko ekran dnia (przerysowania z zegara); ekrany z przycisków (K1, „Sprzęt” …) zostają po jednym wierszu
+        # tylko ekran dnia (przerysowania z zegara); ekrany z przycisków (K1, U-01 …) zostają po jednym wierszu
         while (skroty is not None and nazwa.startswith("dzien-") and j < len(spis) and spis[j][1:3] == (nazwa, linia)
                and not spis[j][3] and not buzzer and _dzien_klatki(spis[j][0]) == _dzien_klatki(plik)
                and skroty.get(spis[j][0]) is not None and skroty.get(spis[j][0]) == skroty.get(plik)):
@@ -960,8 +959,8 @@ def main():
                    help="wszystkie scenariusze po kolei, każdy w scenariusz-NAZWA/, plus spis.txt")
     a.add_argument("--lista-scenariuszy", action="store_true", help="wypisz scenariusze i zakończ")
     a.add_argument("--profil-publiczny", action="store_true",
-                   help="panel w profilu publicznym (`profil=publiczny` w /konfiguracja.txt, 5.6.4): ▶ na S8 otwiera "
-                        "„Co znaczą te liczby” (R-EKR-51); teksty AHI i PM2.5 jak w prywatnym; działa też z "
+                   help="panel w profilu publicznym (`profil=publiczny` w /konfiguracja.txt, 5.6.4): ▶ w K2 otwiera "
+                        "„Co znaczą te liczby” (R-KOK-22); teksty AHI i PM2.5 jak w prywatnym; działa też z "
                         "--pokaz-wszystko")
     a = a.parse_args()
     if a.lista_scenariuszy:

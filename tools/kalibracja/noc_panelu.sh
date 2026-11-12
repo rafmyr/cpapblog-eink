@@ -19,7 +19,7 @@ BUD="${TMPDIR:-/tmp}/cpap-eink-noc-panelu"
 mkdir -p "$BUD"
 PROG="$BUD/noc_panelu"
 ZRODLA=("$REPO/tools/kalibracja/noc_panelu.cpp" "$SRC/noc_pliki.cpp" "$SRC/edf.cpp" "$SRC/str.cpp" "$SRC/airbridge.cpp"
-        "$SRC/noc.cpp" "$SRC/wspolne.cpp" "$SRC/nawigacja.cpp" "$SRC/porownanie.cpp")
+        "$SRC/noc.cpp" "$SRC/wspolne.cpp" "$SRC/nawigacja.cpp" "$SRC/porownanie.cpp" "$SRC/portret.cpp")
 nowszy=0
 for z in "${ZRODLA[@]}" "$SRC"/*.h; do [ "$z" -nt "$PROG" ] && nowszy=1; done
 if [ ! -x "$PROG" ] || [ "$nowszy" = 1 ]; then

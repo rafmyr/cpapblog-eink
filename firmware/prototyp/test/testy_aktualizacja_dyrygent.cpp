@@ -519,9 +519,9 @@ static void testR_EKR_61_ikona() {
   SPRAWDZ(!wLogu(z, "ikona aktualizacji"));
   // ekrany serwisowe: U-01 bez ikony
   z.start.napisWersji = WERSJA_ATRAPY;
-  przyciskiem(z, ep(2026, 11, 11, 9, 0), Ekran::SPRZET, B_PRAWY, 200);
+  // ◀ z testu sprzętu U-05 → U-01 (od ADR-0041 bez strony „Sprzęt” przed U-01)
+  przyciskiem(z, ep(2026, 11, 11, 9, 0), Ekran::TEST, B_LEWY, 200);
   aktualizacja::zapisz(z.nvs, s);
-  z.nvs.ustawLiczbeU("cpap", "sp_kur", 1);  // kursor na ostatnim wierszu „Sprzęt”: ▶ → U-01
   wybudz(z);
   SPRAWDZ(z.start.stan.ekran == (uint8_t)Ekran::USTAWIENIA && !wLogu(z, "ikona aktualizacji"));
 }

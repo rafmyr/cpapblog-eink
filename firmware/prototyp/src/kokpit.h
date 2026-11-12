@@ -65,8 +65,14 @@ struct WierszK1 {
 
 struct DaneK1 {
   std::string naglowek;  // `Ostatnia noc · czw 12.11` albo `Noc 18.10` (R-KOK-04)
+  // R-KOK-21: prawa część nagłówka przed numerem strony: `ocena częściowa` albo `ocena ograniczona`; "" = ocena pełna
+  // (sam numer `1 / 3`). Ustawia budujK1() ze stanów (ocenaNaglowkaK1), dyrygent nadpisuje stanem po ocenie silnika.
+  std::string ocena;
   bool romb = false;     // R-KOK-14
   bool jestNoc = false;  // jest noc, o którą można zapytać (↻ 2 s, R-CZY-08)
+  // podpis ◀ w stopce, gdy ◀ nie prowadzi do ekranu dnia: K1 otwarte ze strony Portretu (R-POR-24) → `◀ portret nocy`
+  // (tekst `S11.stopka_wstecz`); "" = `◀ ekran dnia`
+  std::string stopkaWstecz;
   // (5.5.2 „Odkrycie o czynniku”, R-CZY-20): K1 otwarty z ekranu dnia O-12 z ukrytym czynnikiem: pod nagłówkiem
   // pełny tytuł i powód O-12 zamiast 4 liczb (brak kanwy tego wariantu: do decyzji); "" = zwykły K1
   std::string odkrycieTytul, odkryciePowod;
@@ -106,8 +112,22 @@ struct DaneK2 {
   static const int WIERSZE = 10;  // najwięcej (ASV, ASVAuto); CPAP i AutoSet: 9
   int wierszy = WIERSZE;           // wiersze do narysowania: w[0] … w[wierszy − 1]
   WierszK2 w[WIERSZE];
-  bool sprawy = true;  // stopka `▶ sprawy` (strona 3) albo, bez wyników silnika, `▶ norma`
+  bool sprawy = true;   // za K2 „Otwarte sprawy” (co najmniej jedna sprawa, R-KOK-19): stopka `▶ sprawy`
+  bool liczby = false;  // profil publiczny: za K2 „Co znaczą te liczby” (`▶ liczby`, R-KOK-22); bez obu `▶ ustawienia`
+  // R-KOK-24: `→ Pasmo AHI wysokie. Obserwuj kolejne noce.` pod legendą przy P90 normy AHI ≥ R-EKR-36.p90_ahi, tylko
+  // CPAP i AutoSet (w ASV i ASVAuto brak miejsca); "" = bez linii
+  std::string krokPasma;
+  // R-KOK-24 (wariant c, decyzja właściciela projektu 11.11.2026): krótki tekst `→ Pasmo AHI wysokie.` w linii legendy, z prawej
+  // (wolne x 422–772), we wszystkich trybach przy tym samym warunku; rysowany, gdy pełnej linii nie ma albo się nie
+  // mieści (ASV, ASVAuto, CPAP i AutoSet z linią `brak danych:` R-KOK-18); "" = bez
+  std::string krokPasmaKrotki;
 };
+
+// R-KOK-21 (ADR-0029 pkt 7): `ocena ograniczona` przy niepewnej ostatniej nocy (lista `Metryki niewalidowane` panel
+// jeszcze nie liczy: punkt w Stany::nieoceniane, więc ocena częściowa), `ocena częściowa` przy Stany::ocenaNiepelna,
+// "" przy ocenie pełnej. st == nullptr (bez stanów) = `ocena częściowa`: bez stanów panel niczego nie ocenia.
+std::string ocenaNaglowkaK1(const Stany* st);
+inline std::string ocenaNaglowkaK1(const Stany& st) { return ocenaNaglowkaK1(&st); }
 
 // Tryb bieżący (4.11, ADR-0030, R-KOK-15): tryb ostatniej nocy w trybie obsługiwanym do `koniec` włącznie (reguła
 // trybu nocy wyżej); NIEZNANY = żadnej takiej nocy (układ ASV jak przed ADR-0030). Ta sama funkcja dla K1, K2 i S2a.

@@ -36,10 +36,10 @@ Ekran ekranPoStarcie(PowodWybudzenia p, Ekran zRtc, bool zegar, long sekundOdNac
   if (p == PowodWybudzenia::START) return Ekran::DZIEN;
   if (p == PowodWybudzenia::PRZYCISK) return zRtc;
   Ekran e = zRtc;
-  // R-MAS-14: upływ 30 s na `Nowy model maski zapisany.` wraca do „Sprzęt”
+  // R-MAS-01: upływ 30 s na `Wymiana zapisana.` wraca do ekranu dnia (od ADR-0041 bez strony „Sprzęt”)
   // R-KONF-05: U-01 po 5 min wraca do K2
   if (zegar && sekundDoPowrotu(e, sekundOdNacisniecia, minuta) == 0)
-    e = e == Ekran::SPRZET_ZAPISANO ? Ekran::SPRZET : e == Ekran::USTAWIENIA ? Ekran::K2
+    e = e == Ekran::USTAWIENIA ? Ekran::K2
         : e == Ekran::AKTUALIZACJA ? Ekran::USTAWIENIA : Ekran::DZIEN;  // R-KONF-44: U-07 po 5 min wraca do U-01
   if (e == Ekran::TEST) e = Ekran::DZIEN;
   if (e == Ekran::FORMULARZ) e = Ekran::USTAWIENIA;  // serwer formularza nie przeżywa snu (R-KONF-15)

@@ -238,3 +238,29 @@ def test_zrzut_v1_v2_doba(tmp_path, wersja):
     t = open(os.path.join(k, "log.txt"), encoding="utf-8").read()
     assert " 60 nocy " in t and "wersja 1 lub nowsza" in t
     assert "HTTP 404" not in open(os.path.join(k, "log-panelu.txt"), encoding="utf-8").read()
+
+
+def test_drugi_ekran_poranka_sk_bez_podwojnego_podpisu_portretu(tmp_path):
+    """(R-POR-24): zrzut syntetyczny z przebiegiem ostatniej nocy
+    (`/dane/portret.csv`): o 05:00 Portret (S11), po 30 min drugi ekran poranka S-K-10 jako ekran danych, rysowany przez
+    rysujB16 → pokazB16(), który drugi raz woła prawoZPortretem() na odczycie czujnika z danych dnia. Stopka ma
+    `▶ portret` dokładnie raz (bez zabezpieczenia w prawoZPortretem() byłoby `▶ portret     ▶ portret     przy łóżku`)."""
+    spec = importlib.util.spec_from_file_location("przebieg_t", os.path.join(TU, "portret", "przebieg.py"))
+    przebieg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(przebieg)
+    zr = str(tmp_path / "zrzut")
+    gen.generuj(zr, wersja=1, nocy=60)
+    odc = {m // 5: {"od": m, "do": 5, "wyciek95": 5, "wyc_s": 0, "zew": 0, "centr": 0, "ps": 60, "maks": 0}
+           for m in range(660, 1080, 5)}
+    pr = {"data": "2026-11-04", "sesje": [(660, 1080)], "odcinki": odc, "zdarzenia": [], "braki": ""}
+    with open(os.path.join(zr, "dane", "portret.csv"), "w", encoding="utf-8") as f:
+        f.write(przebieg.tekst_pliku(pr))
+    w = sym.symuluj(zr, "2026-11-04T05:00", "2026-11-04T06:00", None, str(tmp_path / "wynik"), cicho=True,
+                    zegar_znany=True)
+    p = png(w)
+    assert any("-0500-dzien-S11" in x for x in p), p
+    log = open(os.path.join(w, "log-panelu.txt"), encoding="utf-8").read()
+    assert "portret: drugi ekran poranka, Portret pod ▶ (R-POR-24)" in log
+    assert re.search(r"ekran S-K-\d+ \(R\w+\): ekran danych", log), "drugi ekran nie jest ekranem danych S-K"
+    stopki = re.findall(r"stopka z odczytem: „([^”]*)”", log)
+    assert stopki and all(s.count("▶ portret") == 1 for s in stopki), stopki

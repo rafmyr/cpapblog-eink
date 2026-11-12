@@ -11,6 +11,7 @@
 
 #include "dzien.h"
 #include "ekrany.h"
+#include "ekrany_konfiguracji.h"
 #include "nawigacja.h"
 #include "sprzet.h"
 #include "wybudzenie.h"
@@ -37,15 +38,13 @@ static std::string nazwa(Ekran e) {
   return N[(int)e];
 }
 
-// Kontekst bazowy: silnik działa, 3 karty spraw, karta 1, jest ostatnia noc, kursor „Sprzęt” na masce.
+// Kontekst bazowy: silnik działa, 3 karty spraw, karta 1, jest ostatnia noc.
 static KontekstNaw baza() {
   KontekstNaw k;
   k.sprawyDostepne = true;
   k.spraw = 3;
   k.sprawa = 1;
   k.ostatniaNoc = true;
-  k.kursorSprzetu = 0;
-  k.wierszySprzetu = EL_N;
   return k;
 }
 
@@ -127,8 +126,8 @@ static void testMapy() {
   KontekstNaw bs = k;
   bs.sprawyDostepne = false;
   bs.spraw = 0;
-  w.push_back({"K2 bez silnika", Ekran::K2, bs,
-               {{Ekran::K1, Akcja::POKAZ}, {Ekran::K2, X}, {Ekran::NORMA, Akcja::POKAZ}, {Ekran::RAPORT, Akcja::POKAZ},
+  w.push_back({"K2 bez spraw", Ekran::K2, bs,
+               {{Ekran::K1, Akcja::POKAZ}, {Ekran::K2, X}, {Ekran::USTAWIENIA, Akcja::POKAZ}, {Ekran::RAPORT, Akcja::POKAZ},
                 {D, Akcja::POKAZ}, {Ekran::K2, X}}});
   w.push_back({"sprawy 1/3", Ekran::SPRAWY, k,
                {{Ekran::K2, Akcja::POKAZ}, {Ekran::SPRAWY, X}, {Ekran::SPRAWY, Akcja::SPRAWY_DALEJ}, {Ekran::SPRAWY, X},
@@ -141,45 +140,44 @@ static void testMapy() {
   KontekstNaw s33 = k;
   s33.sprawa = 3;
   w.push_back({"sprawy 3/3", Ekran::SPRAWY, s33,
-               {{Ekran::SPRAWY, Akcja::SPRAWY_WSTECZ}, {Ekran::SPRAWY, X}, {Ekran::NORMA, Akcja::POKAZ},
+               {{Ekran::SPRAWY, Akcja::SPRAWY_WSTECZ}, {Ekran::SPRAWY, X}, {Ekran::USTAWIENIA, Akcja::POKAZ},
                 {Ekran::SPRAWY, X}, {D, Akcja::POKAZ}, {Ekran::SPRAWY, X}}});
-  KontekstNaw sp = k;
-  sp.spraw = 0;
-  w.push_back({"sprawy stan pusty", Ekran::SPRAWY, sp,
-               {{Ekran::K2, Akcja::POKAZ}, {Ekran::SPRAWY, X}, {Ekran::NORMA, Akcja::POKAZ}, {Ekran::SPRAWY, X},
+  // sprawa zamknięta przy otwartej karcie (fail-path R-KOK-19): karta zostaje do naciśnięcia, dalej bieżąca liczba
+  w.push_back({"sprawy po zamknięciu ostatniej", Ekran::SPRAWY, bs,
+               {{Ekran::K2, Akcja::POKAZ}, {Ekran::SPRAWY, X}, {Ekran::USTAWIENIA, Akcja::POKAZ}, {Ekran::SPRAWY, X},
                 {D, Akcja::POKAZ}, {Ekran::SPRAWY, X}}});
-  w.push_back({"S8", Ekran::NORMA, k,
-               {{Ekran::SPRAWY, Akcja::SPRAWY_OD_KONCA}, {Ekran::NORMA, X}, {Ekran::SPRZET, Akcja::SPRZET_OTWORZ},
-                {Ekran::NORMA, X}, {D, Akcja::POKAZ}, {Ekran::NORMA, X}}});
-  w.push_back({"S8 bez silnika", Ekran::NORMA, bs,
-               {{Ekran::K2, Akcja::POKAZ}, {Ekran::NORMA, X}, {Ekran::SPRZET, Akcja::SPRZET_OTWORZ}, {Ekran::NORMA, X},
-                {D, Akcja::POKAZ}, {Ekran::NORMA, X}}});
   KontekstNaw pub = k;
   pub.profilPubliczny = true;
-  w.push_back({"S8 profil publiczny", Ekran::NORMA, pub,
-               {{Ekran::SPRAWY, Akcja::SPRAWY_OD_KONCA}, {Ekran::NORMA, X}, {Ekran::LICZBY, Akcja::POKAZ},
-                {Ekran::NORMA, X}, {D, Akcja::POKAZ}, {Ekran::NORMA, X}}});
+  w.push_back({"K2 profil publiczny", Ekran::K2, pub,
+               {{Ekran::K1, Akcja::POKAZ}, {Ekran::K2, X}, {Ekran::LICZBY, Akcja::POKAZ}, {Ekran::RAPORT, Akcja::POKAZ},
+                {D, Akcja::POKAZ}, {Ekran::K2, X}}});
   w.push_back({"Co znaczą te liczby", Ekran::LICZBY, pub,
-               {{Ekran::NORMA, Akcja::POKAZ}, {Ekran::LICZBY, X}, {Ekran::SPRZET, Akcja::SPRZET_OTWORZ},
+               {{Ekran::K2, Akcja::POKAZ}, {Ekran::LICZBY, X}, {Ekran::SPRAWY, Akcja::SPRAWY_OTWORZ},
                 {Ekran::LICZBY, X}, {D, Akcja::POKAZ}, {Ekran::LICZBY, X}}});
-  w.push_back({"Sprzęt, maska", Ekran::SPRZET, k,
-               {{Ekran::NORMA, Akcja::POKAZ}, {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_WYMIENIONE},
-                {Ekran::SPRZET, Akcja::SPRZET_DALEJ}, {Ekran::SPRZET, X}, {D, Akcja::POKAZ},
-                {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_NOWY_MODEL}}});
-  KontekstNaw pm = pub;
-  w.push_back({"Sprzęt, maska, profil publiczny", Ekran::SPRZET, pm,
-               {{Ekran::LICZBY, Akcja::POKAZ}, {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_WYMIENIONE},
-                {Ekran::SPRZET, Akcja::SPRZET_DALEJ}, {Ekran::SPRZET, X}, {D, Akcja::POKAZ},
-                {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_NOWY_MODEL}}});
-  KontekstNaw kf = k;
-  kf.kursorSprzetu = 1;
-  w.push_back({"Sprzęt, filtr", Ekran::SPRZET, kf,
-               {{Ekran::SPRZET, Akcja::SPRZET_WSTECZ}, {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_WYMIENIONE},
-                {Ekran::USTAWIENIA, Akcja::POKAZ}, {Ekran::SPRZET, X}, {D, Akcja::POKAZ}, {Ekran::SPRZET, X}}});
+  KontekstNaw pb = bs;
+  pb.profilPubliczny = true;
+  w.push_back({"Co znaczą te liczby bez spraw", Ekran::LICZBY, pb,
+               {{Ekran::K2, Akcja::POKAZ}, {Ekran::LICZBY, X}, {Ekran::USTAWIENIA, Akcja::POKAZ},
+                {Ekran::LICZBY, X}, {D, Akcja::POKAZ}, {Ekran::LICZBY, X}}});
+  w.push_back({"sprawy 1/3 profil publiczny", Ekran::SPRAWY, pub,
+               {{Ekran::LICZBY, Akcja::POKAZ}, {Ekran::SPRAWY, X}, {Ekran::SPRAWY, Akcja::SPRAWY_DALEJ}, {Ekran::SPRAWY, X},
+                {D, Akcja::POKAZ}, {Ekran::SPRAWY, X}}});
   w.push_back({"U-01", Ekran::USTAWIENIA, k,
-               {{Ekran::SPRZET, Akcja::SPRZET_OD_KONCA}, {Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START},
+               {{Ekran::SPRAWY, Akcja::SPRAWY_OD_KONCA}, {Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START},
                 {Ekran::USTAWIENIA, X}, {Ekran::FORMULARZ, Akcja::POKAZ}, {D, Akcja::POKAZ},
                 {Ekran::AKTUALIZACJA, Akcja::AKT_SPRAWDZ}}});  // ↻ 2 s: U-07 (R-KONF-43, aktualizacja z GitHub)
+  w.push_back({"U-01 bez spraw", Ekran::USTAWIENIA, bs,
+               {{Ekran::K2, Akcja::POKAZ}, {Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START},
+                {Ekran::USTAWIENIA, X}, {Ekran::FORMULARZ, Akcja::POKAZ}, {D, Akcja::POKAZ},
+                {Ekran::AKTUALIZACJA, Akcja::AKT_SPRAWDZ}}});
+  w.push_back({"U-01 profil publiczny bez spraw", Ekran::USTAWIENIA, pb,
+               {{Ekran::LICZBY, Akcja::POKAZ}, {Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START},
+                {Ekran::USTAWIENIA, X}, {Ekran::FORMULARZ, Akcja::POKAZ}, {D, Akcja::POKAZ},
+                {Ekran::AKTUALIZACJA, Akcja::AKT_SPRAWDZ}}});
+  // dawne strony S8 i „Sprzęt” (ADR-0041): krótkie naciśnięcie ekran dnia, przytrzymanie nic
+  for (Ekran st : {Ekran::NORMA, Ekran::SPRZET})
+    w.push_back({"dawna strona", st, k,
+                 {{D, Akcja::POKAZ}, {st, X}, {D, Akcja::POKAZ}, {st, X}, {D, Akcja::POKAZ}, {st, X}}});
   KontekstNaw u7 = k;
   u7.aktualizacja = 1;  // U-07 „jest nowsza” (R-KONF-44)
   w.push_back({"U-07 jest nowsza", Ekran::AKTUALIZACJA, u7,
@@ -219,9 +217,9 @@ static void testMapy() {
   w.push_back({"Przeniesione bez cofnięcia (noc po 30 s)", Ekran::PRZENIESIONE, bc,
                {{D, Akcja::POKAZ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ},
                 {D, Akcja::POKAZ}}});
-  w.push_back({"Nowy model maski zapisany", Ekran::SPRZET_ZAPISANO, k,
-               {{Ekran::SPRZET, Akcja::POKAZ}, {Ekran::SPRZET, Akcja::SPRZET_COFNIJ}, {Ekran::SPRZET, Akcja::POKAZ},
-                {Ekran::SPRZET, Akcja::POKAZ}, {D, Akcja::POKAZ}, {Ekran::SPRZET, Akcja::POKAZ}}});
+  w.push_back({"Wymiana zapisana", Ekran::SPRZET_ZAPISANO, k,
+               {{D, Akcja::POKAZ}, {D, Akcja::SPRZET_COFNIJ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ},
+                {D, Akcja::POKAZ}}});
   w.push_back({"Zapisano", Ekran::ZAPISANO, k,
                {{D, Akcja::POKAZ}, {D, Akcja::COFNIJ_ODP}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ}, {D, Akcja::POKAZ},
                 {D, Akcja::POKAZ}}});
@@ -250,7 +248,7 @@ static void testMapy() {
 static bool zapis(Akcja a) {
   switch (a) {
     case Akcja::WIEM: case Akcja::OMOWIONE_TAK: case Akcja::ODP_TAK: case Akcja::ODP_NIE: case Akcja::COFNIJ_WIEM:
-    case Akcja::COFNIJ_ODP: case Akcja::SPRZET_WYMIENIONE: case Akcja::SPRZET_NOWY_MODEL: case Akcja::SPRZET_COFNIJ:
+    case Akcja::COFNIJ_ODP: case Akcja::SPRZET_WYMIENIONE: case Akcja::SPRZET_COFNIJ:
     case Akcja::PYT_ZAPISZ: return true;
     default: return false;
   }
@@ -263,7 +261,7 @@ static void testZasad() {
     KontekstNaw x = k;
     x.s5 = i == 0; x.nocny = i == 1; x.wzorzec = i == 2 || i == 3; x.problem = i == 3; x.pytanieTN = i == 4;
     x.sk31 = i == 5; x.zaproszenie = i == 6; x.profilPubliczny = i == 7; x.sprawa = i == 8 ? 3 : 1;
-    x.kursorSprzetu = i == 9 ? 1 : 0; x.cofniecie = i != 10; x.omowienieZablokowane = i == 11;
+    x.sprawyDostepne = i != 9; x.cofniecie = i != 10; x.omowienieZablokowane = i == 11;
     ks.push_back(x);
   }
   const Ekran E[] = {Ekran::DZIEN, Ekran::K1, Ekran::K2, Ekran::PYTANIE, Ekran::TEST, Ekran::OMOWIONE, Ekran::SPRAWY,
@@ -300,12 +298,12 @@ static void testZasad() {
   // powrót: potwierdzenie „Omówione” wraca po 60 s także w nocy (R-PRZ-05), strony kokpitu po 5 min, w nocy nie
   TRZYMA(sekundDoPowrotu(Ekran::OMOWIONE, 60, 2 * 60) == 0);
   TRZYMA(sekundDoPowrotu(Ekran::OMOWIONE, 0, 2 * 60) == 60);
-  for (Ekran e : {Ekran::K1, Ekran::K2, Ekran::SPRAWY, Ekran::NORMA, Ekran::LICZBY, Ekran::SPRZET, Ekran::USTAWIENIA}) {
+  for (Ekran e : {Ekran::K1, Ekran::K2, Ekran::SPRAWY, Ekran::LICZBY, Ekran::USTAWIENIA}) {
     TRZYMA(sekundDoPowrotu(e, 300, 8 * 60) == 0);
     TRZYMA(sekundDoPowrotu(e, 300, 2 * 60) == -1);
   }
   // wybudzenie zegarem po 5 min: strona kokpitu → ekran dnia (U-01 → K2, R-KONF-05 do decyzji)
-  TRZYMA(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRZET, true, 301, 8 * 60) == Ekran::DZIEN);
+  TRZYMA(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::LICZBY, true, 301, 8 * 60) == Ekran::DZIEN);
   TRZYMA(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRAWY, true, 301, 8 * 60) == Ekran::DZIEN);
   TRZYMA(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRAWY, true, 3000, 2 * 60) == Ekran::SPRAWY);  // noc
   TRZYMA(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::OMOWIONE, true, 61, 2 * 60) == Ekran::DZIEN);
@@ -327,20 +325,18 @@ static void testStopek() {
   std::vector<std::string> k2 = stopkaK2(true);
   TRZYMA(k2.size() == 3 && ma(k2[0], "◀ ostatnia noc") && ma(k2[1], "▶ sprawy") && ma(k2[1], "2 s raport") &&
          k2[2] == "↻ ekran dnia");
-  TRZYMA(ma(stopkaK2(false)[1], "▶ norma"));
+  TRZYMA(ma(stopkaK2(false)[1], "▶ ustawienia") && ma(stopkaK2(false, true)[1], "▶ liczby"));
   TRZYMA(stopkaSpraw(1, 3) == std::vector<std::string>({"◀ 7 nocy", "▶ następna", "↻ ekran dnia"}));
-  TRZYMA(stopkaSpraw(3, 3)[1] == "▶ norma" && stopkaSpraw(2, 3)[0] == "◀ poprzednia");
-  TRZYMA(stopkaSpraw(1, 0)[0] == "◀ 7 nocy" && stopkaSpraw(1, 0)[1] == "▶ norma");
-  std::string m = sprzet::stopkaSprzetu(EL_MASKA), f = sprzet::stopkaSprzetu(EL_FILTR);
-  TRZYMA(ma(m, "◀ norma · 2 s wymienione") && ma(m, "▶ niżej") && ma(m, "↻ ekran dnia · 2 s nowy model"));
-  TRZYMA(ma(f, "◀ wyżej · 2 s wymienione") && ma(f, "▶ ustawienia") && !ma(f, "nowy model"));
+  TRZYMA(stopkaSpraw(3, 3)[1] == "▶ ustawienia" && stopkaSpraw(2, 3)[0] == "◀ poprzednia");
+  TRZYMA(stopkaSpraw(1, 0)[0] == "◀ 7 nocy" && stopkaSpraw(1, 0)[1] == "▶ ustawienia");
+  TRZYMA(stopkaU01()[0] == "◀ 7 nocy · 2 s sieć" && stopkaU01(true)[0] == "◀ sprawy · 2 s sieć");
   TRZYMA(stopkaWzorca(true) == std::vector<std::string>({"◀ 2 s omówione", "▶ kokpit · 2 s raport", "↻ 2 s wiem"}));
   TRZYMA(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));
   TRZYMA(stopkaPytania() == std::vector<std::string>({"◀ wstecz · 2 s pomiń", "▶ dalej", "↻ zaznacz · 2 s zapisz"}));
   std::vector<std::string> t = stopkaTestu(false);
   TRZYMA(t.size() == 3 && ma(t[0], "◀ ustawienia · 2 s sieć panelu") && t[1] == "▶ odśwież" && t[2] == "↻ ekran dnia");
-  TRZYMA(numerStronyTekst(Ekran::K1) == "1 / 6" && numerStronyTekst(Ekran::USTAWIENIA) == "6 / 6" &&
-         numerStronyTekst(Ekran::LICZBY) == "4 / 6" && numerStronyTekst(Ekran::RAPORT).empty() &&
+  TRZYMA(numerStronyTekst(Ekran::K1) == "1 / 3" && numerStronyTekst(Ekran::USTAWIENIA) == "3 / 3" &&
+         numerStronyTekst(Ekran::LICZBY).empty() && numerStronyTekst(Ekran::RAPORT).empty() &&
          numerStronyTekst(Ekran::FORMULARZ).empty());
 }
 
@@ -365,12 +361,12 @@ static void testPoprawkiMapy() {
       PRZYPADEK("mapa nawigacji", !(cicho && (dl == Akcja::WIEM || dl == Akcja::SPRZET_WYMIENIONE) && ed == Ekran::DZIEN));
     }
   }
-  // w „Sprzęt” ◀ to teraz przycisk przewijania (kursor w górę, poprzednia strona), a ◀ 2 s zapisuje
-  // „wymienione dziś” od razu, bez ekranu z cofnięciem (inaczej niż ↻ 2 s „nowy model”); przytrzymanie przy
-  // przewijaniu zeruje wiek maski albo filtra, a poprawka jest tylko przez plik konfiguracji (R-MAS-01 fail-path).
+  // ◀ 2 s na S-K-31 i S-K-35 zapisuje „wymienione dziś” zawsze przez ekran z cofnięciem (R-MAS-01, R-MAS-18)
   {
-    Przejscie w = nacisniecie(Ekran::SPRZET, L, true, k);
-    PRZYPADEK("mapa nawigacji", w.akcja != Akcja::SPRZET_WYMIENIONE || w.ekran != Ekran::SPRZET);
+    KontekstNaw x = k;
+    x.sk31 = true;
+    Przejscie w = nacisniecie(Ekran::DZIEN, L, true, x);
+    PRZYPADEK("mapa nawigacji", w.akcja == Akcja::SPRZET_WYMIENIONE && w.ekran == Ekran::SPRZET_ZAPISANO);
   }
   // ↻ = „dom” nie działa w siatce „Co było inaczej?”: K1 ↻ przytrzymane ≥ 2 s (pacjent chce do ekranu
   // dnia, panel reaguje wolno) otwiera siatkę, w niej ↻ zaznacza, a ↻ 2 s zapisuje. Sam zielony przycisk, naciskany
@@ -397,8 +393,6 @@ static void testPoprawkiMapy() {
     for (int i = 0; i < 12; i++) {
       Ekran przed = e;
       Przejscie r = nacisniecie(e, P, false, x);
-      if (r.akcja == Akcja::SPRZET_OTWORZ) x.kursorSprzetu = 0;
-      if (r.akcja == Akcja::SPRZET_DALEJ) x.kursorSprzetu++;
       e = r.ekran;
       Pobranie pb = pobraniePoNacisnieciu(r, przed, false);
       wifi = wifi || e == Ekran::FORMULARZ || pb.pobierz || otworzycOknoSerwisowe(e);

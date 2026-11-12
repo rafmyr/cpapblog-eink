@@ -264,7 +264,7 @@ static sprawy::SprawaL sprawaL(const std::string& kl, reguly::Pilnosc p, const s
   x.pilnosc = p;
   x.ton = sprawy::Ton::LEKARZ;
   x.tytul = tytul;
-  x.linia = kl + ": linia C. Na kontroli: raport 2 / 6.";
+  x.linia = kl + ": linia C. Na kontroli: raport 2 / 3.";
   x.aktywnaOd = od;
   return x;
 }

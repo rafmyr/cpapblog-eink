@@ -101,8 +101,8 @@ static void testR7_05() {
 // ekran dnia), ↻ 2 s → pakiet z karty (kod: to samo co ↻), ◀ → U-01 (kod: K2).
 static void testR7_06() {
   KontekstNaw kn;
-  // „Co znaczą te liczby” ▶ → „Sprzęt” (następna strona), U-05 ▶ odśwież (↻ to dom), ◀ → U-01
-  PRZYPADEK("drobne rozbieżności mapy", nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, kn).ekran == Ekran::SPRZET);
+  // „Co znaczą te liczby” ▶ → U-01 bez spraw (następna strona, R-KOK-22), U-05 ▶ odśwież (↻ to dom), ◀ → U-01
+  PRZYPADEK("drobne rozbieżności mapy", nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, kn).ekran == Ekran::USTAWIENIA);
   PRZYPADEK("drobne rozbieżności mapy", nacisniecie(Ekran::TEST, Przycisk::PRAWY, false, kn).akcja == Akcja::PONOW_POBRANIE);
   PRZYPADEK("drobne rozbieżności mapy", nacisniecie(Ekran::TEST, Przycisk::LEWY, false, kn).ekran == Ekran::USTAWIENIA);
   OCZEKUJE("drobne rozbieżności mapy", nacisniecie(Ekran::TEST, Przycisk::SRODEK, true, kn).akcja !=
@@ -247,9 +247,11 @@ static void testPoPoprawkach() {
   wp.sekundaDoby = 2 * 3600 + 10;
   Termin tn = nastepnyTermin(wp);
   TRZYMA(tn.sekund == 20 + ZAPAS_POWROTU_S && (tn.powody & POWOD_POWROT));
-  // „Co znaczą te liczby” ▶ → „Sprzęt” (sprawdzane też wyżej)
+  // „Co znaczą te liczby” ▶ → U-01 bez spraw, „Otwarte sprawy” przy sprawie (R-KOK-22; sprawdzane też wyżej)
   KontekstNaw kn;
-  TRZYMA(nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, kn).ekran == Ekran::SPRZET);
+  TRZYMA(nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, kn).ekran == Ekran::USTAWIENIA);
+  kn.sprawyDostepne = true;
+  TRZYMA(nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, kn).ekran == Ekran::SPRAWY);
 }
 
 int main() {

@@ -20,6 +20,8 @@
 #include <vector>
 #include "airbridge.h"
 #include "noc_pliki.h"  // noc z plików sesji (ADR-0036)
+#include "portret.h"     // Portret nocy: przebieg ostatniej nocy (ADR-0040)
+#include "portret_ekran.h"  // Portret nocy: rysunek (S11)
 #include "porownanie.h"  // tryb porównawczy: noc z plików wobec raportu JSON (ADR-0036 „Zmiana 2026-11-09”)
 #include "bateria.h"
 #include "cykl.h"
@@ -248,6 +250,12 @@ class Przebieg {
   bool wifiProbowano = false;      // była próba połączenia w tym wybudzeniu (samosprawdzenie nie łączy drugi raz)
 
   std::vector<Noc> hist;
+  portret::Przebieg przebiegNocy;  // przebieg ostatniej nocy z `/dane/portret.csv` (Portret nocy, T-DANE-38)
+  bool portretWczytany = false;
+  portret::Przebieg portretDoZapisu;  // przebieg czekający na zapis po Wi-Fi
+  bool portretCzeka = false;
+  size_t portretPamiec = 0;
+  bool drugiEkranTeraz = false;  // to rysowanie pokazuje drugi ekran poranka
   std::vector<WpisCzynnikow> czynniki;
   std::vector<WpisHumoru> dziennik;
   // wyniki silnika w tym wybudzeniu i ich skutki na ekranach (src/sprawy.h, src/kolejka.h)
@@ -1843,6 +1851,13 @@ class Przebieg {
     w.tylkoOcenyWylaczone = b5.stany.niespokoj == Stany::Niespokoj::OCENY;
     w.tylkoBrakDanych = b5.stany.niespokoj == Stany::Niespokoj::DANE;  //
     w.brakDanychWyciek = w.tylkoBrakDanych && b5.stany.bezOcenZWycieku;  // 5.4.13 pkt 7: przyczyna to wyciek
+    // R-EKR-32: krok spraw tylko przy stronie spraw (R-KOK-19). Z wyników silnika już policzonych dziś (bez wołania
+    // silnikDzis(): w trakcie liczenia wołałby sam siebie, a wcześniej policzyłby wyniki bez okoliczności ranka)
+    if (!wSilniku) {
+      bool zSilnikiem = b5.dzis == dzis && !b5.wyniki.empty();
+      w.bezSilnika = !zSilnikiem;
+      w.bezKartSpraw = !zSilnikiem || kartySprawB5(dzis) == 0;
+    }
     w.prosbaDzis = prosbaDzisB9(dzis) && !sk::wpisDzis(dziennik, dzis, true);
     w.wieczorowZKrokiem7 = wieczoryZKrokiemB9(dzis);
     if (stopkaZPamieci) {  // … a wybór ekranu ze świeżego odczytu: inny zestaw S-K (próg przekroczony) → świeży odczyt
@@ -1902,6 +1917,7 @@ class Przebieg {
       b16.zalogowane.insert(t.id + dzien);
       return false;
     }
+    const std::string dalej = stopkaDalejPortretu();  // R-POR-24: rano ▶ otwiera Portret → `▶ portret nocy`
     t.t.linia = dd.linia;
     t.t.liniaA = dd.liniaA;
     t.t.liniaOstrzezenie = dd.liniaOstrzezenie;
@@ -1937,16 +1953,25 @@ class Przebieg {
       tt.tonProblem = t.problem;
       tt.stopkaPrawo = stopkaCzujnika(tempStopki(), wilgStopki());
       tt.stopkaLewo = dd.pogoda;  // lewa część stopki jak na ekranie danych (bez zdania budzika od 10.11.2026)
+      // R-POR-24 (decyzja właściciela projektu 11.11.2026): ▶ otwiera Portret: skrócony podpis `▶ portret` przed odczytem czujnika,
+      // odczyt zostaje
+      if (!dalej.empty()) tt.stopkaPrawo = prawoZPortretem(tt.stopkaPrawo);
       dopasujStopke(tt.stopkaLewo, tt.stopkaPrawo);  // R-EKR-10: ustępują opis pogody, miasto, dopisek CO2
       if (t.id == "S-K-31") {  // R-PRZ-04: akcja niestandardowa w stopce (kanwa SK31-maska)
-        tt.stopkaLewo = "◀ 2 s: wymienione dziś";
-        tt.stopkaPrawo = "▶ kokpit";
+        tt.stopkaLewo = sprzet::STOPKA_WYMIANY_LEWO;
+        tt.stopkaPrawo = dalej.empty() ? std::string(sprzet::STOPKA_WYMIANY_PRAWO) : dalej;
       }
       rysujKarte(plotno(), nag, tt, wb.scena);
     } else if (t.id == "S-K-31") {
-      sk::rysuj(plotno(), nag, t, "◀ 2 s: wymienione dziś", "▶ kokpit");  // R-PRZ-04 (kanwa SK31-maska)
+      sk::rysuj(plotno(), nag, t, sprzet::STOPKA_WYMIANY_LEWO,
+                dalej.empty() ? std::string(sprzet::STOPKA_WYMIANY_PRAWO) : dalej);  // R-PRZ-04 (kanwa SK31-maska)
     } else {
-      sk::rysuj(plotno(), nag, t, dd.pogoda, dd.przyLozku);
+      std::string lw = dd.pogoda, pr = dd.przyLozku;
+      if (!dalej.empty()) {  // R-POR-24 (decyzja właściciela projektu 11.11.2026): `▶ portret` przed odczytem czujnika, odczyt zostaje
+        pr = prawoZPortretem(pr);
+        dopasujStopke(lw, pr);  // R-EKR-10: najpierw ustępuje opis pogody i miasto
+      }
+      sk::rysuj(plotno(), nag, t, lw, pr);
     }
     b16.sk31 = t.id == "S-K-31" ? (uint32_t)(t.wartosc + 1) : 0;  // ◀ 2 s (R-MAS-01)
     dzienOdswiezalny = false;
@@ -2042,87 +2067,83 @@ class Przebieg {
     ustawieniaWczytane_ = true;
     return ok;
   }
-  void rysujSprzetB16() {
-    std::string dzis = dzisiaj();
-    sprzet::Elementy el = sprzetB16();
-    int kur = (int)a.nvs.liczbaU("cpap", "sp_kur", 0) % EL_N;
-    sprzet::rysujSprzet(plotno(), sprzet::wierszeSprzetu(el, dzis), kur, profilB18());  // ◀ norma / liczby
-  }
-  // R-MAS-11: „nowy model maski” (↻ 2 s w „Sprzęt” przy masce): data wymiany maski = dziś (poduszka to część maski)
-  // (/konfiguracja.txt jak R-MAS-01), data nowego modelu w NVS `cpap`/`sp_model` (zerowanie normy M-07 od tej nocy,
-  // histNormyB16()), stan sprzed przytrzymania w `sp_cof` do cofnięcia na ekranie R-MAS-14. Nowe klucze NVS z wartością
-  // domyślną „brak” (ADR-0022: bez migracji; starsza wersja ich nie czyta).
-  void nowyModelB16() {
+  // R-MAS-16: pole `Nowy model maski od dziś` w formularzu U-03 (formularz::Wynik::nowyModelMaski): datę wymiany maski
+  // = dziś zapisuje formularz w /konfiguracja.txt (jak R-MAS-01), tu tylko data nowego modelu w NVS `cpap`/`sp_model`
+  // (zerowanie normy M-07 od tej nocy, histNormyB16(); linia R-MAS-11 rano, liniaNowegoModeluB16()). Wołane po zapisie
+  // pliku; `plikZapisany` false = bez zerowania normy (inaczej po restarcie norma M-07 zerowana przy starych datach).
+  // `staraMaska` = data wymiany maski sprzed zapisu formularza: razem z poprzednim `sp_model` trafia do `sp_cof`
+  // (`;{data maski};{model}`, format z R-MAS-14 sprzed ADR-0041) do cofnięcia tego samego dnia (R-MAS-19).
+  void nowyModelZFormularzaB16(bool plikZapisany, const std::string& staraMaska) {
     std::string dzis = dzisiaj();
     if (!dataOk(dzis)) return;
-    const UstawieniaDnia& u = ustawieniaB9();
-    // format `{puste};{data maski};{model}` zostaje z (pierwsze pole było datą poduszki), ADR-0022
-    a.nvs.usun("cpap", "sp_cofw");  // ekran potwierdzenia dotyczy teraz nowego modelu
-    a.nvs.ustawTekst("cpap", "sp_cof", ";" + u.sprzet[EL_MASKA].wymieniono + ";" + a.nvs.tekst("cpap", "sp_model", ""));
-    // `sp_model` dopiero po udanym zapisie dat (inaczej po restarcie norma M-07 zerowana przy starych datach)
-    if (!wymianaB16(EL_MASKA)) {
-      a.nvs.usun("cpap", "sp_cof");
+    if (!plikZapisany) {
       log("sprzęt: nowy model maski bez zerowania normy, zapis dat nieudany (R-AW-05)");
-      b5.dzis.clear();
       return;
     }
+    std::string model = a.nvs.tekst("cpap", "sp_model", "");
+    // drugi zapis tego samego dnia nie nadpisuje stanu sprzed pierwszego (cofnięcie wraca do stanu sprzed dziś)
+    if (model != dzis) a.nvs.ustawTekst("cpap", "sp_cof", ";" + staraMaska + ";" + model);
     a.nvs.ustawTekst("cpap", "sp_model", dzis);
-    log("sprzęt: nowy model maski %s, norma M-07 od nowa (R-MAS-11)", dzis.c_str());
+    log("sprzęt: nowy model maski %s z formularza, norma M-07 od nowa (R-MAS-16)", dzis.c_str());
     b5.dzis.clear();
   }
-  // R-MAS-14: ↻ na ekranie `Nowy model maski zapisany.` przywraca datę wymiany maski oraz normę M-07
-  void cofnijNowyModelB16() {
-    std::string w = a.nvs.tekst("cpap", "sp_cofw", "");
-    if (!w.empty()) {  // cofnięcie „wymienione dziś”: data sprzed zapisu (pusta = wiersz usunięty, R-MAS-06)
-      size_t sc = w.find(';');
-      int el = sc == std::string::npos ? -1 : liczbaCalk(w.substr(0, sc).c_str());
-      if (el >= 0 && el < EL_N) {
-        std::string t;
-        if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
-        std::string nowa = sprzet::przywrocWymiane(t, el, w.substr(sc + 1));
-        if (fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa)) log("sprzęt: wymiana %s cofnięta (R-MAS-01)", NAZWY_ELEMENTU[el]);
-        else log("sprzęt: zapis cofnięcia nieudany, daty do restartu (R-AW-05)");
-        ustawieniaB9_ = parsujUstawieniaDnia(nowa);
-        ustawieniaWczytane_ = true;
-      }
-      a.nvs.usun("cpap", "sp_cofw");
-      b5.dzis.clear();
-      return;
+  // R-MAS-19: pole `Cofnij nowy model z dziś` w formularzu (tylko gdy `sp_model` = dziś): data wymiany maski i `sp_model`
+  // sprzed zapisu z `sp_cof`, norma M-07 bez zerowania, bez linii R-MAS-11 rano. true = cofnięte.
+  bool cofnijNowyModelZFormularzaB16() {
+    std::string dzis = dzisiaj();
+    if (!dataOk(dzis) || a.nvs.tekst("cpap", "sp_model", "") != dzis) {
+      log("sprzęt: brak nowego modelu maski z dziś do cofnięcia (R-MAS-19)");
+      return false;
     }
     std::string c = a.nvs.tekst("cpap", "sp_cof", "");
     size_t i = c.find(';'), j = i == std::string::npos ? i : c.find(';', i + 1);
-    if (j == std::string::npos) return;
+    std::string maska = j == std::string::npos ? "" : c.substr(i + 1, j - i - 1);
+    std::string model = j == std::string::npos ? "" : c.substr(j + 1);
     std::string t;
     if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
-    std::string nowa = sprzet::przywrocWymiane(t, EL_MASKA, c.substr(i + 1, j - i - 1));
-    if (fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa)) log("sprzęt: nowy model maski cofnięty (R-MAS-14)");
-    else log("sprzęt: zapis cofnięcia nieudany, daty do restartu (R-AW-05)");
+    std::string nowa = sprzet::przywrocWymiane(t, EL_MASKA, maska);
+    bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
     ustawieniaWczytane_ = true;
-    std::string m = c.substr(j + 1);
-    if (m.empty()) a.nvs.usun("cpap", "sp_model");
-    else a.nvs.ustawTekst("cpap", "sp_model", m);
+    if (model.empty()) a.nvs.usun("cpap", "sp_model");
+    else a.nvs.ustawTekst("cpap", "sp_model", model);
     a.nvs.usun("cpap", "sp_cof");
     b5.dzis.clear();
+    log(ok ? "sprzęt: nowy model maski cofnięty (R-MAS-19)" : "sprzęt: nowy model cofnięty, zapis dat nieudany (R-AW-05)");
+    return true;
   }
-  // R-MAS-14: 30 s [PRÓG] (sekundDoPowrotu, src/nawigacja.cpp), w slocie nocnym do 05:00 bez `◀ 2 s cofnij` po 30 s
-  bool cofniecieNowegoModeluB16() {
+  // R-MAS-01: ◀ 2 s na ekranie `Wymiana zapisana.` przywraca datę wymiany sprzed zapisu (`sp_cofw`: `{element};{data}`,
+  // pusta data = wiersz usunięty, R-MAS-06)
+  void cofnijWymianeB16() {
+    std::string w = a.nvs.tekst("cpap", "sp_cofw", "");
+    size_t sc = w.find(';');
+    int el = sc == std::string::npos ? -1 : liczbaCalk(w.substr(0, sc).c_str());
+    if (el >= 0 && el < EL_N) {
+      std::string t;
+      if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
+      std::string nowa = sprzet::przywrocWymiane(t, el, w.substr(sc + 1));
+      if (fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa)) log("sprzęt: wymiana %s cofnięta (R-MAS-01)", NAZWY_ELEMENTU[el]);
+      else log("sprzęt: zapis cofnięcia nieudany, daty do restartu (R-AW-05)");
+      ustawieniaB9_ = parsujUstawieniaDnia(nowa);
+      ustawieniaWczytane_ = true;
+    }
+    if (!w.empty()) a.nvs.usun("cpap", "sp_cofw");
+    b5.dzis.clear();
+  }
+  // R-MAS-01: 30 s [PRÓG] (sekundDoPowrotu, src/nawigacja.cpp), w slocie nocnym do 05:00 bez `◀ 2 s cofnij` po 30 s
+  bool cofniecieWymianyB16() {
     if (!slotNocny(minutaDoby())) return true;
     return zegar() && (long)(teraz() - r.ekranOd) < 30;
   }
-  void rysujNowyModelB16() {
+  void rysujWymianeZapisanaB16() {
     DanePotwierdzenia p;
     p.naglowek = {"Sprzęt", ""};
-    std::string cw = a.nvs.tekst("cpap", "sp_cofw", "");  // „wymienione dziś” zamiast nowego modelu
-    int el = cw.empty() ? -1 : liczbaCalk(cw.c_str());
-    if (el >= 0 && el < EL_N) {
-      p.tytul = sk::tekst("R-MAS-01.tytul");
-      p.powod = sk::tekst(el == EL_MASKA ? "R-MAS-01.maska" : "R-MAS-01.filtr");
-    } else {
-      p.tytul = sk::tekst("R-MAS-14.tytul");
-      p.powod = sk::tekst("R-MAS-14.powod");
-    }
-    if (cofniecieNowegoModeluB16()) p.stopka = {"◀ 2 s cofnij"};
+    std::string cw = a.nvs.tekst("cpap", "sp_cofw", "");
+    int el = cw.empty() ? EL_MASKA : liczbaCalk(cw.c_str());
+    if (el < 0 || el >= EL_N) el = EL_MASKA;
+    p.tytul = sk::tekst("R-MAS-01.tytul");
+    p.powod = sk::tekst(el == EL_MASKA ? "R-MAS-01.maska" : "R-MAS-01.filtr");
+    if (cofniecieWymianyB16()) p.stopka = {"◀ 2 s cofnij"};
     rysujPotwierdzenie(plotno(), p);
   }
   // R-MAS-11 (jak R-NOR-26): historia do normy bez M-07 nocy sprzed nowego modelu maski; po 120 dniach [PRÓG] okno
@@ -2499,6 +2520,15 @@ class Przebieg {
       if (w.ekran == EkranSlotu::SK39 && we.drzemka.od)
         nag.prawo = "drzemka " + godzina(we.drzemka.od) + "–" + godzina(we.drzemka.do_);
       if (w.ekran == EkranSlotu::SK35 && we.ostatnieSK35 != dzis) a.nvs.ustawTekst("cpap", "b9_sk35", dzis);
+      if (w.ekran == EkranSlotu::SK35 && w.wymiana.element >= 0 && w.wymiana.element < EL_N) {
+        // R-MAS-18: ◀ 2 s zapisuje „wymienione dziś” elementu z ekranu (jak S-K-31: `b16_sk31` po rysujDzien()),
+        // stopka jak na S-K-31 (ta sama akcja i ten sam zapis): `◀ 2 s: wymienione dziś` i `▶ kokpit` zamiast liczb nocy
+        // i odczytu czujnika (5.6.1 pkt 6, R-PRZ-04)
+        b16.sk31 = (uint32_t)w.wymiana.element + 1;
+        st.lewo = sprzet::STOPKA_WYMIANY_LEWO;
+        st.prawo = sprzet::STOPKA_WYMIANY_PRAWO;
+        log("slot dzienny: S-K-35 %s, ◀ 2 s zapisuje wymianę (R-MAS-18)", NAZWY_ELEMENTU[w.wymiana.element]);
+      }
       rysujSlotDzienny(plotno(), nag, w, t, we, st);
       log("slot dzienny: %s", idEkranuSlotu(w.ekran));
     }
@@ -2531,6 +2561,12 @@ class Przebieg {
         log("ekran dnia: ikona aktualizacji (jest wersja %s)", akt.znana.c_str());
       }
     }
+    if (drugiEkranTeraz && r.slotOdlozony && zegar()) {  // odłożony start slotu po drugim ekranie
+      r.slotDziennyEp = teraz();
+      r.slotOdlozony = 0;
+      log("slot dzienny: start odłożony do drugiego ekranu poranka (R-POR-04)");
+    }
+    drugiEkranTeraz = false;
     std::string z = k1OdkrycieB15.dzien.empty()
                         ? std::string()
                         : k1OdkrycieB15.dzien + "\t" + k1OdkrycieB15.tytul + "\t" + k1OdkrycieB15.powod;
@@ -2547,6 +2583,7 @@ class Przebieg {
     // R-EKR-60: przerysowanie co 2 h tylko ekranu dnia ze stopką standardową (R-EKR-10, karta albo ekran danych);
     // kryterium to stopka z trescDnia, nie lista wykluczeń
     dzienOdswiezalny = false;
+    r.portretStrona = 0;  // ustawiają ją niżej tylko ekrany problemu z Portretem pod ▶ (R-POR-24)
     DecyzjaNocy dn = nocTeraz(true);  // slot nocny 23:30–05:00: ekranem dnia jest „Dobranoc”, gdy powstał tej nocy
     if (dn.nocny) {
       silnikDzis(dzisiaj());  // wynik gotowy na 05:00 (log), bez zmiany ekranu nocnego (R-PRZ-18)
@@ -2652,7 +2689,11 @@ class Przebieg {
       if (e.typ == "S5") {
         liniaPilnaB5(d, dzis);  // S5: tylko linia grupy 0 (przypadek 1 z 7.8), bez ekranu L i pytań
       } else if (silnikDzis(dzis, zapT, e08T, awT)) {
-        if (rysujDzienB5(d, n, dzis, e)) return;
+        if (rysujDzienB5(d, n, dzis, e)) {
+          // ekran L, S3 albo problem poranny (R2–R5d): Portret jako strona pod ▶ przed K1 (R-POR-24); pytanie R0 nie
+          r.portretStrona = !b5.pytanie.jest && portretRanoDostepny(dzis) && sekundaDzis(r.slotDziennyEp) < 0 ? 1 : 0;
+          return;
+        }
         kolejka::ustawLinie(d, b5.linie);
         if (!d.linia.empty()) log("linia uwagi: %s (%s)", d.linia.c_str(), b5.linie.front().zrodlo.c_str());
         if (!b5.linie.empty()) pokazanieB11(kolejka::kluczPokazaniaLinii(b5.linie.front()), dzis);  // R-PIE-08
@@ -2663,6 +2704,8 @@ class Przebieg {
         buzzerB5(dzis);
       }
     }
+    // Portret nocy (S11, pozycja RP tabeli 7.2): pierwszy ekran poranka przed grupami R5e–R9, po R0–R5d (R-POR-02)
+    if (rysujPortretB40(e, d, n, dzis)) return;
     if (rysujB16(e, d, n, 1)) return;  // tydzień T2 (S-K-18), wieczór S-K-05, rano R4…R7 (7.2)
     if (rysujKontekstB9(e.typ, d)) return;  // slot dzienny, S-K-01/S-K-02, S-K-13 (5.8.12, 5.8.3), z linią z kolejki
     if (rysujB16(e, d, n, 2)) return;  // wieczór S-K-03…S-K-09, W4, rano R8 (S-K-19…S-K-21 w poniedziałek)
@@ -2864,25 +2907,17 @@ class Przebieg {
         return true;
     return false;
   }
-  podsumowanie::DaneS8 daneS8B15(const std::string& dzis, bool zK1) {
+  podsumowanie::DaneS8 daneS8B15(const std::string& dzis) {
     podsumowanie::WejscieS8 w;
     w.norma = &stany(dzis).norma;
     w.tryb = trybB15();
     w.profilPubliczny = profilB18();
     w.wzorzecL = silnikDzis(dzis) && wzorzecLB15();
-    w.zK1 = zK1;
-    w.sprawy = silnikDzis(dzis);  // jak KontekstNaw::sprawyDostepne
     return podsumowanie::budujS8(w);
   }
-  void rysujNormaB15(const std::string& dzis) {  // S8 jako strona 4 / 6 kokpitu (R-EKR-35): stopka akcji
-    DaneDnia d = daneDnia(dzis);
-    podsumowanie::DaneS8 s = daneS8B15(dzis, true);
-    Naglowek nag{s.naglowek.empty() ? naglowekDniaLewo(d) : s.naglowek, numerStronyTekst(Ekran::NORMA)};
-    podsumowanie::rysujS8(plotno(), nag, s, podsumowanie::trescS8(s));
-  }
-  void rysujLiczbyB15(const std::string& dzis) {
-    podsumowanie::DaneLiczb l = podsumowanie::budujLiczby(trybB15(), daneS8B15(dzis, true).centralne);
-    Naglowek nag{l.naglowek, numerStronyTekst(Ekran::LICZBY)};  // strona 4 / 6 (po S8): nazwa strony zamiast daty
+  void rysujLiczbyB15(const std::string& dzis) {  // R-KOK-22: strona kokpitu bez numeru po K2 (profil publiczny)
+    podsumowanie::DaneLiczb l = podsumowanie::budujLiczby(trybB15(), daneS8B15(dzis).centralne, sprawyWCiaguB5(dzis));
+    Naglowek nag{l.naglowek, numerStronyTekst(Ekran::LICZBY)};  // nazwa strony zamiast daty, bez numeru
     podsumowanie::rysujLiczby(plotno(), nag, l);
   }
   bool rysujS7B15(const std::string& dzis, const DaneDnia& dd) {
@@ -2896,7 +2931,7 @@ class Przebieg {
     return true;
   }
   bool rysujS8B15(const std::string& dzis, const DaneDnia& dd) {
-    podsumowanie::DaneS8 s = daneS8B15(dzis, false);
+    podsumowanie::DaneS8 s = daneS8B15(dzis);
     TrescEkranu t = podsumowanie::trescS8(s);
     linieB15(t, dd);
     podsumowanie::rysujS8(plotno(), Naglowek{naglowekDniaLewo(dd), naglowekDniaPrawo(dd)}, s, t);
@@ -3011,6 +3046,11 @@ class Przebieg {
     u.tylkoOcenyWylaczone = b5.stany.niespokoj == Stany::Niespokoj::OCENY;
     u.tylkoBrakDanych = b5.stany.niespokoj == Stany::Niespokoj::DANE;  //
     u.brakDanychWyciek = u.tylkoBrakDanych && b5.stany.bezOcenZWycieku;  // 5.4.13 pkt 7: przyczyna to wyciek
+    if (!wSilniku) {  // R-EKR-32: krok spraw tylko przy stronie spraw (R-KOK-19); jak wejscieB16()
+      bool zSilnikiem = b5.dzis == dzis && !b5.wyniki.empty();
+      u.bezSilnika = !zSilnikiem;
+      u.bezKartSpraw = !zSilnikiem || kartySprawB5(dzis) == 0;
+    }
     odkrycia::TrescOdkrycia o = odkrycia::trescOdkrycia(z, *w, trybB15(), u, &hist);
     TrescEkranu t = podsumowanie::trescS1(o);
     linieB15(t, dd);
@@ -3102,6 +3142,9 @@ class Przebieg {
       log("ekran dnia: pytanie %s (5.12.8)", sprawy::nazwaPytania(b5.pytanie.pytanie));
       return true;
     }
+    // R-POR-24: Portret pod ▶ ustalony przed rysowaniem, żeby stopka ekranu problemu podpisała ▶ tam, dokąd prowadzi
+    // (`▶ portret nocy`, R-PRZ-04); ten sam warunek co po rysowaniu w rysujDzienB15Wewn()
+    r.portretStrona = portretRanoDostepny(dzis) && sekundaDzis(r.slotDziennyEp) < 0 ? 1 : 0;
     if (rysujB16(ed, d, n, 0)) return true;  // R4…R5b i S-K-31 przed ekranem L-09 (7.2)
     if (const sprawy::SprawaL* e = sprawaB5(b5.kluczEkranu)) {
       // problem poranny (S3 zdarzenia E, L-09) to ekran danych dnia ze strefą linii uwagi (5.4.5); linia
@@ -3122,6 +3165,7 @@ class Przebieg {
       ekranDniaAB = e->jestL() && (e->pilnosc == reguly::Pilnosc::A || e->pilnosc == reguly::Pilnosc::B);
       if (ekranDniaAB) ustawIkoneAktualizacji(false);
       DaneWzorca dw = trescWzorca(*e, dz);
+      dw.stopkaDalej = stopkaDalejPortretu();  // R-POR-24: `▶ portret nocy` zamiast `▶ kokpit`
       if (e->ton != sprawy::Ton::PROBLEM && !lp.empty()) {
         dw.linia = dz.linia;
         dw.liniaOstrzezenie = dz.liniaOstrzezenie;
@@ -3137,7 +3181,25 @@ class Przebieg {
       buzzerB5(dzis);
       return true;
     }
+    r.portretStrona = 0;  // bez ekranu problemu: Portret pod ▶ ustawia rysujPortretB40() (drugi ekran poranka)
     return false;
+  }
+  // R-POR-24, R-PRZ-04: podpis ▶ na ekranie dnia, gdy ▶ otwiera stronę Portretu; "" = zwykły podpis ekranu
+  std::string stopkaDalejPortretu() {
+    if (!r.portretStrona) return "";
+    std::string s = sk::tekst("S11.stopka_dalej");
+    log("stopka: %s (R-POR-24)", s.c_str());
+    return s;
+  }
+  // R-POR-24 (decyzja właściciela projektu 11.11.2026): prawa część stopki ekranu z pogodą i odczytem czujnika, gdy ▶ otwiera
+  // Portret: skrócony podpis `▶ portret` (tekst `S11.stopka_dalej_krotki`), odstęp jak między grupami stopki (5 spacji
+  // P22B = 25 px), potem odczyt czujnika bez zmian; bez odczytu sam podpis
+  std::string prawoZPortretem(const std::string& odczyt) {
+    std::string s = sk::tekst("S11.stopka_dalej_krotki");
+    if (odczyt.compare(0, s.size(), s) == 0) return odczyt;  // już z podpisem (dane dnia drugiego ekranu poranka)
+    std::string w = odczyt.empty() ? s : s + "     " + odczyt;
+    log("stopka z odczytem: „%s” (R-POR-24)", w.c_str());
+    return w;
   }
   sprawy::WejscieSpraw wejscieSprawB5(const std::string& dzis, std::vector<sprawy::SprawaMetryki>& m,
                                       reguly::Odpowiedzi& odp) {
@@ -3151,6 +3213,8 @@ class Przebieg {
     ws.odpowiedzi = &odp;
     ws.ekranDnia = sprawaB5(b5.kluczEkranu);
     ws.ostatniaNiepewna = stany(dzis).ostatniaNiepewna;
+    // ADR-0029 pkt 7, R-KOK-21: `Ocena: pełna` tylko przy tym samym stanie, przy którym nagłówek K1 nie ma dopisku
+    ws.ocenaPelna = !stanyOcenyB5(dzis).ocenaNiepelna;
     return ws;
   }
   void zapiszKarteB5(int karta) {  // karta „Otwartych spraw” w NVS (przeżywa sen), zapis tylko przy zmianie
@@ -3162,6 +3226,12 @@ class Przebieg {
     reguly::Odpowiedzi o;
     return (int)sprawy::kartySpraw(wejscieSprawB5(dzis, m, o)).size();
   }
+  // R-KOK-19, R-KOK-20: „Otwarte sprawy” w ciągu stron kokpitu tylko przy co najmniej jednej sprawie z R-EKR-48;
+  // bez wyników silnika (zestaw nie działa, brak daty) strony nie ma, a K1 mówi `ocena częściowa` (R-KOK-21)
+  bool sprawyWCiaguB5(const std::string& dzis) { return !dzis.empty() && silnikDzis(dzis) && kartySprawB5(dzis) > 0; }
+  // Stany z oceną uspokojenia z wyników silnika (5.4.13 pkt 1, 4, 7), gdy silnik ocenił dziś; inaczej bez niej
+  // (punkty 1, 4, 7 nieoceniane). Wspólne dla nagłówka K1 (R-KOK-21) i stanu pustego spraw (`ocenaPelna`).
+  const Stany& stanyOcenyB5(const std::string& dzis) { return b5.wyniki.empty() || b5.dzis != dzis ? stany(dzis) : b5.stany; }
   // sprawa ostatniego „wiem” (po śnie: ta z „wiem” z dziś)
   const sprawy::SprawaL* sprawaWiemB5(const std::string& dzis) {
     if (const sprawy::SprawaL* s = sprawaB5(b5.kluczWiem)) return s;
@@ -3833,6 +3903,7 @@ class Przebieg {
     // bez miasta z listy, ale ze współrzędnymi wgranymi z panelem (secrets.h) pogoda działa: nie `nie wybrano`
     if (d.miasto.empty() && !std::isnan(k.pogodaLat) && !std::isnan(k.pogodaLon)) d.miasto = MIASTO_ZE_WSPOLRZEDNYCH;
     d.profilPubliczny = profilB18();
+    d.sprawy = sprawyWCiaguB5(dzisiaj());  // ◀ podpisany stroną przed U-01 (R-KOK-20)
     d.humor = ust.humor == 0 ? 0 : ust.humor == 1 ? 1 : 2;
     d.dzwiek = ust.buzzer >= 0 ? ust.buzzer != 0 : a.nvs.liczbaU("cpap", "dzwiek", 1) != 0;
     int od = ust.ciszaOd, doo = ust.ciszaDo;
@@ -3884,8 +3955,16 @@ class Przebieg {
     log("formularz: serwer wyłączony");
     if (!otaAktywne) zamknijSiec();  // R-KONF-15, R-KONF-16
   }
+  // R-MAS-17: termin następnej wymiany przy polu daty, z datami po odpowiedzi „tak” (jak S-K-31, S-K-35)
+  void terminyFormularzaB16(formularz::Pola& pf) {
+    sprzet::Elementy el = sprzetB16();
+    std::string dzis = dzisiaj();
+    for (int e = 0; e < formularz::ELEMENTY && e < EL_N; e++) pf.termin[e] = sprzet::terminFormularza(el.el[e], dzis);
+    pf.nowyModelDzis = dataOk(dzis) && a.nvs.tekst("cpap", "sp_model", "") == dzis;  // R-MAS-19: pole cofnięcia
+  }
   std::string stronaP07(const std::string& komunikat) {
     formularz::Pola pf = formularz::zPliku(konfiguracjaPliku(), sekretyTeraz(), otoUzywalne(), k.pogodaLat, k.pogodaLon);
+    terminyFormularzaB16(pf);
     pf.kluczWydan = tokenWydan();  // tylko „ustawiony”, nigdy wartość (R-NF-36)
     pf.hasloOkna = sekrety::hasloOknaUstawione(a.nvs);
     return formularz::strona(pf, frm.sesja.sciezka(), komunikat, frm.bledy);
@@ -3916,14 +3995,19 @@ class Przebieg {
     formularz::Wynik w = formularz::waliduj(pola, sekretyTeraz(), dzisiaj());
     frm.bledy = w.bledy;
     std::string stara = konfiguracjaPliku(), nowa = formularz::scal(stara, w.plik), dopisek;
+    std::string staraMaska = ustawieniaB9().sprzet[EL_MASKA].wymieniono;  // R-MAS-19: stan sprzed nowego modelu
+    bool plikOk = true;
     if (nowa != stara) {
       bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
+      plikOk = ok;
       ustawieniaB9_ = parsujUstawieniaDnia(nowa);  // R-KONF-23: nowa wartość do restartu także przy błędzie zapisu
       ustawieniaWczytane_ = true;
       b5.dzis.clear();
       log(ok ? "formularz: /konfiguracja.txt zapisany (R-KONF-17)" : "formularz: zapis /konfiguracja.txt nieudany");
       if (!ok) dopisek = " Nie udało się zapisać w pamięci panelu.";
     }
+    if (w.nowyModelMaski) nowyModelZFormularzaB16(plikOk, staraMaska);  // R-MAS-16
+    if (w.cofnijNowyModel) cofnijNowyModelZFormularzaB16();         // R-MAS-19
     // sekcja „Aktualizacje”: token wydań i hasło okna serwisowego do NVS `sekrety` (ADR-0038 pkt 4)
     if (!w.kluczWydan.empty() || w.usunKlucz) {
       bool ok = sekrety::zapiszKluczWydan(a.nvs, w.usunKlucz && w.kluczWydan.empty() ? "" : w.kluczWydan);
@@ -4124,18 +4208,26 @@ class Przebieg {
     pokaz();
   }
   std::string stronaSieciPaneluP07(const std::string& komunikat) {
-    return formularz::strona(formularz::zPliku(konfiguracjaPliku(), sekretyTeraz(), otoUzywalne(), k.pogodaLat, k.pogodaLon), ap.sesja.sciezka(), komunikat,
-                             ap.bledy);
+    formularz::Pola pf = formularz::zPliku(konfiguracjaPliku(), sekretyTeraz(), otoUzywalne(), k.pogodaLat, k.pogodaLon);
+    terminyFormularzaB16(pf);
+    return formularz::strona(pf, ap.sesja.sciezka(), komunikat, ap.bledy);
   }
   // Pola pliku konfiguracji z formularza (wspólne z U-03); zwraca dopisek przy błędzie zapisu.
   std::string zapiszPlikFormularzaP07(const formularz::Wynik& w) {
     std::string stara = konfiguracjaPliku(), nowa = formularz::scal(stara, w.plik);
-    if (nowa == stara) return "";
+    std::string staraMaska = ustawieniaB9().sprzet[EL_MASKA].wymieniono;  // R-MAS-19
+    if (nowa == stara) {
+      if (w.nowyModelMaski) nowyModelZFormularzaB16(true, staraMaska);  // R-MAS-16: data maski już dzisiejsza
+      if (w.cofnijNowyModel) cofnijNowyModelZFormularzaB16();          // R-MAS-19
+      return "";
+    }
     bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
+    if (w.nowyModelMaski) nowyModelZFormularzaB16(ok, staraMaska);  // R-MAS-16
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
     ustawieniaWczytane_ = true;
     b5.dzis.clear();
     log(ok ? "formularz: /konfiguracja.txt zapisany (R-KONF-17)" : "formularz: zapis /konfiguracja.txt nieudany");
+    if (w.cofnijNowyModel) cofnijNowyModelZFormularzaB16();  // R-MAS-19, po zapisie pozostałych pól
     return ok ? "" : " Nie udało się zapisać w pamięci panelu.";
   }
   // POST w sieci panelu: pola pliku od razu; sieć i AirBridge dopiero po sprawdzeniu poza siecią panelu.
@@ -4283,7 +4375,9 @@ class Przebieg {
         sprawy::WejscieSpraw ws = wejscieSprawB5(dzis, m, o);
         std::vector<sprawy::KartaSprawy> ks = sprawy::kartySpraw(ws);
         b5.karta = przytnijKarte(b5.karta, (int)ks.size());
-        rysujSprawy(plotno(), trescSpraw(ks, b5.karta, ws));
+        DaneSpraw ds = trescSpraw(ks, b5.karta, ws);
+        ds.liczby = profilB18();  // R-KOK-22: ◀ z pierwszej karty do „Co znaczą te liczby”
+        rysujSprawy(plotno(), ds);
         return true;
       }
       case Ekran::PRZENIESIONE: {
@@ -4341,7 +4435,7 @@ class Przebieg {
         }
         break;
       case Akcja::SPRAWY_OTWORZ: zapiszKarteB5(1); break;
-      case Akcja::SPRAWY_OD_KONCA: zapiszKarteB5(std::max(1, kartySprawB5(dzis))); break;  // ◀ z S8
+      case Akcja::SPRAWY_OD_KONCA: zapiszKarteB5(std::max(1, kartySprawB5(dzis))); break;  // ◀ z U-01 (R-KOK-20)
       case Akcja::SPRAWY_DALEJ: zapiszKarteB5(b5.karta + 1); break;
       case Akcja::SPRAWY_WSTECZ: zapiszKarteB5(std::max(1, b5.karta - 1)); break;
       case Akcja::ODP_TAK:
@@ -4976,6 +5070,12 @@ class Przebieg {
     switch (ekran()) {
       case Ekran::K1: {
         DaneK1 k1 = budujK1(hist, dzis, norma(dzis), czynniki, &stany(dzis), r.ab.tryb);
+        k1.ocena = ocenaNaglowkaK1(stanyOcenyB5(dzis));  // R-KOK-21: stan po ocenie silnika
+        // R-POR-24, R-PRZ-04: K1 otwarte ze strony Portretu: ◀ wraca do Portretu (przejsciePortretu()), więc tak podpisane
+        if (r.k1ZPortretu && r.portretStrona) {
+          k1.stopkaWstecz = sk::tekst("S11.stopka_wstecz");
+          log("stopka K1: %s (R-POR-24)", k1.stopkaWstecz.c_str());
+        }
         wczytajK1OdkrycieB15();  // po uśpieniu z NVS
         if (k1OdkrycieB15.dzien == dzis) {  // R-CZY-20: K1 z ekranu dnia O-12 z ukrytym czynnikiem
           k1.odkrycieTytul = k1OdkrycieB15.tytul;
@@ -4986,14 +5086,14 @@ class Przebieg {
       }
       case Ekran::K2: {
         DaneK2 k2 = budujK2(hist, dzis, norma(dzis), czynniki, &stany(dzis), r.ab.tryb);
-        k2.sprawy = !dzis.empty() && silnikDzis(dzis);  // jak KontekstNaw::sprawyDostepne
+        k2.sprawy = sprawyWCiaguB5(dzis);  // jak KontekstNaw::sprawyDostepne (R-KOK-19)
+        k2.liczby = profilB18();          // R-KOK-22
         rysujK2(plotno(), k2);
         break;
       }
       case Ekran::PYTANIE: rysujPytanieTeraz(); break;
       case Ekran::TEST: rysujTestTeraz(); break;
-      case Ekran::NORMA: rysujNormaB15(dzis); break;    // S8 z K1 (R-EKR-35)
-      case Ekran::LICZBY: rysujLiczbyB15(dzis); break;  // „Co znaczą te liczby” (R-EKR-51)
+      case Ekran::LICZBY: rysujLiczbyB15(dzis); break;  // „Co znaczą te liczby” (R-KOK-22)
       case Ekran::OMOWIONE:
       case Ekran::SPRAWY:
       case Ekran::PRZENIESIONE:
@@ -5001,12 +5101,12 @@ class Przebieg {
         if (!pokazB5(dzis)) rysujDzien();
         break;
       case Ekran::RAPORT: rysujRaportB13(dzis); break;
-      case Ekran::SPRZET: rysujSprzetB16(); break;  // 5.9.3
-      case Ekran::SPRZET_ZAPISANO: rysujNowyModelB16(); break;  // R-MAS-14
+      case Ekran::SPRZET_ZAPISANO: rysujWymianeZapisanaB16(); break;  // R-MAS-01, R-MAS-18
       case Ekran::USTAWIENIA: rysujUstawienia(plotno(), daneU01()); break;  // U-01 (R-KONF-55)
       case Ekran::FORMULARZ: rysujFormularzP07(); break;                                    // U-03
       case Ekran::SIEC_PANELU: rysujSiecPaneluP07(); break;                                 // U-02
       case Ekran::AKTUALIZACJA: rysujU07Teraz(); break;                                     // U-07
+      case Ekran::PORTRET: rysujPortretStrony(dzis); break;                                // R-POR-24
       default:
         if (ekran() == Ekran::DZIEN && k.pierwszaKonfiguracja) rysujSiecPaneluP07();  // instrukcja zamiast E-01
         else rysujDzien();
@@ -5245,6 +5345,7 @@ class Przebieg {
     odlozZapis = false;
     if (shWczytany) zapiszStanHist(sh);
     zapiszPorownanie();
+    zapiszPortretCzekajacy();  // Portret nocy: po historii
   }
   // Wi-Fi wyłączone zaraz po ostatnim żądaniu (7.1 krok 9, T-WYM-20, T-NF-06), potem zapis odłożony (krok 10).
   void zamknijSiec() {
@@ -5284,6 +5385,257 @@ class Przebieg {
     strWybOk = true;
     strWybEtag = etag;
     return &strWyb;
+  }
+  // ---------- Portret nocy: plik przebiegu ostatniej nocy (T-DANE-38, src/portret.h) ----------
+  // Data poranka w pliku `/dane/portret.csv` ("" = brak pliku albo plik uszkodzony); czytane raz na wybudzenie.
+  std::string dataPortretu() {
+    if (!portretWczytany) {
+      portretWczytany = true;
+      std::string blad;
+      przebiegNocy = portret::Przebieg();
+      // przez magazyn wprost (nie wczytaj(), który pomija plik uszkodzony bez słowa): R-POR-21
+      OdczytPliku o = fsOk() ? mag.czytaj("portret", "/dane/portret.csv") : OdczytPliku();
+      if (o.stan == StanPliku::USZKODZONY) {
+        log("portret: plik uszkodzony (nagłówek, nazwy pól albo #koniec), rano ekran z 7.2");
+      } else if ((o.stan == StanPliku::DOBRY || o.stan == StanPliku::NOWSZY) && !o.wiersze.empty() &&
+                 !portret::parsuj(o.wiersze, przebiegNocy, blad)) {
+        log("portret: plik uszkodzony (%s), rano ekran z 7.2", blad.c_str());
+        przebiegNocy = portret::Przebieg();
+      }
+    }
+    return przebiegNocy.data;
+  }
+  // Doba `day` jest ostatnią nocą w historii (nie starsza od żadnej nocy w historii ani od przebiegu w pliku).
+  bool portretDoby(long day) {
+    std::string d = dataPoranka(day);
+    for (auto& n : hist)
+      if (n.data > d) return false;
+    return dataPortretu() <= d && (!portretCzeka || portretDoZapisu.data <= d);
+  }
+  // Przebieg nocy do zapisu: w sesji Wi-Fi (odlozZapis) czeka do zapiszOdlozone() jak historia (T-NF-06); przy
+  // starym układzie partycji (staryUklad) bez zapisu jak inne pliki B5 (zapisB5()).
+  void zapiszPortret(const portret::Przebieg& p, size_t pamiec) {
+    portretDoZapisu = p;
+    portretCzeka = true;
+    portretPamiec = pamiec;
+    zapiszPortretCzekajacy();
+  }
+  void zapiszPortretCzekajacy() {
+    if (!portretCzeka || odlozZapis) return;
+    portretCzeka = false;
+    const portret::Przebieg& p = portretDoZapisu;
+    std::vector<std::string> w = portret::wiersze(p);
+    size_t b = 0;
+    for (auto& x : w) b += x.size() + 1;
+    bool ok = zapisB5() && zapiszFormat("portret", "/dane/portret.csv", w);
+    if (ok) {
+      przebiegNocy = p;
+      portretWczytany = true;
+    }
+    log("portret: przebieg nocy %s %s (%u odcinków, %u zdarzeń, braki „%s”, ok. %u B pliku, pamięć zbieracza %u B)",
+        p.data.c_str(), ok ? "zapisany" : "NIE zapisany", (unsigned)p.odcinki.size(), (unsigned)p.zdarzenia.size(),
+        p.braki.c_str(), (unsigned)b, (unsigned)portretPamiec);
+  }
+  // ---------- Portret nocy na ekranie (S11, spec 5.4.16, ADR-0040; src/portret_ekran.h) ----------
+  static const uint32_t PORTRET_DRUGI_S = 30 * 60;  // drugi ekran poranka po 30 min (R-POR-04) [PRÓG]
+  // Doba poranka z Portretem i chwila pierwszego narysowania (RTC, po zaniku zasilania z kopii w NVS).
+  void wczytajPoranekPortretu() {
+    if (r.portretDoba != 0) return;
+    r.portretDoba = (int32_t)a.nvs.liczbaU("cpap", "por_db", 0);
+    r.portretOdEp = a.nvs.liczbaU("cpap", "por_od", 0);
+  }
+  void zapiszPoranekPortretu() {
+    a.nvs.ustawLiczbeU("cpap", "por_db", (uint32_t)r.portretDoba);
+    a.nvs.ustawLiczbeU("cpap", "por_od", r.portretOdEp);
+  }
+  // Chwila pierwszego narysowania Portretu dziś; 0 = dziś jeszcze nie było.
+  uint32_t portretOdDzis(const std::string& dzis) {
+    wczytajPoranekPortretu();
+    return dataOk(dzis) && r.portretDoba == (int32_t)(nrDnia(dzis) + 1) ? r.portretOdEp : 0;
+  }
+  // Przebieg ostatniej nocy jest z nocy z poranka `dzis` i jest w historii (R-POR-03), noc z terapią (R-POR-16).
+  bool portretRanoDostepny(const std::string& dzis) {
+    if (dzis.empty() || !zegar()) return false;
+    const Noc* noc = nocZDnia(hist, dzis);
+    const Noc* ost = ostatniaNoc(hist, "9999-99-99");
+    return noc && ost == noc && dataPortretu() == dzis && portret::jestPortret(przebiegNocy);
+  }
+  // Poranek z Portretem trwa od pierwszego narysowania do startu slotu dziennego (R-POR-04, R-KON-41).
+  bool portretWToku(const std::string& dzis) {
+    uint32_t od = portretOdDzis(dzis);
+    return od != 0 && sekundaDzis(r.slotDziennyEp) < 0 && teraz() >= od && teraz() < od + PORTRET_DRUGI_S;
+  }
+  // Minuta doby drugiego ekranu poranka do planu (-1 = brak).
+  int minutaDrugiegoEkranu(const std::string& dzis) {
+    uint32_t od = portretOdDzis(dzis);
+    if (od == 0 || sekundaDzis(r.slotDziennyEp) >= 0) return -1;
+    int s = sekundaDzis(od);  // chwila przeszła (sekundaDzis() nie liczy chwil po teraz)
+    if (s < 0) return -1;
+    int m = (s + (int)PORTRET_DRUGI_S + 59) / 60;
+    return m < 24 * 60 ? m : -1;
+  }
+  // Pierwszy podpis: zdanie o normie z reguł zdania S2a (R-POR-12, tabela „Podpisy” 5.4.16).
+  std::string pierwszyPodpisPortretu(const TrescEkranu& ts, const DaneDnia& d) {
+    // rozruch globalny jak S6 (src/humor.cpp wybierzEkranDnia(): < 14 nocy ważnych albo bez normy czasu z maską)
+    if (!d.hist || liczbaNocyWaznych(*d.hist, d.dzis) < 14 || !d.norma.m01.jest())
+      return sk::tekst("S11.rozruch", {{"n", std::to_string(d.norma.n < 14 ? d.norma.n : 13)}});
+    std::vector<const Kolumna*> poza;
+    for (auto& kol : ts.kolumny)
+      if (kol.poza) poza.push_back(&kol);
+    std::string z;
+    if (poza.empty()) {
+      z = sk::tekst("S11.tydzien_zwykle");
+    } else if (poza.size() == 1) {
+      std::string m = poza[0]->et;
+      size_t j = m.find(" l/min");
+      if (j != std::string::npos) m = m.substr(0, j);
+      z = sk::tekst("S11.tydzien_jedna", {{"metryka", m}, {"kierunek", poza[0]->s == "↑" ? "wyżej" : "niżej"}});
+    } else {
+      z = sk::tekst("S11.tydzien_wiele", {{"n", std::to_string(poza.size())}});
+    }
+    return ts.wNormie ? sk::tekst("S11.w_normie") + " " + z : z;
+  }
+  // M-18 nocy z raportu JSON (`A`) do 09.11.2026 liczył start pierwszej sesji doby (także drzemki), a nie start
+  // najdłuższej sesji od 18:00 (R-DANE-27); poprawione 09.11.2026, więc te noce pomija mediana
+  // zwykłej pory startu. Noce z plików sesji, z karty i ze STR mają M-18 według R-DANE-27.
+  static bool m18Wiarygodne(const Noc& n) { return !(n.zrodlo == 'A' && n.data <= M18_POPRAWNE_DO); }
+  static constexpr const char* M18_POPRAWNE_DO = "2026-11-09";
+  int zwyklaPoraPortretu(const std::string& dzis) {
+    std::vector<std::pair<std::string, int>> pd;  // (data, M-18) nocy przed ostatnią
+    for (auto& x : hist)
+      if (x.data < dzis && x.m18 >= 0 && m18Wiarygodne(x)) pd.push_back({x.data, x.m18});
+    std::sort(pd.begin(), pd.end());
+    if (pd.size() > 14) pd.erase(pd.begin(), pd.end() - 14);
+    std::vector<int> v;
+    v.reserve(pd.size());
+    for (auto& x : pd) v.push_back(x.second);
+    std::sort(v.begin(), v.end());
+    if (v.size() >= 3) return v[(v.size() - 1) / 2];  // mediana dolna (jak tools/portret median_low)
+    const Noc* noc = nocZDnia(hist, dzis);
+    if (noc && noc->m18 >= 0) return noc->m18;
+    return przebiegNocy.sesje.empty() ? 11 * 60 : przebiegNocy.sesje.front().od;
+  }
+  DanePortretu danePortretu(const TrescEkranu& ts, const DaneDnia& d, const std::string& dzis) {
+    DanePortretu dp;
+    dp.przebieg = &przebiegNocy;
+    const Noc* noc = nocZDnia(hist, dzis);
+    dp.tryb = noc ? trybNocy(*noc) : r.ab.tryb;
+    if (dp.tryb.empty()) dp.tryb = r.ab.tryb;
+    const Norma& nm = d.stany ? d.stany->norma : d.norma;
+    if (nm.psmed.jest() && !std::isnan(nm.psmed.med)) dp.normaPs10 = (int)std::floor(nm.psmed.med * 10 + 0.5);
+    dp.zwykla = zwyklaPoraPortretu(dzis);
+    dp.pierwszy = pierwszyPodpisPortretu(ts, d);
+    dp.czas = ts.czas;
+    dp.ahi = ts.ahi;
+    dp.niepewna = ts.ahiNiepewne;
+    return dp;
+  }
+  // R-POR-02, R-POR-04: Portret jako ekran dnia rano (zwycięzca z R5e–R9 po 30 min). false = rysuje dalej zwykły
+  // wybór (brak przebiegu, problem poranny, slot dzienny, po 30 min drugi ekran).
+  bool rysujPortretB40(const EkranDnia& e, DaneDnia& d, const Naglowek& n, const std::string& dzis) {
+    if (e.typ == "S5" || e.typ == "S10" || !portretRanoDostepny(dzis)) return false;
+    int m = minutaDoby();
+    if (m < 5 * 60 || sekundaDzis(r.slotDziennyEp) >= 0) return false;
+    if (slot_wieczorny::wOknie(slot_wieczorny::oknoZHistorii(hist, dzis), m)) return false;
+    sk::Wejscie w = wejscieB16(dzis, d);  // tu już przed startem slotu dziennego: strona pod ▶ tylko „rano”
+    for (auto& x : sk::rano(w)) {  // problem poranny z R4–R5d ma pierwszeństwo; Portret pod ▶ (R-POR-24)
+      if (x.doLogu || x.id == "S-K-30") continue;
+      if (sk::ranga(x.grupa) <= sk::ranga("R5d")) {
+        r.portretStrona = 1;
+        return false;
+      }
+    }
+    uint32_t od = portretOdDzis(dzis);
+    if (od == 0) {  // pierwsze narysowanie tego ranka
+      r.portretDoba = (int32_t)(nrDnia(dzis) + 1);
+      r.portretOdEp = teraz();
+      r.portretDrugi = 0;
+      r.slotOdlozony = 0;
+      zapiszPoranekPortretu();
+      od = r.portretOdEp;
+    }
+    if (teraz() >= od + PORTRET_DRUGI_S) {
+      if (!r.portretDrugi) log("portret: po 30 min drugi ekran poranka (R-POR-04)");
+      drugiEkranTeraz = !r.portretDrugi;
+      r.portretDrugi = 1;
+      // (R-POR-24): na drugim ekranie zwykłego poranka ▶ otwiera stronę Portretu przed K1,
+      // jak w dni problemu, do startu slotu dziennego; stopka ekranu mówi `▶ portret` przed odczytem czujnika (dane dnia,
+      // z których stopkę biorą wszystkie ścieżki rysowania niżej). Bez strony, gdy slot dzienny startuje zaraz po tym
+      // rysowaniu (start odłożony do drugiego ekranu), bo wtedy ▶ prowadzi już do K1.
+      if (!(drugiEkranTeraz && r.slotOdlozony)) {
+        r.portretStrona = 1;
+        d.przyLozku = prawoZPortretem(d.przyLozku);
+        dopasujStopke(d.pogoda, d.przyLozku);  // R-EKR-10: najpierw ustępuje opis pogody i miasto
+        log("portret: drugi ekran poranka, Portret pod ▶ (R-POR-24)");
+      }
+      return false;
+    }
+    TrescEkranu t = trescDnia("S2A", "", d);
+    DanePortretu dp = danePortretu(t, d, dzis);
+    t.uklad = Uklad::PORTRET;
+    t.portret = &dp;
+    uint32_t t0 = ms();
+    rysujEkranDanych(plotno(), n, t);
+    uint32_t czas = ms() - t0;
+    dzienOdswiezalny = t.stopkaStandardowa;
+    r.dzienTryb = 0;  // następne rysowanie (drugi ekran) liczy tryb od nowa
+    r.dzienLinia = 0;
+    if (!wpisDzis("S11", dzis)) dopiszDziennik({dzis, "S11", "", 'D', "", ""});  // R-POR-01; poza limitami (R-POR-20)
+    WpisCzynnikow* zap = wpisZDnia(czynniki, dzis);
+    if (oznaczycZaproszenie(t.linia == TEKST_ZAPROSZENIA, zap)) {  // R-PIE-08 jak na ekranie dnia
+      zap->pokazano = true;
+      zapiszCzynniki();
+    }
+    log("ekran dnia S11 (Portret nocy, %s): %s, rysowanie %lu ms (T-WYM-97); nagłówek „%s”", dp.tryb.c_str(),
+        portret::podpisy(dp, !t.linia.empty()).front().c_str(), (unsigned long)czas, n.prawo.c_str());
+    return true;
+  }
+  // R-POR-24: Portret jako strona pod ▶ z ekranu problemu (bez numeru strony); stopka z akcjami ◀ ▶ ↻.
+  void rysujPortretStrony(const std::string& dzis) {
+    if (!portretRanoDostepny(dzis)) {
+      ustawEkran(Ekran::DZIEN);
+      rysujDzien();
+      return;
+    }
+    DaneDnia d = daneDnia(dzis);
+    Naglowek n{naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+    TrescEkranu t = trescDnia("S2A", "", d);
+    DanePortretu dp = danePortretu(t, d, dzis);
+    t.uklad = Uklad::PORTRET;
+    t.portret = &dp;
+    t.linia.clear();
+    t.stopkaLewo.clear();
+    t.stopkaPrawo.clear();
+    rysujEkranDanych(plotno(), n, t);
+    plotno().prostokat(0, 434, 800, 46, false);
+    stopkaEkranu(plotno(), {"◀ ekran dnia", "▶ ostatnia noc", "↻ ekran dnia"}, "");
+    log("Portret nocy jako strona pod ▶ (R-POR-24): %s; nagłówek „%s”", portret::podpisy(dp, false).front().c_str(),
+        n.prawo.c_str());
+  }
+  // R-POR-24: przejścia strony Portretu i K1 otwartego z niej; false = zwykła mapa (src/nawigacja.h).
+  bool przejsciePortretu(Ekran przed, Przycisk p, bool dlugo, const KontekstNaw& kn, Przejscie& pr) {
+    if (przed == Ekran::DZIEN && r.portretStrona && sekundaDzis(r.slotDziennyEp) < 0 && !kn.nocny && !kn.pytanieTN &&
+        !dlugo && p == Przycisk::PRAWY) {
+      pr = {Ekran::PORTRET, Akcja::POKAZ};
+      return true;
+    }
+    if (przed == Ekran::PORTRET) {
+      pr = {Ekran::PORTRET, Akcja::NIC};
+      if (dlugo) return true;
+      if (p == Przycisk::PRAWY) {
+        r.k1ZPortretu = 1;
+        pr = {Ekran::K1, Akcja::POKAZ};
+      } else if (p == Przycisk::LEWY || p == Przycisk::SRODEK) {
+        pr = {Ekran::DZIEN, Akcja::POKAZ};
+      }
+      return true;
+    }
+    if (przed == Ekran::K1 && r.k1ZPortretu && !dlugo && p == Przycisk::LEWY && r.portretStrona) {
+      pr = {Ekran::PORTRET, Akcja::POKAZ};
+      return true;
+    }
+    if (przed != Ekran::K1 || p != Przycisk::PRAWY) r.k1ZPortretu = 0;  // K1 → K2 i dalej: ◀ z K1 wraca zwykle
+    return false;
   }
   enum class ZPlikow : uint8_t { NOC, ZAPAS, PRZERWANE };
   // Noc doby `day` z plików sesji (ADR-0036, R-DANE-42…R-DANE-45): lista sesji doby z `/api/sessions`, wszystkie
@@ -5375,6 +5727,11 @@ class Przebieg {
       pw = P::STR_BEZ_DOBY;
       return ZPlikow::ZAPAS;
     }
+    // Portret nocy (R-POR-17, T-WYM-98): odcinki 5 min w tym samym przejściu po próbkach, tylko dla doby, która jest
+    // ostatnią nocą w historii (doba starsza nie nadpisuje pliku); bez dodatkowych żądań do AirBridge
+    const bool doPortretu = portretDoby(day);
+    portret::Zbieracz zbieracz(day, portret::maksimumZeStr(*st, day));
+    if (doPortretu) licz.dolaczPortret(&zbieracz);
     size_t bajty = 0;
     int plikow = 0;
     for (auto& nazwa : licz.kolejnosc(false, POBIERAJ_SAD)) {
@@ -5408,6 +5765,7 @@ class Przebieg {
       return ZPlikow::ZAPAS;
     }
     wynik = nocZWyniku(w, st, r.ab.tryb, abPna, abSrn);
+    if (doPortretu) zapiszPortret(zbieracz.wynik(w, licz.zdarzeniaPortretu()), zbieracz.bajty());
     log("noc %s z plików sesji: %d sesji, %d plików, %u B, liczniki ok. %u B", data.c_str(), (int)w.sesje.size(),
         plikow, (unsigned)bajty, (unsigned)licz.bajtyLicznikow());
     return ZPlikow::NOC;
@@ -6269,6 +6627,7 @@ class Przebieg {
     w.zwyklyKoniec = zwyklyKoniecTerapii(hist, dzis);
     w.przetwarzaOd = sekundaDzis(r.przetwarzaEp);
     w.powtorekDzis = r.powtorkiDoba != 0 && r.powtorkiDoba == dobaPamieci() ? r.powtorki : 0;
+    w.drugiEkranPortretu = dzis.empty() ? -1 : minutaDrugiegoEkranu(dzis);  // R-POR-04
     return w;
   }
 
@@ -6386,7 +6745,6 @@ class Przebieg {
       kn.pytanieTN = przed == Ekran::DZIEN && !kn.nocny && b5.pytanie.jest;
       kn.wzorzec = przed == Ekran::DZIEN && !kn.nocny && !kn.pytanieTN && e;
       kn.problem = e && e->ton == sprawy::Ton::PROBLEM;
-      kn.sprawyDostepne = true;
       kn.omowienieZablokowane = e && wariantOmowieniaB11(*e, dzis) == 5;  // R-LEK-26
       kn.spraw = przed == Ekran::SPRAWY ? kartySprawB5(dzis) : 0;
       // karta z NVS przycięta do liczby kart (liczba mogła spaść przy otwartym ekranie)
@@ -6394,15 +6752,14 @@ class Przebieg {
       if (przed == Ekran::SPRAWY) b5.karta = kn.sprawa;
       kn.cofniecie = cofniecieB5();
     }
+    kn.sprawyDostepne = sprawyWCiaguB5(dzis);  // R-KOK-20: liczba spraw w chwili naciśnięcia
     kn.pytanieRuszone = r.pyt.ruszone;
     kn.s5Bateria = kn.s5 && s5BateriiTeraz();  // ↻ na S5 baterii mierzy od nowa, bez pobrania
-    kn.profilPubliczny = profilB18();  // (R-EKR-51)
-    // ◀ 2 s na S-K-31 (R-MAS-01) i kursor ekranu „Sprzęt” (5.9.3)
+    kn.profilPubliczny = profilB18();  // (R-KOK-22)
+    // ◀ 2 s na S-K-31 (R-MAS-01) i S-K-35 (R-MAS-18): element zapisany przy rysowaniu ekranu dnia (`b16_sk31`)
     // S-K-31 narysowany zamiast ekranu L-09 albo zdarzenia E (etap 0): przyciski S-K-31, nie ekranu L
     kn.sk31 = przed == Ekran::DZIEN && !kn.nocny && !kn.pytanieTN && a.nvs.liczbaU("cpap", "b16_sk31", 0) > 0;
     if (kn.sk31) kn.wzorzec = kn.problem = false;
-    kn.kursorSprzetu = (int)(a.nvs.liczbaU("cpap", "sp_kur", 0) % EL_N);
-    kn.wierszySprzetu = EL_N;  // ▶ na ostatnim wierszu „Sprzęt” → U-01
     kn.zrodlo = przed == Ekran::RAPORT ? rap.z : przed == Ekran::SIEC_PANELU ? ap.z : Ekran::DZIEN;
     kn.bezKonfiguracji = k.pierwszaKonfiguracja;
     if (przed == Ekran::AKTUALIZACJA) {  // U-07: ▶ tylko w stanach z pytaniem albo ponowieniem (R-KONF-44)
@@ -6411,13 +6768,21 @@ class Przebieg {
                         : (su == aktualizacja::StanU07::PO_NIEUDANEJ || su == aktualizacja::StanU07::SPRAWDZENIE_NIEUDANE) ? 2
                                                                                                                  : 0;
     }
-    if (przed == Ekran::SPRZET_ZAPISANO) kn.cofniecie = cofniecieNowegoModeluB16();
+    if (przed == Ekran::SPRZET_ZAPISANO) kn.cofniecie = cofniecieWymianyB16();
     // R-KON-41: naciśnięcie na ekranie dnia po imporcie nocy zaczyna slot dzienny od tej chwili
-    if (startSlotuPrzyciskiem(wejsciePlanu(0), przed)) {
+    // R-POR-05: na Portrecie przed upływem 30 min naciśnięcie nie zaczyna slotu dziennego (↻ z kokpitu wraca do
+    // Portretu); slot zaczyna naciśnięcie na drugim ekranie albo, bez niego, na Portrecie po 30 min
+    // R-POR-24 „rano”: ▶ otwierające stronę Portretu (ekran problemu albo drugi ekran poranka) też nie zaczyna slotu;
+    // naciśnięcia na stronie Portretu i w kokpicie slotu nie zaczynają (startSlotuPrzyciskiem() tylko przy ekranie dnia),
+    // więc slot zaczyna wtedy start z planu albo naciśnięcie na ekranie dnia po powrocie (R-POR-05)
+    const bool otwieraPortret = przed == Ekran::DZIEN && r.portretStrona && !dlugo && p == Przycisk::PRAWY &&
+                                sekundaDzis(r.slotDziennyEp) < 0;
+    if (startSlotuPrzyciskiem(wejsciePlanu(0), przed) && !portretWToku(dzis) && !otwieraPortret) {
       r.nacisniecieRanoEp = r.slotDziennyEp = teraz();
       log("slot dzienny: start naciśnięciem (R-KON-41)");
     }
-    Przejscie pr = nacisniecie(przed, p, dlugo, kn);
+    Przejscie pr;
+    if (!przejsciePortretu(przed, p, dlugo, kn, pr)) pr = nacisniecie(przed, p, dlugo, kn);
     // sieć panelu w nocy (slot nocny albo aparat pracuje, `rop` = 1) bez buzzera
     bool cicho = pr.akcja == Akcja::SIEC_PANELU_START && ((zegar() && slotNocny(minutaDoby())) || r.ab.rop == 1);
     // adapter z piskiem przy naciśnięciu (R-PRZ-20) już zapiszczał raz, także za przycisk budzący (pierwsza czynność
@@ -6465,27 +6830,15 @@ class Przebieg {
           rap.stan = "Starsze raporty widoczne do " + godzina(rap.koniecEp) + ".";
         }
         break;
-      case Akcja::SPRZET_DALEJ:  // 5.9.3, ▶ następny element
-        a.nvs.ustawLiczbeU("cpap", "sp_kur", (uint32_t)((kn.kursorSprzetu + 1) % EL_N));
-        break;
-      case Akcja::SPRZET_WSTECZ:  // ◀ poprzedni element
-        a.nvs.ustawLiczbeU("cpap", "sp_kur", (uint32_t)(kn.kursorSprzetu > 0 ? kn.kursorSprzetu - 1 : 0));
-        break;
-      case Akcja::SPRZET_OTWORZ: a.nvs.ustawLiczbeU("cpap", "sp_kur", 0); break;  // ▶ z S8: od pierwszego
-      case Akcja::SPRZET_OD_KONCA: a.nvs.ustawLiczbeU("cpap", "sp_kur", (uint32_t)(EL_N - 1)); break;  // ◀ z U-01
-      case Akcja::SPRZET_WYMIENIONE: {  // R-MAS-01: ◀ 2 s w „Sprzęt” (element pod kursorem) albo na S-K-31 (jego element)
-        int el = przed == Ekran::SPRZET ? kn.kursorSprzetu : (int)a.nvs.liczbaU("cpap", "b16_sk31", 0) - 1;
-        // ekran z cofnięciem 30 s; stan sprzed zapisu w NVS `sp_cofw` (`{element};{data}`), bez ruszania `sp_cof`
-        if (el >= 0 && el < EL_N) {
-          a.nvs.ustawTekst("cpap", "sp_cofw", std::to_string(el) + ";" + ustawieniaB9().sprzet[el].wymieniono);
-          a.nvs.usun("cpap", "sp_cof");
-        }
+      case Akcja::SPRZET_WYMIENIONE: {  // R-MAS-01, R-MAS-18: ◀ 2 s na S-K-31 albo S-K-35 (element z ekranu dnia)
+        int el = (int)a.nvs.liczbaU("cpap", "b16_sk31", 0) - 1;
+        // ekran z cofnięciem 30 s; stan sprzed zapisu w NVS `sp_cofw` (`{element};{data}`)
+        if (el >= 0 && el < EL_N) a.nvs.ustawTekst("cpap", "sp_cofw", std::to_string(el) + ";" + ustawieniaB9().sprzet[el].wymieniono);
         wymianaB16(el);
         b5.dzis.clear();
         break;
       }
-      case Akcja::SPRZET_NOWY_MODEL: nowyModelB16(); break;  // R-MAS-11, R-MAS-14
-      case Akcja::SPRZET_COFNIJ: cofnijNowyModelB16(); break;  // R-MAS-14
+      case Akcja::SPRZET_COFNIJ: cofnijWymianeB16(); break;  // R-MAS-01
       case Akcja::SIEC_PANELU_START:  // ◀ 2 s na U-01, U-05, pierwszym uruchomieniu; ↻ 2 s na U-02
         log("sieć panelu: uruchomiona przyciskiem%s", cicho ? " (noc, bez buzzera)" : "");
         otworzSiecPaneluP07(przed == Ekran::SIEC_PANELU ? ap.z : przed, false);
@@ -6533,9 +6886,10 @@ class Przebieg {
   // pierwsza konfiguracja.
   bool pobranieRanoTeraz(const Pobranie& akcji) {
     if (akcji.pobierz || abPobierano || k.pierwszaKonfiguracja || otaAktywne || ap.aktywna || rap.serwer || frm.serwer) return false;
-    // tylko na ekranie dnia i stronach kokpitu `n / 6`: tam kolejka naciśnięć z czasu pobierania jest wykonywana,
-    // a krótkie naciśnięcie nic nie zapisuje; pytania, potwierdzenia, „Sprzęt”, U-xx bez pobrania
-    if (ekran() != Ekran::DZIEN && numerStrony(ekran()) <= 0) return false;
+    // tylko na ekranie dnia i stronach kokpitu: tam kolejka naciśnięć z czasu pobierania jest wykonywana,
+    // a krótkie naciśnięcie nic nie zapisuje (także „Otwarte sprawy” i „Co znaczą te liczby” bez numeru, R-KOK-19);
+    // pytania, potwierdzenia, U-01 i inne U-xx bez pobrania (R-PRZ-22)
+    if (ekran() != Ekran::DZIEN && !(stronaKokpitu(ekran()) && ekran() != Ekran::USTAWIENIA)) return false;
     // pytanie tak/nie na ekranie dnia (5.12.8): krótkie naciśnięcie zapisuje odpowiedź, więc przytrzymanie wykryte
     // z opóźnieniem po żądaniu HTTP mogłoby zapisać „tak” albo „nie”; tam bez pobrania
     if (ekran() == Ekran::DZIEN && b5.pytanie.jest) return false;
@@ -6769,6 +7123,13 @@ class Przebieg {
       // start zasilania po zaniku, gdy chwila startu slotu już minęła (zastępnik importu): slot od teraz
       int s0 = poczatekSlotuDziennego(po);
       if (w == PowodWybudzenia::START && po.slotDziennyOd < 0 && s0 >= 0 && s0 <= po.sekundaDoby) start = true;
+      // (R-POR-04): start slotu w poranku z Portretem przed drugim ekranem albo razem z nim czeka, aż drugi
+      // ekran stanie (start zaraz po jego narysowaniu, rysujDzien())
+      if (start && zegar() && portretOdDzis(dzisiaj()) != 0 && !r.portretDrugi) {
+        start = false;
+        r.slotOdlozony = 1;
+        log("slot dzienny: start po drugim ekranie poranka (Portret nocy, R-POR-04)");
+      }
       if ((w == PowodWybudzenia::ZEGAR || w == PowodWybudzenia::START) && start && zegar()) {
         r.slotDziennyEp = teraz();
         if (w == PowodWybudzenia::START) log("slot dzienny: start przy starcie zasilania (chwila startu minęła)");

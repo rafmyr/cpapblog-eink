@@ -4,17 +4,20 @@
 namespace {
 Przejscie pokaz(Ekran e) { return {e, Akcja::POKAZ}; }
 
-// ciąg stron kokpitu (5.6.2). ▶ = strona po `e`, ◀ = strona przed `e`; „Otwarte sprawy” tylko z wynikami silnika,
-// „Co znaczą te liczby” tylko w profilu publicznym (R-EKR-51), inaczej pomijane w obie strony.
+// ciąg stron kokpitu (5.5.7, R-KOK-19). ▶ = strona po `e`, ◀ = strona przed `e`; „Co znaczą te liczby” tylko
+// w profilu publicznym (R-KOK-22), „Otwarte sprawy” tylko przy co najmniej jednej sprawie (R-KOK-20), inaczej pomijane
+// w obie strony.
+Przejscie sprawyAlbo(Ekran e, const KontekstNaw& k, bool odKonca) {
+  if (k.sprawyDostepne) return {Ekran::SPRAWY, odKonca ? Akcja::SPRAWY_OD_KONCA : Akcja::SPRAWY_OTWORZ};
+  return pokaz(e);
+}
 Przejscie stronaPo(Ekran e, const KontekstNaw& k) {
   switch (e) {
     case Ekran::DZIEN: return pokaz(Ekran::K1);
     case Ekran::K1: return pokaz(Ekran::K2);
-    case Ekran::K2: return k.sprawyDostepne ? Przejscie{Ekran::SPRAWY, Akcja::SPRAWY_OTWORZ} : pokaz(Ekran::NORMA);
-    case Ekran::SPRAWY: return pokaz(Ekran::NORMA);
-    case Ekran::NORMA: return k.profilPubliczny ? pokaz(Ekran::LICZBY) : Przejscie{Ekran::SPRZET, Akcja::SPRZET_OTWORZ};
-    case Ekran::LICZBY: return {Ekran::SPRZET, Akcja::SPRZET_OTWORZ};
-    case Ekran::SPRZET: return pokaz(Ekran::USTAWIENIA);
+    case Ekran::K2: return k.profilPubliczny ? pokaz(Ekran::LICZBY) : sprawyAlbo(Ekran::USTAWIENIA, k, false);
+    case Ekran::LICZBY: return sprawyAlbo(Ekran::USTAWIENIA, k, false);
+    case Ekran::SPRAWY: return pokaz(Ekran::USTAWIENIA);
     case Ekran::USTAWIENIA: return pokaz(Ekran::FORMULARZ);
     case Ekran::FORMULARZ: return pokaz(Ekran::TEST);
     default: return {e, Akcja::NIC};
@@ -25,11 +28,9 @@ Przejscie stronaPrzed(Ekran e, const KontekstNaw& k) {
   switch (e) {
     case Ekran::K1: return pokaz(Ekran::DZIEN);
     case Ekran::K2: return pokaz(Ekran::K1);
-    case Ekran::SPRAWY: return pokaz(Ekran::K2);
-    case Ekran::NORMA: return k.sprawyDostepne ? Przejscie{Ekran::SPRAWY, Akcja::SPRAWY_OD_KONCA} : pokaz(Ekran::K2);
-    case Ekran::LICZBY: return pokaz(Ekran::NORMA);
-    case Ekran::SPRZET: return k.profilPubliczny ? pokaz(Ekran::LICZBY) : pokaz(Ekran::NORMA);
-    case Ekran::USTAWIENIA: return {Ekran::SPRZET, Akcja::SPRZET_OD_KONCA};
+    case Ekran::LICZBY: return pokaz(Ekran::K2);
+    case Ekran::SPRAWY: return pokaz(k.profilPubliczny ? Ekran::LICZBY : Ekran::K2);
+    case Ekran::USTAWIENIA: return sprawyAlbo(k.profilPubliczny ? Ekran::LICZBY : Ekran::K2, k, true);
     case Ekran::FORMULARZ:
     case Ekran::TEST: return pokaz(Ekran::USTAWIENIA);  // oba to ekrany Ustawień: ◀ wraca do U-01
     default: return {e, Akcja::NIC};
@@ -41,16 +42,18 @@ int numerStrony(Ekran e) {
   switch (e) {
     case Ekran::K1: return 1;
     case Ekran::K2: return 2;
-    case Ekran::SPRAWY: return 3;
-    case Ekran::NORMA:
-    case Ekran::LICZBY: return 4;
-    case Ekran::SPRZET: return 5;
-    case Ekran::USTAWIENIA: return 6;
+    case Ekran::USTAWIENIA: return 3;
     default: return 0;
   }
 }
 
-bool zKolejkiWolno(Ekran e, bool dlugo) { return !dlugo && (e == Ekran::DZIEN || numerStrony(e) > 0); }
+bool stronaKokpitu(Ekran e) { return numerStrony(e) > 0 || e == Ekran::LICZBY || e == Ekran::SPRAWY; }
+
+// R-PRZ-20: także strona Portretu pod ▶ (R-POR-24): krótkie naciśnięcie na niej niczego nie zapisuje, więc szybkie ▶ ▶
+// z ekranu problemu dochodzi do K1
+bool zKolejkiWolno(Ekran e, bool dlugo) {
+  return !dlugo && (e == Ekran::DZIEN || stronaKokpitu(e) || e == Ekran::PORTRET);
+}
 
 int przytnijKarte(int karta, int liczba) { return liczba < 1 ? 1 : karta < 1 ? 1 : karta > liczba ? liczba : karta; }
 
@@ -87,7 +90,7 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
         if (!dlugo) return k.s5 ? Przejscie{e, Akcja::PONOW_POBRANIE} : nic;
         return k.zaproszenie ? Przejscie{Ekran::PYTANIE, Akcja::OTWORZ_PYTANIE} : nic;  // odpowiedź = zapis (R-CZY-17)
       }
-      // R-MAS-01: ◀ 2 s na S-K-31 zapisuje przez ekran z cofnięciem 30 s (jak R-MAS-14)
+      // R-MAS-01, R-MAS-18: ◀ 2 s na S-K-31 i S-K-35 zapisuje przez ekran z cofnięciem 30 s
       if (p == Przycisk::LEWY) return dlugo && k.sk31 ? Przejscie{Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_WYMIENIONE} : nic;
       return dlugo ? nic : stronaPo(e, k);
     case Ekran::K1:
@@ -100,29 +103,21 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
       if (p == Przycisk::PRAWY && dlugo) return pokaz(Ekran::RAPORT);  // raport ogólny (R-LEK-02): usługa z Wi-Fi
       if (dlugo) return nic;
       return p == Przycisk::LEWY ? stronaPrzed(e, k) : stronaPo(e, k);
-    case Ekran::SPRAWY:  // R-EKR-47: ▶ następna karta, za ostatnią S8; ◀ poprzednia, przed pierwszą K2
+    case Ekran::SPRAWY:  // R-EKR-47, R-KOK-20: ▶ następna karta, za ostatnią U-01; ◀ poprzednia, przed pierwszą K2
       if (dlugo) return nic;
       if (p == Przycisk::SRODEK) return dom;
       if (p == Przycisk::LEWY) return k.sprawa <= 1 || k.spraw == 0 ? stronaPrzed(e, k) : Przejscie{e, Akcja::SPRAWY_WSTECZ};
       return k.sprawa < k.spraw ? Przejscie{e, Akcja::SPRAWY_DALEJ} : stronaPo(e, k);
-    case Ekran::NORMA:   // S8 (R-EKR-35); w profilu publicznym ▶ „Co znaczą te liczby” (R-EKR-51)
-    case Ekran::LICZBY:  // „Co znaczą te liczby”: ◀ S8, ▶ „Sprzęt”
+    case Ekran::LICZBY:  // „Co znaczą te liczby” (R-KOK-22): ◀ K2, ▶ „Otwarte sprawy” albo U-01
       if (dlugo) return nic;
       if (p == Przycisk::SRODEK) return dom;
       return p == Przycisk::LEWY ? stronaPrzed(e, k) : stronaPo(e, k);
-    case Ekran::SPRZET:  // 5.9.3: ◀ ▶ kursor, za końcem listy sąsiednia strona; ◀ 2 s wymienione dziś, ↻ 2 s nowy model
-      if (p == Przycisk::LEWY) {
-        if (dlugo) return {Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_WYMIENIONE};  // ekran z cofnięciem 30 s
-        return k.kursorSprzetu > 0 ? Przejscie{e, Akcja::SPRZET_WSTECZ} : stronaPrzed(e, k);
-      }
-      if (p == Przycisk::SRODEK)
-        return dlugo ? (k.kursorSprzetu == 0 ? Przejscie{Ekran::SPRZET_ZAPISANO, Akcja::SPRZET_NOWY_MODEL} : nic) : dom;
-      if (dlugo) return nic;
-      return k.kursorSprzetu < k.wierszySprzetu - 1 ? Przejscie{e, Akcja::SPRZET_DALEJ} : stronaPo(e, k);
-    case Ekran::SPRZET_ZAPISANO:  // R-MAS-14 (nowy model) i R-MAS-01 (wymienione dziś): ◀ 2 s cofa, ↻ dom, reszta: „Sprzęt”, zapis zostaje
-      if (p == Przycisk::LEWY && dlugo && k.cofniecie) return {Ekran::SPRZET, Akcja::SPRZET_COFNIJ};
-      if (p == Przycisk::SRODEK && !dlugo) return dom;
-      return pokaz(Ekran::SPRZET);
+    case Ekran::NORMA:   // dawne strony kokpitu (ADR-0041): poza ciągiem stron, krótkie naciśnięcie = ekran dnia
+    case Ekran::SPRZET:
+      return dlugo ? nic : dom;
+    case Ekran::SPRZET_ZAPISANO:  // R-MAS-01, R-MAS-18: ◀ 2 s cofa, reszta: ekran dnia, zapis zostaje
+      if (p == Przycisk::LEWY && dlugo && k.cofniecie) return {Ekran::DZIEN, Akcja::SPRZET_COFNIJ};
+      return dom;
     case Ekran::PYTANIE:  // jedyny wyjątek od reguły (5.6.1): ◀ ▶ kursor, ↻ zaznacz, ↻ 2 s zapisz, ◀ 2 s pomiń
       // ↻ 2 s zapisuje dopiero, gdy w siatce coś zmieniono albo wybrano; bez ruchu to „ekran dnia” bez zapisu
       if (p == Przycisk::SRODEK)
@@ -143,7 +138,7 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
       if (p == Przycisk::SRODEK) return dlugo ? Przejscie{e, Akcja::RAPORT_STARSZE} : dom;  // R-LEK-33
       if (dlugo) return nic;
       return p == Przycisk::LEWY ? pokaz(k.zrodlo) : stronaPo(k.zrodlo, k);
-    case Ekran::USTAWIENIA:  // U-01 (6 / 6): ◀ „Sprzęt”, ◀ 2 s sieć panelu (U-02), ▶ nic, ▶ 2 s U-03, ↻ dom
+    case Ekran::USTAWIENIA:  // U-01 (3 / 3): ◀ sprawy, liczby albo K2, ◀ 2 s sieć panelu (U-02), ▶ nic, ▶ 2 s U-03, ↻ dom
       if (p == Przycisk::LEWY)  // ◀ 2 s = sieć panelu (U-02)
         return dlugo ? Przejscie{Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START} : stronaPrzed(e, k);
       // ↻ 2 s: U-07 ze sprawdzeniem wersji (R-KONF-43); Wi-Fi tylko przytrzymaniem (5.6.1 pkt 4)
@@ -157,6 +152,8 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool dlugo, const KontekstNaw& k) {
       if (p == Przycisk::LEWY) return dlugo ? Przejscie{Ekran::SIEC_PANELU, Akcja::SIEC_PANELU_START} : stronaPrzed(e, k);
       if (dlugo) return nic;
       return p == Przycisk::SRODEK ? dom : Przejscie{e, Akcja::PONOW_POBRANIE};
+    case Ekran::PORTRET:  // Portret pod ▶ (R-POR-24): przejścia w dyrygencie (przejsciePortretu()), tu nic
+      return nic;
     case Ekran::AKTUALIZACJA:  // U-07: ◀ U-01 („nie teraz”), ▶ tak / spróbuj ponownie, ↻ dom; przytrzymania nic
       if (dlugo) return nic;
       if (p == Przycisk::SRODEK) return dom;
@@ -195,7 +192,7 @@ long sekundDoPowrotu(Ekran e, long sek, int m) {
   if (e == Ekran::OMOWIONE) return sek >= 60 ? 0 : 60 - sek;  // R-PRZ-05: także w nocy
   if (e == Ekran::RAPORT) return sek >= 20 ? 0 : 20 - sek;      // stan błędu raportu jak ekran przejściowy: 20 s
   if ((e == Ekran::PRZENIESIONE || e == Ekran::ZAPISANO || e == Ekran::SPRZET_ZAPISANO) && !slotNocny(m)) {
-    long g = e == Ekran::ZAPISANO ? 60 : 30;  // R-MAS-14 30 s [PRÓG]
+    long g = e == Ekran::ZAPISANO ? 60 : 30;  // R-MAS-01 30 s [PRÓG]
     return sek >= g ? 0 : g - sek;
   }
   if (e == Ekran::DZIEN || slotNocny(m)) return -1;

@@ -7,11 +7,11 @@ L-02.tytul;tytul;30;Urządzenie oznaczyło wzorzec
 L-02.powod_a;powod;70;Oddychanie okresowe w {n} z {prog:L-02.a_okno} nocy, razem {min} min.
 L-02.powod_b;powod;70;Oddychanie okresowe {x}% czasu nocy, zwykle {norma}%.
 L-02.krok;krok;60;→ Omów wynik z lekarzem w najbliższych tygodniach.
-L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 6.
+L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 3.
 L-03.tytul;tytul;30;Bezdechy utrzymują się wyżej
 L-03.powod;powod;70;Mediana z {prog:L-03.okno} nocy {x} / h, wyciek mały.
 L-03.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
-L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 6.
+L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 3.
 L-04.tytul_asvauto;tytul;30;EPAP przy górnej granicy
 L-04.powod_asvauto;powod;70;EPAP blisko maksimum {max}, bezdechy obturacyjne {y} / h.
 L-04.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
@@ -19,11 +19,11 @@ L-05.tytul;tytul;30;Zmiana oddechu od kilku nocy
 L-05.powod;powod;70;Oddechy {x} / min, zwykle {norma}, od {n} nocy.
 L-05.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
 L-07.tytul_asv;tytul;30;EPAP rośnie
-L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
+L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 3.
 L-08.tytul_szybki;tytul;30;Dużo mniej nocy z maską
 L-08.powod_szybki;powod;70;Ponad 4 h w {n} z 30 nocy, miesiąc temu {m} z 30.
 L-08.krok_szybki;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
-L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.
+L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 3.
 L-09.tytul;tytul;30;Wyciek nie ustępuje
 L-09.powod;powod;70;Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.
 L-09.krok;krok;60;→ Zapytaj dostawcę sprzętu o inną maskę.
@@ -52,11 +52,11 @@ H-09.pytanie;pytanie;200;Senność przy medianie {czas} z maską na noc: czy cza
 L-04.tytul;tytul;30;Ciśnienie przy górnej granicy
 L-04.powod;powod;70;Ciśnienie blisko maksimum {max}, bezdechy obturacyjne {y} / h.
 L-07.tytul;tytul;30;Ciśnienie rośnie od tygodni
-L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
+L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 3.
 L-10.tytul;tytul;30;Spłaszczone wdechy i senność
 L-10.powod;powod;70;Od {n} tygodni więcej spłaszczonych wdechów i senność.
 L-10.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
-L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 6.
+L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 3.
 H-01.linia;ramka;60;Najpewniej do poprawy: minimalne ciśnienie
 H-01.zdanie;ramka;60;Obszar do omówienia z lekarzem.
 H-01.pytanie;pytanie;200;Zdarzenia skupiają się przy niskim ciśnieniu ({a} / h wobec {b} / h): czy minimalne ciśnienie może mieć z tym związek, czy szukać innej przyczyny?
@@ -228,9 +228,12 @@ S-K-18.krok_pora;krok;;→ Stała pora snu, też w weekend.
 S-K-18.krok_czas;krok;;→ Każda godzina z maską się liczy.
 S-K-18.krok_nic;krok;;→ Nic do zrobienia. Tak trzymaj.
 S-K-18.krok_linia;krok;;→ Sprawa z linii wyżej wciąż otwarta.
-S-K-18.krok_sprawy;krok;;→ Otwarte sprawy: strona 3 / 6.
+S-K-18.krok_sprawy;krok;;→ Otwarte sprawy: za stroną 2 / 3.
 S-K-18.krok_oceny;krok;;→ Część ocen wyłączona: zobacz ▶.
 S-K-18.krok_reguly;krok;;→ Część reguł nie działa: zobacz Test sprzętu.
+S-K-18.krok_obserwuj;krok;;→ Obserwuj kolejne noce.
+R-KOK-24.krok;krok;;→ Pasmo AHI wysokie. Obserwuj kolejne noce.
+R-KOK-24.krok_krotki;krok;;→ Pasmo AHI wysokie.
 S-K-18.krok_dane;krok;;→ Część ocen jeszcze nie działa: za mało nocy.
 S-K-18.krok_dane_wyciek;krok;;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-19.etykieta;etykieta;30;Twój tydzień
@@ -281,8 +284,6 @@ R-MAS-12.tytul;tytul;;Wymieniona maska?
 R-MAS-12.opis;powod;;Wyciek spadł z {y} do {x} l/min od {data}.
 R-MAS-12.stopka;linia;;Bez odpowiedzi do 11:00 = nie zapisuję wymiany.
 R-MAS-11.linia;linia;;Nowy model maski. Uczę się normy.
-R-MAS-14.tytul;tytul;;Nowy model maski zapisany.
-R-MAS-14.powod;powod;;Uczę się normy wycieku od nowa: 14 nocy.
 R-MAS-01.tytul;tytul;;Wymiana zapisana.
 R-MAS-01.maska;powod;;Maska: wymieniona dziś.
 R-MAS-01.filtr;powod;;Filtr: wymieniony dziś.
@@ -470,3 +471,45 @@ R-KON-68.przeplyw;nazwa;17;spłaszczenie
 R-KON-68.czas;nazwa;17;czas z maską
 R-KON-68.nizej;nazwa;5;niżej
 R-KON-68.wyzej;nazwa;5;wyżej
+S11.liczby;portret;60;{czas} z maską · AHI {x}
+S11.liczby_czas;portret;60;{czas} z maską
+# S11.ahi_niepewne: wycofane 12.11.2026, zob. S11.noc_niepewna (R-POR-15; ID nie wraca); dawny tekst: AHI nie oceniam: duży wyciek
+S11.w_normie;portret;60;Noc w normie.
+S11.tydzien_zwykle;portret;60;Tydzień jak zwykle.
+S11.tydzien_jedna;portret;60;Tydzień: {metryka} {kierunek} niż zwykle.
+S11.tydzien_wiele;portret;60;Tydzień: {n} wskaźniki inaczej niż zwykle.
+S11.rozruch;portret;60;Uczę się twojej normy: noc {n} z 14.
+S11.ps_uczy;portret;60;Wsparcie oddechu: uczę się.
+S11.ps_brak;portret;60;Wsparcie oddechu: brak odczytu.
+S11.wyciek_brak;portret;60;Wyciek: brak odczytu.
+S11.zdarzenia_brak;portret;60;Zdarzenia: brak odczytu.
+S11.rodzaj_brak;portret;60;Rodzaj bezdechów: brak zapisu.
+S11.najgesciej;portret;60;Najgęściej {od}–{do}
+S11.wyciek;portret;60;Wyciek przez {n} min
+S11.przerwa;portret;60;Przerwa {od}–{do}
+S11.przerwy;portret;60;Przerwy: {n}, najdłuższa {m} min
+S11.centralne;portret;60;Centralne: {n}
+S11.cisnienie_maks;portret;60;Ciśnienie na maksimum {n} min
+S11.epap_maks;portret;60;EPAP na maksimum {n} min
+S11.drzemka;portret;60;Drzemka poza tarczą
+S11.czesc_nocy;portret;60;Część nocy poza tarczą
+S11.leg_maska;portret;60;maska na twarzy
+S11.leg_wyciek;portret;60;wyciek od 15 l/min
+S11.leg_wsparcie;portret;60;większe wsparcie oddechu
+S11.leg_zdarzenia;portret;60;zdarzenia w 5 minutach
+S11.leg_centralne;portret;60;zdarzenia centralne
+S11.leg_kropka;portret;60;pojedyncze zdarzenie
+S11.noc_niepewna;portret;60;Tej nocy nie oceniam: duży wyciek.
+S11.cisnienie_maks_brak;portret;60;Maksimum ciśnienia: nieznane.
+S11.epap_maks_brak;portret;60;Maksimum EPAP: nieznane.
+S11.braki;portret;60;Nieznane: {lista}.
+# S11.braki_n: wycofane 12.11.2026, zob. S11.braki (podpis zbiorczy w 2 liniach zawsze z nazwami; ID nie wraca); dawny tekst: Nieznane: {n} pomiary.
+S11.nazwa_wsparcie;portret;60;wsparcie
+S11.nazwa_norma_ps;portret;60;norma wsparcia
+S11.nazwa_wyciek;portret;60;wyciek
+S11.nazwa_zdarzenia;portret;60;zdarzenia
+S11.nazwa_rodzaj;portret;60;rodzaj bezdechów
+S11.nazwa_maksimum;portret;60;maksimum
+S11.stopka_dalej;portret;60;▶ portret nocy
+S11.stopka_dalej_krotki;portret;60;▶ portret
+S11.stopka_wstecz;portret;60;◀ portret nocy

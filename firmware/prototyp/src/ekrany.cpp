@@ -8,6 +8,7 @@
 #include "fonty.h"
 #include "nawigacja.h"
 #include "obrazy.h"
+#include "portret_ekran.h"
 #include "wspolne.h"
 
 const GFXfont* const F_S140 = &S140;
@@ -480,13 +481,18 @@ void uporzadkujPrzyciski(std::vector<std::string>& grupy) {
 
 // (5.6.1 pkt 3): na stronach kokpitu stopka podpisuje każdy przycisk, także ◀ wstecz, ▶ dalej i ↻ ekran dnia,
 // krótko nazwą strony, do której prowadzi; kolejność ◀ ▶ ↻.
-std::vector<std::string> stopkaK1(bool jestNoc) {
-  // ◀ ekran dnia, ▶ K2, ↻ ekran dnia, ↻ 2 s „Co było inaczej?” dla ostatniej nocy (R-CZY-08)
-  return {"◀ ekran dnia", "▶ 7 nocy", jestNoc ? "↻ ekran dnia · 2 s co było inaczej" : "↻ ekran dnia"};
+std::vector<std::string> stopkaK1(bool jestNoc, const std::string& wstecz) {
+  // ◀ ekran dnia (z Portretu: strona Portretu, R-POR-24), ▶ K2, ↻ ekran dnia, ↻ 2 s „Co było inaczej?” (R-CZY-08)
+  return {wstecz.empty() ? std::string("◀ ekran dnia") : wstecz, "▶ 7 nocy", jestNoc ? "↻ ekran dnia · 2 s co było inaczej" : "↻ ekran dnia"};
 }
-std::vector<std::string> stopkaK2(bool sprawy) {
-  // ◀ K1, ▶ „Otwarte sprawy” (bez wyników silnika S8), ▶ 2 s raport ogólny (R-LEK-02, usługa z Wi-Fi), ↻ ekran dnia
-  return {"◀ ostatnia noc", sprawy ? "▶ sprawy · 2 s raport" : "▶ norma · 2 s raport", "↻ ekran dnia"};
+std::vector<std::string> stopkaK2(bool sprawy, bool liczby) {
+  // ◀ K1, ▶ następna strona ciągu (5.5.7: „Co znaczą te liczby” w profilu publicznym, „Otwarte sprawy” przy sprawie,
+  // inaczej U-01), ▶ 2 s raport ogólny (R-LEK-02, usługa z Wi-Fi), ↻ ekran dnia
+  return {"◀ ostatnia noc", liczby ? "▶ liczby · 2 s raport" : sprawy ? "▶ sprawy · 2 s raport" : "▶ ustawienia · 2 s raport",
+          "↻ ekran dnia"};
+}
+std::string naglowekK1Prawo(const DaneK1& d) {
+  return d.ocena.empty() ? numerStronyTekst(Ekran::K1) : d.ocena + " · " + numerStronyTekst(Ekran::K1);
 }
 std::vector<std::string> stopkaPytania() {
   // bez liczby zaznaczonych w nawiasie (`zapisz (2)` czytało się jak „zapisz za 2 s”); ile jest
@@ -723,6 +729,9 @@ void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t) {
     case Uklad::SERIA: ekranSeria(p, t, 54 + h, maStopke(t)); break;
     case Uklad::ROZRUCH:
     case Uklad::OGOLNY: ekranOgolny(p, t, h); break;
+    case Uklad::PORTRET:
+      if (t.portret) rysujCialoPortretu(p, *t.portret, 54 + h, h != 0);
+      break;
   }
   stopkaDnia(p, t.stopkaLewo, t.stopkaPrawo);
 }
@@ -734,7 +743,8 @@ std::string slowoOcenyK1(const std::string& slowo) { return slowo == "stabilnie"
 
 void rysujK1(Plotno& p, const DaneK1& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, {d.naglowek + (d.romb ? " ◆" : ""), numerStronyTekst(Ekran::K1)}, F_P22B);  // `1 / 6`
+  // R-KOK-21: `ocena częściowa · 1 / 3` albo `ocena ograniczona · 1 / 3`, przy ocenie pełnej sam numer
+  naglowekDanych(p, {d.naglowek + (d.romb ? " ◆" : ""), naglowekK1Prawo(d)}, F_P22B);
   // R-CZY-20 (5.5.2 „Odkrycie o czynniku”): tytuł i powód O-12 pod nagłówkiem, nad 4 liczbami ostatniej nocy
   // (liczby zostają). Wygląd („dopasuj do całości”):
   // wariant to zwykły K1 z dodatkowym pasem. Pas: tytuł P24B na linii bazowej opisów liczb (82), powód P22B (≤ 2 linie
@@ -803,7 +813,7 @@ void rysujK1(Plotno& p, const DaneK1& d) {
       tekst(p, F_P22B, xm + 16, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
     }
   }
-  stopkaAkcji(p, "", stopkaK1(d.jestNoc));
+  stopkaAkcji(p, "", stopkaK1(d.jestNoc, d.stopkaWstecz));
 }
 
 // ---------- K2 (5.5.3, SPEC-KOKPIT 4, opcja A) ----------
@@ -811,7 +821,7 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   p.prostokat(0, 0, 800, 480, false);
   // nagłówek jak w K1 (`… · 1 / 2`): co to za strona i jej numer
   tekst(p, F_P24B, X, 33, d.zakres.empty() ? std::string("Ostatnie 7 nocy") : "Ostatnie 7 nocy · " + d.zakres);
-  tekstPrawo(p, F_P22B, XP, 33, numerStronyTekst(Ekran::K2));  // `2 / 6`
+  tekstPrawo(p, F_P22B, XP, 33, numerStronyTekst(Ekran::K2));  // `2 / 3`
   kreska(p, 44, 2, X, XP);
   tekst(p, F_SB24, X, 68, d.zdanie);
   // tabela na marginesach 20 px: etykieta 20–164, 7 nocy co 68 px od 168, norma do prawej na 780; bez kolumny 30 nocy
@@ -885,8 +895,15 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   p.prostokat(X, ly - 15, 26, 16, true);
   int x = tekst(p, F_P22B, X + 34, ly, "ponad próg");
   p.ramka(x + 26, ly - 16, 26, 18, 2);
-  tekst(p, F_P22B, x + 60, ly, "poza twoją normą");
-  stopkaAkcji(p, "", stopkaK2(d.sprawy));
+  int koniecLegendy = tekst(p, F_P22B, x + 60, ly, "poza twoją normą");
+  // R-KOK-24: krok pasma AHI pod legendą (ton „informacja” bez ramki: na ramkę 2 px nie ma wysokości); linia bazowa
+  // najniżej 423 (CPAP i AutoSet, 9 wierszy), dolny wydłużnik nad kreską stopki 434
+  bool pelny = !d.krokPasma.empty() && ly + K2_KROK_ODSTEP <= K2_KROK_BAZA_MAKS;
+  if (pelny) tekst(p, F_P22B, X, ly + K2_KROK_ODSTEP, d.krokPasma);
+  // wariant c: bez pełnej linii krótki tekst w linii legendy, do prawego marginesu, z odstępem 26 px od legendy
+  else if (!d.krokPasmaKrotki.empty() && koniecLegendy + K2_KROK_ODSTEP_LEGENDY <= XP - szer(F_P22B, d.krokPasmaKrotki))
+    tekstPrawo(p, F_P22B, XP, ly, d.krokPasmaKrotki);
+  stopkaAkcji(p, "", stopkaK2(d.sprawy, d.liczby));
 }
 
 std::string zwinieteK2(const DaneK2& d, bool zwin[DaneK2::WIERSZE]) {
@@ -1167,12 +1184,14 @@ void poleOdpowiedzi(Plotno& p, int x, int y, int w, int h, const std::string& ik
 int szerTresciWzorca(bool) { return W; }
 int szerTytuluWzorca(bool lekarz) { return lekarz ? W - ZNAK_W - ZNAK_ODSTEP : W; }
 
-std::vector<std::string> stopkaWzorca(bool lekarz) {
+std::vector<std::string> stopkaWzorca(bool lekarz, const std::string& dalej) {
   // kanwa: `◀ 2 s omówione` · `↻ 2 s wiem` · `▶ raport`, w panelu kolejność ◀ ▶ ↻ jak przyciski;
   // ▶ = kokpit jak na każdym ekranie dnia, „Raport dla lekarza” otwiera ▶ 2 s (do w stanie R-LEK-05);
   // L-09 (problem poranny): ▶ kokpit (K1) i `↻ 2 s wiem` (mapa 5.6.2, podpis każdej akcji)
-  if (lekarz) return {"◀ 2 s omówione", "▶ kokpit · 2 s raport", "↻ 2 s wiem"};
-  return {"▶ kokpit", "↻ 2 s wiem"};
+  // rano z Portretem pod ▶ (R-POR-24) podpis ▶ mówi, dokąd prowadzi: `▶ portret nocy` (▶ 2 s raport bez zmian)
+  const std::string d = dalej.empty() ? std::string("▶ kokpit") : dalej;
+  if (lekarz) return {"◀ 2 s omówione", d + " · 2 s raport", "↻ 2 s wiem"};
+  return {d, "↻ 2 s wiem"};
 }
 
 void rysujWzorzec(Plotno& p, const DaneWzorca& d) {
@@ -1251,7 +1270,7 @@ void rysujWzorzec(Plotno& p, const DaneWzorca& d) {
   if (d.pilnoscA) tekst(p, F_P22B, X, hyp ? 388 : 372, ZDANIE_R_LEK_28, B);
   tekst(p, F_P28B, X, 418, d.krok, B);
   p.prostokat(x0, 434, x1 - x0, 2, B);
-  grupyStopki(p, X, 462, stopkaWzorca(d.lekarz), B);
+  grupyStopki(p, X, 462, stopkaWzorca(d.lekarz, d.stopkaDalej), B);
 }
 
 void rysujRaport(Plotno& p, const DaneRaportu& d) {
@@ -1322,14 +1341,16 @@ void rysujOmowione(Plotno& p, const DaneOmowione& d) {
   tekstPrawo(p, F_P22B, XP, 465, "↻ anuluj");
 }
 
-std::vector<std::string> stopkaSpraw(int i, int n) {
-  // ◀ poprzednia karta (przed pierwszą K2), ▶ następna karta (za ostatnią S8), ↻ ekran dnia
-  return {i <= 1 || n == 0 ? "◀ 7 nocy" : "◀ poprzednia", n > 0 && i < n ? "▶ następna" : "▶ norma", "↻ ekran dnia"};
+std::vector<std::string> stopkaSpraw(int i, int n, bool liczby) {
+  // ◀ poprzednia karta (przed pierwszą K2 albo w profilu publicznym „Co znaczą te liczby”), ▶ następna karta (za
+  // ostatnią U-01, R-KOK-20), ↻ ekran dnia
+  return {i <= 1 || n == 0 ? (liczby ? "◀ liczby" : "◀ 7 nocy") : "◀ poprzednia", n > 0 && i < n ? "▶ następna" : "▶ ustawienia",
+          "↻ ekran dnia"};
 }
 
 void rysujSprawy(Plotno& p, const DaneSpraw& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, {d.naglowek, numerStronyTekst(Ekran::SPRAWY)});  // `3 / 6`
+  naglowekDanych(p, {d.naglowek, numerStronyTekst(Ekran::SPRAWY)});  // bez numeru (R-KOK-19)
   if (d.n > 0) etykieta(p, X, 94, wersaliki("Sprawa " + std::to_string(d.i) + " z " + std::to_string(d.n)));
   tekst(p, F_SB44, X, 145, d.tytul);
   int y = 195;
@@ -1346,7 +1367,7 @@ void rysujSprawy(Plotno& p, const DaneSpraw& d) {
     tekst(p, F_P24S, SPRAWY_X_WARTOSCI, b, *wart[i]);  // kanwa: nazwa 700, wartość 600
   }
   if (d.n == 0 && !d.dopisek.empty()) tekst(p, F_P24S, X, 283 + 42, d.dopisek);  // R-EKR-50, ocena częściowa
-  stopkaAkcji(p, "", stopkaSpraw(d.i, d.n));
+  stopkaAkcji(p, "", stopkaSpraw(d.i, d.n, d.liczby));
 }
 
 void naglowekEkranu(Plotno& p, const Naglowek& n) { naglowekDanych(p, n, F_P22B); }

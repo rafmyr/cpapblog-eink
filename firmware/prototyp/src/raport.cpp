@@ -29,9 +29,9 @@ std::string bezKropki(std::string s) {
   while (!s.empty() && (s.back() == '.' || s.back() == ' ')) s.pop_back();
   return s;
 }
-std::string bezKontroli(const std::string& l) {  // linia C bez `Na kontroli: raport 2 / 6.` (5.13.2)
-  // druga postać: zestaw danych sprzed 10.11.2026 (nazwa robocza strony zamiast `2 / 6`)
-  static const char* const K[] = {" Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+std::string bezKontroli(const std::string& l) {  // linia C bez `Na kontroli: raport 2 / 3.` (5.13.2)
+  // starsze postacie z zestawu danych z karty (ADR-0023): numer sprzed ADR-0041 i nazwa robocza sprzed 10.11.2026
+  static const char* const K[] = {" Na kontroli: raport 2 / 3.", " Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
   for (const char* k : K) {
     const std::string s(k);
     if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());

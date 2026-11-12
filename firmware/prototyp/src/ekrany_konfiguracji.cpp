@@ -50,17 +50,18 @@ std::vector<WierszUstawien> wierszeUstawien(const DaneUstawien& d) {
   return w;
 }
 
-std::vector<std::string> stopkaU01() {
-  return {"◀ sprzęt · 2 s sieć", "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"};
+std::vector<std::string> stopkaU01(bool sprawy, bool liczby) {
+  std::string l = sprawy ? "◀ sprawy · 2 s sieć" : liczby ? "◀ liczby · 2 s sieć" : "◀ 7 nocy · 2 s sieć";
+  return {l, "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"};
 }
 
 // Układ (skala B): nazwa P22B od x 28, wartość P24B od x 350, wiersze co 28 px od linii bazowej 84 (9 wierszy do 308);
 // pod listą cztery linie P22B co 26 px: aktualizacja (338), podpowiedź (364, 390) i zdanie granicy (416), stopka od 434.
-// Stopka z karty aktualizacji (`◀ sprzęt · 2 s sieć panelu …`) ma 790 px > 744 px, stąd `sieć`. Podpowiedź pod listą
+// Stopka z karty aktualizacji (`◀ sprawy · 2 s sieć panelu …`) ma 790 px > 744 px, stąd `sieć`. Podpowiedź pod listą
 // nazywa formularz `Więcej na telefonie`, bo tak odsyłają do niego wiersz aktualizacji i ekran aktualizacji.
 void rysujUstawienia(Plotno& p, const DaneUstawien& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekEkranu(p, {"Ustawienia panelu", numerStronyTekst(Ekran::USTAWIENIA)});  // `6 / 6`
+  naglowekEkranu(p, {"Ustawienia panelu", numerStronyTekst(Ekran::USTAWIENIA)});  // `3 / 3`
   std::vector<WierszUstawien> w = wierszeUstawien(d);
   for (size_t i = 0; i < w.size(); i++) {
     int y = 84 + 28 * (int)i;
@@ -71,7 +72,7 @@ void rysujUstawienia(Plotno& p, const DaneUstawien& d) {
   tekst(p, F_P22B, X, 364, U01_PODPOWIEDZ[0]);
   tekst(p, F_P22B, X, 390, U01_PODPOWIEDZ[1]);
   tekst(p, F_P22B, X, 416, U01_GRANICA);
-  stopkaEkranu(p, stopkaU01(), "");
+  stopkaEkranu(p, stopkaU01(d.sprawy, d.profilPubliczny), "");
 }
 
 void rysujAktualizacje(Plotno& p, const std::vector<std::string>& linie, const std::vector<std::string>& stopka) {

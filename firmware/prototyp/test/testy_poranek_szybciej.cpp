@@ -656,13 +656,13 @@ static void testR_DANE_61_bezOdpowiedzi() {
 
 // W czasie pobrania D przytrzymanie może zostać wykryte z opóźnieniem (żądanie HTTP i NTP
 // nie sprawdzają przycisków), więc mierzone krócej. Na ekranach, na których D pobiera (ekran dnia bez pytania tak/nie
-// i strony kokpitu `n / 6`), krótkie naciśnięcie nigdy nie zapisuje: przytrzymanie uznane za krótkie traci co najwyżej
+// i strony kokpitu), krótkie naciśnięcie nigdy nie zapisuje: przytrzymanie uznane za krótkie traci co najwyżej
 // swój zapis albo usługę, a nie zapisuje niczego innego. Sprawdzone na mapie przycisków dla wszystkich wariantów.
 static bool zapisuje(Akcja a) {
   switch (a) {
     case Akcja::PYT_ZAPISZ: case Akcja::PYT_POMIN: case Akcja::WIEM: case Akcja::OMOWIONE_TAK: case Akcja::ODP_TAK:
     case Akcja::ODP_NIE: case Akcja::ODP_POMIN: case Akcja::COFNIJ_WIEM: case Akcja::COFNIJ_ODP:
-    case Akcja::SPRZET_WYMIENIONE: case Akcja::SPRZET_NOWY_MODEL: case Akcja::SPRZET_COFNIJ:
+    case Akcja::SPRZET_WYMIENIONE: case Akcja::SPRZET_COFNIJ:
     case Akcja::SIEC_PANELU_START: case Akcja::AKT_SPRAWDZ: case Akcja::AKT_INSTALUJ: case Akcja::AKT_PONOW:
       return true;
     default: return false;
@@ -740,6 +740,23 @@ static void testR_PRZ_22_dyrygent() {
     ROWNE_L(przycisk(s, t + 60, BIT_PRAWY, Ekran::K1).polaczen, 0);
     odpowiedzi(s, terapia, t + 125);
     ROWNE_L(przycisk(s, t + 125, BIT_LEWY, Ekran::K2).polaczen, 1);
+  }
+  {  // (R-KOK-19, R-PRZ-22): strony kokpitu bez numeru też pobierają, U-01 nie
+    PanelP s(5);
+    s.p.pliki.pliki["/konfiguracja.txt"] = "profil=publiczny\n";
+    uint32_t t = ep(2026, 11, 4, 6, 10, 30);
+    odpowiedzi(s, jest, t);
+    WybP w = przycisk(s, t, BIT_PRAWY, Ekran::K2);
+    ROWNE_L(s.p.start.stan.ekran, (int)Ekran::LICZBY);
+    ROWNE_L(w.polaczen, 1);
+  }
+  {
+    PanelP s(5);
+    uint32_t t = ep(2026, 11, 4, 6, 10, 30);
+    odpowiedzi(s, jest, t);
+    WybP w = przycisk(s, t, BIT_LEWY, Ekran::TEST);  // ◀ z U-05 → U-01
+    ROWNE_L(s.p.start.stan.ekran, (int)Ekran::USTAWIENIA);
+    ROWNE_L(w.polaczen, 0);
   }
   {  // po 11:00 bez nocy: bez zmian względem stanu przed zmianą (bez pobrania)
     PanelP s(5);

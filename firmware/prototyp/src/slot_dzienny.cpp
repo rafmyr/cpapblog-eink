@@ -13,7 +13,6 @@
 
 const char* const PYLEK_DOPELNIACZ[PYL_N] = {"brzozy", "traw", "olchy", "bylicy"};
 const char* const NAZWY_ELEMENTU[EL_N] = {"maska", "filtr"};
-const char* const NAZWY_ELEMENTU_MIEJSCOWNIK[EL_N] = {"masce", "filtrze"};  // krok S-K-35: `przy {element}`
 
 namespace {
 
@@ -1058,10 +1057,9 @@ TekstySlotu tekstySlotu(const WyborSlotu& w, const WejscieSlotu& we) {
         t.powod = std::string(m.poTerminie ? "Termin minął " : "Termin ") + ddmm(m.termin) + ", ma " + wiek;
         if (t.powod.back() != '.') t.powod += ".";
       }
-      // krok według mapy przycisków (5.6.2): wymianę zapisuje ◀ 2 s na stronie „Sprzęt” (`5 / 6`) przy wierszu
-      // elementu w ramce; wejście ustawia ramkę na masce, przy filtrze trzeba ją przesunąć (▶). Te same słowa co
-      // podpowiedź pod tabelą „Sprzętu” (`ramka na …`). ↻ 2 s na wierszu maski zapisuje nowy model, więc nie tu.
-      t.krok = std::string("→ Po wymianie: strona 5 / 6, ramka na ") + NAZWY_ELEMENTU_MIEJSCOWNIK[m.element] + ", ◀ 2\xC2\xA0s.";
+      // R-MAS-18 (ADR-0041): wymianę zapisuje ◀ 2 s na tym ekranie (element z ekranu, jak S-K-31 R-MAS-01);
+      // dawny krok prowadził do usuniętej strony „Sprzęt”
+      t.krok = "→ Po wymianie przytrzymaj ◀ 2\xC2\xA0s.";
       break;
     }
     case EkranSlotu::SK36:

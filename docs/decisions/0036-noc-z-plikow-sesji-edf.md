@@ -72,3 +72,7 @@ Pomiar 09.11.2026, jedna noc (ok. 8 h), `/api/storage/download` z komputera w te
 - **Noce sprzed zmiany:** zapisane wcześniej z raportu JSON (bez PS) zostają bajt w bajt; panel nie przelicza dób, które już ma w historii (lista dób do pobrania bez zmian: tylko brakujące, ostatnia noc w odczycie i ponowne pobranie R-DANE-24 ostatniej nocy). Plik `/dane/porownanie.csv` zostaje, ale przy `plik` nie przybywa wpisów.
 - **U-05:** wiersz `Noce z plików` w trybie domyślnym pokazuje `włączone (plik)`; diagnostyka w logu `Noce z plików: noc_zrodlo=plik · …`. Przy AirBridge < 2.3.1 wiersz pokazuje tryb, a noce idą z raportu JSON (zachowanie przy starszym AirBridge do decyzji).
 - **Koszt:** w każdym wybudzeniu z pobraniem doby lista sesji, STR.edf raz i `PLD`, `EVE`, `CSL` zamiast jednego raportu JSON (ok. 0,5 MB na noc 8 h; na ESP32 `[szacunek]` 2–5 s, do pomiaru); bez drugiego połączenia Wi-Fi po rysowaniu (tryb porównawczy go dokładał). Przy AirBridge < 2.3.1 jedna lista sesji (404) na wybudzenie, potem raport JSON jak dotąd.
+
+## Zmiana 2026-11-11 (ADR-0040; bez zmiany decyzji)
+
+Przy tym samym przejściu po próbkach `PLD` i zdarzeniach `EVE` panel zapisuje przebieg ostatniej nocy w odcinkach 5 min (plik `/dane/portret.csv`, spec techniczna T-DANE-38, T-WYM-98) do Portretu nocy, także w trybie porównawczym; bez dodatkowych pobrań. Noc bez plików sesji (AirBridge < 2.3.1, raport JSON) nie ma Portretu (R-POR-03).

@@ -68,3 +68,7 @@ Teksty wycofane po wdrożeniu (zostają w `teksty.csv`, dopóki katalog ich uży
 Poprawki po przeglądzie 09.11.2026: uspokojenie w ASV (5.4.13, R-SKI-50: stałe ograniczenie aparatu nie blokuje „Noc w normie”, brak plików nocy tak), maksimum PS ograniczone zakresem aparatu 25 cmH2O (M-31), definicja okna, M-30 ze STR (`AI`) i bez raportów AirBridge < v2.2.0, L-01 ASV z odsetkiem z puli, Δ M-30 dla O-12, S8 z wierszem `Bezdechy`.
 
 Katalog reguł (`L.csv`, `E.csv`, `O.csv`, `H.csv`) bez zmian do implementacji: silnik reguł nie zna metryk M-30…M-33 (lista `METRYKI` w `src/reguly_rodzaje.cpp`), więc nowe warianty dostaną wiersze katalogu razem z kodem po etapie 2.
+
+## Zmiana 2026-11-11 (ADR-0040; bez zmiany decyzji)
+
+Portret nocy w trybach ASV i ASVAuto nie rysuje pików „do środka” (zdarzeń centralnych), bo aparat nie zapisuje rodzaju bezdechu; zamiast tego pik oznacza „większe wsparcie oddechu” (pomiar PS), a każde zdarzenie to kropka (spec 5.4.16, R-POR-10).

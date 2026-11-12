@@ -565,6 +565,25 @@ static void nocBezOdczytu() {
   SPRAWDZ(!logMa(s.p, "tryb aparatu nieznany"));
 }
 
+// (R-MAS-16, R-MAS-19): nowy model maski zapisany formularzem (`sp_model` = data dnia zapisu): od następnego
+// ranka jednorazowo linia `Nowy model maski. Uczę się normy.`; po cofnięciu (`sp_model` usunięty) linii nie ma.
+static void liniaNowegoModelu() {
+  for (bool cofniety : {false, true}) {
+    Sym s;
+    long d0 = nrDnia("2026-10-20");
+    s.wybudz(ep(2026, 10, 20, 14, 0), PowodWybudzenia::START);
+    auto noc = [&](int i) { s.raporty[d0 + i] = raport(d0 + i, 9.5, 12, ustAutoSet("6", "14", "3"), 25200 + i * 20); };
+    for (int i = 0; i < 16; i++) {
+      noc(i);
+      s.wybudz(ep(2026, 10, 21 + i, 6, 30), PowodWybudzenia::ZEGAR);
+    }
+    if (!cofniety) s.p.nvs.teksty["cpap/sp_model"] = "2026-11-05";  // zapis z formularza 5.11 (dzień 15)
+    noc(16);
+    s.wybudz(ep(2026, 11, 6, 6, 30), PowodWybudzenia::ZEGAR);
+    SPRAWDZ(ekranMa(s.p, "Nowy model maski. Uczę się normy.") == !cofniety);
+  }
+}
+
 int main(int argc, char** argv) {
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
@@ -583,6 +602,7 @@ int main(int argc, char** argv) {
   formatyUstawien();
   zmianaMpaPrawdziwaSciezka();
   liniaZmianyIserii();
+  liniaNowegoModelu();
   wyjatkiTrybuNieznanego();
   nocBezOdczytu();
   printf("testy_aparat_autoset_brzegowe: %d ok, %d błędów, %d oczekujących\n", ok, zle, oczekuje);

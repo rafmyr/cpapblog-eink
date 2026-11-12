@@ -114,6 +114,7 @@ struct UstawieniaTekstow {
   bool tylkoRegulyBezOceny = false, tylkoOcenyWylaczone = false;  // jak sk::Wejscie
   bool tylkoBrakDanych = false;  // jak sk::Wejscie
   bool brakDanychWyciek = false;  // jak sk::Wejscie
+  bool bezKartSpraw = false, bezSilnika = false;  // jak sk::Wejscie (krok bez nieistniejącej strony spraw)
 };
 struct TrescOdkrycia {
   std::string id, klucz, etykieta, tytul, powod, krok;

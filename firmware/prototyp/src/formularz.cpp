@@ -321,6 +321,23 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
       else { w.plik[ko] = std::to_string(n); if (e == 1) w.plik["okres.filtr"] = ""; }
     }
   }
+  // R-MAS-16 (ADR-0041): `Nowy model maski od dziś` = data wymiany maski dziś (wygrywa z polem daty) i nowy model
+  // u wołającego; bez daty panelu (zegar) pole odrzucone, bo zerowanie normy potrzebuje dnia
+  // R-MAS-19: cofnięcie nowego modelu z dziś; oba pola naraz to sprzeczność, żadne nie działa
+  if (zaznaczone(m, "nowy_model") && zaznaczone(m, "nowy_model_cofnij")) {
+    w.bledy["nowy_model"] = "Zaznacz tylko jedno: nowy model albo cofnięcie.";
+  } else if (zaznaczone(m, "nowy_model_cofnij")) {
+    w.cofnijNowyModel = true;
+  } else if (zaznaczone(m, "nowy_model")) {
+    if (!dataOk(dzis)) {
+      w.bledy["nowy_model"] = "Panel nie zna dzisiejszej daty. Spróbuj po synchronizacji czasu.";
+    } else {
+      w.plik["wymiana.maska"] = dzis;
+      w.plik["wymiana.poduszka"] = "";
+      w.bledy.erase("wymiana.maska");
+      w.nowyModelMaski = true;
+    }
+  }
   // ustawienia z 5.6.4 dodane do formularza. Wartość domyślna = brak wiersza (R-KONF-20), więc przy niej
   // wiersz jest usuwany z pliku.
   v = wartosc(m, "co2", jest);
@@ -528,6 +545,16 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
     s += ": wymieniona</label>";
     s += pole("date", kw.c_str(), p.wymiana[e]);
     s += blad(b, kw.c_str());
+    if (!p.termin[e].empty()) s += "<p class=\"s\">" + html(p.termin[e]) + "</p>";  // R-MAS-17
+    if (e == 0)  // R-MAS-16: po zapisie pole wraca do stanu niezaznaczonego (nie ma wartości w pliku)
+      s += "<label class=\"c\"><input type=\"checkbox\" name=\"nowy_model\" value=\"1\"> Nowy model maski od dziś</label>" +
+           blad(b, "nowy_model") +
+           "<p class=\"s\">Zaznaczone pole ustawia datę wymiany maski na dziś (zamiast daty wyżej), a panel uczy się "
+           "normy wycieku od nowa (14 nocy). Pomyłkę cofniesz tego samego dnia.</p>" +
+           (p.nowyModelDzis ? std::string("<label class=\"c\"><input type=\"checkbox\" name=\"nowy_model_cofnij\" value=\"1\"> "
+                                          "Cofnij nowy model z dziś</label><p class=\"s\">Wraca data wymiany maski i norma "
+                                          "wycieku sprzed dzisiejszego zapisu.</p>")
+                            : std::string());
     s += "<label for=\"" + ko + "\">";
     s += NAZWY_ELEMENTOW[e];
     s += e == 0 ? ": okres wymiany (miesiące, puste = domyślny)</label>" : ": okres wymiany (tygodnie, puste = domyślny)</label>";

@@ -504,6 +504,7 @@ static const char* limitKart(const std::string& dzis, const std::vector<WpisHumo
   int kartDzis = 0, kartOkno = 1, wyswOkno = 1;  // +1: to wyświetlenie
   std::string od = dodajDni(dzis, -6);
   for (auto& x : log) {
+    if (x.typ == "S11") continue;  // Portret nocy nie liczy się do limitów kart (R-POR-20)
     if (x.data == dzis && x.tryb == 'K') kartDzis++;
     if (x.data >= od && x.data <= dzis) {
       wyswOkno++;

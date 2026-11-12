@@ -151,6 +151,18 @@ struct StanRtc {
   int32_t powtorkiDoba = 0;
   uint8_t powtorki = 0;
   uint32_t pobranieRanoEp = 0;
+  // Portret nocy (R-POR-04, R-POR-05, R-POR-24; spec 5.4.16): doba poranka z Portretem (jak pamiecDoba: nrDnia + 1;
+  // 0 = brak), czas unix pierwszego narysowania Portretu tego ranka (drugi ekran po PORTRET_DRUGI_S), ekran dnia rano
+  // to ekran problemu z Portretem pod ▶ (1) i K1 otwarte ze strony Portretu (◀ wraca do Portretu). Kopia doby i chwili
+  // w NVS (`por_db`, `por_od`), więc po zaniku zasilania drugi ekran przychodzi o tej samej porze.
+  int32_t portretDoba = 0;
+  uint32_t portretOdEp = 0;
+  uint8_t portretStrona = 0;
+  uint8_t k1ZPortretu = 0;
+  // drugi ekran poranka już narysowany (1) i start slotu dziennego odłożony do drugiego ekranu (1), gdy start
+  // wypadł przed nim albo w tej samej chwili (drugi ekran nie przepada)
+  uint8_t portretDrugi = 0;
+  uint8_t slotOdlozony = 0;
 };
 // StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
 static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");

@@ -1058,6 +1058,7 @@ bool tydzien(const Wejscie& w, Tresc& t) {
     else if (w.tylkoOcenyWylaczone) krok = "S-K-18.krok_oceny";   // R-EKR-32, 5.4.13 pkt 5
     else if (w.brakDanychWyciek) krok = "S-K-18.krok_dane_wyciek";  // brak ocen z powodu wycieku, nie liczby nocy
     else if (w.tylkoBrakDanych) krok = "S-K-18.krok_dane";        // brak danych, nie awaria
+    else if (w.bezKartSpraw) krok = w.bezSilnika ? "S-K-18.krok_reguly" : "S-K-18.krok_obserwuj";  // R-EKR-32
     else krok = "S-K-18.krok_sprawy";
   }
   t.t.krok = tekst(krok);

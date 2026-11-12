@@ -446,7 +446,16 @@ static void testTydzien() {
   }
   w.uspokojenie = false;
   sk::tydzien(w, t);
-  ROWNE(t.t.krok, "→ Otwarte sprawy: strona 3 / 6.");  // numer strony kokpitu
+  ROWNE(t.t.krok, "→ Otwarte sprawy: za stroną 2 / 3.");  // numer strony kokpitu (R-KOK-23)
+  // (R-EKR-32, R-KOK-19): krok do strony spraw tylko przy co najmniej jednej karcie; bez kart (strony nie ma)
+  // z silnikiem `→ Obserwuj kolejne noce.`, bez wyników silnika krok o regułach
+  w.bezKartSpraw = true;
+  sk::tydzien(w, t);
+  ROWNE(t.t.krok, "→ Obserwuj kolejne noce.");
+  w.bezSilnika = true;
+  sk::tydzien(w, t);
+  ROWNE(t.t.krok, "→ Część reguł nie działa: zobacz Test sprzętu.");
+  w.bezKartSpraw = w.bezSilnika = false;
   w.liniaZdrowiaNaEkranie = true;
   sk::tydzien(w, t);
   ROWNE(t.t.krok, "→ Sprawa z linii wyżej wciąż otwarta.");
@@ -508,16 +517,15 @@ static void testSprzet() {
   SPRAWDZ(sprzet::poTerminie(e.el[EL_MASKA], "2026-09-01"));
   SPRAWDZ(!sprzet::poTerminie(e.el[EL_MASKA], "2026-08-31"));
   SPRAWDZ(!sprzet::poTerminie(ElementWymiany{"", 6, false}, "2030-01-01"));  // bez daty nigdy (R-MAS-06)
-  std::vector<sprzet::WierszSprzetu> ws = sprzet::wierszeSprzetu(e, "2026-10-31");
-  SPRAWDZ(ws.size() == 2 && ws[0].nazwa == "Maska" && ws[0].wiek == "7 mies." && ws[0].okres == "6 mies." && ws[0].poTerminie);
-  SPRAWDZ(ws[1].nazwa == "Filtr" && ws[1].wiek == "3 tyg." && ws[1].okres == "4 tyg." && !ws[1].poTerminie);
+  // wiek i okres (S-K-31, S-K-35) i termin w formularzu (R-MAS-17)
+  SPRAWDZ(wiekElementu(e.el[EL_MASKA], "2026-10-31") == "7 mies." && okresElementuTekst(e.el[EL_MASKA]) == "6 mies.");
+  SPRAWDZ(wiekElementu(e.el[EL_FILTR], "2026-10-31") == "3 tyg." && okresElementuTekst(e.el[EL_FILTR]) == "4 tyg.");
+  ROWNE(sprzet::terminFormularza(e.el[EL_MASKA], "2026-10-31"), "po terminie od 01.09.2026");
+  ROWNE(sprzet::terminFormularza(e.el[EL_FILTR], "2026-10-31"), "następna wymiana 07.11.2026");
   // zapis wymiany (R-MAS-01): zastąpienie albo dopisanie wiersza
   ROWNE(sprzet::zapiszWymiane("# k\nwymiana.filtr=2026-01-01\npylki=brzoza\n", EL_FILTR, "2026-11-04"),
         "# k\nwymiana.filtr=2026-11-04\npylki=brzoza\n");
   ROWNE(sprzet::zapiszWymiane("pylki=brzoza", EL_MASKA, "2026-11-04"), "pylki=brzoza\nwymiana.maska=2026-11-04\n");
-  // ◀ ▶ kursor (za końcem listy sąsiednia strona), ◀ 2 s wymienione, ↻ ekran dnia, ↻ 2 s nowy model (maska)
-  ROWNE(sprzet::stopkaSprzetu(EL_MASKA), "◀ norma · 2 s wymienione   ▶ niżej   ↻ ekran dnia · 2 s nowy model");
-  ROWNE(sprzet::stopkaSprzetu(EL_FILTR), "◀ wyżej · 2 s wymienione   ▶ ustawienia   ↻ ekran dnia");
   // S-K-31: maska po terminie, wyciek 7 nocy ≥ norma + 10, rośnie od 3 tygodni
   std::vector<Noc> h;
   std::string koniec = "2026-10-31";
@@ -736,15 +744,10 @@ static void testRysowanie() {
     SPRAWDZ(jasne == 0);       // negatyw: tekst biały; pas ikony pusty
     SPRAWDZ(jasnePrzed > 0);   // stopka jest
   }
-  ElementWymiany el[EL_N];
-  sprzet::Elementy e = sprzet::zOdpowiedziami(el, {}, {});
-  PlotnoTest p2;
-  sprzet::rysujSprzet(p2, sprzet::wierszeSprzetu(e, "2026-11-04"), 0);
-  SPRAWDZ(p2.czarne > 1000 && p2.czarne < 800 * 480 / 2);
 }
 
 
-// ---------- dyrygent z atrapami: „Sprzęt” (5.9.3), R-MAS-01, R-MAS-11, R-MAS-14, S-K-31 na ekranie dnia ----------
+// ---------- dyrygent z atrapami: wymiana z cofnięciem (R-MAS-01, R-MAS-18), S-K-31 na ekranie dnia ----------
 static const KonfiguracjaPanelu KONF = {"192.168.1.20", "cpap", "haslo", "", "", true};
 static uint32_t ep(int r, int mi, int dz, int h, int m, int s = 0) {
   std::tm t{};
@@ -787,59 +790,32 @@ static std::string konf(const Panel& p) {
 static void testDyrygentSprzet() {
   Panel p;
   p.pliki.pliki["/konfiguracja.txt"] = "wymiana.poduszka=2026-03-01\nwymiana.filtr=2026-10-01\n";
-  // S8 ▶ → „Sprzęt” (strona 5 / 6), kursor od pierwszego wiersza
-  p.nvs.ustawLiczbeU("cpap", "sp_kur", 1);
-  nacisnij(p, 12, 0, Ekran::NORMA, BIT_PRAWY, false);
+  // od ADR-0041 bez strony „Sprzęt”: obraz sprzed zmiany z NORMA albo SPRZET w pamięci RTC → ekran dnia (R-KOK-19)
+  SPRAWDZ(ekranZRtc((uint8_t)Ekran::SPRZET) == Ekran::DZIEN && ekranZRtc((uint8_t)Ekran::NORMA) == Ekran::DZIEN);
+  // ekran dnia S-K-35 dla filtra (element w `b16_sk31`, R-MAS-18): ◀ 2 s → wymiana filtra dziś, reszta pliku bez zmian
+  p.nvs.ustawLiczbeU("cpap", "b16_sk31", EL_FILTR + 1);
+  nacisnij(p, 12, 3, Ekran::DZIEN, BIT_LEWY, true);
   drukujLog(p);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET && p.nvs.liczbaU("cpap", "sp_kur", 9) == 0);
-  // dwa elementy. ▶ → kursor na filtrze (NVS sp_kur); ◀ 2 s → wymiana filtra dziś (R-MAS-01), reszta pliku bez zmian
-  nacisnij(p, 12, 1, Ekran::SPRZET, BIT_PRAWY, false);
-  SPRAWDZ(p.nvs.liczbaU("cpap", "sp_kur", 9) == 1 && p.start.stan.ekran == (uint8_t)Ekran::SPRZET);
-  nacisnij(p, 12, 3, Ekran::SPRZET, BIT_LEWY, true);
-  drukujLog(p);
+  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET_ZAPISANO);
   SPRAWDZ(konf(p).find("wymiana.filtr=2026-11-04") != std::string::npos);
   SPRAWDZ(konf(p).find("wymiana.poduszka=2026-03-01") != std::string::npos);
   SPRAWDZ(wLogu(p, "sprzęt: wymiana filtr 2026-11-04 (R-MAS-01)"));
-  // ↻ 2 s przy filtrze → nic (R-MAS-11 tylko maska)
-  nacisnij(p, 12, 4, Ekran::SPRZET, BIT_SRODEK, true);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET && p.nvs.tekst("cpap", "sp_model", "") == "");
-  // kursor na masce (◀), ↻ 2 s → `Nowy model maski zapisany.`, data maski dziś (stary wiersz poduszki zostaje, ale
-  // jest wcześniejszy), sp_model
-  nacisnij(p, 12, 5, Ekran::SPRZET, BIT_LEWY, false);
-  SPRAWDZ(p.nvs.liczbaU("cpap", "sp_kur", 9) == 0);
-  nacisnij(p, 12, 10, Ekran::SPRZET, BIT_SRODEK, true);
+  // ◀ 2 s po 10 s → cofnięcie: data filtra sprzed zapisu, powrót do ekranu dnia
+  nacisnij(p, 12, 3, Ekran::SPRZET_ZAPISANO, BIT_LEWY, true, 10);
   drukujLog(p);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET_ZAPISANO);
-  SPRAWDZ(konf(p).find("wymiana.maska=2026-11-04") != std::string::npos);
-  SPRAWDZ(p.nvs.tekst("cpap", "sp_model", "") == "2026-11-04");
-  SPRAWDZ(wLogu(p, "nowy model maski 2026-11-04"));
-  // ◀ 2 s po 10 s → cofnięcie: data maski sprzed przytrzymania (3.03 ze starego `wymiana.poduszka`), bez
-  // sp_model, powrót do „Sprzęt”
-  nacisnij(p, 12, 10, Ekran::SPRZET_ZAPISANO, BIT_LEWY, true, 10);
-  drukujLog(p);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET);
-  SPRAWDZ(konf(p).find("wymiana.poduszka=2026-03-01") != std::string::npos);
-  SPRAWDZ(konf(p).find("wymiana.maska=2026-03-01") != std::string::npos);
-  SPRAWDZ(konf(p).find("wymiana.filtr=2026-11-04") != std::string::npos);
-  SPRAWDZ(p.nvs.tekst("cpap", "sp_model", "-") == "-");
-  // drugi raz, potem ▶ (inny przycisk): zapis zostaje, powrót do „Sprzęt”; ↻ = ekran dnia
-  nacisnij(p, 12, 20, Ekran::SPRZET, BIT_SRODEK, true);
+  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(konf(p).find("wymiana.filtr=2026-10-01") != std::string::npos);
+  SPRAWDZ(wLogu(p, "wymiana filtr cofnięta"));
+  // drugi raz, potem ▶ (inny przycisk): zapis zostaje, ekran dnia
+  p.nvs.ustawLiczbeU("cpap", "b16_sk31", EL_FILTR + 1);
+  nacisnij(p, 12, 20, Ekran::DZIEN, BIT_LEWY, true);
   nacisnij(p, 12, 20, Ekran::SPRZET_ZAPISANO, BIT_PRAWY, false, 5);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET && p.nvs.tekst("cpap", "sp_model", "") == "2026-11-04");
-  // upływ 30 s poza nocą → „Sprzęt” (R-MAS-14), nie ekran dnia
-  SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRZET_ZAPISANO, true, 31, 12 * 60) == Ekran::SPRZET);
+  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::DZIEN && konf(p).find("wymiana.filtr=2026-11-04") != std::string::npos);
+  // upływ 30 s poza nocą → ekran dnia (R-MAS-01)
+  SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRZET_ZAPISANO, true, 31, 12 * 60) == Ekran::DZIEN);
   SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::SPRZET_ZAPISANO, true, 20, 12 * 60) == Ekran::SPRZET_ZAPISANO);
   SPRAWDZ(sekundDoPowrotu(Ekran::SPRZET_ZAPISANO, 10, 12 * 60) == 20);
   SPRAWDZ(sekundDoPowrotu(Ekran::SPRZET_ZAPISANO, 10, 2 * 60) == -1);  // 02:10: do 05:00 (R-PRZ-18)
-  // ◀ krótko w „Sprzęt” na pierwszym wierszu → S8 (poprzednia strona); ▶ na ostatnim → U-01
-  nacisnij(p, 12, 30, Ekran::SPRZET, BIT_LEWY, false);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::NORMA);
-  p.nvs.ustawLiczbeU("cpap", "sp_kur", 1);
-  nacisnij(p, 12, 31, Ekran::SPRZET, BIT_PRAWY, false);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::USTAWIENIA);
-  // ◀ z U-01 → „Sprzęt” z kursorem na ostatnim wierszu
-  nacisnij(p, 12, 32, Ekran::USTAWIENIA, BIT_LEWY, false);
-  SPRAWDZ(p.start.stan.ekran == (uint8_t)Ekran::SPRZET && p.nvs.liczbaU("cpap", "sp_kur", 9) == 1);
   // przywrocWymiane: data wraca, "" usuwa wiersz
   ROWNE(sprzet::przywrocWymiane("a=1\nwymiana.maska=2026-11-04\n", EL_MASKA, ""), "a=1\n");
   ROWNE(sprzet::przywrocWymiane("wymiana.maska=2026-11-04\n", EL_MASKA, "2026-01-01"), "wymiana.maska=2026-01-01\n");
@@ -882,6 +858,15 @@ static void testDyrygentSK31() {
   // po wymianie S-K-31 znika, L-09 wstrzymane jeszcze 14 nocy (R-MAS-08); ↻ z ekranu potwierdzenia do ekranu dnia
   nacisnij(p, 7, 32, Ekran::SPRZET_ZAPISANO, BIT_SRODEK, false);
   SPRAWDZ(!wLogu(p, "ekran S-K-31") && p.nvs.liczbaU("cpap", "b16_sk31", 9) == 0);
+}
+
+// R-MAS-18: stopka S-K-35 = stopka S-K-31 (ta sama akcja i zapis), w 744 px. Narysowanie S-K-35 przez dyrygenta
+// w slocie dziennym, zapis `b16_sk31` i ◀ 2 s z zapisem wymiany sprawdza scenariusz symulatora `wymiana-filtra`
+// (slot dzienny potrzebuje importu nocy z AirBridge, tools/test_symulator_scenariusze.py).
+static void testStopkaSK35() {
+  SPRAWDZ(std::string(sprzet::STOPKA_WYMIANY_LEWO) == "◀ 2 s: wymienione dziś");
+  SPRAWDZ(std::string(sprzet::STOPKA_WYMIANY_PRAWO) == "▶ kokpit");
+  SPRAWDZ(szer(F_P22B, std::string(sprzet::STOPKA_WYMIANY_LEWO)) + 24 + szer(F_P22B, std::string(sprzet::STOPKA_WYMIANY_PRAWO)) <= 744);
 }
 
 // R-KONF-42 w dyrygencie: wariant opisowy S-K-10 jako ekran danych rano (R8 przed S-K-13), wartość z
@@ -1342,6 +1327,7 @@ int main() {
   testRysowanie();
   testDyrygentSprzet();
   testDyrygentSK31();
+  testStopkaSK35();
   testDyrygentSK10Opisowy();
   testDyrygentSK30();
   testDyrygentSK17BezZaproszenia();

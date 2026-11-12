@@ -150,7 +150,7 @@ static void start(Panel& p, const sekrety::Dane& zk, uint32_t ep) {
 }
 
 // Użytkownik po wymianie routera: panel skonfigurowany („k”), stara sieć nie istnieje, panel bez danych i bez zegara
-// (U-04). Droga z kartki: ekran dnia ▶ po kolei przez strony kokpitu do U-01 (6 / 6) → ◀ 2 s → U-02. Po każdym
+// (U-04). Droga z kartki: ekran dnia ▶ po kolei przez strony kokpitu do U-01 (3 / 3) → ◀ 2 s → U-02. Po każdym
 // wybudzeniu sieć panelu wyłączona i serwer nie słucha (AP nie przeżywa wybudzenia), generator przy radiu.
 static void drogaBezSieci(Gniazdo& g) {
   Panel p;

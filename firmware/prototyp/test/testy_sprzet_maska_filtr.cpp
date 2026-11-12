@@ -71,13 +71,12 @@ static void szescMiesiecy() {
   SPRAWDZ(u.sprzet[EL_MASKA].okres == 12 && u.bledy.empty());
   u = parsujUstawieniaDnia("okres.poduszka=1\npoduszka=pianka\n");
   SPRAWDZ(u.sprzet[EL_MASKA].okres == 6 && u.bledy.empty());  // pianka (1 mies.) już nie skraca okresu
-  // ekran „Sprzęt”: dwa wiersze
+  // dwa elementy (od ADR-0041 bez ekranu „Sprzęt”: wiek, okres i termin w formularzu U-03, R-MAS-17)
   sprzet::Elementy e;
   e.el[EL_MASKA] = {"2026-04-01", 6, false};
   e.el[EL_FILTR] = {"2026-10-01", 4, true};
-  std::vector<sprzet::WierszSprzetu> w = sprzet::wierszeSprzetu(e, "2026-11-05");
-  SPRAWDZ(w.size() == 2 && w[0].nazwa == "Maska" && w[0].wiek == "7 mies." && w[0].okres == "6 mies." && w[0].poTerminie);
-  SPRAWDZ(w[1].nazwa == "Filtr" && w[1].wiek == "5 tyg." && w[1].okres == "4 tyg." && w[1].poTerminie);
+  SPRAWDZ(wiekElementu(e.el[EL_MASKA], "2026-11-05") == "7 mies." && sprzet::poTerminie(e.el[EL_MASKA], "2026-11-05"));
+  SPRAWDZ(wiekElementu(e.el[EL_FILTR], "2026-11-05") == "5 tyg." && sprzet::poTerminie(e.el[EL_FILTR], "2026-11-05"));
   SPRAWDZ(NAZWY_ELEMENTU[EL_MASKA] == std::string("maska") && NAZWY_ELEMENTU[EL_FILTR] == std::string("filtr") && EL_N == 2);
 }
 

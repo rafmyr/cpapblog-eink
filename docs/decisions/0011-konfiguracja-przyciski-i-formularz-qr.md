@@ -38,3 +38,5 @@ Ekranu „Ustawienia” (U-01) i formularza z pkt 2 w pierwszej wersji beta nie 
 
 Sieć i AirBridge są w NVS panelu (przestrzeń `sekrety`, `firmware/prototyp/src/sekrety.h`); `include/secrets.h` daje tylko wartość początkową. K2 ◀ 2 s otwiera U-01 „Ustawienia panelu” z pozycjami `Test sprzętu` (U-05) i `Więcej na telefonie` (U-03, pkt 2): formularz w domowym Wi-Fi z polami sieci, AirBridge, profilu i dat oraz okresów sprzętu, ten sam mechanizm co raport (token, 15 min, 5 złych żądań, tylko adres prywatny). Nowe dane sieci i AirBridge panel sprawdza przed zapisem; przy błędzie zostają poprzednie. Przełączniki z pkt 1 i pierwsza konfiguracja przez własną sieć panelu (pkt 3) są opisane w specyfikacji 5.6.
 
+
+**Zmiana 2026-11-11 (ADR-0041; bez zmiany decyzji):** strona „Sprzęt” wychodzi z kokpitu; formularz U-03 dostaje pole `Nowy model maski od dziś` (R-MAS-16) i termin następnej wymiany przy datach (R-MAS-17).

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Testy poprawek czytelności kokpitu i ekranów z nim związanych (10.11.2026): legenda `↔ stabilnie` w K1
-// (R-KOK-17), lista do odczytu na U-01 (R-KONF-55), termin wymiany w „Sprzęt” (R-MAS-05, R-MAS-15), powód S-K-01
+// (R-KOK-17), lista do odczytu na U-01 (R-KONF-55), termin wymiany i nowy model maski w formularzu U-03
+// (R-MAS-16, R-MAS-17, ADR-0041), `ocena częściowa` w nagłówku K1 (R-KOK-21), powód S-K-01
 // bez powtórzonej liczby CO2, wizualizacja slotu dziennego przy linii uwagi i podpisy godzin osi (R-KON-63).
 // Uruchomienie: tools/prototyp/testy.sh (program testy_kokpit_legenda_u01_sprzet).
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -10,6 +12,8 @@
 #include "aktualizacja.h"
 #include "ekrany.h"
 #include "ekrany_konfiguracji.h"
+#include "formularz.h"
+#include "stany.h"
 #include "kontekst.h"
 #include "kokpit.h"
 #include "noc.h"
@@ -223,72 +227,180 @@ static void testR_KONF_55_wierszAktualizacjiPodLista() {
     }
 }
 
-// ---------- „Sprzęt”, termin następnej wymiany i podpis ◀ (R-MAS-15) ----------
-// wymaganie: R-MAS-15
-static void testR_MAS_15_terminWymiany() {
+// ---------- termin następnej wymiany w formularzu U-03 (R-MAS-17, od ADR-0041 zamiast „Sprzętu”) ----------
+// wymaganie: R-MAS-17
+static void testR_MAS_17_terminWFormularzu() {
+  // termin przy polu daty w formularzu U-03 (dawna kolumna `następna wymiana` strony „Sprzęt”, ADR-0041)
   sprzet::Elementy e;
-  e.el[EL_MASKA] = {"2026-07-15", 6, false};  // termin 15.01.2027: inny rok niż dziś
+  e.el[EL_MASKA] = {"2026-07-15", 6, false};  // termin 15.01.2027
   e.el[EL_FILTR] = {"2026-10-20", 4, true};   // termin 17.11.2026
-  std::vector<sprzet::WierszSprzetu> w = sprzet::wierszeSprzetu(e, "2026-11-10");
-  ROWNE(w[0].termin, "15.01.2027 · co 6 mies.");
-  ROWNE(w[1].termin, "17.11 · co 4 tyg.");
-  SPRAWDZ(!w[0].bezDaty && !w[1].bezDaty && !w[0].poTerminie && !w[1].poTerminie);
-  // okres i wiek zostają w danych (R-MAS-05)
-  ROWNE(w[0].okres, "6 mies.");
-  ROWNE(w[0].wiek, "3 mies.");
-  // po terminie: `po {data}` w negatywie; w dniu terminu już po terminie (jak sprzet::poTerminie)
-  w = sprzet::wierszeSprzetu(e, "2026-11-17");
-  ROWNE(w[1].termin, "po 17.11 · co 4 tyg.");
-  SPRAWDZ(w[1].poTerminie);
-  e.el[EL_MASKA] = {"2025-03-01", 6, false};  // termin 01.09.2025, rok inny niż dziś
-  w = sprzet::wierszeSprzetu(e, "2026-11-10");
-  ROWNE(w[0].termin, "po 01.09.2025 · co 6 mies.");
-  // bez daty: wiek `–`, termin `brak daty · co …`, podpowiedź pod tabelą (R-MAS-06: nie po terminie)
-  e.el[EL_FILTR] = {"", 4, true};
-  w = sprzet::wierszeSprzetu(e, "2026-11-10");
-  ROWNE(w[1].wiek, "–");
-  ROWNE(w[1].termin, "brak daty · co 4 tyg.");
-  SPRAWDZ(w[1].bezDaty && !w[1].poTerminie);
-  // podpowiedź nazywa element bez daty (ramka może stać na innym wierszu, a ◀ 2 s zapisuje element pod ramką)
-  ROWNE(sprzet::podpowiedzBezDaty(w), "Filtr bez daty: po wymianie ramka na filtrze, ◀ 2 s.");
-  SPRAWDZ(szer(F_P22B, sprzet::podpowiedzBezDaty(w)) <= 744);
-  e.el[EL_MASKA] = {"", 6, true};
-  std::vector<sprzet::WierszSprzetu> oba = sprzet::wierszeSprzetu(e, "2026-11-10");
-  ROWNE(sprzet::podpowiedzBezDaty(oba), "Maska i filtr bez daty: po wymianie ramka na wierszu, ◀ 2 s.");
-  SPRAWDZ(szer(F_P22B, sprzet::podpowiedzBezDaty(oba)) <= 744);
-  e.el[EL_FILTR] = {"2026-10-20", 4, false};
-  ROWNE(sprzet::podpowiedzBezDaty(sprzet::wierszeSprzetu(e, "2026-11-10")), "Maska bez daty: po wymianie ramka na masce, ◀ 2 s.");
-  e.el[EL_MASKA] = {"2025-03-01", 6, false};
-  ROWNE(sprzet::podpowiedzBezDaty(sprzet::wierszeSprzetu(e, "2026-11-10")), "");
-  e.el[EL_FILTR] = {"", 4, true};
-  // najdłuższe wartości w kolumnie od x 300 do 772 (472 px), nagłówek kolumny też
-  for (const char* t : {"po 31.12.2025 · co 12 mies.", "po 31.12.2025 · co 104 tyg.", "brak daty · co 104 tyg.",
-                        "31.12.2027 · co 104 tyg."})
-    SPRAWDZ(szer(F_P24S, t) <= 472);
-  SPRAWDZ(szer(F_P22B, wersaliki("następna wymiana"), 2) <= 472);
-  SPRAWDZ(180 + szer(F_P24S, "104 tyg.") + 12 <= 300);  // wiek nie wchodzi na termin
-  // stopka: ◀ na pierwszym wierszu podpisany celem; obie wersje w 744 px
-  ROWNE(sprzet::stopkaSprzetu(EL_MASKA), "◀ norma · 2 s wymienione   ▶ niżej   ↻ ekran dnia · 2 s nowy model");
-  ROWNE(sprzet::stopkaSprzetu(EL_MASKA, true), "◀ liczby · 2 s wymienione   ▶ niżej   ↻ ekran dnia · 2 s nowy model");
-  ROWNE(sprzet::stopkaSprzetu(EL_FILTR, true), "◀ wyżej · 2 s wymienione   ▶ ustawienia   ↻ ekran dnia");
-  for (int k = 0; k < EL_N; k++)
-    for (bool pub : {false, true}) {
-      std::string st = sprzet::stopkaSprzetu(k, pub);
-      std::vector<std::string> g;
-      for (size_t a = 0; a < st.size();) {
-        size_t b = st.find("   ", a);
-        g.push_back(st.substr(a, b == std::string::npos ? std::string::npos : b - a));
-        a = b == std::string::npos ? st.size() : b + 3;
-      }
-      SPRAWDZ(szerStopki(g) <= 744);
+  ROWNE(sprzet::terminFormularza(e.el[EL_MASKA], "2026-11-10"), "następna wymiana 15.01.2027");
+  ROWNE(sprzet::terminFormularza(e.el[EL_FILTR], "2026-11-17"), "po terminie od 17.11.2026");  // w dniu terminu już po
+  ROWNE(sprzet::terminFormularza(ElementWymiany{"", 4, true}, "2026-11-10"), "brak daty wymiany");  // R-MAS-06
+  formularz::Pola f;
+  f.termin[0] = sprzet::terminFormularza(e.el[EL_MASKA], "2026-11-10");
+  f.termin[1] = sprzet::terminFormularza(ElementWymiany{"", 4, true}, "2026-11-10");
+  std::string html = formularz::strona(f, "/u/x/", "", {});
+  SPRAWDZ(html.find("następna wymiana 15.01.2027") != std::string::npos);
+  SPRAWDZ(html.find("brak daty wymiany") != std::string::npos);
+  // R-MAS-16: pole `Nowy model maski od dziś`, zawsze niezaznaczone
+  SPRAWDZ(html.find("name=\"nowy_model\" value=\"1\">") != std::string::npos);
+  SPRAWDZ(html.find("Nowy model maski od dziś") != std::string::npos);
+  SPRAWDZ(html.find("nowy_model\" value=\"1\" checked") == std::string::npos);
+  // bez terminów (zPliku bez wołającego) bez wiersza terminu
+  SPRAWDZ(formularz::strona(formularz::Pola(), "/u/x/", "", {}).find("następna wymiana") == std::string::npos);
+}
+
+// wymaganie: R-MAS-16
+static void testR_MAS_16_nowyModelWFormularzu() {
+  sekrety::Dane s;
+  formularz::Wynik w = formularz::waliduj({{"nowy_model", "1"}, {"wymiana.maska", "2026-01-01"}}, s, "2026-11-12");
+  SPRAWDZ(w.ok() && w.nowyModelMaski);
+  ROWNE(w.plik["wymiana.maska"], "2026-11-12");  // dziś wygrywa z polem daty
+  SPRAWDZ(w.plik.count("wymiana.poduszka") && w.plik["wymiana.poduszka"].empty());
+  w = formularz::waliduj({{"wymiana.maska", "2026-01-01"}}, s, "2026-11-12");
+  SPRAWDZ(w.ok() && !w.nowyModelMaski);  // bez zaznaczenia norma M-07 bez zmian
+  ROWNE(w.plik["wymiana.maska"], "2026-01-01");
+  w = formularz::waliduj({{"nowy_model", "1"}}, s, "");  // bez daty panelu: odrzucone
+  SPRAWDZ(!w.ok() && !w.nowyModelMaski && w.bledy.count("nowy_model"));
+}
+
+// wymaganie: R-KOK-24
+// wariant b, decyzja właściciela projektu 11.11.2026: krok S8 `→ Pasmo AHI wysokie. Obserwuj kolejne noce.` w K2, gdy jest
+// miejsce. Pomiar we wszystkich trybach przy pełnej tabeli (bez zwiniętych wierszy, R-KOK-18): CPAP i AutoSet mają
+// linię pod legendą, ASV i ASVAuto nie (brak miejsca, wypisane px); pasmo poniżej progu → bez linii.
+static void testR_KOK_24_krokPasmaWK2() {
+  const char* const TRYBY[4] = {"CPAP/9///", "AutoSet/5/13//", "ASV/8///", "ASVAuto/6/10/3/15"};
+  for (int t = 0; t < 4; t++) {
+    std::vector<Noc> h = okno();
+    for (auto& n : h) {
+      n.ustawienia = TRYBY[t];
+      n.oa = 0.4f, n.ca = 0.3f, n.h = 0.3f, n.emed = 7.0f, n.ep95 = 8.0f, n.psmed = 5.0f, n.psp95 = 7.0f;
+      n.m13 = 14.0f, n.m17 = 1;
     }
-  // render: element bez daty → podpowiedź pod tabelą (y 196…226); oba z datą → pusto
-  PlotnoTest p, q;
-  sprzet::rysujSprzet(p, w, 0);
-  SPRAWDZ(p.czarne(28, 200, 772, 232) > 0);
-  e.el[EL_FILTR] = {"2026-10-20", 4, true};
-  sprzet::rysujSprzet(q, sprzet::wierszeSprzetu(e, "2026-11-10"), 0);
-  SPRAWDZ(q.czarne(28, 200, 772, 232) == 0);
+    Norma nm = normaPelna();
+    nm.ahi = nmJest(3.0, 1.2, 5.4);
+    DaneK2 d = budujK2(h, DZIS, nm, {});
+    bool asv = t >= 2;
+    ROWNE(d.krokPasma, asv ? "" : "→ Pasmo AHI wysokie. Obserwuj kolejne noce.");
+    bool zwin[DaneK2::WIERSZE] = {};
+    SPRAWDZ(zwinieteK2(d, zwin).empty());  // pełna tabela: najciaśniejszy układ trybu
+    PlotnoTest p;
+    rysujK2(p, d);
+    int dol = -1;  // najniższy czarny piksel treści nad kreską stopki (434)
+    for (int y = 433; y >= 300 && dol < 0; y--)
+      if (p.czarne(0, y, 800, y + 1)) dol = y;
+    printf("  K2 %s: %d wierszy, treść do y %d, wolne nad stopką %d px%s\n", TRYBY[t], d.wierszy, dol, 433 - dol,
+           d.krokPasma.empty() ? "" : " (z linią kroku)");
+    SPRAWDZ(dol < 432);  // co najmniej 2 px nad kreską stopki
+    if (!asv) {
+      SPRAWDZ(szer(F_P22B, d.krokPasma) <= 744);
+      PlotnoTest q;
+      DaneK2 bez = d;
+      bez.krokPasma.clear();
+      rysujK2(q, bez);
+      SPRAWDZ(p.czarne(0, 400, 800, 432) > q.czarne(0, 400, 800, 432));  // linia jest narysowana
+    } else {
+      SPRAWDZ(433 - dol < 26);  // w ASV bez miejsca na linię P22B (26 px): dlatego bez kroku
+    }
+    nm.ahi = nmJest(3.0, 1.2, 4.9);  // poniżej progu R-EKR-36.p90_ahi (5 / h)
+    SPRAWDZ(budujK2(h, DZIS, nm, {}).krokPasma.empty());
+    nm.ahi = NormaMetryki();  // bez normy AHI (`uczę się`)
+    SPRAWDZ(budujK2(h, DZIS, nm, {}).krokPasma.empty());
+  }
+}
+
+// wymaganie: R-KOK-24
+// wariant c, decyzja właściciela projektu 11.11.2026: przy wysokim paśmie AHI, gdy pełnej linii pod legendą nie ma (ASV,
+// ASVAuto) albo się nie mieści, krótki tekst `→ Pasmo AHI wysokie.` w linii legendy z prawej (wolne x 422–772). Cztery
+// tryby, pełna tabela i tabela z linią `brak danych:` (R-KOK-18): krótki tekst nie nachodzi na legendę (≥ 26 px
+// odstępu) ani na stopkę (nic poniżej y 432), mieści się do prawego marginesu 772; w CPAP i AutoSet z miejscem pod
+// legendą jest tylko pełna linia.
+static void testR_KOK_24_krotkiWLegendzie() {
+  const char* const TRYBY[4] = {"CPAP/9///", "AutoSet/5/13//", "ASV/8///", "ASVAuto/6/10/3/15"};
+  SPRAWDZ(szer(F_P22B, "→ Pasmo AHI wysokie.") <= 772 - 422);
+  for (int t = 0; t < 4; t++)
+    for (int brak = 0; brak < 2; brak++) {
+      std::vector<Noc> h = okno();
+      for (auto& n : h) {
+        n.ustawienia = TRYBY[t];
+        n.oa = 0.4f, n.ca = 0.3f, n.h = 0.3f, n.emed = 7.0f, n.ep95 = 8.0f, n.psmed = 5.0f, n.psp95 = 7.0f;
+        n.m13 = 14.0f, n.m17 = 1;
+      }
+      Norma nm = normaPelna();
+      nm.ahi = nmJest(3.0, 1.2, 5.4);
+      DaneK2 d = budujK2(h, DZIS, nm, {});
+      bool asv = t >= 2;
+      ROWNE(d.krokPasmaKrotki, "→ Pasmo AHI wysokie.");
+      if (brak) {  // ostatni wiersz bez danych: zwinięty do linii `brak danych:` nad legendą (R-KOK-18)
+        WierszK2& w = d.w[d.wierszy - 1];
+        w.pusty = true;
+        if (!*w.nazwaBraku) w.nazwaBraku = "wiersz";
+      }
+      bool zwin[DaneK2::WIERSZE] = {};
+      SPRAWDZ(zwinieteK2(d, zwin).empty() == !brak);
+      PlotnoTest p, q;
+      rysujK2(p, d);
+      DaneK2 bez = d;
+      bez.krokPasmaKrotki.clear();
+      rysujK2(q, bez);
+      int x0 = 800, x1 = -1, y0 = 480, y1 = -1;  // piksele krótkiego tekstu = różnica rysunków
+      for (int y = 0; y < 480; y++)
+        for (int x = 0; x < 800; x++)
+          if (p.px[y * 800 + x] != q.px[y * 800 + x]) x0 = std::min(x0, x), x1 = std::max(x1, x), y0 = std::min(y0, y), y1 = std::max(y1, y);
+      bool krotki = x1 >= 0;
+      printf("  K2 %s%s: %s\n", TRYBY[t], brak ? " z `brak danych:`" : "",
+             krotki ? ("krótki tekst x " + std::to_string(x0) + "–" + std::to_string(x1) + ", y " + std::to_string(y0) + "–" +
+                       std::to_string(y1)).c_str()
+                    : "pełna linia pod legendą");
+      SPRAWDZ(krotki == asv);  // CPAP i AutoSet: miejsce pod legendą jest także z linią `brak danych:`
+      if (!krotki) {
+        SPRAWDZ(!d.krokPasma.empty());
+        continue;
+      }
+      SPRAWDZ(x0 >= 422 && x1 <= 772 && y1 < 432);
+      int leg = -1;  // legenda w tych samych wierszach: najdalszy czarny piksel na lewo od krótkiego tekstu
+      for (int y = y0; y <= y1; y++)
+        for (int x = 0; x < x0; x++)
+          if (q.px[y * 800 + x]) leg = std::max(leg, x);
+      SPRAWDZ(leg > 300 && x0 - leg > 26);  // to linia legendy (`poza twoją normą` kończy się za x 300), odstęp > 26 px
+      // bez wysokiego pasma: bez krótkiego tekstu
+      nm.ahi = nmJest(3.0, 1.2, 4.9);
+      SPRAWDZ(budujK2(h, DZIS, nm, {}).krokPasmaKrotki.empty());
+    }
+}
+
+// wymaganie: R-KOK-21
+static void testR_KOK_21_ocenaWNaglowkuK1() {
+  Stany st;
+  st.ocenaNiepelna = true;
+  ROWNE(ocenaNaglowkaK1(st), "ocena częściowa");
+  st.ostatniaNiepewna = true;  // obie przyczyny: silniejsza (fail-path R-KOK-21)
+  ROWNE(ocenaNaglowkaK1(st), "ocena ograniczona");
+  st.ocenaNiepelna = false;
+  ROWNE(ocenaNaglowkaK1(st), "ocena ograniczona");
+  st.ostatniaNiepewna = false;
+  ROWNE(ocenaNaglowkaK1(st), "");
+  ROWNE(ocenaNaglowkaK1(nullptr), "ocena częściowa");  // bez stanów nic nie jest ocenione
+  // stany bety z liczStany(): punkty warunku uspokojenia nieoceniane → częściowa
+  std::vector<Noc> h = okno();
+  Stany sb = liczStany(h, DZIS, {});
+  SPRAWDZ(sb.ocenaNiepelna);
+  DaneK1 d = budujK1(h, DZIS, normaPelna(), {}, &sb);
+  ROWNE(d.ocena, sb.ostatniaNiepewna ? "ocena ograniczona" : "ocena częściowa");
+  ROWNE(naglowekK1Prawo(d), d.ocena + " · 1 / 3");
+  d.ocena.clear();
+  ROWNE(naglowekK1Prawo(d), "1 / 3");
+  // najdłuższy nagłówek mieści się w 744 px z odstępem
+  SPRAWDZ(szer(F_P24B, "Ostatnia noc · śr 30.12 ◆") + 16 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
+  // render: prawa część nagłówka zaczyna się dalej w lewo przy dopisku (piksele w x 500…640 tylko z dopiskiem)
+  d.ocena = "ocena ograniczona";
+  PlotnoTest a, b;
+  rysujK1(a, d);
+  d.ocena.clear();
+  rysujK1(b, d);
+  int x0 = 772 - szer(F_P22B, "ocena ograniczona · 1 / 3");
+  SPRAWDZ(a.czarne(x0, 14, x0 + 60, 44) > 0 && b.czarne(x0, 14, x0 + 60, 44) == 0);
 }
 
 // ---------- S-K-01 bez trzykrotnej liczby CO2 (5.8.4) ----------
@@ -320,7 +432,11 @@ int main() {
   testR_KOK_17_legenda();
   testR_KONF_55_listaUstawien();
   testR_KONF_55_wierszAktualizacjiPodLista();
-  testR_MAS_15_terminWymiany();
+  testR_MAS_17_terminWFormularzu();
+  testR_MAS_16_nowyModelWFormularzu();
+  testR_KOK_21_ocenaWNaglowkuK1();
+  testR_KOK_24_krokPasmaWK2();
+  testR_KOK_24_krotkiWLegendzie();
   testR_KON_01_powodBezLiczby();
   printf("testy_kokpit_legenda_u01_sprzet: %d dobrze, %d źle\n", ok, zle);
   return zle ? 1 : 0;

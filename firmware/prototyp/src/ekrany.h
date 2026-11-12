@@ -94,7 +94,9 @@ enum class Uklad : unsigned char {
   TYDZIEN,  // S2a i S2c: blok liczb nocy B1, zdanie B4, pasek 4 kolumn z ramką przy kolumnie poza normą
   SERIA,    // S2b: duży numer, `noc z rzędu` / `ponad 4 h` B4, 30 kropek
   ROZRUCH,  // S6: jak OGOLNY z 14 polami postępu
+  PORTRET,  // S11 Portret nocy (5.4.16): tarcza i kolumna z src/portret_ekran.h (TrescEkranu::portret)
 };
+struct DanePortretu;  // src/portret_ekran.h
 
 struct TrescEkranu {
   Uklad uklad = Uklad::OGOLNY;
@@ -132,6 +134,7 @@ struct TrescEkranu {
   // Karta w tonie „problem” (S-K-10, S-K-16, S-K-31; R-HUM-24, EkranDnia::tonProblem z ekranKarty()): jasne tło,
   // czarny pasek nagłówka, etykieta w czarnym polu; budzik zawsze na bieli (ADR-0009). Ekran danych bez zmian.
   bool tonProblem = false;
+  const DanePortretu* portret = nullptr;  // Uklad::PORTRET: dane rysunku (musi żyć do końca rysowania)
 };
 
 // R-HUM-05: tytuł ≤ 2 linie na 748 px, powód ≤ 2 linie i krok 1 linia w kolumnie tekstu karty (SB44, P22B).
@@ -197,8 +200,14 @@ void rysujTest(Plotno& p, const DaneTestu& d);
 // odstęp 26 px, P22B na linii bazowej 465; bez zdania budzika grupy od lewego marginesu, ze zdaniem wyrównane do prawej.
 // Podpisy tylko akcji, które prototyp ma (nawigacja.h); te grupy są też w testach szerokości (≤ 744 px).
 void uporzadkujPrzyciski(std::vector<std::string>& grupy);  // ◀ ▶ ↻ jak przyciski na obudowie
-std::vector<std::string> stopkaK1(bool jestNoc);
-std::vector<std::string> stopkaK2(bool sprawy = true);
+std::vector<std::string> stopkaK1(bool jestNoc, const std::string& wstecz = "");  // wstecz "" = `◀ ekran dnia` (R-POR-24)
+std::vector<std::string> stopkaK2(bool sprawy = true, bool liczby = false);  // 5.5.7 „Stopki stron”
+std::string naglowekK1Prawo(const DaneK1& d);  // R-KOK-21: `[ocena … · ]1 / 3`
+// R-KOK-24: linia kroku pasma AHI w K2 o tyle niżej niż linia bazowa legendy, najniżej na linii bazowej 425 (dolny
+// wydłużnik P22B 6 px nad kreską stopki 434); niżej linia nie jest rysowana (DaneK2::krokPasma tylko poza ASV)
+const int K2_KROK_ODSTEP = 26, K2_KROK_BAZA_MAKS = 425;
+// R-KOK-24 (wariant c: najmniejszy odstęp krótkiego kroku w linii legendy od końca `poza twoją normą` (jak między grupami)
+const int K2_KROK_ODSTEP_LEGENDY = 26;
 std::vector<std::string> stopkaPytania();
 // U-05 (kanwa): lewa grupa `↻ odśwież · 2 s pakiet z karty` (w trybie awaryjnym pusta) i prawa `◀ wróć`.
 std::vector<std::string> stopkaTestu(bool awaryjny = false);
@@ -244,12 +253,15 @@ struct DaneWzorca {
   // jednym wyjątkiem: E-05 krytyczne w dniu pełnego ekranu wzorca A (R-PIE-07) jako ostrzeżenie w ramce ekranu.
   std::string linia;
   bool liniaA = false, liniaOstrzezenie = false;
+  // podpis ▶ w stopce, gdy ▶ nie prowadzi do kokpitu: rano ▶ otwiera stronę Portretu (R-POR-24) → `▶ portret nocy`
+  // (tekst `S11.stopka_dalej`); "" = `▶ kokpit`
+  std::string stopkaDalej;
 };
 const int WZ_X = 28;                           // lewy margines treści (kanwa L03: 28 px)
 int szerTytuluWzorca(bool lekarz);             // miejsce na tytuł w jednej linii (SB44), za znakiem ostrzeżenia
 int szerTresciWzorca(bool lekarz);             // szerokość kolumny tekstu (744)
 extern const char* const ZDANIE_R_LEK_28;      // `Duszność albo ból w klatce? Wezwij pomoc.`
-std::vector<std::string> stopkaWzorca(bool lekarz);
+std::vector<std::string> stopkaWzorca(bool lekarz, const std::string& dalej = "");  // dalej "" = `▶ kokpit` (R-POR-24)
 void rysujWzorzec(Plotno& p, const DaneWzorca& d);
 
 // „Raport dla lekarza” (5.13.6, ADR-0005) w stanie R-LEK-05, dopóki panel nie ma modułu raportu A4 (moduł w wersji pełnej):
@@ -296,9 +308,10 @@ struct DaneSpraw {
   std::string tytul, powod;
   std::string ocena, ty, dalej, koniec;
   std::string dopisek;  // stan pusty, wiersz pod `Ocena:` (R-EKR-50, ocena częściowa)
+  bool liczby = false;  // profil publiczny: przed pierwszą kartą „Co znaczą te liczby” (`◀ liczby`, R-KOK-22)
 };
 const int SPRAWY_X_WARTOSCI = 140;
-std::vector<std::string> stopkaSpraw(int i, int n);
+std::vector<std::string> stopkaSpraw(int i, int n, bool liczby = false);
 void rysujSprawy(Plotno& p, const DaneSpraw& d);
 
 // R-EKR-61 (decyzja właściciela projektu 09.11.2026): ikona aktualizacji przy prawym marginesie

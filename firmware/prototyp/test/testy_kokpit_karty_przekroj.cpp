@@ -119,35 +119,32 @@ static void testK2Kombinacje() {
   printf("  K2: %d kombinacji, %d zwiniętych wierszy razem, najniższy piksel treści nad stopką y %d\n", kombinacji, zwinietych, najnizej);
 }
 
-// (krok S-K-35, mapa 5.6.2): `strona 5 / 6, ramka na filtrze, ◀ 2 s` w obu profilach i bez „Otwartych spraw”:
-// numer strony „Sprzęt” to 5 / 6, wejście ▶ (z S8 albo z „Co znaczą te liczby”) ustawia ramkę na masce, ▶ przesuwa
-// ją na filtr, ◀ 2 s na filtrze zapisuje wymianę (nie nowy model), ↻ 2 s na filtrze nic nie zapisuje.
+// (krok S-K-35, R-MAS-18, ADR-0041): S-K-35 nie prowadzi do strony „Sprzęt” (wycofanej), zapis jest na samym ekranie:
+// ◀ 2 s = „wymienione dziś” elementu z ekranu (kontekst `sk31`) w obu profilach, ze sprawami i bez; krótkie ◀ nic,
+// ↻ 2 s nic nie zapisuje; ▶ z ekranu dnia nigdy nie dochodzi do S8 ani „Sprzęt”.
 static void testDrogaSK35() {
-  sprawdz("krok S-K-35", numerStronyTekst(Ekran::SPRZET) == "5 / 6", "„Sprzęt” nie jest stroną 5 / 6");
+  sprawdz("krok S-K-35", numerStronyTekst(Ekran::SPRZET).empty(), "dawna strona „Sprzęt” ma numer strony");
   for (int pub = 0; pub < 2; pub++)
     for (int sprawy = 0; sprawy < 2; sprawy++) {
       KontekstNaw k;
-      k.wierszySprzetu = EL_N;
       k.profilPubliczny = pub;
       k.sprawyDostepne = sprawy;
-      // od ekranu dnia ▶ aż do „Sprzęt”: liczba stron po drodze nie ma znaczenia, ma dojść
-      Ekran e = Ekran::DZIEN;
-      int krokow = 0;
-      while (e != Ekran::SPRZET && krokow < 12) {
-        Przejscie p = nacisniecie(e, Przycisk::PRAWY, false, k);
-        e = p.ekran;
-        krokow++;
-      }
       std::string o = std::string(pub ? "profil publiczny" : "profil prywatny") + (sprawy ? ", ze sprawami" : ", bez spraw");
-      sprawdz("krok S-K-35", e == Ekran::SPRZET, o + ": ▶ od ekranu dnia nie dochodzi do „Sprzęt”");
-      k.kursorSprzetu = 0;
-      Przejscie dalej = nacisniecie(Ekran::SPRZET, Przycisk::PRAWY, false, k);
-      sprawdz("krok S-K-35", dalej.akcja == Akcja::SPRZET_DALEJ, o + ": ▶ na masce nie przesuwa ramki na filtr");
-      k.kursorSprzetu = 1;
-      Przejscie zap = nacisniecie(Ekran::SPRZET, Przycisk::LEWY, true, k);
-      sprawdz("krok S-K-35", zap.akcja == Akcja::SPRZET_WYMIENIONE, o + ": ◀ 2 s na filtrze nie zapisuje wymiany");
-      Przejscie nm = nacisniecie(Ekran::SPRZET, Przycisk::SRODEK, true, k);
-      sprawdz("krok S-K-35", nm.akcja == Akcja::NIC, o + ": ↻ 2 s na filtrze coś zapisuje");
+      Ekran e = Ekran::DZIEN;
+      for (int krokow = 0; krokow < 12; krokow++) {
+        sprawdz("krok S-K-35", e != Ekran::SPRZET && e != Ekran::NORMA, o + ": ▶ dochodzi do S8 albo „Sprzęt”");
+        Przejscie p = nacisniecie(e, Przycisk::PRAWY, false, k);
+        if (p.ekran == e) break;
+        e = p.ekran;
+      }
+      k.sk31 = true;  // ekran dnia to S-K-35 (albo S-K-31): element zapisany przy rysowaniu
+      Przejscie zap = nacisniecie(Ekran::DZIEN, Przycisk::LEWY, true, k);
+      sprawdz("krok S-K-35", zap.akcja == Akcja::SPRZET_WYMIENIONE && zap.ekran == Ekran::SPRZET_ZAPISANO,
+              o + ": ◀ 2 s na S-K-35 nie zapisuje wymiany");
+      sprawdz("krok S-K-35", nacisniecie(Ekran::DZIEN, Przycisk::LEWY, false, k).akcja == Akcja::NIC,
+              o + ": krótkie ◀ na S-K-35 coś robi");
+      sprawdz("krok S-K-35", nacisniecie(Ekran::DZIEN, Przycisk::SRODEK, true, k).akcja == Akcja::NIC,
+              o + ": ↻ 2 s na S-K-35 coś zapisuje");
     }
 }
 

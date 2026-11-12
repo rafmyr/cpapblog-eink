@@ -422,11 +422,9 @@ std::string nazwaEkranu(const Klatka& k, const std::vector<std::string>& log, Pl
     case Ekran::PRZENIESIONE: return "przeniesione";
     case Ekran::ZAPISANO: return "zapisano";
     case Ekran::RAPORT: return "raport";
-    case Ekran::NORMA: return "norma";             // S8 „Twoja norma”, strona 4 / 6
-    case Ekran::LICZBY: return "liczby";           // „Co znaczą te liczby”
-    case Ekran::SPRZET: return "sprzet";           // „Sprzęt” (5.9.3)
-    case Ekran::SPRZET_ZAPISANO: return "sprzet-zapisano";  // `Nowy model maski zapisany.` (R-MAS-14)
-    case Ekran::USTAWIENIA: return "ustawienia";   // strona 6 / 6
+    case Ekran::LICZBY: return "liczby";           // „Co znaczą te liczby”, bez numeru (R-KOK-22)
+    case Ekran::SPRZET_ZAPISANO: return "sprzet-zapisano";  // `Wymiana zapisana.` (R-MAS-01, R-MAS-18)
+    case Ekran::USTAWIENIA: return "ustawienia";   // strona 3 / 3
     case Ekran::FORMULARZ: return "formularz";     // U-03
     case Ekran::SIEC_PANELU: return "siec-panelu"; // U-02
     default: break;

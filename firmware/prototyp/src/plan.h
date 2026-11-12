@@ -170,6 +170,9 @@ struct WejsciePlanu {
   int przetwarzaOd = -1;
   // powtorekDzis: powtórki R-DANE-62 wykonane dziś (StanRtc::powtorki z dobą powtorkiDoba).
   int powtorekDzis = 0;
+  // Portret nocy (R-POR-04): minuta doby drugiego ekranu poranka (pierwsze narysowanie Portretu + 30 min); -1 = brak.
+  // W tej minucie POWOD_ODSWIEZENIE (przerysowanie ekranu dnia bez Wi-Fi), przed startem slotu dziennego.
+  int drugiEkranPortretu = -1;
 };
 
 // (R-KON-41, R-EKR-60, R-KON-09): koniec slotu dziennego i przerysowań R-EKR-60 (minuta doby) = początek okna
@@ -310,7 +313,7 @@ int zwyklyKoniecTerapii(const std::vector<Noc>& hist, const std::string& dzis);
 // się poprzednie nieprzerwane takie pobranie (-1 = nie było albo chwila nieznana). Zwraca true przy zegarze, w oknie
 // porannym [05:00, 11:00), przy nocy niekompletnej, bez E-01 i odOstatniego < 0 albo
 // >= PLAN_POBRANIE_PRZYCISKIEM_CO_S. Dyrygent pobiera wtedy przerywalnie po wykonaniu akcji przycisku, z poranną
-// decyzją o pytaniu, tylko gdy po akcji stoi ekran dnia albo strona kokpitu `n / 6`
+// decyzją o pytaniu, tylko gdy po akcji stoi ekran dnia albo strona kokpitu
 // i akcja sama nie pobierała, bez pierwszej konfiguracji, sieci panelu, serwera i okna serwisowego.
 bool pobranieRanoPrzyciskiem(const WejsciePlanu& w, long odOstatniego);
 

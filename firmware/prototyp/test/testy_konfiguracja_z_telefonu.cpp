@@ -295,13 +295,11 @@ static void formularzSesja() {
 // ---------- etap 2: mapa przycisków U-01, U-03 ----------
 static void mapaUstawien() {
   KontekstNaw k;
-  // U-01 to strona 6 / 6 kokpitu (po „Sprzęt”), dalej ciąg U-01 ▶ U-03 ▶ U-05
-  k.kursorSprzetu = 1;  // ostatni wiersz „Sprzęt”
-  SPRAWDZ(nacisniecie(Ekran::SPRZET, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);  // R-KONF-02
-  k = KontekstNaw();
+  // U-01 to strona 3 / 3 kokpitu (po K2, „Co znaczą te liczby” albo „Otwartych sprawach”, R-KOK-19), dalej U-03 ▶ U-05
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);  // R-KONF-02
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::SRODEK, false, k).ekran == Ekran::DZIEN);
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::SRODEK, true, k).akcja == Akcja::AKT_SPRAWDZ);  // R-KONF-43: U-07 (aktualizacja z GitHub)
-  SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::LEWY, false, k).ekran == Ekran::SPRZET);   // R-KONF-33
+  SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::LEWY, false, k).ekran == Ekran::K2);   // R-KONF-33 (bez spraw)
   // ◀ 2 s na U-01 = sieć panelu (było „nic”)
   SPRAWDZ(nacisniecie(Ekran::USTAWIENIA, Przycisk::LEWY, true, k).akcja == Akcja::SIEC_PANELU_START);
   // Wi-Fi i serwer formularza (U-03) oraz okno serwisowe (U-05) tylko przytrzymaniem ▶, krótkie ▶ nic
@@ -401,12 +399,11 @@ static void formularzDyrygent() {
   serwer::GniazdoHttp* przed = serwer::gniazdo();
   serwer::ustawGniazdo(&g);
   const std::string sc = "/u/" + tokenAtrapy() + "/";
-  {  // „Sprzęt” (ostatni wiersz) ▶ → U-01 → ▶ U-03: strona, POST pól pliku, 15 min → U-01
+  {  // K2 (bez spraw) ▶ → U-01 (R-KOK-19) → ▶ U-03: strona, POST pól pliku, 15 min → U-01
     PanelP07 t;
     t.p.pliki.pliki["/konfiguracja.txt"] = "co2=nie\nwymiana.rura=2026-01-01\n";
     t.zegarem(9, 0);
-    t.p.start.stan.ekran = (uint8_t)Ekran::SPRZET;
-    t.p.nvs.liczbyU["cpap/sp_kur"] = 1;
+    t.p.start.stan.ekran = (uint8_t)Ekran::K2;
     t.nacisnij(Przycisk::PRAWY, false, 9, 1);
     SPRAWDZ(t.ekran() == Ekran::USTAWIENIA);
     g.doWyslania = {zad("GET", "/"), zad("GET", sc),
@@ -778,6 +775,80 @@ static void siecPaneluDyrygent() {
   serwer::ustawGniazdo(przed);
 }
 
+// (R-MAS-16, R-MAS-19): nowy model maski z formularza w dyrygencie (U-03 i U-02), cofnięcie tego samego
+// dnia, błąd zapisu pliku bez zerowania normy.
+static void nowyModelDyrygent() {
+  GniazdoFormularza g;
+  serwer::GniazdoHttp* przed = serwer::gniazdo();
+  serwer::ustawGniazdo(&g);
+  const std::string sc = "/u/" + tokenAtrapy() + "/";
+  {  // U-03: POST `nowy_model=1` → data maski dziś, `sp_model` = dziś, stan sprzed zapisu w `sp_cof`
+    PanelP07 t;
+    t.p.pliki.pliki["/konfiguracja.txt"] = "wymiana.maska=2026-08-01\n";
+    t.zegarem(9, 0);
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    g.doWyslania = {zad("GET", sc), zad("POST", sc, "nowy_model=1"), zad("GET", sc)};
+    t.nacisnij(Przycisk::PRAWY, true, 9, 3);
+    SPRAWDZ(g.odp.size() == 3);
+    SPRAWDZ(t.p.nvs.teksty["cpap/sp_model"] == "2026-11-05");
+    SPRAWDZ(t.p.nvs.teksty["cpap/sp_cof"] == ";2026-08-01;");
+    SPRAWDZ(zawiera(t.p.pliki.tresc("/konfiguracja.txt"), "wymiana.maska=2026-11-05"));
+    SPRAWDZ(t.log("nowy model maski 2026-11-05 z formularza"));
+    if (g.odp.size() == 3) {
+      SPRAWDZ(!zawiera(g.odp[0].cialo, "nowy_model_cofnij"));  // przed zapisem bez pola cofnięcia
+      SPRAWDZ(zawiera(g.odp[0].cialo, "ustawia datę wymiany maski na dziś"));  // podpowiedź pod polem
+      SPRAWDZ(zawiera(g.odp[2].cialo, "Cofnij nowy model z dziś"));  // po zapisie tego dnia: pole cofnięcia
+      SPRAWDZ(!zawiera(g.odp[2].cialo, "name=\"nowy_model\" value=\"1\" checked"));  // pole wraca do pustego
+    }
+    g.odp.clear();
+    // drugi zapis tego dnia nie nadpisuje stanu sprzed pierwszego
+    g.doWyslania = {zad("POST", sc, "nowy_model=1")};
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    t.nacisnij(Przycisk::PRAWY, true, 9, 30);
+    SPRAWDZ(t.p.nvs.teksty["cpap/sp_cof"] == ";2026-08-01;");
+    g.odp.clear();
+    // cofnięcie: data maski i `sp_model` sprzed dziś, bez `sp_cof`
+    g.doWyslania = {zad("POST", sc, "nowy_model_cofnij=1")};
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    t.nacisnij(Przycisk::PRAWY, true, 10, 0);
+    SPRAWDZ(!t.p.nvs.teksty.count("cpap/sp_model") && !t.p.nvs.teksty.count("cpap/sp_cof"));
+    SPRAWDZ(zawiera(t.p.pliki.tresc("/konfiguracja.txt"), "wymiana.maska=2026-08-01"));
+    SPRAWDZ(t.log("nowy model maski cofnięty (R-MAS-19)"));
+    g.odp.clear();
+    // cofnięcie bez nowego modelu z dziś: nic
+    g.doWyslania = {zad("POST", sc, "nowy_model_cofnij=1")};
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    t.nacisnij(Przycisk::PRAWY, true, 10, 30);
+    SPRAWDZ(t.log("brak nowego modelu maski z dziś do cofnięcia"));
+    SPRAWDZ(zawiera(t.p.pliki.tresc("/konfiguracja.txt"), "wymiana.maska=2026-08-01"));
+    g.odp.clear();
+  }
+  {  // błąd zapisu pliku: bez `sp_model` (norma M-07 nie zerowana przy starej dacie po restarcie)
+    PanelP07 t;
+    t.p.pliki.pliki["/konfiguracja.txt"] = "wymiana.maska=2026-08-01\n";
+    t.zegarem(9, 0);
+    t.p.pliki.odmawiaZapisuPod = "/konfiguracja.txt";
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    g.doWyslania = {zad("POST", sc, "nowy_model=1")};
+    t.nacisnij(Przycisk::PRAWY, true, 9, 3);
+    SPRAWDZ(!t.p.nvs.teksty.count("cpap/sp_model"));
+    SPRAWDZ(t.log("nowy model maski bez zerowania normy"));
+    g.odp.clear();
+  }
+  {  // U-02 (sieć panelu, zapiszPlikFormularzaP07): ten sam zapis nowego modelu
+    PanelP07 t;
+    t.p.pliki.pliki["/konfiguracja.txt"] = "wymiana.maska=2026-08-01\n";
+    t.zegarem(9, 0);
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    g.doWyslania = {zad("POST", sc, "nowy_model=1")};
+    skrypt(t, {}, 9, 1);
+    SPRAWDZ(t.p.nvs.teksty["cpap/sp_model"] == "2026-11-05" && t.p.nvs.teksty["cpap/sp_cof"] == ";2026-08-01;");
+    SPRAWDZ(zawiera(t.p.pliki.tresc("/konfiguracja.txt"), "wymiana.maska=2026-11-05"));
+    g.odp.clear();
+  }
+  serwer::ustawGniazdo(przed);
+}
+
 int main() {
   sekretyLogika();
   panelWlasciciela();
@@ -789,6 +860,7 @@ int main() {
   formularzDyrygent();
   siecPaneluMapa();
   siecPaneluDyrygent();
+  nowyModelDyrygent();
   printf("testy_konfiguracja_z_telefonu: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

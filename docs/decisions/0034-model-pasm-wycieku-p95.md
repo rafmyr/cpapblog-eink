@@ -48,3 +48,7 @@ Właściciel projektu wybrał 08.11.2026 wariant: nie podważać 15 L/min, doło
 ## Zmiana 2026-11-10
 
 E-23 (pasmo od 27 L/min) ma tytuł `Wyciek w nocy ponad próg` bez liczby, a powód podaje P95 tej nocy i próg (`{x} l/min lub więcej przez 5% czasu terapii, próg 27.`); wcześniej tytuł z progiem pokazywał 27 przy nocy z P95 38. Pasma i progi bez zmian. Tytuł nie używa słowa „duży”: „duży wyciek” to w spec 4.9 i R-DANE-23 osobny warunek (ponad 24 L/min przez ≥ 30 min albo 10% czasu, E-20, noc niepewna), a noc z P95 ≥ 27 (ok. 5% czasu) nie musi go spełniać; konsultacja kliniczna (przegląd CPAP i AutoSet, pkt 9) prosił też, by 27 L/min nie nazywać „bardzo dużym”.
+
+## Zmiana 2026-11-11 (ADR-0040; bez zmiany decyzji)
+
+Portret nocy rysuje biały odcinek pierścienia, gdy P95 wycieku odcinka 5 min jest ≥ `R-NOR-05.niepewna_p95` (15 L/min); to ten sam próg, użyty na odcinku zamiast nocy, jako znak rysunku, nie ocena (spec 5.4.16, R-POR-08). Podpis `Wyciek przez {n} min` i legenda `wyciek od 15 l/min`.

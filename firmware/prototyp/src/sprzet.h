@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Moduł SPRZĘT (spec 5.9; elementy tylko maska i filtr): wiek elementów i termin wymiany, zapis wymiany, S-K-31 „Maska
 // się zużywa”, S-K-32 „Nowa maska działa”, pytanie `Wymieniona maska?` (R-MAS-12, R-MAS-13), licznik pokazań
-// S-K-31 i blokada L-09 przy elemencie po terminie (R-MAS-03, R-MAS-08, R-MAS-10), ekran „Sprzęt” (5.9.3).
+// S-K-31 i blokada L-09 przy elemencie po terminie (R-MAS-03, R-MAS-08, R-MAS-10), termin wymiany do formularza U-03
+// (R-MAS-17; ekran „Sprzęt” 5.9.3 wycofany w ADR-0041).
 // Bez Arduino.
 //
 // Dane: daty wymiany i okresy z `/konfiguracja.txt` (src/slot_dzienny.h UstawieniaDnia; zapis wymiany dopisuje
@@ -114,27 +115,17 @@ WynikPytaniaPoduszki ocenPytaniePoduszki(const WejscieSprzetu& w, const std::vec
 // ---------- zapis wymiany (R-MAS-01) ----------
 // Nowa treść `/konfiguracja.txt`: wiersz `wymiana.{element}=data` zastąpiony albo dopisany; reszta bez zmian.
 std::string zapiszWymiane(const std::string& konfiguracja, int element, const std::string& data);
-// Cofnięcie (R-MAS-14): data sprzed zapisu; "" = wiersz `wymiana.{element}` usunięty (element znów bez daty, R-MAS-06).
+// Cofnięcie (R-MAS-01): data sprzed zapisu; "" = wiersz `wymiana.{element}` usunięty (element znów bez daty, R-MAS-06).
 std::string przywrocWymiane(const std::string& konfiguracja, int element, const std::string& data);
 
-// ---------- ekran „Sprzęt” (5.9.3, R-MAS-05) ----------
-struct WierszSprzetu {
-  std::string nazwa, wiek, okres;  // `Maska` · `7 mies.` · `6 mies.`; `Filtr` · `5 tyg.` · `4 tyg.`
-  // kolumna `następna wymiana` (R-MAS-15): `{data} · co {okres}`, po terminie `po {data} · co {okres}`, bez daty
-  // wymiany `brak daty · co {okres}`; data `DD.MM`, z rokiem `DD.MM.RRRR`, gdy termin wypada w innym roku niż dziś
-  std::string termin;
-  bool poTerminie = false;
-  bool bezDaty = false;  // element bez zapisanej daty wymiany (R-MAS-06): pod tabelą podpowiedź, jak ją zapisać
-};
-std::vector<WierszSprzetu> wierszeSprzetu(const Elementy& e, const std::string& dzis);
-// Podpowiedź pod tabelą, gdy któryś element nie ma daty wymiany (R-MAS-15): nazywa element bez daty i miejsce
-// ramki, bo ◀ 2 s zapisuje wymianę elementu pod ramką, a ramka może stać na innym wierszu, np.
-// `Filtr bez daty: po wymianie ramka na filtrze, ◀ 2 s.`; przy obu elementach bez daty
-// `Maska i filtr bez daty: po wymianie ramka na wierszu, ◀ 2 s.`; "" = każdy element ma datę.
-std::string podpowiedzBezDaty(const std::vector<WierszSprzetu>& w);
-// Stopka zależy od kursora (maska: `↻ 2 s nowy model`); ◀ na pierwszym wierszu podpisany nazwą strony, do której
-// prowadzi: `◀ norma` (S8), w profilu publicznym `◀ liczby` („Co znaczą te liczby”, R-EKR-51).
-std::string stopkaSprzetu(int kursor, bool profilPubliczny = false);
-void rysujSprzet(Plotno& p, const std::vector<WierszSprzetu>& w, int kursor, bool profilPubliczny = false);
+// ---------- termin wymiany w formularzu U-03 (R-MAS-17) ----------
+// Od ADR-0041 bez strony „Sprzęt” w kokpicie: termin następnej wymiany (data wymiany + okres z 5.9.2) stoi przy polu
+// daty w formularzu: `następna wymiana {DD.MM.RRRR}`, po terminie `po terminie od {DD.MM.RRRR}`, bez daty
+// `brak daty wymiany` (R-MAS-06).
+std::string terminFormularza(const ElementWymiany& e, const std::string& dzis);
+// Stopka ekranów z zapisem „wymienione dziś” (S-K-31, R-MAS-01; S-K-35, R-MAS-18): ta sama akcja, ten sam podpis,
+// kolejność ◀ ▶ (5.6.1 pkt 6, R-PRZ-04).
+extern const char* const STOPKA_WYMIANY_LEWO;   // `◀ 2 s: wymienione dziś`
+extern const char* const STOPKA_WYMIANY_PRAWO;  // `▶ kokpit`
 
 }  // namespace sprzet

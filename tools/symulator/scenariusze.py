@@ -208,9 +208,9 @@ def _autoset(w):
 
 # ---------- przyciski ----------
 def przejscie_ekranow(chwila):
-    """Naciśnięcia, które pokazują K1, K2 i do pięciu kart „Otwarte sprawy”, potem powrót do ekranu dnia (mapa
-    5.6.2): ▶ z ekranu dnia → K1 (także z ekranu L; raport dla lekarza z L to ▶ 2 s), ▶ → K2, ▶ → Otwarte sprawy,
-    ▶ → następna karta (za ostatnią S8 i „Sprzęt”), ↻ → ekran dnia. Co 4 s, czyli w czuwaniu 20 s po poprzednim
+    """Naciśnięcia, które pokazują K1, K2, do pięciu kart „Otwarte sprawy” (tylko przy sprawie, R-KOK-19) i U-01, potem
+    powrót do ekranu dnia (mapa 5.6.2): ▶ z ekranu dnia → K1 (także z ekranu L; raport dla lekarza z L to ▶ 2 s), ▶ → K2, ▶ → Otwarte sprawy,
+    ▶ → następna karta (za ostatnią U-01, ADR-0041), ↻ → ekran dnia. Co 4 s, czyli w czuwaniu 20 s po poprzednim
     naciśnięciu."""
     k = [("prawy", 4 * i) for i in range(7)] + [("srodkowy", 28)]
     return [f"{chwila + dt.timedelta(seconds=s):%Y-%m-%dT%H:%M:%S} {p}" for p, s in k]
@@ -351,7 +351,8 @@ def _zwykly_dzien(p, s, w):
     p.oczekiwane += [("ekran", "dzien-SK3", "slot dzienny (S-K-33…S-K-38) z atrapą prognozy",
                       (("log", "slot dzienny: S-K-3"),)),
                      ("ekran", "K1", "kokpit K1 z Twoją ostatnią nocą", (("syntetyczna", False),)),
-                     ("ekran", "sprawy", "Otwarte sprawy", ())]
+                     ("ekran", "ustawienia", "▶ po stronach kokpitu do U-01 `3 / 3` („Otwarte sprawy” po drodze tylko "
+                      "przy sprawie, R-KOK-19)", ())]
 
 
 # ---------- scenariusze ekranów ----------
@@ -393,17 +394,17 @@ def _sprzet(p, s, w):
     # noce z wyciekiem niższym o ponad 8 L/min od mediany 14 poprzednich: pytanie `Wymieniona maska?` (R-MAS-12)
     # (po 5. takiej nocy L-09 już nie ma warunku: M-07 > 24 L/min w 9 z 14 nocy, więc ekran L nie wypiera pytania)
     p.noce += [noc(_dni(s, n + i), w, wp95=9.5, wmed=2.5, m08=0.0) for i in range(7)]
-    d_sk31, d_pyt, d_akcja = _dni(s, n - 1), _dni(s, n + 4), _dni(s, n + 5)
+    # S-K-31 ma limit raz na 7 dni (7.4), więc ◀ 2 s pada na drugi dzień z S-K-31 (n − 4), nie na ostatni dzień wzrostu
+    d_sk31, d_pyt, d_akcja = _dni(s, n - 4), _dni(s, n + 4), _dni(s, n + 5)
     p.od, p.do = _rano(_dni(s, 3)), _rano(_dni(s, n + 6), 12)
-    # dzień S-K-31: ▶ po stronach kokpitu do „Sprzęt” (`do:sprzet`, liczba kart spraw zależy od danych; maska po
-    # terminie w negatywie) → ↻ ekran dnia
-    p.przyciski += _sekwencja(_t(d_sk31, 7, 30), ["prawy do:sprzet", "srodkowy"])
+    # dzień S-K-31: ◀ 2 s na S-K-31 „wymienione dziś” (ekran `Wymiana zapisana.` z cofnięciem, R-MAS-01), ◀ 2 s cofnij
+    # (data maski sprzed zapisu, więc pytanie `Wymieniona maska?` dalej może wejść), potem ▶ po stronach kokpitu do U-01
+    # (`1 / 3` … `3 / 3`, od ADR-0041 bez strony „Sprzęt”) i ↻ ekran dnia
+    p.przyciski += _sekwencja(_t(d_sk31, 7, 30), ["lewy 2s", "lewy 2s", "prawy do:ustawienia", "srodkowy"])
     p.przyciski.append(f"{_t(d_pyt, 7, 30):%Y-%m-%dT%H:%M:%S} prawy")  # ▶ tak na `Wymieniona maska?`
-    # dzień później: „Sprzęt” (kursor na masce po wejściu ▶, dwa elementy), ◀ 2 s wymienione dziś (ekran
-    # `Wymiana zapisana.` z cofnięciem), ◀ 2 s cofnij wymianę, ↻ 2 s nowy model → R-MAS-14, ◀ 2 s cofnij, ↻ 2 s nowy
-    # model jeszcze raz (zostaje), po 30 s panel sam wraca
-    p.przyciski += _sekwencja(_t(d_akcja, 7, 30), ["prawy do:sprzet", "lewy 2s", "lewy 2s", "srodkowy 2s", "lewy 2s",
-                                                   "srodkowy 2s"])
+    # dzień później: kokpit do U-01 i z powrotem (nowy model maski i daty wymiany są od ADR-0041 w formularzu U-03,
+    # R-MAS-16, R-MAS-17; formularza symulator nie wypełnia, pokazują go testy formularza)
+    p.przyciski += _sekwencja(_t(d_akcja, 7, 30), ["prawy do:ustawienia", "srodkowy"])
     p.oczekiwane += [
         ("ekran", "dzien-SK31", "„Maska się zużywa” (S-K-31) na ekranie dnia: maska po terminie, wyciek rośnie",
          (("log", "ekran S-K-31"),)),
@@ -411,17 +412,34 @@ def _sprzet(p, s, w):
          "terminie, w log-panelu.txt `L-09 wstrzymane`)", ()),
         ("dni_przed", "dzien-SK31", "pełny ekran L-09 dopiero po dniach z S-K-31, gdy spadek wycieku kasuje warunek "
          "S-K-31", (("przed", "dzien-wzorzec-L-09"), ("min", 1))),
-        ("ekran", "sprzet", "„Sprzęt” (strona 5 / 6, ▶ po stronach kokpitu): maska po terminie w negatywie, filtr bez "
-         "daty, bez rury i komory", ()),
+        ("ekran", "ustawienia", "▶ po stronach kokpitu: „Ustawienia panelu” `3 / 3` (bez strony „Sprzęt”, ADR-0041)", ()),
         ("ekran", "dzien-pytanie-poduszka", "pytanie „Wymieniona maska?” po spadku wycieku (R-MAS-12)",
          (("log", "ekran dnia: pytanie poduszka"),)),
         ("ekran", "zapisano", "▶ tak na „Wymieniona maska?”: „Zapisano”", (("log", "poduszka;tak"),)),
-        ("log", "sprzęt: wymiana maska", "◀ 2 s w „Sprzęt”: maska „wymienione dziś” (R-MAS-01), ekran `Wymiana zapisana.`", ()),
-        ("log", "sprzęt: wymiana maska cofnięta", "◀ 2 s cofnij na `Wymiana zapisana.`: data maski sprzed zapisu", ()),
-        ("ekran", "sprzet-zapisano", "„Nowy model maski zapisany.” z ◀ 2 s cofnij przez 30 s (R-MAS-14)", ()),
-        ("log", "sprzęt: nowy model maski cofnięty", "◀ 2 s cofnij na R-MAS-14 przywraca datę maski i normę", ()),
-        ("linia", "Nowy model maski. Uczę się normy.", "następnego ranka linia `Nowy model maski. Uczę się normy.` "
-         "(R-MAS-11)", ())]
+        ("log", "sprzęt: wymiana maska", "◀ 2 s na S-K-31: maska „wymienione dziś” (R-MAS-01), ekran `Wymiana zapisana.`", ()),
+        ("ekran", "sprzet-zapisano", "`Wymiana zapisana.` z ◀ 2 s cofnij przez 30 s (R-MAS-01)", ()),
+        ("log", "sprzęt: wymiana maska cofnięta", "◀ 2 s cofnij na `Wymiana zapisana.`: data maski sprzed zapisu", ())]
+
+
+def _wymiana_filtra(p, s, w):
+    """R-MAS-18 (ADR-0041): filtr z terminem wymiany drugiego dnia (data wymiany 28 dni wcześniej, okres 4 tyg.; S-K-35
+    od 7 dni przed terminem): pierwszego dnia w slocie dziennym S-K-35 `Wymiana: filtr.` ze stopką jak S-K-31
+    (`◀ 2 s: wymienione dziś`, `▶ kokpit`); ◀ 2 s (próby od 7:00 do 18:30) zapisuje wymianę przez `Wymiana zapisana.` (element z ekranu,
+    bez strony „Sprzęt”)."""
+    for i in range(3):
+        p.noce.append(noc(_dni(s, i), w))
+    d = _dni(s, 1)
+    p.konfiguracja += [f"wymiana.filtr={_dni(d, -28).isoformat()}", f"wymiana.maska={_dni(s, -30).isoformat()}"]
+    p.od, p.do = _rano(_dni(s, 0)), _rano(d, 14)
+    # ◀ 2 s co 2 h od 7:00 do 19:00: z prognozą i obrazkami dnia (S-K-33, S-K-38 mają pierwszeństwo, 7.2 część
+    # „Dzień”) S-K-35 przychodzi później, nawet wieczorem; na innych ekranach slotu ◀ 2 s nic nie robi
+    for g in (7, 9, 11, 13, 15, 17):
+        p.przyciski += _sekwencja(_t(s, g, 0), ["lewy 2s"])
+    p.przyciski += _sekwencja(_t(s, 18, 30), ["lewy 2s"])
+    p.oczekiwane += [
+        ("log", "slot dzienny: S-K-35 filtr", "S-K-35 `Wymiana: filtr.` w slocie dziennym, ◀ 2 s zapisuje (R-MAS-18)", ()),
+        ("ekran", "sprzet-zapisano", "◀ 2 s na S-K-35: `Wymiana zapisana.` z ◀ 2 s cofnij (R-MAS-01, R-MAS-18)", ()),
+        ("log", "sprzęt: wymiana filtr", "data wymiany filtra = dziś w /konfiguracja.txt", ())]
 
 
 ZUZYCIE_NOCE = 26  # nocy rosnącego wycieku w scenariuszu `sprzet-zuzycie` [stała symulatora]
@@ -641,9 +659,9 @@ def _odkrycia(p, s, w):
     p.od, p.do = _rano(_dni(s, h)), _rano(_dni(s, h + ODKRYCIA_DNI - 1), 12)
     for i in range(ODKRYCIA_DNI):
         # 05:10 (odkrycie jest na ekranie dnia od 05:00 do slotu dziennego o 05:30, R-KON-56): ▶ K1 z pełnym tytułem
-        # odkrycia (R-CZY-20), ↻ ekran dnia; 07:30: ▶ po stronach do S8 „Twoja norma” (`do:norma`), ▶ „Sprzęt”, ↻
+        # odkrycia (R-CZY-20), ↻ ekran dnia; 07:30: ▶ po stronach do U-01 (`3 / 3`, ADR-0041), ↻
         p.przyciski += _sekwencja(_t(_dni(s, h + i), 5, 10), ["prawy", "srodkowy"])
-        p.przyciski += _sekwencja(_t(_dni(s, h + i), 7, 30), ["prawy do:norma", "prawy", "srodkowy"])
+        p.przyciski += _sekwencja(_t(_dni(s, h + i), 7, 30), ["prawy do:ustawienia", "srodkowy"])
     p.oczekiwane += [
         ("ekran", "dzien-odkrycie-O-12", "odkrycie „Po alkoholu: wyższe AHI” (O-12, S1) z przeglądu tygodnia",
          (("log", "ekran dnia: odkrycie O-12"),)),
@@ -652,27 +670,27 @@ def _odkrycia(p, s, w):
         ("ekran", "K1", "▶ z ekranu dnia z odkryciem O-12: K1 z pełnym tytułem odkrycia (R-CZY-20)",
          (("dzien_z", "dzien-odkrycie-O-12"),)),
         ("ekran", "dzien-S7", "podsumowanie poprzedniego miesiąca 1. dnia miesiąca (S7)", (("log", "ekran dnia: S7"),)),
-        ("ekran", "norma", "„Twoja norma” (S8), strona 4 / 6 kokpitu (▶ po stronach)", ())]
-    # „Co znaczą te liczby” (R-EKR-51) jest tylko w profilu publicznym; ten scenariusz zostaje w prywatnym
-    # (▶ na S8 → „Sprzęt”), ekran pokazuje scenariusz `profil-publiczny` albo opcja --profil-publiczny
+        ("ekran", "ustawienia", "▶ po stronach kokpitu do „Ustawień panelu” `3 / 3` (bez S8 i „Sprzętu”, ADR-0041)", ())]
+    # „Co znaczą te liczby” (R-KOK-22) jest tylko w profilu publicznym; ten scenariusz zostaje w prywatnym,
+    # ekran pokazuje scenariusz `profil-publiczny` albo opcja --profil-publiczny
 
 
 def _profil_publiczny(p, s, w):
     # `profil=publiczny` w /konfiguracja.txt scenariusza (5.6.4). 7 nocy z AHI 13/h: od 4. ranka pełny ekran E-30
     # z tymi samymi tekstami co w profilu prywatnym (AHI i PM2.5 w obu profilach, decyzje 04.11.2026, 5.4.14);
-    # ostatniego ranka o 7:30 ▶ po stronach do S8 „Twoja norma”, ▶ „Co znaczą te liczby” (R-EKR-51), ◀ S8, ↻
+    # ostatniego ranka o 7:30 ▶ po stronach do „Co znaczą te liczby” (po K2, bez numeru, R-KOK-22), ◀ K2, ▶ znowu, ↻
     p.konfiguracja.append("profil=publiczny")
     for i in range(7):
         p.noce.append(noc(_dni(s, i), w, oa=8.5, ca=0.5, h=4.5))
     p.od, p.do = _rano(_dni(s, 3)), _rano(_dni(s, 6), 12)
-    p.przyciski += _sekwencja(_t(_dni(s, 6), 7, 30), ["prawy do:norma", "prawy", "lewy", "srodkowy"])
+    p.przyciski += _sekwencja(_t(_dni(s, 6), 7, 30), ["prawy do:liczby", "lewy", "prawy", "srodkowy"])
     p.oczekiwane += [
         ("log", "konfiguracja: profil publiczny", "profil publiczny z /konfiguracja.txt (5.6.4)", ()),
         ("ekran", "dzien-zdarzenie-E-30", "pełny ekran E-30 w profilu publicznym: `Noce z AHI powyżej 5` jak w "
          "prywatnym (AHI w obu profilach, 5.4.14)", (("log", "ekran dnia: zdarzenie E-30"),
                                                      ("log", "konfiguracja: profil publiczny"))),
-        ("ekran", "norma", "„Twoja norma” (S8, strona 4 / 6) ze stopką `▶ co znaczą liczby`", ()),
-        ("ekran", "liczby", "▶ na S8: „Co znaczą te liczby” (R-EKR-51)", (("dzien_z", "norma"),))]
+        ("ekran", "K2", "K2 `2 / 3` ze stopką `▶ liczby · 2 s raport`", ()),
+        ("ekran", "liczby", "▶ w K2: „Co znaczą te liczby”, bez numeru strony (R-KOK-22)", ())]
 
 
 # okazje ze stałą datą, których karta z warunkiem jest pochwalna i wchodzi przy zdrowych nocach (5.7.6): G08 23.09,
@@ -715,8 +733,8 @@ def _przerywniki(p, s, w):
 
 def _nawigacja(p, s, w):
     """(nowa nawigacja, decyzja 05.11.2026, spec 5.6.1): trzy zdrowe noce po rozbiegu, trzeciego ranka cały
-    ciąg stron kokpitu ▶ od ekranu dnia do „Ustawień” (`1 / 6` … `6 / 6`), potem ◀ po kolei z powrotem do ekranu dnia,
-    ◀ i ↻ na ekranie dnia (nic), ▶ do „Sprzęt” i ↻ prosto do ekranu dnia, na koniec ▶ do K2, ▶ 2 s raport ogólny, ◀ wraca
+    ciąg stron kokpitu ▶ od ekranu dnia do „Ustawień” (`1 / 3` … `3 / 3`, ADR-0041), potem ◀ po kolei z powrotem do ekranu
+    dnia, ◀ i ↻ na ekranie dnia (nic), ▶ do U-01 i ↻ prosto do ekranu dnia, na koniec ▶ do K2, ▶ 2 s raport ogólny, ◀ wraca
     do K2, ↻ ekran dnia. Bez U-03 i U-05 (dochodzi się do nich tylko ▶ 2 s z U-01 i z U-03, bo włączają Wi-Fi;
     formularz i okno serwisowe trzymają panel w czuwaniu 10–15 min, pokazują je `testy_nawigacja` i podgląd). W `spis.txt` przy każdym obrazku przycisk, który go dał."""
     for i in range(3):
@@ -724,14 +742,12 @@ def _nawigacja(p, s, w):
     d = _dni(s, 2)
     p.od, p.do = _rano(d), _rano(d, 12)
     p.przyciski += _sekwencja(_t(d, 7, 30), ["prawy do:ustawienia", "lewy do:dzien", "lewy", "srodkowy",
-                                            "prawy do:sprzet", "srodkowy", "prawy do:K2", "prawy 2s", "lewy",
+                                            "prawy do:ustawienia", "srodkowy", "prawy do:K2", "prawy 2s", "lewy",
                                             "srodkowy"], odstep=5)
     p.oczekiwane += [
-        ("ekran", "K1", "▶ z ekranu dnia: K1, strona 1 / 6", ()),
-        ("ekran", "K2", "▶: K2, strona 2 / 6", ()),
-        ("ekran", "norma", "▶ po stronach: „Twoja norma” (S8), strona 4 / 6", ()),
-        ("ekran", "sprzet", "▶: „Sprzęt”, strona 5 / 6 (▶ przesuwa kursor, za filtrem U-01)", ()),
-        ("ekran", "ustawienia", "▶ na filtrze: „Ustawienia panelu”, strona 6 / 6", ()),
+        ("ekran", "K1", "▶ z ekranu dnia: K1, strona 1 / 3 (`ocena częściowa · 1 / 3`, R-KOK-21)", ()),
+        ("ekran", "K2", "▶: K2, strona 2 / 3", ()),
+        ("ekran", "ustawienia", "▶ (bez spraw): „Ustawienia panelu”, strona 3 / 3", ()),
         ("ekran", "raport", "▶ 2 s w K2: raport ogólny dla lekarza", ())]
 
 
@@ -754,7 +770,7 @@ def _nowy_pacjent(oa, h, wp95, oczekiwane):
 # nazwa → (funkcja, opis jednym zdaniem: co ma się pojawić i kiedy; rozbieg?)
 SCENARIUSZE = {
     "zwykly-dzien": (_zwykly_dzien, "Twój ostatni poranek ze zrzutu bez wymyślonych nocy: ekran dnia, slot dzienny z prognozą "
-                     "od godziny po imporcie nocy, obrazek dnia (z --obrazki), o 7:30 K1, K2 i Otwarte sprawy (▶ po kolei).", False),
+                     "od godziny po imporcie nocy, obrazek dnia (z --obrazki), o 7:30 K1, K2, Otwarte sprawy (gdy są) i U-01 (▶ po kolei).", False),
     "przerywniki": (_przerywniki, "Po rozbiegu zdrowe noce (AHI 1,2, 7 h 30) do najbliższej okazji z kartą pochwalną (23.09, 25.12, 1.01): co 7 dni w dniu dowodu spokoju przerywnik S2d bez etykiety, "
                     "karta z warunkiem (noc spełnia warunek sceny) albo neutralna, w dniu okazji karta z warunkiem; ekran problemu, wzorzec lekarski i linia "
                     "uwagi mają pierwszeństwo (R-HUM-29).", True),
@@ -782,11 +798,13 @@ SCENARIUSZE = {
             "dzień, R-PIE-10).", True),
     "sprzet": (_sprzet, "Maska ponad 6 miesięcy od wymiany (/konfiguracja.txt scenariusza, z ignorowanym wierszem rury), po rozbiegu 14 nocy "
                "z wyciekiem P95 rosnącym od 24,5 do 26,6 L/min i dużym wyciekiem M-08: ekran „Maska się zużywa” "
-               "(S-K-31), L-09 wstrzymane, dopóki S-K-31 ma warunek (R-MAS-03); ▶ po stronach do „Sprzęt” (5 / 6); potem 7 nocy "
+               "(S-K-31) z ◀ 2 s „wymienione dziś” i ◀ 2 s cofnij, L-09 wstrzymane, dopóki S-K-31 ma warunek (R-MAS-03); potem 7 nocy "
                "po 9,5 L/min: L-09 wychodzi, bo spadek wycieku kasuje warunek S-K-31, a po 5. nocy pytanie "
-               "„Wymieniona maska?” (▶ tak); dzień później w „Sprzęt” (kursor na masce) ◀ 2 s „wymienione dziś”, ↻ 2 s "
-               "„nowy model maski” z ekranem R-MAS-14 i ◀ 2 s cofnij, jeszcze raz ↻ 2 s; następnego ranka linia "
-               "`Nowy model maski. Uczę się normy.`", True),
+               "„Wymieniona maska?” (▶ tak); dzień później ▶ po stronach kokpitu do U-01 `3 / 3` (od ADR-0041 bez strony "
+               "„Sprzęt”; daty i nowy model maski w formularzu U-03).", True),
+    "wymiana-filtra": (_wymiana_filtra, "Trzy zdrowe noce, filtr z terminem wymiany drugiego dnia: w slocie dziennym "
+                       "S-K-35 `Wymiana: filtr.` ze stopką `◀ 2 s: wymienione dziś` i `▶ kokpit`, ◀ 2 s (próby od 7:00 do 18:30) zapisuje "
+                       "wymianę (`Wymiana zapisana.`, R-MAS-18).", True),
     "sprzet-zuzycie": (_sprzet_zuzycie, "Maska po terminie, po rozbiegu 26 nocy z wyciekiem P95 rosnącym od 24,5 "
                        "do 26,9 L/min bez przerwy: S-K-31 „Maska się zużywa” raz na 7 dni (3 razy), L-09 „Wyciek nie "
                        "ustępuje” wstrzymane, a gdy norma dogoni wyciek, S-K-31 traci warunek i L-09 wychodzi; "
@@ -816,16 +834,16 @@ SCENARIUSZE = {
     "odkrycia": (_odkrycia, "Po rozbiegu 59 nocy z odpowiedziami „Co było inaczej?” (14 po alkoholu z AHI 4,9/h, 45 bez "
                  "z AHI 1,8/h; odpowiedzi wymyślone przez scenariusz), potem 11 dni pokazu z AHI poniżej najniższego tygodnia historii (najwyżej 0,3/h): odkrycie O-12 "
                  "„Po alkoholu: wyższe AHI” z przeglądu tygodnia, O-03 „rekordowy tydzień”, 1. dnia miesiąca S7; co rano "
-                 "o 5:10 ▶ K1 (z odkryciem) i ↻, o 7:30 ▶ po stronach do „Twoja norma” (S8), ▶ (profil prywatny: „Sprzęt”; „Co znaczą te "
-                 "liczby” pokazuje scenariusz profil-publiczny), ↻ ekran dnia.", True),
+                 "o 5:10 ▶ K1 (z odkryciem) i ↻, o 7:30 ▶ po stronach do U-01 `3 / 3` („Co znaczą te liczby” pokazuje scenariusz "
+                 "profil-publiczny), ↻ ekran dnia.", True),
     "profil-publiczny": (_profil_publiczny, "Profil publiczny (`profil=publiczny` w /konfiguracja.txt, 5.6.4): 7 nocy z AHI "
                          "13/h, od 4. ranka pełny ekran E-30 `Noce z AHI powyżej 5` (teksty ekranów dnia jak w profilu "
-                         "prywatnym, AHI i PM2.5 w obu profilach, 5.4.14); ostatniego ranka o 7:30 ▶ po stronach do „Twoja "
-                         "norma” (S8), ▶ „Co znaczą te liczby” (R-EKR-51), ◀ S8, ↻ ekran dnia.", True),
+                         "prywatnym, AHI i PM2.5 w obu profilach, 5.4.14); ostatniego ranka o 7:30 ▶ K1, K2, ▶ „Co znaczą te "
+                         "liczby” (po K2, bez numeru, R-KOK-22), ◀ K2, ▶, ↻ ekran dnia.", True),
     "zmiana-trybu": (_zmiana_trybu, "Po rozbiegu trzy noce w trybie AutoSet zamiast trybu ze zrzutu: K1 i K2 z wierszami "
                      "według trybu (bez EPAP i wsparcia PS), pierwszego i trzeciego ranka o 7:30.", True),
     "nawigacja": (_nawigacja, "Nowa nawigacja: trzeciego ranka po rozbiegu ▶ przez wszystkie strony kokpitu "
-                  "1 / 6 … 6 / 6, ◀ z powrotem do ekranu dnia, ↻ ze strony „Sprzęt” prosto do ekranu "
+                  "1 / 3 … 3 / 3 (ADR-0041), ◀ z powrotem do ekranu dnia, ↻ z U-01 prosto do ekranu "
                   "dnia, ▶ 2 s w K2 raport ogólny; w spisie przy każdym obrazku przycisk, który go dał.", True),
     "nowy-ahi12": (_nowy_pacjent(8.0, 3.5, 9.0, [
         ("ekran", "dzien-wzorzec-L-03", "ekran „pokaż lekarzowi” L-03 (mediana AHI z 14 nocy ≥ 10/h) od 10. poranka",

@@ -12,6 +12,7 @@
 // Uruchomienie: tools/prototyp/testy.sh (program testy_noc_pliki z katalogiem kart i wzorców; bez argumentu części (a)
 // i (b) są pominięte, reszta działa, np. pod sanitizerami z tools/jakosc/sprawdz.sh).
 #include <dirent.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -29,9 +30,11 @@
 #include "airbridge.h"
 #include "dyrygent.h"
 #include "edf.h"
+#include "ekrany.h"
 #include "magazyn.h"
 #include "noc.h"
 #include "noc_pliki.h"
+#include "plan.h"
 #include "slot_dzienny.h"
 #include "str.h"
 #include "wspolne.h"
@@ -866,6 +869,419 @@ static void odpowiedzi(PanelN& s, const DobaAB& d, int kodSesji = 200, const std
 }
 static bool wLogu(const PanelN& s, const std::string& t) { return zawiera(s.p.port.log, t); }
 
+// wymaganie: R-POR-17
+// Portret nocy (T-TEST-414, T-WYM-98): przebieg ostatniej nocy w /dane/portret.csv z tego samego przejścia po plikach,
+// bez dodatkowych żądań (liczby żądań sprawdza testDyrygentZPlikow wyżej: lista, STR, PLD, EVE, CSL).
+static void testR_POR_17_przebiegZapisany(const PanelN& s) {
+  std::string t = s.p.pliki.tresc("/dane/portret.csv");
+  SPRAWDZ(t.compare(0, 21, "#cpap-eink portret 1\n") == 0);
+  SPRAWDZ(t.find("\n2026-11-04;S;660;1140;;;;;;;\n") != std::string::npos);    // sesja 23:00–07:00
+  SPRAWDZ(t.find("\n2026-11-04;O;660;5;6;0;0;0;70;0;\n") != std::string::npos);  // PS 7,0; wyciek 6 L/min
+  SPRAWDZ(t.find("\n2026-11-04;O;670;5;6;0;1;0;70;0;\n") != std::string::npos);  // spłycenie o 23:10
+  SPRAWDZ(t.find("\n2026-11-04;B;;;;;;;;;\n") != std::string::npos);
+  SPRAWDZ(wLogu(s, "portret: przebieg nocy 2026-11-04 zapisany"));
+}
+
+// wymaganie: R-POR-17
+// Zaległa doba starsza niż przebieg w pliku nie nadpisuje go; noc z raportu JSON (`noc_zrodlo=json`) nie zapisuje
+// przebiegu (R-POR-03: rano ekran z 7.2 jak dotąd).
+static void testR_POR_17_starszaDobaIJson() {
+  DobaAB d = dobaAB(DZIS4);
+  {
+    PanelN s;
+    std::string nowszy = "#cpap-eink portret 1\ndata;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki\n"
+                         "2026-11-05;S;660;1100;;;;;;;\n2026-11-05;B;;;;;;;;;\n#koniec 2\n";
+    s.p.pliki.pliki["/dane/portret.csv"] = nowszy;
+    odpowiedzi(s, d);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    ROWNE(s.p.pliki.tresc("/dane/portret.csv"), nowszy);
+    SPRAWDZ(!wLogu(s, "portret: przebieg nocy 2026-11-04"));
+  }
+  {
+    PanelN s("noc_zrodlo=json\n");
+    odpowiedzi(s, d);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    SPRAWDZ(s.p.pliki.tresc("/dane/portret.csv").empty());
+  }
+}
+
+static void wybudzPrzyciskiem(PanelN& s, uint32_t t, Ekran e, uint8_t bit, uint32_t ms = 300) {
+  s.p.siec.zadania.clear();
+  s.p.d.z.clear();
+  s.p.port.log.clear();
+  s.p.zegar.epoch = t;
+  s.p.zegar.msTeraz = 0;
+  s.p.start.powodWybudzenia = PowodWybudzenia::PRZYCISK;
+  s.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  s.p.start.budzace = bit;
+  s.p.przyciski.skrypt = {{0, bit}, {ms, 0}};
+  s.p.start.stan.ekran = (uint8_t)e;
+  s.p.start.stan.ekranOd = t - 10;
+  Dyrygent(s.p.adaptery(), KONF).wybudzenie();
+  s.p.start.budzace = 0;
+  s.p.przyciski.skrypt.clear();
+}
+
+// wymaganie: R-POR-01
+// wymaganie: R-POR-02
+// wymaganie: R-POR-04
+// wymaganie: R-POR-05
+// Portret nocy rano (T-TEST-415): po imporcie nocy z plików pierwszym ekranem jest S11 (wpis w dzienniku), ▶ → K1
+// bez startu slotu dziennego, ↻ z K1 → Portret; o 07:31 (wybudzenie zegarem z planu) drugi ekran poranka; po zaniku
+// zasilania o 07:10 Portret z tą samą chwilą pierwszego narysowania (kopia w NVS).
+static void testR_POR_02_portretRano() {
+  DobaAB d = dobaAB(DZIS4);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  SPRAWDZ(wLogu(s, "ekran dnia S11 (Portret nocy, ASVAuto)"));
+  SPRAWDZ(s.p.pliki.tresc("/dane/humor.csv").find("\n2026-11-04;S11;;D;;") != std::string::npos);
+  const uint32_t od = s.p.start.stan.portretOdEp;  // chwila rysowania w tym wybudzeniu (zegar atrapy idzie)
+  SPRAWDZ(od >= ep(2026, 11, 4, 7, 0) && od < ep(2026, 11, 4, 7, 1));
+  ROWNE_L(s.p.nvs.liczbyU["cpap/por_od"], od);
+  // ▶ → K1, slot dzienny nie startuje (R-POR-05); ↻ z K1 → znowu Portret
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 5), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  ROWNE_L(s.p.start.stan.slotDziennyEp, 0);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 6), Ekran::K1, BIT_SRODEK);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(wLogu(s, "ekran dnia S11 (Portret nocy"));
+  // plan: wybudzenie o 07:30 (pierwsze narysowanie + 30 min) z przerysowaniem bez Wi-Fi
+  WejsciePlanu wp;
+  wp.zegar = true;
+  wp.sekundaDoby = 7 * 3600 + 6 * 60;
+  wp.nocKompletna = true;
+  wp.sprawdzenie11 = true;
+  wp.drugiEkranPortretu = 7 * 60 + 30;
+  Termin tm = nastepnyTermin(wp);
+  SPRAWDZ((tm.powody & POWOD_ODSWIEZENIE) != 0 && tm.sekund >= 24 * 60 && tm.sekund <= 24 * 60 + 10);
+  // 07:31: drugi ekran (zwycięzca R5e–R9), bez S11
+  s.p.siec.zadania.clear();
+  s.p.port.log.clear();
+  s.p.zegar.epoch = ep(2026, 11, 4, 7, 31);
+  s.p.zegar.msTeraz = 0;
+  s.p.start.powodWybudzenia = PowodWybudzenia::ZEGAR;
+  s.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  Dyrygent(s.p.adaptery(), KONF).wybudzenie();
+  SPRAWDZ(wLogu(s, "portret: po 30 min drugi ekran poranka"));
+  SPRAWDZ(!wLogu(s, "ekran dnia S11"));
+  // zanik zasilania o 07:10: Portret, chwila pierwszego narysowania z NVS
+  PanelN z;
+  odpowiedzi(z, d);
+  wybudz(z, ep(2026, 11, 4, 7, 0));
+  wybudz(z, ep(2026, 11, 4, 7, 10));  // START: RTC od zera
+  SPRAWDZ(wLogu(z, "ekran dnia S11 (Portret nocy"));
+  SPRAWDZ(z.p.start.stan.portretOdEp >= ep(2026, 11, 4, 7, 0) && z.p.start.stan.portretOdEp < ep(2026, 11, 4, 7, 1));
+}
+
+// wymaganie: R-POR-24
+// Ekran problemu rano (flaga z rysowania): ▶ → strona Portretu, ▶ → K1, ◀ → Portret, ◀ → ekran dnia.
+static void testR_POR_24_portretPodPrawym() {
+  DobaAB d = dobaAB(DZIS4);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  s.p.start.stan.portretStrona = 1;
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 2), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  SPRAWDZ(wLogu(s, "Portret nocy jako strona pod ▶ (R-POR-24)"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 3), Ekran::PORTRET, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 4), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 5), Ekran::PORTRET, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  // bez flagi (dzień bez problemu): ◀ z K1 → ekran dnia jak dotąd
+  s.p.start.stan.portretStrona = 0;
+  s.p.start.stan.k1ZPortretu = 0;
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 6), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+}
+
+static DobaAB dobaZWyciekiem(long dzien, double leakLs) {  // dobaAB z wyciekiem `leakLs` L/s przez całą noc
+  DobaAB d;
+  d.dzien = dzien;
+  d.katalog = "/DATALOG/" + dzienAB(dzien) + "/";
+  long long s = (long long)dzien * 86400 + 23 * 3600;
+  d.pliki = sesja(s, 480, [leakLs](int, Wartosci& w) { w["Press.2s"] = 14; w["EprPress.2s"] = 7; w["Leak.2s"] = leakLs; },
+                  {{s + 600, 10, "Hypopnea"}});
+  return d;
+}
+
+// wymaganie: R-POR-15
+// wymaganie: R-POR-25
+// Noc niepewna (wyciek 18 L/min całą noc, P95 18): rano ekran problemu S-K-10 (R5c, ma pierwszeństwo), Portret pod ▶
+// z nagłówkiem `· ocena ograniczona` i pierwszym podpisem `Tej nocy nie oceniam: duży wyciek.` (R-EKR-46).
+static void testR_POR_15_nocNiepewna() {
+  DobaAB d = dobaZWyciekiem(DZIS4, 0.3);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  SPRAWDZ(wLogu(s, "ekran S-K-10 (R5c)") && !wLogu(s, "ekran dnia S11"));
+  ROWNE_L(s.p.start.stan.portretStrona, 1);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 2), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  SPRAWDZ(wLogu(s, "strona pod ▶ (R-POR-24): Tej nocy nie oceniam: duży wyciek."));
+  SPRAWDZ(wLogu(s, "· ocena ograniczona”"));
+}
+
+// wymaganie: R-POR-24
+// Ekran problemu z R5b (E-23: wyciek od 27 L/min, tu 30 L/min całą noc): ekran dnia to S3, Portret nie jest ekranem
+// dnia, a ▶ otwiera stronę Portretu bez startu slotu dziennego; ▶ → K1, ◀ → Portret, ◀ → S3.
+static void testR_POR_24_ekranProblemu() {
+  DobaAB d = dobaZWyciekiem(DZIS4, 0.5);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  SPRAWDZ(wLogu(s, "ekran dnia: zdarzenie E-23 (S3)"));
+  SPRAWDZ(!wLogu(s, "ekran dnia S11"));
+  ROWNE_L(s.p.start.stan.portretStrona, 1);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 2), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  ROWNE_L(s.p.start.stan.slotDziennyEp, 0);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 3), Ekran::PORTRET, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 4), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 5), Ekran::PORTRET, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(wLogu(s, "ekran dnia: zdarzenie E-23 (S3)"));
+}
+
+// Podpis przycisku w pasie stopki (y 434…479) klatki: słowa po ikonie (`▶ portret nocy` → „portret nocy”), czarne
+// na białym albo białe na czarnym (stopka ekranu L na negatywie), piksel w piksel w dowolnym miejscu pasa. Wzór to
+// piksele grupy narysowanej od ikony na prawo od samej ikony, więc słowa mają tę samą fazę podpikselową co w stopce
+// (tekst() liczy w 1/16 px; szerokość ikony w stopce jest inna, ale całkowita).
+static bool podpisWStopce(const std::vector<uint8_t>& k, const std::string& grupa) {
+  auto px = [](const std::vector<uint8_t>& b, int x, int y) { return (b[(size_t)(y * 100 + x / 8)] & (0x80 >> (x & 7))) != 0; };
+  size_t sp = grupa.find(' ');
+  PlotnoAtrapy ik, w;
+  tekst(ik, F_P22B, 10, 40, grupa.substr(0, sp));
+  tekst(w, F_P22B, 10, 40, grupa);
+  int xi = -1;
+  for (int y = 0; y < 100; y++)
+    for (int x = 0; x < 800; x++)
+      if (px(ik.b, x, y)) xi = std::max(xi, x);
+  int x0 = 800, x1 = -1, y0 = 480, y1 = -1;
+  for (int y = 0; y < 100; y++)
+    for (int x = xi + 1; x < 800; x++)
+      if (px(w.b, x, y)) x0 = std::min(x0, x), x1 = std::max(x1, x), y0 = std::min(y0, y), y1 = std::max(y1, y);
+  if (x1 < 0 || k.size() != w.b.size()) return false;
+  for (int oy = 434; oy + (y1 - y0) < 480; oy++)
+    for (int ox = 0; ox + (x1 - x0) < 800; ox++)
+      for (int neg = 0; neg < 2; neg++) {
+        bool ok = true;
+        for (int y = y0; y <= y1 && ok; y++)
+          for (int x = x0; x <= x1 && ok; x++) ok = px(k, ox + x - x0, oy + y - y0) == (px(w.b, x, y) != (neg == 1));
+        if (ok) return true;
+      }
+  return false;
+}
+
+// wymaganie: R-POR-24
+// wymaganie: R-PRZ-04
+// Stopki zgodne z działaniem: rano na ekranie problemu S3 (E-23) ▶ otwiera Portret, więc stopka
+// mówi `▶ portret nocy`, nie `▶ kokpit`; K1 otwarte z Portretu ma `◀ portret nocy`, K1 z ekranu dnia `◀ ekran dnia`;
+// po starcie slotu dziennego (↻ na S3) ▶ znów prowadzi do K1 i stopka znów mówi `▶ kokpit`.
+static void testR_POR_24_stopkiZgodneZDzialaniem() {
+  DobaAB d = dobaZWyciekiem(DZIS4, 0.5);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  SPRAWDZ(wLogu(s, "ekran dnia: zdarzenie E-23 (S3)") && wLogu(s, "stopka: ▶ portret nocy (R-POR-24)"));
+  SPRAWDZ(podpisWStopce(s.p.ekran.klatki.back(), "▶ portret nocy"));
+  SPRAWDZ(!podpisWStopce(s.p.ekran.klatki.back(), "▶ kokpit"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 2), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 3), Ekran::PORTRET, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(wLogu(s, "stopka K1: ◀ portret nocy (R-POR-24)"));
+  SPRAWDZ(podpisWStopce(s.p.ekran.klatki.back(), "◀ portret nocy"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 4), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 5), Ekran::PORTRET, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(podpisWStopce(s.p.ekran.klatki.back(), "▶ portret nocy"));
+  // ↻ na S3: ekran od nowa i start slotu dziennego (R-KON-41) → Portretu pod ▶ już nie ma
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 6), Ekran::DZIEN, BIT_SRODEK);
+  SPRAWDZ(s.p.start.stan.slotDziennyEp != 0);
+  ROWNE_L(s.p.start.stan.portretStrona, 0);
+  SPRAWDZ(!podpisWStopce(s.p.ekran.klatki.back(), "▶ portret nocy") && podpisWStopce(s.p.ekran.klatki.back(), "▶ kokpit"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 7), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(!wLogu(s, "stopka K1"));
+  SPRAWDZ(!podpisWStopce(s.p.ekran.klatki.back(), "▶ portret nocy") && podpisWStopce(s.p.ekran.klatki.back(), "◀ ekran dnia"));
+  // ekran problemu z S-K (S-K-10, R5c, ścieżka rysujPortretB40 → rysujB16): ▶ opisane tak samo
+  DobaAB n = dobaZWyciekiem(DZIS4, 0.3);
+  PanelN z;
+  odpowiedzi(z, n);
+  wybudz(z, ep(2026, 11, 4, 7, 0));
+  // ekran z pogodą i odczytem czujnika (decyzja właściciela projektu 11.11.2026): skrócony `▶ portret`, odczyt przy łóżku zostaje
+  SPRAWDZ(wLogu(z, "ekran S-K-10 (R5c)") && wLogu(z, "stopka z odczytem: „▶ portret     przy łóżku "));
+  SPRAWDZ(podpisWStopce(z.p.ekran.klatki.back(), "▶ portret") && !podpisWStopce(z.p.ekran.klatki.back(), "▶ portret nocy"));
+}
+
+// wymaganie: R-POR-24
+// wymaganie: R-POR-05
+// zwykły dzień (Portret ekranem dnia), po 30 min drugi ekran poranka; ▶ z niego
+// otwiera stronę Portretu (bez startu slotu dziennego), ▶ → K1, ◀ → Portret, ◀ → drugi ekran; stopka drugiego ekranu
+// mówi `▶ portret` przed odczytem czujnika; inne przyciski na drugim ekranie zaczynają slot dzienny jak dotąd (↻), a po
+// starcie slotu ▶ prowadzi do K1. Gdy Portret sam jest ekranem dnia, ▶ → K1 bez zmian.
+static void testR_POR_24_drugiEkranZwyklegoDnia() {
+  DobaAB d = dobaAB(DZIS4);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  SPRAWDZ(wLogu(s, "ekran dnia S11 (Portret nocy"));
+  ROWNE_L(s.p.start.stan.portretStrona, 0);  // Portret jest ekranem dnia: ▶ → K1 (R-POR-01)
+  // 07:31: drugi ekran poranka z planu
+  s.p.siec.zadania.clear();
+  s.p.port.log.clear();
+  s.p.zegar.epoch = ep(2026, 11, 4, 7, 31);
+  s.p.zegar.msTeraz = 0;
+  s.p.start.powodWybudzenia = PowodWybudzenia::ZEGAR;
+  s.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  Dyrygent(s.p.adaptery(), KONF).wybudzenie();
+  SPRAWDZ(wLogu(s, "portret: po 30 min drugi ekran poranka") && !wLogu(s, "ekran dnia S11"));
+  SPRAWDZ(wLogu(s, "portret: drugi ekran poranka, Portret pod ▶ (R-POR-24)"));
+  ROWNE_L(s.p.start.stan.portretStrona, 1);
+  ROWNE_L(s.p.start.stan.slotDziennyEp, 0);
+  SPRAWDZ(podpisWStopce(s.p.ekran.klatki.back(), "▶ portret") && !podpisWStopce(s.p.ekran.klatki.back(), "▶ portret nocy"));
+  // ▶ → strona Portretu, slot dzienny się nie zaczyna
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 32), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  SPRAWDZ(wLogu(s, "Portret nocy jako strona pod ▶ (R-POR-24)"));
+  ROWNE_L(s.p.start.stan.slotDziennyEp, 0);
+  SPRAWDZ(podpisWStopce(s.p.ekran.klatki.back(), "◀ ekran dnia") && podpisWStopce(s.p.ekran.klatki.back(), "▶ ostatnia noc"));
+  // ▶ → K1 (`◀ portret nocy`), ◀ → Portret, ◀ → drugi ekran (nie Portret jako ekran dnia)
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 33), Ekran::PORTRET, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(wLogu(s, "stopka K1: ◀ portret nocy (R-POR-24)"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 34), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 35), Ekran::PORTRET, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(!wLogu(s, "ekran dnia S11") && wLogu(s, "Portret pod ▶ (R-POR-24)"));
+  ROWNE_L(s.p.start.stan.slotDziennyEp, 0);
+  ROWNE_L(s.p.start.stan.portretStrona, 1);
+  // ↻ na drugim ekranie: slot dzienny od tej chwili (R-KON-41, R-POR-05), Portretu pod ▶ już nie ma
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 36), Ekran::DZIEN, BIT_SRODEK);
+  SPRAWDZ(s.p.start.stan.slotDziennyEp != 0);
+  ROWNE_L(s.p.start.stan.portretStrona, 0);
+  SPRAWDZ(!podpisWStopce(s.p.ekran.klatki.back(), "▶ portret"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 37), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(!wLogu(s, "stopka K1"));
+  // ◀ na drugim ekranie też zaczyna slot dzienny (R-POR-05: zaczyna każde naciśnięcie poza ▶ otwierającym Portret);
+  // ↻ z K1 otwartego z Portretu wraca do drugiego ekranu
+  PanelN z;
+  odpowiedzi(z, d);
+  wybudz(z, ep(2026, 11, 4, 7, 0));
+  z.p.zegar.epoch = ep(2026, 11, 4, 7, 31);
+  z.p.zegar.msTeraz = 0;
+  z.p.start.powodWybudzenia = PowodWybudzenia::ZEGAR;
+  z.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  Dyrygent(z.p.adaptery(), KONF).wybudzenie();
+  wybudzPrzyciskiem(z, ep(2026, 11, 4, 7, 32), Ekran::DZIEN, BIT_PRAWY);
+  wybudzPrzyciskiem(z, ep(2026, 11, 4, 7, 33), Ekran::PORTRET, BIT_PRAWY);
+  SPRAWDZ(z.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  wybudzPrzyciskiem(z, ep(2026, 11, 4, 7, 34), Ekran::K1, BIT_SRODEK);
+  SPRAWDZ(z.p.start.stan.ekran == (uint8_t)Ekran::DZIEN && !wLogu(z, "ekran dnia S11"));
+  ROWNE_L(z.p.start.stan.slotDziennyEp, 0);
+  wybudzPrzyciskiem(z, ep(2026, 11, 4, 7, 35), Ekran::DZIEN, BIT_LEWY);
+  SPRAWDZ(z.p.start.stan.slotDziennyEp != 0);
+  ROWNE_L(z.p.start.stan.portretStrona, 0);
+}
+
+// wymaganie: R-PRZ-20
+// wymaganie: R-POR-24
+// Kolejka naciśnięć przez stronę Portretu: rano na ekranie problemu ▶ budzące i ▶ z kolejki → K1 (strona Portretu
+// niczego nie zapisuje, więc naciśnięcie z kolejki na niej się wykonuje).
+static void testR_PRZ_20_kolejkaPrzezPortret() {
+  DobaAB d = dobaZWyciekiem(DZIS4, 0.5);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  ROWNE_L(s.p.start.stan.portretStrona, 1);
+  s.p.przyciski.kolejka = {{(int)Przycisk::PRAWY, 150u}};
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 2), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(s.p.przyciski.kolejka.empty());
+  ROWNE_L(s.p.start.stan.k1ZPortretu, 1);
+  // ◀ z K1 otwartego tak z kolejki wraca do Portretu
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 3), Ekran::K1, BIT_LEWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::PORTRET);
+}
+
+// wymaganie: R-POR-04
+// K1 otwarte w 30. minucie (07:28 ▶): wybudzenie z planu o 07:31 nie przerysowuje strony, ↻ o 07:33 pokazuje drugi
+// ekran poranka (nie Portret).
+static void testR_POR_04_kokpitW30Minucie() {
+  DobaAB d = dobaAB(DZIS4);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 28), Ekran::DZIEN, BIT_PRAWY);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  s.p.port.log.clear();
+  s.p.zegar.epoch = ep(2026, 11, 4, 7, 31);
+  s.p.zegar.msTeraz = 0;
+  s.p.start.powodWybudzenia = PowodWybudzenia::ZEGAR;
+  s.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  Dyrygent(s.p.adaptery(), KONF).wybudzenie();
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::K1);
+  SPRAWDZ(!wLogu(s, "ekran dnia S11") && !wLogu(s, "drugi ekran poranka"));
+  wybudzPrzyciskiem(s, ep(2026, 11, 4, 7, 33), Ekran::K1, BIT_SRODEK);
+  SPRAWDZ(s.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(wLogu(s, "portret: po 30 min drugi ekran poranka") && !wLogu(s, "ekran dnia S11"));
+}
+
+// (R-POR-04): start slotu dziennego (08:00) przypada razem z zaległym drugim ekranem (07:30): start czeka na
+// drugi ekran, drugi ekran stoi, slot startuje zaraz po nim.
+// wymaganie: R-POR-04
+static void testR_POR_04_slotRazemZDrugimEkranem() {
+  DobaAB d = dobaAB(DZIS4);
+  PanelN s;
+  odpowiedzi(s, d);
+  wybudz(s, ep(2026, 11, 4, 7, 0));
+  s.p.port.log.clear();
+  s.p.siec.zadania.clear();
+  s.p.zegar.epoch = ep(2026, 11, 4, 8, 0) + 5;
+  s.p.zegar.msTeraz = 0;
+  s.p.start.powodWybudzenia = PowodWybudzenia::ZEGAR;
+  s.p.start.przyczynaStartu = PrzyczynaStartu::USPIENIE;
+  Dyrygent(s.p.adaptery(), KONF).wybudzenie();
+  SPRAWDZ(wLogu(s, "portret: po 30 min drugi ekran poranka"));
+  SPRAWDZ(s.p.start.stan.slotDziennyEp != 0);
+  SPRAWDZ(s.p.start.stan.portretDrugi == 1 && s.p.start.stan.slotOdlozony == 0);
+  // slot startuje zaraz po drugim ekranie, więc bez strony Portretu pod ▶ i bez `▶ portret` w stopce
+  ROWNE_L(s.p.start.stan.portretStrona, 0);
+  SPRAWDZ(!wLogu(s, "Portret pod ▶ (R-POR-24)"));
+}
+
+// wymaganie: R-POR-03
+// wymaganie: R-POR-21
+// plik przebiegu bez `#koniec` (stan USZKODZONY w magazynie) → wpis w logu, rano ekran z 7.2 bez Portretu;
+// AirBridge starszy niż 2.3.1 (404 na liście sesji) → bez przebiegu, bez Portretu.
+static void testR_POR_21_plikUszkodzonyWDyrygencie() {
+  DobaAB d = dobaAB(DZIS4);
+  {
+    PanelN s("noc_zrodlo=json\n");
+    s.p.pliki.pliki["/dane/portret.csv"] = "#cpap-eink portret 1\ndata;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki\n"
+                                           "2026-11-04;S;660;1140;;;;;;;\n2026-11-04;B;;;;;;;;;\n";
+    odpowiedzi(s, d);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    SPRAWDZ(wLogu(s, "portret: plik uszkodzony"));
+    SPRAWDZ(!wLogu(s, "ekran dnia S11"));
+  }
+  {
+    PanelN s;
+    odpowiedzi(s, d, 404);
+    wybudz(s, ep(2026, 11, 4, 7, 0));
+    SPRAWDZ(s.p.pliki.tresc("/dane/portret.csv").empty() && !wLogu(s, "ekran dnia S11"));
+  }
+}
+
 static void testDyrygentZPlikow() {
   DobaAB d = dobaAB(DZIS4);
   PanelN s;
@@ -891,6 +1307,7 @@ static void testDyrygentZPlikow() {
   SPRAWDZ(wLogu(s, "z plików sesji: 1 sesji, 3 plików"));
   SPRAWDZ(wLogu(s, "konfiguracja: noc z plików sesji"));
   SPRAWDZ(!wLogu(s, "E-03"));
+  testR_POR_17_przebiegZapisany(s);
 }
 
 static void testDyrygentZapas() {
@@ -1094,6 +1511,17 @@ int main(int argc, char** argv) {
   testListaSciezkiKonfiguracja();
   testPierwszenstwo();
   testDyrygentZPlikow();
+  testR_POR_17_starszaDobaIJson();
+  testR_POR_02_portretRano();
+  testR_POR_24_portretPodPrawym();
+  testR_POR_15_nocNiepewna();
+  testR_POR_24_ekranProblemu();
+  testR_POR_24_stopkiZgodneZDzialaniem();
+  testR_POR_24_drugiEkranZwyklegoDnia();
+  testR_PRZ_20_kolejkaPrzezPortret();
+  testR_POR_04_kokpitW30Minucie();
+  testR_POR_04_slotRazemZDrugimEkranem();
+  testR_POR_21_plikUszkodzonyWDyrygencie();
   testDyrygentZapas();
   testDyrygentRozne();
   printf("testy_noc_pliki: %d dobrze, %d źle\n", ok, zle);

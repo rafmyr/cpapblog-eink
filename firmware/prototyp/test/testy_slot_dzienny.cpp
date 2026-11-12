@@ -436,9 +436,9 @@ static void testR_KON_48_wymiana() {
   TekstySlotu t = teksty(w, we);
   ROWNE(t.tytul, "Wymiana: filtr.");
   ROWNE(zwykle(t.powod), "Termin 10.11, ma 3 tyg.");  // filtr w tygodniach
-  // krok zgodny z mapą przycisków 5.6.2: ◀ 2 s na stronie „Sprzęt” przy wierszu elementu, bez nazw roboczych
-  // stron i bez ↻ 2 s (na wierszu maski to nowy model maski, R-MAS-11); ≤ 60 znaków i 1 linia na 744 px (5.4.4)
-  ROWNE(zwykle(t.krok), "→ Po wymianie: strona 5 / 6, ramka na filtrze, ◀ 2 s.");
+  // krok R-MAS-18: ◀ 2 s na samym S-K-35 (strony „Sprzęt” nie ma od ADR-0041), bez nazw roboczych stron i bez
+  // ↻ 2 s; ≤ 60 znaków i 1 linia na 744 px (5.4.4)
+  ROWNE(zwykle(t.krok), "→ Po wymianie przytrzymaj ◀ 2 s.");
   SPRAWDZ(szer(F_P28B, t.krok) <= 744);
   SPRAWDZ(t.krok.find("K2") == std::string::npos && t.krok.find("↻") == std::string::npos);
   SPRAWDZ(szer(F_P28B, t.krok) <= 744);
@@ -454,7 +454,7 @@ static void testR_KON_48_wymiana() {
   SPRAWDZ(w3.ekran == EkranSlotu::SK35 && w3.wymiana.element == EL_MASKA);
   ROWNE(teksty(w3, we3).tytul, "Wymiana: maska.");
   ROWNE(zwykle(teksty(w3, we3).powod), "Termin 10.11, ma 5 mies.");
-  ROWNE(zwykle(teksty(w3, we3).krok), "→ Po wymianie: strona 5 / 6, ramka na masce, ◀ 2 s.");
+  ROWNE(zwykle(teksty(w3, we3).krok), "→ Po wymianie przytrzymaj ◀ 2 s.");
   SPRAWDZ(szer(F_P28B, teksty(w3, we3).krok) <= 744);
   SPRAWDZ(szer(F_P28B, teksty(w3, we3).krok) <= 744);
   we3.dzis = "2026-11-12";

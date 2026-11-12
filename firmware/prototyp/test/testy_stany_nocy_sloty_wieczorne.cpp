@@ -402,7 +402,7 @@ static sprawy::SprawaL sprawaL(const std::string& kl, reguly::Pilnosc p, const s
   x.pilnosc = p;
   x.ton = sprawy::Ton::LEKARZ;
   x.tytul = kl == "L-11" ? "Senność mimo terapii" : "Saturacja: sprawa dla lekarza";
-  x.linia = kl + ": linia C. Na kontroli: raport 2 / 6.";
+  x.linia = kl + ": linia C. Na kontroli: raport 2 / 3.";
   x.aktywnaOd = od;
   return x;
 }

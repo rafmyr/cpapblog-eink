@@ -200,6 +200,14 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_noc_pliki.cpp" "${O
 echo "testy przypadków brzegowych (test/testy_noc_pliki_brzegowe.cpp: noc z plików sesji)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_noc_pliki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_noc_pliki_brzegowe"
 "$BUD/testy_noc_pliki_brzegowe"  # blokuje
+echo "testy (test/testy_portret.cpp: Portret nocy, odcinki 5 min wobec tools/portret, plik T-DANE-38, rysunek; ADR-0040)"
+PORK="$(mktemp -d "${TMPDIR:-/tmp}/cpap-eink-portret-XXXXXX")"
+python3 -I "$REPO/tools/portret/karta_portretu.py" "$PORK/karta" >/dev/null
+python3 -I "$REPO/tools/portret/portret.py" "$PORK/karta" --wszystkie --syntetyczna --norma-ps 5.0 --wyjscie "$PORK/wzorzec" >/dev/null
+python3 -I "$REPO/tools/portret/portret.py" "$PORK/karta" --rano 2026-11-02 --syntetyczna --linia "Co było inaczej? ↻ 2 s" \
+  --wyjscie "$PORK/wzorzec-linia" >/dev/null
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_portret"
+"$BUD/testy_portret" "$PORK"  # blokuje
 echo "testy (test/testy_porownanie.cpp: tryb porównawczy noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_porownanie.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_porownanie"
 "$BUD/testy_porownanie"  # blokuje
@@ -383,7 +391,7 @@ echo "testy (test/testy_sprzet_maska_filtr.cpp: SPRZĘT tylko maska i filtr, mig
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_sprzet_maska_filtr.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_sprzet_maska_filtr"
 "$BUD/testy_sprzet_maska_filtr"
 "$BUD/testy_parsowanie_liczb"
-echo "testy (test/testy_nawigacja.cpp: nowa nawigacja, ciąg stron n / 6, ↻ ekran dnia, przytrzymanie = zapis, „Omówione” tylko ▶)"
+echo "testy (test/testy_nawigacja.cpp: nowa nawigacja, ciąg stron n / 3 (ADR-0041), ↻ ekran dnia, przytrzymanie = zapis, „Omówione” tylko ▶)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_nawigacja.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_nawigacja"
 "$BUD/testy_nawigacja"
 echo "testy przypadków brzegowych: mapa nawigacji 5.6.2 tabelarycznie (test/testy_nawigacja_mapa_brzegowe.cpp)"

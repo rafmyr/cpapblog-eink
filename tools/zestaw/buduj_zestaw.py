@@ -18,7 +18,8 @@ Kontrole (błąd = kod wyjścia 1 i komunikat po polsku na stderr):
   - każdy tekst katalogu jest w teksty.csv i stoi dosłownie w spec funkcjonalnej (białe znaki znormalizowane,
     `{prog:id}` zamienione na wartość progu, `{zmienna}` pasuje do dowolnego ciągu);
   - liczba w tekście równa wartości progu tej reguły, wpisana bez `{prog:…}` = błąd (poza numerem strony
-    kokpitu `n / 6` po słowie „raport” albo „strona”);
+    kokpitu `n / 3` po słowie „raport”, „strona” albo „stroną”);
+  - numer strony sprzed krótszego kokpitu (`n / 6` po „raport” albo „strona”) = błąd (R-KOK-23, ADR-0041);
   - tekst dłuższy niż limit (po wstawieniu progów i najdłuższych wartości zmiennych, SZEROKOSC_ZMIENNYCH) = błąd;
   - pola `stan`, `pilnosc`, `liczone_noce`, `wymaga_normy`, `w_rozruchu` z dozwolonych wartości;
   - zależności (`wymaga`, `zlozenie.skladniki`, `trwanie.regula`) bez cyklu: wiersze są układane tak, żeby składnik
@@ -365,9 +366,11 @@ def wczytaj_deklaracje(katalog_dir):
 # Kontrola liczby progu w tekście: liczba przyklejona do liter (`K2`, `M-07`, `S2a`) nie jest
 # liczbą; liczba z jednostką inną niż jednostka progu (`od 2 tygodni` wobec 2 cmH2O) nie jest tym progiem.
 LICZBA_W_TEKSCIE = r"(?<![A-Za-z0-9-])\d+(?:,\d+)?(?![A-Za-z0-9])"
-# numer strony kokpitu w tekście (`raport 2 / 6`, `strona 5 / 6`): tylko `n / 6` po słowie „raport” albo „strona”;
-# każdy inny ułamek (`3 / 7 nocy`) dalej podlega kontroli liczb progów
-NUMER_STRONY = r"(?<=raport )[1-6] / 6(?![\d,])|(?<=strona )[1-6] / 6(?![\d,])"
+# numer strony kokpitu w tekście (`raport 2 / 3`, `strona 3 / 3`, `za stroną 2 / 3`; 5.5.7, R-KOK-19): tylko `n / 3`
+# po słowie „raport”, „strona” albo „stroną”; każdy inny ułamek (`3 / 7 nocy`) dalej podlega kontroli liczb progów
+NUMER_STRONY = r"(?<=raport )[1-3] / 3(?![\d,])|(?<=strona )[1-3] / 3(?![\d,])|(?<=stroną )[1-3] / 3(?![\d,])"
+# numer strony sprzed ADR-0041 (`raport 2 / 6`, `strona 3 / 6`): R-KOK-23, zero takich tekstów na ekranie
+NUMER_STRONY_STARY = r"(?:raport|strona|stroną) [1-6] / 6(?![\d,])"
 JEDNOSTKI_PO_LICZBIE = [("L/min", r"L\s*/\s*min"), ("/min", r"/\s*min"), ("/h", r"/\s*h"), ("cmH2O", r"cmH2O"),
                         ("min", r"min"), ("h", r"h(?![A-Za-ząćęłńóśźż])"), ("%", r"%"), ("noce", r"noc"),
                         ("dni", r"(dni|dzie|dob)"), ("tygodnie", r"tydz|tyg"), ("miesiące", r"miesi")]
@@ -415,6 +418,8 @@ def buduj(progi_csv, katalog_dir, spec_md, rodzaje_dodatkowe=(), ostrzezenia=Non
     # kontrolę spec, granicy i limitu
     for idt, t in teksty.items():
         g = "teksty.csv, wiersz %d (%s)" % (t["_nr"], idt)
+        if re.search(NUMER_STRONY_STARY, t["tekst"]):
+            raise BladZestawu("%s: numer strony kokpitu `n / 6` sprzed ADR-0041; kokpit ma 3 strony (R-KOK-23)" % g)
         z_progami = podstaw_progi(t["tekst"], progi, g)
         sprawdz_tekst_w_spec(z_progami, spec_norm, g)
         sprawdz_granice(z_progami, t["rola"], g)
@@ -481,7 +486,7 @@ def buduj(progi_csv, katalog_dir, spec_md, rodzaje_dodatkowe=(), ostrzezenia=Non
             t = teksty[idt]
             g = "%s, tekst %s" % (gdzie, idt)
             bez = re.sub(r"\{[^}]*\}", " ", t["tekst"])
-            bez = re.sub(NUMER_STRONY, " ", bez)  # `2 / 6` to numer strony kokpitu, nie wartość
+            bez = re.sub(NUMER_STRONY, " ", bez)  # `2 / 3` to numer strony kokpitu, nie wartość
             for m in re.finditer(LICZBA_W_TEKSCIE, bez):
                 x = liczba(m.group(0))
                 jt = jednostka_po(bez, m.end())

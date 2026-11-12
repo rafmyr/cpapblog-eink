@@ -65,7 +65,7 @@ DecyzjaDnia decyzjaDnia(const WejscieDnia& w, const std::vector<WpisHumoru>& log
     d.zapisz = false;
     // slot nocny: ostatni ekran dnia z dziennika (ten, który stał wieczorem), bez nowego wpisu
     for (auto& x : log)
-      if (!d.wpis || x.data >= d.wpis->data) d.wpis = &x;
+      if (x.typ != "S11" && (!d.wpis || x.data >= d.wpis->data)) d.wpis = &x;  // Portret tylko rano (R-POR-20)
     if (d.wpis) {
       d.e.typ = d.wpis->typ;
       d.e.klucz = d.wpis->klucz;

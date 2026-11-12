@@ -209,18 +209,11 @@ DaneS8 budujS8(const WejscieS8& w) {
     d.krok = "→ Pasmo centralnych wysokie. Obserwuj kolejne noce.";
     d.informacja = true;
   } else if (w.wzorzecL) {
-    d.krok = "→ Otwarte sprawy: strona 3 / 6.";  // numer strony kokpitu
+    d.krok = "→ Otwarte sprawy: za stroną 2 / 3.";  // numer strony kokpitu (R-KOK-23)
     d.informacja = true;
   } else {
     d.krok = "Odchylenia liczę od tego.";  // wyjaśnienie, nie czynność: bez `→` (5.4.3, strefa „Krok”)
   }
-  if (w.zK1) {  // strona 4 / 6: nazwa strony w nagłówku zamiast daty, tytuł nie powtarza jej w treści (5.4.8)
-    d.naglowek = d.tytul;
-    d.tytul.clear();
-  }
-  if (w.zK1)  // strona 4 / 6, ◀ strona 3 (albo K2), ▶ „Co znaczą te liczby” (profil publiczny) albo „Sprzęt”
-    d.stopkaLewo = std::string(w.sprawy ? "◀ sprawy" : "◀ 7 nocy") +  // grupy co 3 spacje jak w „Sprzęt”
-                   (w.profilPubliczny ? "   ▶ co znaczą liczby   ↻ ekran dnia" : "   ▶ sprzęt   ↻ ekran dnia");
   return d;
 }
 
@@ -229,8 +222,7 @@ TrescEkranu trescS8(const DaneS8& d) {
   t.etykieta = wersaliki(d.etykieta);
   t.tytul = d.tytul;
   t.krok = d.informacja ? "" : d.krok;  // w tonie „informacja” krok w ramce rysuje rysujS8()
-  if (!d.stopkaLewo.empty()) t.stopkaLewo = d.stopkaLewo;
-  else t.stopkaStandardowa = true;
+  t.stopkaStandardowa = true;  // tylko ekran dnia (kamień milowy R7); od ADR-0041 S8 nie jest stroną kokpitu
   return t;
 }
 
@@ -246,8 +238,9 @@ void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t
 }
 
 // ---------- „Co znaczą te liczby” ----------
-DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne) {
+DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy) {
   DaneLiczb d;
+  if (sprawy) d.stopkaLewo = "◀ 7 nocy   ▶ sprawy   ↻ ekran dnia";  // grupy co 3 spacje
   d.wiersze.push_back({"Bezdechy na godzinę (AHI):", " przerwy i spłycenia oddechu."});
   d.wiersze.push_back({"Czas z maską:", " ile godzin aparat pracował."});
   if (tryb == reguly::Tryb::ASV || tryb == reguly::Tryb::ASVAUTO) {

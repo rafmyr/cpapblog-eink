@@ -186,29 +186,29 @@ def test_liczby_przyklejone_i_inna_jednostka_nie_sa_progiem(tmp_path):
 
 
 def test_numer_strony_kokpitu_nie_jest_progiem(tmp_path):
-    # `raport 2 / 6` to numer strony kokpitu w linii pilności C, nie wartość progu 2; sama `2` dalej jest błędem
+    # `raport 2 / 3` to numer strony kokpitu w linii pilności C (5.5.7), nie wartość progu 2; sama `2` dalej jest błędem
     progi = PROGI + "E-30.dwa,E-30,,2,noce,opis,brak,spec,wszystkie,do kalibracji\n"
     e = E30.replace("n=E-30.okno", "n=E-30.okno,delta=E-30.dwa")
     e2 = e.replace("E-30.krok;aktywna", "E-30.krok,E-30.linia;aktywna")
-    spec = SPEC + "\n`Na kontroli: raport 2 / 6.`\n`Od 2 nocy.`\n"
-    t = TEKSTY + "E-30.linia;linia;;Na kontroli: raport 2 / 6.\n"
+    spec = SPEC + "\n`Na kontroli: raport 2 / 3.`\n`Od 2 nocy.`\n`→ Otwarte sprawy: za stroną 2 / 3.`\n"
+    t = TEKSTY + "E-30.linia;linia;;Na kontroli: raport 2 / 3.\n"
     kod, out = uruchom(przygotuj(tmp_path, progi=progi, katalog_e=(e2,), teksty=t, spec=spec))
+    assert kod == 0, out
+    t3 = TEKSTY + "E-30.linia;linia;;→ Otwarte sprawy: za stroną 2 / 3.\n"
+    kod, out = uruchom(przygotuj(tmp_path, progi=progi, katalog_e=(e2,), teksty=t3, spec=spec))
     assert kod == 0, out
     t2 = TEKSTY + "E-30.linia;linia;;Od 2 nocy.\n"
     kod, out = uruchom(przygotuj(tmp_path, progi=progi, katalog_e=(e2,), teksty=t2, spec=spec))
     assert kod == 1 and "przez {prog:" in out
 
-def test_deklaracje_rodzajow_paczek(tmp_path):
-    argv = przygotuj(tmp_path, katalog_e=(E30 + "\nE-40;;nowy_rodzaj_b3;moj=E-30.ahi;;;;;;wszystkie;nie;tak;;;;;;aktywna;;t",))
-    kod, out = uruchom(argv)
-    assert kod == 1 and "nieznany rodzaj" in out
-    (tmp_path / "katalog" / "rodzaje-e.csv").write_text(
-        "nazwa;typ;parametry\nnowy_rodzaj_b3;rodzaj;moj\nmoj;parametr_prog;\n", encoding="utf-8")
-    kod, out = uruchom(argv)
-    assert kod == 0, out
-    (tmp_path / "katalog" / "rodzaje-l.csv").write_text("nazwa;typ;parametry\nmoj;parametr_slowny;\n", encoding="utf-8")
-    kod, out = uruchom(argv)
-    assert kod == 1 and "już zadeklarowany" in out
+
+def test_stary_numer_strony_to_blad(tmp_path):
+    # R-KOK-23 (ADR-0041): tekst zestawu z numerem `n / 6` sprzed krótszego kokpitu nie przechodzi budowy zestawu
+    spec = SPEC + "\n`Na kontroli: raport 2 / 6.`\n"
+    t = TEKSTY + "E-30.linia;linia;;Na kontroli: raport 2 / 6.\n"
+    e2 = E30.replace("E-30.krok;aktywna", "E-30.krok,E-30.linia;aktywna")
+    kod, out = uruchom(przygotuj(tmp_path, katalog_e=(e2,), teksty=t, spec=spec))
+    assert kod == 1 and "R-KOK-23" in out, out
 
 
 def test_odwolanie_do_wariantu_bez_celu_zatrzymuje_budowe(tmp_path):

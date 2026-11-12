@@ -6,13 +6,14 @@
 // (jedna reguła dla całego panelu):
 // - ▶ dalej / więcej / „tak”, ◀ wstecz / „nie”, ↻ dom (ekran dnia); na ekranie dnia ↻ nic, a na ekranie, który czeka
 //   na dane (S5, S10), ponawia pobranie;
-// - przytrzymanie tylko zapisuje („wiem”, „omówione” z potwierdzeniem, „wymienione dziś”, nowy model maski, cofnięcie,
+// - przytrzymanie tylko zapisuje („wiem”, „omówione” z potwierdzeniem, „wymienione dziś” na S-K-31 i S-K-35, cofnięcie,
 //   odpowiedź „Co było inaczej?”) albo uruchamia usługę z Wi-Fi (raport ogólny ▶ 2 s w K2, sieć panelu ◀ 2 s na U-01
 //   i U-05); nigdy nie otwiera strony do przeglądania;
-// - kokpit to ciąg stron: ekran dnia ▶ K1 (1/6) ▶ K2 (2/6) ▶ Otwarte sprawy (3/6) ▶ Twoja norma S8 (4/6, w profilu
-//   publicznym dalej „Co znaczą te liczby”) ▶ Sprzęt (5/6) ▶ Ustawienia U-01 (6/6) ▶ formularz U-03 ▶ test U-05; ◀ cofa
-//   o jedną stronę, z K1 do ekranu dnia; na stronach z listą (sprawy, sprzęt) ▶ i ◀ przesuwają po liście, a za jej końcem
-//   przechodzą na sąsiednią stronę;
+// - kokpit to ciąg stron (5.5.7, ADR-0041, R-KOK-19): ekran dnia ▶ K1 (1/3) ▶ K2 (2/3) ▶ „Co znaczą te liczby” (bez
+//   numeru, tylko w profilu publicznym) ▶ Otwarte sprawy (bez numeru, tylko przy co najmniej jednej sprawie)
+//   ▶ Ustawienia U-01 (3/3) ▶ 2 s formularz U-03 ▶ 2 s test U-05; ◀ cofa o jedną stronę, z K1 do ekranu dnia; na
+//   „Otwartych sprawach” ▶ i ◀ przesuwają po kartach, a za ich końcem przechodzą na sąsiednią stronę; S8 „Twoja norma”
+//   i „Sprzęt” nie są stronami kokpitu (S8 zostaje kamieniem milowym ekranu dnia, daty wymiany w formularzu U-03);
 // - wyjątek: pytanie „Co było inaczej?” (siatka): ◀ ▶ kursor, ↻ zaznacz, ↻ 2 s zapisz, ◀ 2 s pomiń;
 // - ukryty skrót ◀ + ▶ razem 2 s: test U-05 z oknem wgrywania (R-PRZ-21, dyrygent przytrzymanieLubSkrot()).
 #pragma once
@@ -21,15 +22,21 @@
 
 enum class Ekran : unsigned char { DZIEN = 0, K1 = 1, K2 = 2, PYTANIE = 3, TEST = 4, OMOWIONE = 5, SPRAWY = 6,
                                    PRZENIESIONE = 7, ZAPISANO = 8, RAPORT = 9,
-                                   NORMA = 10, LICZBY = 11,  // S8 „Twoja norma”, „Co znaczą te liczby”
-                                   SPRZET = 12, SPRZET_ZAPISANO = 13,  // „Sprzęt” (5.9.3), `Nowy model maski zapisany.` (R-MAS-14)
+                                   // NORMA (S8) i SPRZET to dawne strony kokpitu, wycofane w ADR-0041: wartości zostają,
+                                   // żeby numery dalszych ekranów w pamięci RTC się nie przesunęły (ekranZRtc → DZIEN)
+                                   NORMA = 10, LICZBY = 11,  // NORMA wycofane; „Co znaczą te liczby” (R-KOK-22)
+                                   SPRZET = 12, SPRZET_ZAPISANO = 13,  // SPRZET wycofane; `Wymiana zapisana.` (R-MAS-01, R-MAS-18)
                                    USTAWIENIA = 14, FORMULARZ = 15,  // U-01 „Ustawienia”, U-03 formularz z kodem QR
                                    SIEC_PANELU = 16,  // U-02, sieć panelu z formularzem (tylko ręcznie)
-                                   AKTUALIZACJA = 17 };  // U-07 „Aktualizacja” (R-KONF-43, ↻ 2 s na U-01)
+                                   AKTUALIZACJA = 17,  // U-07 „Aktualizacja” (R-KONF-43, ↻ 2 s na U-01)
+                                   PORTRET = 18 };  // Portret nocy jako strona pod ▶ z ekranu problemu (R-POR-24);
+                                                    // przejścia w src/dyrygent.cpp przejsciePortretu()
 // Ekran zapisany w pamięci RTC (StanRtc::ekran) z kontrolą zakresu: bajt spoza listy (zepsuta pamięć RTC,
 // stary obraz z innym wyliczeniem) daje ekran dnia zamiast wartości spoza `Ekran`. Przykład: 9 → RAPORT, 200 → DZIEN.
+// Dawne strony S8 i „Sprzęt” (obraz sprzed ADR-0041) też dają ekran dnia (5.5.7 fail-path R-KOK-19).
 inline Ekran ekranZRtc(unsigned char b) {
-  return b <= static_cast<unsigned char>(Ekran::AKTUALIZACJA) ? static_cast<Ekran>(b) : Ekran::DZIEN;
+  if (b == static_cast<unsigned char>(Ekran::NORMA) || b == static_cast<unsigned char>(Ekran::SPRZET)) return Ekran::DZIEN;
+  return b <= static_cast<unsigned char>(Ekran::PORTRET) ? static_cast<Ekran>(b) : Ekran::DZIEN;
 }
 enum class Przycisk : unsigned char { BRAK = 0, LEWY = 1, SRODEK = 2, PRAWY = 3 };
 
@@ -51,10 +58,9 @@ enum class Akcja : unsigned char {
   PYT_ZAZNACZ, PYT_ZAPISZ, PYT_POMIN, PYT_WSTECZ, PYT_DALEJ,
   WIEM, OMOWIONE_TAK, SPRAWY_OTWORZ, SPRAWY_DALEJ, SPRAWY_WSTECZ, ODP_TAK, ODP_NIE, ODP_POMIN,
   COFNIJ_WIEM, COFNIJ_ODP,
-  SPRZET_DALEJ, SPRZET_WYMIENIONE, SPRZET_NOWY_MODEL, SPRZET_COFNIJ,  // „Sprzęt” (5.9.3), ◀ 2 s na S-K-31 (R-MAS-01), R-MAS-14
+  SPRZET_WYMIENIONE, SPRZET_COFNIJ,  // ◀ 2 s na S-K-31 i S-K-35 (R-MAS-01, R-MAS-18), ◀ 2 s cofnij na `Wymiana zapisana.`
   RAPORT_STARSZE,  // ↻ 2 s na ekranie raportu (R-LEK-33)
-  SPRAWY_OD_KONCA,  // ◀ z S8 do „Otwartych spraw”: ostatnia karta
-  SPRZET_WSTECZ, SPRZET_OTWORZ, SPRZET_OD_KONCA,  // kursor „Sprzęt” w górę, od pierwszego, od ostatniego wiersza
+  SPRAWY_OD_KONCA,  // ◀ z U-01 do „Otwartych spraw”: ostatnia karta (R-KOK-20)
   SIEC_PANELU_START,    // ◀ 2 s na U-01 i U-05 (i na ekranie pierwszego uruchomienia), ↻ 2 s na U-02
   SIEC_PANELU_ANULUJ,   // ◀ na U-02 (R-KONF-29): poprzednia sieć, powrót tam, skąd uruchomiono; ↻ dom
   POMIAR_BATERII,       // ↻ na S5 z E-05 krytycznym: nowy pomiar baterii i nowy wybór ekranu dnia, bez Wi-Fi
@@ -63,12 +69,14 @@ enum class Akcja : unsigned char {
   AKT_PONOW,            // ▶ na U-07 po nieudanej próbie: ta sama czynność jeszcze raz
 };
 
-// numer strony kokpitu w nagłówku (`n / 6`); 0 = ekran poza ciągiem stron. „Co znaczą te liczby” ma numer S8.
-const int STRON_KOKPITU = 6;
+// numer strony kokpitu w nagłówku (`n / 3`, R-KOK-19); 0 = ekran bez numeru. „Co znaczą te liczby” i „Otwarte sprawy”
+// są w ciągu stron, ale bez numeru (stronaKokpitu() true, numerStrony() 0).
+const int STRON_KOKPITU = 3;
 int numerStrony(Ekran e);
-std::string numerStronyTekst(Ekran e);  // `n / 6` albo pusty
+std::string numerStronyTekst(Ekran e);  // `n / 3` albo pusty
+bool stronaKokpitu(Ekran e);  // K1, K2, „Co znaczą te liczby”, „Otwarte sprawy”, U-01
 // Kolejka naciśnięć (spec 5.6.1): naciśnięcie zapamiętane w czasie rysowania wykonuje się bez pokazania ekranu
-// pośredniego, więc tylko czysta nawigacja: krótkie naciśnięcie na ekranie dnia albo na stronie kokpitu `n / 6`.
+// pośredniego, więc tylko czysta nawigacja: krótkie naciśnięcie na ekranie dnia albo na stronie kokpitu.
 // Pytanie, potwierdzenie, ekran poza ciągiem stron albo przytrzymanie (zapis) = false: reszta kolejki przepada.
 bool zKolejkiWolno(Ekran e, bool dlugo);
 // karta „Otwartych spraw” z NVS przycięta do liczby kart (min. 1), żeby ◀ nie cofało niewidocznych kart
@@ -88,11 +96,11 @@ struct KontekstNaw {
   int sprawa = 1, spraw = 0;    // „Otwarte sprawy”: bieżąca karta (od 1) i liczba kart (0 = stan pusty)
   bool cofniecie = true;        // „Przeniesione”, „Zapisano”: cofnięcie jeszcze działa (w nocy tylko przez swój czas, R-PRZ-19)
   bool pytanieRuszone = false;  // w siatce „Co było inaczej?” zmieniono albo wybrano pozycję: ↻ 2 s zapisuje
-  bool sk31 = false;            // ekran dnia to S-K-31: ◀ 2 s = „wymienione dziś” (R-MAS-01)
-  int kursorSprzetu = 0;        // „Sprzęt”: wiersz kursora (0 maska: ↻ 2 s = nowy model, R-MAS-11; 1 filtr)
-  int wierszySprzetu = 2;       // liczba wierszy „Sprzęt” (sprzet::EL_N): ▶ na ostatnim → U-01
-  bool sprawyDostepne = false;  // dyrygent ma wyniki silnika : strona „Otwarte sprawy”; inaczej pominięta
-  bool profilPubliczny = false; // ustawienie „Profil publiczny” (5.6.4): ▶ na S8 → „Co znaczą te liczby” (R-EKR-51)
+  bool sk31 = false;            // ekran dnia to S-K-31 albo S-K-35: ◀ 2 s = „wymienione dziś” (R-MAS-01, R-MAS-18)
+  // (R-KOK-19, R-KOK-20): co najmniej jedna sprawa z listy R-EKR-48 w chwili naciśnięcia: strona „Otwarte sprawy”
+  // w ciągu; bez spraw (także bez wyników silnika) strona pominięta w obie strony
+  bool sprawyDostepne = false;
+  bool profilPubliczny = false; // ustawienie „Profil publiczny” (5.6.4): „Co znaczą te liczby” po K2 (R-KOK-22)
   Ekran zrodlo = Ekran::DZIEN;  // raport (QR) i U-02: ekran, z którego otwarto (◀ tam wraca, ▶ dalej od niego)
   // potwierdzenie „Omówione z lekarzem?” w wariancie blokady (R-LEK-26, `Najpierw nowy raport: ▶ na ekranie L.`):
   // ▶ niczego nie zapisuje i nic nie robi, ◀ wraca, ↻ anuluje (mapa 5.6.2)
@@ -114,7 +122,7 @@ Przejscie nacisniecie(Ekran e, Przycisk p, bool przytrzymanie, const KontekstNaw
 // Slot nocny 23:30–05:00 (R-PRZ-18): ekrany otwarte przyciskiem nie wracają same.
 bool slotNocny(int minutaDoby);
 // (R-PRZ-19): w slocie nocnym ekran potwierdzenia z cofnięciem („Przeniesione” 30 s, „Zapisano” 60 s,
-// `Nowy model maski zapisany.` 30 s [PRÓG]) zostaje do 05:00, ale po swoim czasie panel budzi się raz i rysuje go bez
+// `Wymiana zapisana.` 30 s [PRÓG]) zostaje do 05:00, ale po swoim czasie panel budzi się raz i rysuje go bez
 // podpisu cofnięcia. sekundDoKoncaCofniecia(): sekundy do tego wybudzenia, -1 poza nocą, na innych ekranach i po
 // upływie; koniecCofnieciaTeraz(): chwila `sek` leży w KONIEC_COFNIECIA_TOL_S po upływie (wybudzenie z tego powodu).
 const long KONIEC_COFNIECIA_TOL_S = 30;

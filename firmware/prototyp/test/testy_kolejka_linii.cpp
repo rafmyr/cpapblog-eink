@@ -227,7 +227,7 @@ static void testKolejka() {
   ROWNE_L(cc.kolejka(DZIS).size(), 0);
   auto kn = cc.kolejka(NIEDZIELA);
   ROWNE_L(kn.size(), 1);
-  if (!kn.empty()) ROWNE(kn[0].tekst, "Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.");
+  if (!kn.empty()) ROWNE(kn[0].tekst, "Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 3.");
   // „gorzej” = tak: linia R-SKI-36 przez 3 dni
   reguly::Odpowiedzi g;
   g.gorzej["2026-11-03"] = true;
@@ -351,7 +351,7 @@ static void testKartySpraw() {
     ROWNE(k[0].dalej, "przypomnę co 3 dni, obserwacja trwa");  // B w dniu bez pełnego ekranu (R-SKI-37)
     ROWNE(k[1].tytul, "Sprawa na kontrolę");
     ROWNE(k[1].powod, "Regularność niższa od 4 tygodni.");
-    ROWNE(k[1].dalej, "w niedzielnym podsumowaniu, strona 2 / 6 i raport");
+    ROWNE(k[1].dalej, "w niedzielnym podsumowaniu, strona 2 / 3 i raport");
     ROWNE(k[2].tytul, "Poza normą od 9 nocy");
     ROWNE(k[2].powod, "AHI 6,2 przy zwykłych 0,8–2,1.");
     ROWNE(k[3].tytul, "Sprawa z paska u góry");
@@ -603,8 +603,8 @@ static void testPrzyciski() {
   ROWNE_L(sekundDoPowrotu(Ekran::OMOWIONE, 10, 2 * 60), 50);  // R-PRZ-05, także w nocy
   ROWNE_L(sekundDoPowrotu(Ekran::OMOWIONE, 61, 9 * 60), 0);
   KontekstNaw s;
-  // „Otwarte sprawy” to strona 3 / 6 (po K2); bez wyników silnika pominięta (K2 ▶ S8)
-  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, s).ekran == Ekran::NORMA);
+  // „Otwarte sprawy” po K2 bez numeru (R-KOK-19); bez spraw pominięta (K2 ▶ U-01)
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, s).ekran == Ekran::USTAWIENIA);
   s.sprawyDostepne = true;
   SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, s).ekran == Ekran::SPRAWY);
   s.sprawa = 1;
@@ -612,7 +612,7 @@ static void testPrzyciski() {
   SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::PRAWY, false, s).akcja == Akcja::SPRAWY_DALEJ);
   SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::LEWY, false, s).ekran == Ekran::K2);
   s.sprawa = 3;
-  SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::PRAWY, false, s).ekran == Ekran::NORMA);  // za ostatnią: S8
+  SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::PRAWY, false, s).ekran == Ekran::USTAWIENIA);  // za ostatnią: U-01
   SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::LEWY, false, s).akcja == Akcja::SPRAWY_WSTECZ);
   SPRAWDZ(nacisniecie(Ekran::SPRAWY, Przycisk::SRODEK, false, s).ekran == Ekran::DZIEN);
   s.spraw = 0;
@@ -694,7 +694,7 @@ static void testSzerokosci() {
                                       "cisza przez 56 nocy od 30.11, obserwacja trwa",
                                       "wraca do wyboru 30.11, obserwacja trwa",
                                       "dziś ekranem jest inna sprawa, obserwacja trwa",
-                                      "w niedzielnym podsumowaniu, strona 2 / 6 i raport",
+                                      "w niedzielnym podsumowaniu, strona 2 / 3 i raport",
                                       "gdy dane przestaną to pokazywać",
                                       "gdy kolejne noce przestaną to pokazywać", "omówione z lekarzem 30.11"};
   for (auto& w : wiersze) {

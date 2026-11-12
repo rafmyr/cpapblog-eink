@@ -27,6 +27,7 @@
 #include "airbridge.h"
 #include "edf.h"
 #include "noc.h"
+#include "portret.h"
 #include "str.h"
 
 namespace noc_pliki {
@@ -99,6 +100,11 @@ class LicznikNocy {
   void brakPliku(const std::string& nazwa, const std::string& powod);
   WynikNocy wynik() const;
   size_t bajtyLicznikow() const;  // przybliżona pamięć liczników (diagnostyka budżetu)
+  // Portret nocy (T-WYM-98): zbieracz odcinków 5 min dostaje każdy przeczytany plik PLD w tym samym przejściu
+  // (nullptr = bez Portretu). Zbieracz musi żyć dłużej niż dodajPlik().
+  void dolaczPortret(portret::Zbieracz* z) { portret_ = z; }
+  // Zdarzenia z plików EVE bez powtórzeń, rosnąco po chwili: (chwila w s cywilnych, tekst) do Zbieracz::wynik().
+  std::vector<std::pair<double, std::string>> zdarzeniaPortretu() const;
 
  private:
   struct Plik {
@@ -138,6 +144,7 @@ class LicznikNocy {
   std::map<int, bool> uzycieZnane_;                                   // indeks PLD → rekordy == 0 albo zapis
   std::set<Zdarzenie> zdarzenia_;
   bool eveBlad_ = false;
+  portret::Zbieracz* portret_ = nullptr;
   std::vector<std::vector<std::pair<double, std::string>>> csl_;  // CSR Start/End z każdego CSL, kolejność z pliku
   bool cslBlad_ = false;
   std::vector<std::string> problemy_, uwagi_;

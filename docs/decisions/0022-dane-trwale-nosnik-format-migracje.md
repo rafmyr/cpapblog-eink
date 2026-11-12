@@ -85,3 +85,5 @@ Zrzut `Z` obejmuje też `/konfiguracja.txt` (ustawienia i dane wpisane na panelu
 
 Rekord `noce` wersja 5 = pola wersji 4 i na końcu `m14;m15` (M-14 objętość oddechowa w mL, M-15 wentylacja minutowa w L/min, mediany kanałów `TidVol` i `MinVent`; decyzja właściciela projektu 11.11.2026, M-14 dołożone w tej samej zmianie formatu). Zgodnie z pkt o wersjach: nowe pola tylko na końcu, migracja 4 → 5 krokiem ogólnym `migrujWMiejscu()` (puste pola na końcu, kopia `.v4` przed zmianą; pliki wersji 1–3 krok po kroku), firmware znający wersję 4 czyta plik wersji 5 tylko do odczytu (pierwsze 42 pola). Noce z karty, ze starszych plików i z raportu bez tych kanałów mają pola puste (brak danych, nigdy 0).
 
+
+**Zmiana 2026-11-11 (ADR-0040; bez zmiany decyzji):** nowy plik `/dane/portret.csv` (format `portret` wersja 1, przepisanie atomowe z `#koniec`, tylko ostatnia noc, w kopii na karcie; spec techniczna T-DANE-38).

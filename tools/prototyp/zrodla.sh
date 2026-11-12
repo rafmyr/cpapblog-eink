@@ -13,6 +13,8 @@ ZRODLA=("$FW/src/wspolne.cpp" "$FW/src/noc.cpp" "$FW/src/czynniki.cpp" "$FW/src/
 ZRODLA+=("$FW/src/edf.cpp" "$FW/src/str.cpp")
 # noc liczona na panelu z plików sesji PLD, EVE, CSL (src/noc_pliki.cpp), ADR-0036
 ZRODLA+=("$FW/src/noc_pliki.cpp")
+# Portret nocy: odcinki 5 min ostatniej nocy i plik /dane/portret.csv (src/portret.cpp), ADR-0040
+ZRODLA+=("$FW/src/portret.cpp" "$FW/src/portret_ekran.cpp")
 # porównanie nocy z plików z raportem JSON (src/porownanie.cpp), tryb `noc_zrodlo=porownanie`, ADR-0036
 ZRODLA+=("$FW/src/porownanie.cpp")
 # ekrany zdarzeń E w tonie „problem” (S3, src/ekrany_zdarzen.cpp)
@@ -65,6 +67,7 @@ TESTY+=("$FW/test/testy_str_edf.cpp") # STR.edf: czytnik EDF, noce 'S', pierwsze
 TESTY+=("$FW/test/testy_str_edf_brzegowe.cpp") # przypadki brzegowe STR.edf
 TESTY+=("$FW/test/testy_noc_pliki.cpp") # noc z plików sesji: zgodność z noce.py, brzegowe, dyrygent (ADR-0036)
 TESTY+=("$FW/test/testy_noc_pliki_brzegowe.cpp") # przypadki brzegowe nocy z plików sesji
+TESTY+=("$FW/test/testy_portret.cpp") # Portret nocy: odcinki wobec tools/portret, plik T-DANE-38, rysunek (ADR-0040)
 TESTY+=("$FW/test/testy_porownanie.cpp") # tryb porównawczy: noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv
 TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu porównawczego
 TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
@@ -81,7 +84,7 @@ OSTRZEZENIA_TESTOW=(-Wall -Wextra -Werror -Wformat=2 -Wduplicated-cond -Wlogical
 TESTY+=("$FW/test/testy_przerywniki_s2d_brzegowe.cpp") # przypadki brzegowe: przerywniki S2d
 TESTY+=("$FW/test/testy_parsowanie_liczb.cpp") # liczbaCalk/Dluga/Rzecz równoważne atoi/atol/atof (clang-tidy cert-err34-c)
 TESTY+=("$FW/test/testy_sprzet_maska_filtr.cpp") # SPRZĘT tylko maska i filtr, migracja dat, filtr w tygodniach, formularz bez rury i komory
-TESTY+=("$FW/test/testy_nawigacja.cpp") # nowa nawigacja (▶ dalej, ◀ wstecz, ↻ ekran dnia, przytrzymanie = zapis, strony n / 6)
+TESTY+=("$FW/test/testy_nawigacja.cpp") # nowa nawigacja (▶ dalej, ◀ wstecz, ↻ ekran dnia, przytrzymanie = zapis, strony n / 3, ADR-0041)
 TESTY+=("$FW/test/testy_nawigacja_mapa_brzegowe.cpp") # przypadki brzegowe: mapa nawigacji 5.6.2 tabelarycznie
 TESTY+=("$FW/test/testy_formularz_u03.cpp") # formularz U-03 uzupełniony (miasto, CO2, humor, dźwięk, cisza, podpowiedź, czynniki)
 TESTY+=("$FW/test/testy_alarm_baterii.cpp") # E-05: M-25 z napięcia, linia ≤ 15%, S5 ≤ 5%, R-PIE-07 (decyzja 05.11.2026)

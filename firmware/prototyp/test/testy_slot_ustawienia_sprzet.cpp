@@ -234,37 +234,32 @@ static void testU01Brzegowe() {
   SPRAWDZ("skrócenie SSID psuje UTF-8", utf8);
 }
 
-// ---------- „Sprzęt”: termin w dniu wymiany „dziś”, 29 lutego, przełom roku, zgodność z S-K-35 ----------
+// ---------- termin wymiany w formularzu U-03 (R-MAS-17): dzień wymiany „dziś”, 29 lutego, przełom roku ----------
 static void testSprzetTerminy() {
   sprzet::Elementy e;
-  // maska wymieniona dziś (10.11.2026), okres 6 mies. → 10.05.2027 (inny rok, z rokiem); nie po terminie
+  // maska wymieniona dziś (10.11.2026), okres 6 mies. → 10.05.2027; nie po terminie
   e.el[EL_MASKA] = {"2026-11-10", 6, false};
-  e.el[EL_FILTR] = {"2026-12-03", 4, true};  // data w przyszłości (zegar albo pomyłka): wiek `–`
-  auto w = sprzet::wierszeSprzetu(e, "2026-11-10");
-  SPRAWDZ("wymiana dziś", w[0].termin == "10.05.2027 · co 6 mies." && !w[0].poTerminie);
-  printf("  filtr z datą w przyszłości: wiek \"%s\", termin \"%s\"\n", w[1].wiek.c_str(), w[1].termin.c_str());
+  SPRAWDZ("wymiana dziś", sprzet::terminFormularza(e.el[EL_MASKA], "2026-11-10") == "następna wymiana 10.05.2027");
   // 29 lutego + 12 mies. → 28.02 (przycięte w terminWymiany); w dniu 28.02 już po terminie
   e.el[EL_MASKA] = {"2028-02-29", 12, false};
-  w = sprzet::wierszeSprzetu(e, "2029-02-27");
-  SPRAWDZ("29 lutego", w[0].termin == "28.02 · co 12 mies." && !w[0].poTerminie);
-  w = sprzet::wierszeSprzetu(e, "2029-02-28");
-  SPRAWDZ("29 lutego, dzień terminu", w[0].termin == "po 28.02 · co 12 mies." && w[0].poTerminie);
-  // przełom roku: termin 05.01.2027 oglądany 31.12.2026 → z rokiem; 05.01.2027 oglądany 05.01.2027 → po, bez roku
-  e.el[EL_FILTR] = {"2026-12-08", 4, true};
-  w = sprzet::wierszeSprzetu(e, "2026-12-31");
-  SPRAWDZ("przełom roku", w[1].termin == "05.01.2027 · co 4 tyg.");
-  w = sprzet::wierszeSprzetu(e, "2027-01-05");
-  SPRAWDZ("przełom roku, dzień terminu", w[1].termin == "po 05.01 · co 4 tyg.");
-  // zgodność z S-K-35 i znacznikiem: ta sama funkcja terminWymiany i ten sam warunek poTerminie
+  SPRAWDZ("29 lutego", sprzet::terminFormularza(e.el[EL_MASKA], "2029-02-27") == "następna wymiana 28.02.2029");
+  SPRAWDZ("29 lutego, dzień terminu", sprzet::terminFormularza(e.el[EL_MASKA], "2029-02-28") == "po terminie od 28.02.2029");
+  // przykłady z R-MAS-17
+  e.el[EL_MASKA] = {"2026-08-01", 6, false};
+  SPRAWDZ("R-MAS-17 maska", sprzet::terminFormularza(e.el[EL_MASKA], "2026-11-11") == "następna wymiana 01.02.2027");
+  e.el[EL_FILTR] = {"2026-09-01", 4, true};
+  SPRAWDZ("R-MAS-17 filtr", sprzet::terminFormularza(e.el[EL_FILTR], "2026-11-11") == "po terminie od 29.09.2026");
+  e.el[EL_FILTR] = {"", 4, true};
+  SPRAWDZ("R-MAS-17 bez daty", sprzet::terminFormularza(e.el[EL_FILTR], "2026-11-11") == "brak daty wymiany");
+  // zgodność z S-K-35: ta sama funkcja terminWymiany i ten sam warunek poTerminie
   for (int d = 0; d < 400; d += 7) {
     std::string dzis = dodajDni("2026-06-01", d);
     e.el[EL_MASKA] = {"2026-01-31", 6, false};
     e.el[EL_FILTR] = {"2026-02-29", 4, true};  // zła data: bez daty
-    auto ww = sprzet::wierszeSprzetu(e, dzis);
     for (int i = 0; i < EL_N; i++) {
-      std::string t = terminWymiany(e.el[i]);
-      SPRAWDZ("bez daty a termin", ww[(size_t)i].bezDaty == t.empty());
-      SPRAWDZ("po terminie a negatyw", ww[(size_t)i].poTerminie == sprzet::poTerminie(e.el[i], dzis));
+      std::string t = terminWymiany(e.el[i]), f = sprzet::terminFormularza(e.el[i], dzis);
+      SPRAWDZ("bez daty a termin", (f == "brak daty wymiany") == t.empty());
+      SPRAWDZ("po terminie", (f.rfind("po terminie", 0) == 0) == sprzet::poTerminie(e.el[i], dzis));
     }
   }
 }
@@ -284,19 +279,6 @@ static void testKartaStopkaAkcja() {
   SPRAWDZ("akcja ◀ w stopce karty ustąpiła", lewo > 50);
 }
 
-// ---------- podpowiedź „Brak daty” każe przytrzymać ◀ „na wierszu w ramce”, a ramka może stać na innym elemencie ----------
-static void testPodpowiedzBezDaty() {
-  // maska z datą (kursor na niej, wiersz 0), filtr bez daty: podpowiedź stoi pod tabelą niezależnie od kursora;
-  // ◀ 2 s na wierszu w ramce zapisuje wymianę MASKI (R-MAS-01), nie elementu bez daty
-  // po poprawce podpowiedź zależy od wierszy (podpowiedzBezDaty()): maska z datą, filtr bez daty
-  sprzet::Elementy e;
-  e.el[EL_MASKA] = {"2026-07-15", 6, false};
-  e.el[EL_FILTR] = {"", 4, true};
-  std::string pod = sprzet::podpowiedzBezDaty(sprzet::wierszeSprzetu(e, "2026-11-10"));
-  bool wskazujeKursor = pod.find("w ramce") != std::string::npos;
-  bool mowiOWierszuBezDaty = pod.find("bez daty") != std::string::npos || pod.find("Filtr") != std::string::npos;
-  SPRAWDZ("podpowiedź wskazuje wiersz w ramce, nie wiersz bez daty", !wskazujeKursor || mowiOWierszuBezDaty);
-}
 
 int main() {
   testWykresPrzyLiniiA();
@@ -305,7 +287,6 @@ int main() {
   testU01Brzegowe();
   testSprzetTerminy();
   testKartaStopkaAkcja();
-  testPodpowiedzBezDaty();
   printf("testy_slot_ustawienia_sprzet: %d dobrze, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

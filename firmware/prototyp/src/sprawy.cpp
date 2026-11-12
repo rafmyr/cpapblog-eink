@@ -49,10 +49,10 @@ int rangaSprawy(const SprawaL& s) {
   return 4;
 }
 
-// „Na kontroli: raport 2 / 6.” z linii pilności C (5.12.5, „Linie”): karta sprawy i raport mają zdanie bez tej części
+// „Na kontroli: raport 2 / 3.” z linii pilności C (5.12.5, „Linie”): karta sprawy i raport mają zdanie bez tej części
 std::string bezKontroli(const std::string& l) {
-  // druga postać: zestaw danych sprzed 10.11.2026 (nazwa robocza strony zamiast `2 / 6`)
-  static const char* const K[] = {" Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+  // starsze postacie z zestawu danych z karty (ADR-0023): numer sprzed ADR-0041 i nazwa robocza sprzed 10.11.2026
+  static const char* const K[] = {" Na kontroli: raport 2 / 3.", " Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
   for (const char* k : K) {
     const std::string s(k);
     if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());
@@ -397,7 +397,7 @@ std::string wierszDalej(const SprawaL& s, const WejscieSpraw& w) {
   if (s.jestL() && s.wygaszonyB()) return "przypomnę 1. dnia miesiąca, obserwacja trwa";  // R-SKI-09, R-SKI-13
   if (s.jestL() && s.pilnosc == Pilnosc::B && s.ton == Ton::LEKARZ) return "przypomnę co 3 dni, obserwacja trwa";
   if (s.jestL() && s.pilnosc == Pilnosc::A) return "przypominam codziennie, obserwacja trwa";
-  if (s.jestL() && s.pilnosc == Pilnosc::C) return "w niedzielnym podsumowaniu, strona 2 / 6 i raport";
+  if (s.jestL() && s.pilnosc == Pilnosc::C) return "w niedzielnym podsumowaniu, strona 2 / 3 i raport";
   return "dziś ekranem jest inna sprawa, obserwacja trwa";
 }
 
@@ -447,7 +447,7 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
       x.powod = m.nazwa + " " + m.x + " przy zwykłych " + m.p10 + "–" + m.p90 + ".";
       x.ocena = "pełna";
       x.ty = "bez potwierdzeń";
-      x.dalej = m.nocy >= 21 ? "bez pełnego ekranu: strona 2 / 6 i raport" : "bez pełnego ekranu: strona 2 / 6";
+      x.dalej = m.nocy >= 21 ? "bez pełnego ekranu: strona 2 / 3 i raport" : "bez pełnego ekranu: strona 2 / 3";
       x.koniec = "po powrocie do normy";
       k.push_back(x);
     }

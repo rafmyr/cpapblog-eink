@@ -55,7 +55,7 @@ R-EKR-37,05:00,czas interfejsu,
 5.6.2|Pytanie „Co było inaczej?” (kursor start,czasy powrotu ekranu,czas interfejsu,
 "5.6.2|Pytania tak/nie: senność, „gorzej”, prze",czasy powrotu ekranu,czas interfejsu,
 "5.6.2|Ekran „Przeniesione” (po „wiem”, R-PRZ-1",czasy powrotu ekranu,czas interfejsu,
-5.6.2|Ekran Nowy model maski zapisany. (po ↻ 2,czasy powrotu ekranu,czas interfejsu,
+5.6.2|Ekran Wymiana zapisana. (po ◀ 2 s na S-K,czasy powrotu ekranu,czas interfejsu,
 5.6.2|Ekran „Zapisano: tak.” / „Zapisano: nie.,czasy powrotu ekranu,czas interfejsu,
 5.6.2|Ekrany przejściowe („Przygotowuję raport,czasy powrotu ekranu,czas interfejsu,
 U-01,czasy powrotu ekranu,czas interfejsu,
@@ -95,7 +95,7 @@ R-KON-01,co 30 min,czas interfejsu,
 R-KON-09,19:00; 23:30; 3 noce,czas interfejsu,
 R-KON-17,21:00–23:30,czas interfejsu,
 R-KON-31,23:30,czas interfejsu,godzina rysowania ekranu nocnego S9 (ADR-0018)
-R-MAS-14,30 s,czas interfejsu,
+R-MAS-01,30 s,czas interfejsu,"ekran `Wymiana zapisana.` z cofnięciem (od ADR-0041 zamiast R-MAS-14)"
 §5.10.1,brak liczby,opis,
 5.10.2|Przyciski,60 s; 11:00; 2 h,czas interfejsu,
 R-INF-08,11:00,czas interfejsu,
@@ -189,3 +189,25 @@ R-HUM-12,3 zdania,powtórzenie,"= WY15.pula_min (weryfikacja R-HUM-12: co najmni
 R-DANE-61,"co 5 min; 45 min przed i po zwykłej porze końca terapii; 14 nocy, co najmniej 3",czas interfejsu,"gęste okno rano, decyzja właściciela projektu 10.11.2026 bez źródła; 14 i 3 jak R-KON-09"
 R-DANE-62,"2 min; 5 powtórek na dobę",czas interfejsu,"powtórka przy przetwarzaniu plików w AirBridge, decyzja właściciela projektu 10.11.2026 bez źródła"
 R-PRZ-22,"05:00–11:00; raz na 2 min",czas interfejsu,"pobranie rano po przycisku; okno jak R-DANE-02, limit decyzją właściciela projektu 10.11.2026"
+5.4.16|odcinek,"5 min; 30 próbek",wygląd ekranu,"Portret nocy (ADR-0040): długość odcinka i minimum próbek 2 s w odcinku; makiety ekranu, bez źródła"
+5.4.16|wyciek w odcinku (rysunek),"60 s; 15 L/min",wygląd ekranu,"Portret nocy: biały odcinek od 60 s próbek Leak ≥ 15 L/min w odcinku (12.11.2026; obserwacja własna, 1 osoba); 15 L/min jak R-NOR-05.niepewna_p95"
+"5.4.16|większe wsparcie oddechu (ASV, ASVAuto)",2 cmH2O,wygląd ekranu,"Portret nocy: granica piku ASV ponad medianę normy M-28; makiety ekranu na nocach właściciela (obserwacja własna, 1 osoba)"
+5.4.16|zwykła pora startu terapii,"14 nocy; 3",wygląd ekranu,"Portret nocy: okno mediany M-18 i minimum nocy (jak R-DANE-61 i R-KON-09)"
+5.4.16|okno tarczy,2 h,wygląd ekranu,"Portret nocy: początek okna tarczy przed zwykłą porą startu terapii; makiety ekranu"
+5.4.16|ciśnienie na maksimum,"0,5 cmH2O",wygląd ekranu,"Portret nocy: margines jak R-KOK-12.margines i ADR-0037 (podpis, nie reguła)"
+5.4.16|Linia uwagi,"0,85",wygląd ekranu,"Portret nocy: skala tarczy przy linii uwagi (R-POR-19)"
+5.4.16|4,"10 min; 7",wygląd ekranu,"Portret nocy: wiersz 4 tabeli „Język rysunku” (podstawa garbu piku, ograniczenie liczby zdarzeń do 7) i wiersz 4 tabeli „Podpisy” (najkrótsza przerwa z podpisem 10 min); makiety ekranu"
+5.4.16|2,"60 min; 3",wygląd ekranu,"Portret nocy: okno podpisu „Najgęściej” i minimum odcinków z pikiem; makiety ekranu"
+R-POR-04,30 min,czas interfejsu,"Portret nocy: czas Portretu przed drugim ekranem poranka, propozycja domyślna"
+R-POR-05,30 min,czas interfejsu,"Portret nocy: start slotu dziennego naciśnięciem na Portrecie bez drugiego ekranu, jak R-POR-04"
+R-POR-06,2 h,wygląd ekranu,"Portret nocy: okno tarczy, jak 5.4.16 okno tarczy"
+R-POR-08,"60 s; 15 L/min",wygląd ekranu,"Portret nocy: jak 5.4.16 wyciek w odcinku (rysunek); 60 s obserwacja własna, 1 osoba (12.11.2026); 15 L/min jak R-NOR-05.niepewna_p95"
+R-POR-09,12 px,wygląd ekranu,"Portret nocy: minimalna wysokość piku od 1 zdarzenia na 1 bit (ustalenie z makiet ekranu)"
+R-POR-10,2 cmH2O,wygląd ekranu,"Portret nocy: jak 5.4.16 większe wsparcie oddechu"
+R-POR-11,10 min,wygląd ekranu,"Portret nocy: podstawa garbu piku"
+R-POR-16,15 min,powtórzenie,"= R-SKI-27.noc_z_terapia_m01"
+R-POR-19,"0,85",wygląd ekranu,"Portret nocy: skala tarczy przy linii uwagi"
+R-MAS-18,30 s,czas interfejsu,"cofnięcie zapisu wymiany z S-K-35, jak R-MAS-01"
+5.4.16|czas wycieku (podpis),15 L/min,powtórzenie,"= R-NOR-05.niepewna_p95 (czas wycieku z próbek 2 s tylko odcinków białych)"
+5.4.16|6,5 min,wygląd ekranu,"Portret nocy: najkrótszy czas ciśnienia na maksimum z podpisem (1 odcinek)"
+R-POR-17,500,parametr techniczny,"Portret nocy: najwięcej chwil zdarzeń w pliku przebiegu (kropki ASV)"

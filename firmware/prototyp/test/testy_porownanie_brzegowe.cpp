@@ -181,7 +181,9 @@ struct Migawka {
 static Migawka migawka(const PanelN& s) {
   Migawka m;
   for (auto& kv : s.p.pliki.pliki)
-    if (kv.first != "/dane/porownanie.csv" && kv.first != "/konfiguracja.txt" && kv.first.compare(0, 5, "/log/") != 0 &&
+    // `/dane/portret.csv`: przebieg nocy z plików zapisuje także tryb porównawczy, na końcu wybudzenia (R-POR-17)
+    if (kv.first != "/dane/porownanie.csv" && kv.first != "/dane/portret.csv" && kv.first != "/konfiguracja.txt" &&
+        kv.first.compare(0, 5, "/log/") != 0 &&
         kv.first.find("wybudzenia") == std::string::npos)
       m.pliki[kv.first] = kv.second;
   for (auto& kv : s.p.nvs.teksty) m.nvs["t:" + kv.first] = kv.second;

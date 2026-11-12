@@ -193,15 +193,15 @@ static void testS7ILiczby() {
     podsumowanie::DaneLiczb l = podsumowanie::budujLiczby(t, true);
     ROWNE(l.naglowek, "Co znaczą te liczby");
     ROWNE(l.etykieta, "");  // bez powtórzenia nazwy w treści
-    // nazwa strony obok numeru `4 / 6` w nagłówku (P24B z lewej od 28, P24B z prawej do 772)
-    SPRAWDZ(28 + szer(F_P24B, l.naglowek) + 24 <= 772 - szer(F_P24B, "4 / 6"));
+    // nazwa strony w nagłówku, bez numeru (R-KOK-22; P24B z lewej od 28)
+    SPRAWDZ(28 + szer(F_P24B, l.naglowek) <= 772);
     PlotnoTest p, q;
-    podsumowanie::rysujLiczby(p, Naglowek{l.naglowek, "4 / 6"}, l);
+    podsumowanie::rysujLiczby(p, Naglowek{l.naglowek, ""}, l);
     SPRAWDZ(p.czarne(0, 0, 800, 50) > 0);
     // pas etykiety (pod nagłówkiem, nad pierwszym wierszem na 133) pusty
     SPRAWDZ(p.czarne(0, 60, 800, 104) == 0);
     l.etykieta = "Co znaczą te liczby";
-    podsumowanie::rysujLiczby(q, Naglowek{l.naglowek, "4 / 6"}, l);
+    podsumowanie::rysujLiczby(q, Naglowek{l.naglowek, ""}, l);
     SPRAWDZ(q.czarne(0, 60, 800, 104) > 0);
   }
 }

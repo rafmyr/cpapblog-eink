@@ -75,17 +75,14 @@ static void testAhiWObuProfilach() {
   podsumowanie::WejscieS8 w;
   w.norma = &n;
   w.tryb = reguly::Tryb::ASVAUTO;
-  w.zK1 = true;
   podsumowanie::DaneS8 a = podsumowanie::budujS8(w);
   w.profilPubliczny = true;
   podsumowanie::DaneS8 b = podsumowanie::budujS8(w);
   SPRAWDZ(!a.wiersze.empty() && a.wiersze == b.wiersze && a.krok == b.krok);  // S8: wiersz i krok z `AHI` w obu
   SPRAWDZ(!b.wiersze.empty() && b.wiersze[0].rfind("AHI ", 0) == 0);
   ROWNE(b.krok, "→ Pasmo AHI wysokie. Obserwuj kolejne noce.");
-  // profil różni stopkę S8 z K1 (R-EKR-51)
-  // S8 to strona 4 / 6, ◀ „Otwarte sprawy”, ▶ „Sprzęt” albo w profilu publicznym „Co znaczą te liczby”
-  ROWNE(a.stopkaLewo, "◀ sprawy   ▶ sprzęt   ↻ ekran dnia");
-  ROWNE(b.stopkaLewo, "◀ sprawy   ▶ co znaczą liczby   ↻ ekran dnia");
+  // od ADR-0041 S8 nie jest stroną kokpitu: profil nie różni S8 (stopka standardowa ekranu dnia w obu)
+  SPRAWDZ(podsumowanie::trescS8(a).stopkaStandardowa && podsumowanie::trescS8(b).stopkaStandardowa);
   // S7: ten sam tekst w obu profilach (`AHI, mediana`, zdanie z `AHI`)
   std::vector<Noc> h;
   for (int i = 0; i < 61; i++) h.push_back(noc(dodajDni("2026-10-01", i), i < 31 ? 1.0 : 3.5));
@@ -146,33 +143,39 @@ static void testLiczby() {
     p.zegar.epoch = ep(2026, 11, 4, 10, 0);
     zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
     p.pliki.pliki["/konfiguracja.txt"] = pub ? "profil=publiczny\n" : "";
-    // ▶ z ekranu dnia po kolei przez strony kokpitu aż do S8 (R-EKR-35; „Otwarte sprawy” mogą mieć kilka kart),
-    // potem ▶: „Co znaczą te liczby” tylko w profilu publicznym (R-EKR-51), inaczej „Sprzęt”
-    for (int i = 0; i < 12 && ekran(p) != Ekran::NORMA; i++)
+    // ▶ z ekranu dnia po kolei przez strony kokpitu aż do K2 (R-KOK-19), potem ▶: „Co znaczą te liczby” tylko
+    // w profilu publicznym (R-KOK-22), inaczej „Otwarte sprawy” (przy sprawie) albo U-01
+    for (int i = 0; i < 4 && ekran(p) != Ekran::K2; i++)
       przycisk(p, ep(2026, 11, 4, 10, 0) + (uint32_t)i, BIT_PRAWY, {{0, BIT_PRAWY}, {300, 0}});
-    SPRAWDZ(ekran(p) == Ekran::NORMA);
+    SPRAWDZ(ekran(p) == Ekran::K2);
     przycisk(p, ep(2026, 11, 4, 10, 0) + 20, BIT_PRAWY, {{0, BIT_PRAWY}, {300, 0}});
-    SPRAWDZ(ekran(p) == (pub ? Ekran::LICZBY : Ekran::SPRZET));
-    if (!pub) continue;
-    // ◀ wraca do S8, ▶ znowu do „Co znaczą te liczby”
+    if (!pub) {
+      SPRAWDZ(ekran(p) == Ekran::USTAWIENIA || ekran(p) == Ekran::SPRAWY);
+      SPRAWDZ(ekran(p) != Ekran::NORMA && ekran(p) != Ekran::SPRZET);  // S8 i „Sprzęt” poza kokpitem (ADR-0041)
+      continue;
+    }
+    SPRAWDZ(ekran(p) == Ekran::LICZBY);
+    // ◀ wraca do K2, ▶ znowu do „Co znaczą te liczby”
     przycisk(p, ep(2026, 11, 4, 10, 1), BIT_LEWY, {{0, BIT_LEWY}, {300, 0}});
-    SPRAWDZ(ekran(p) == Ekran::NORMA);
+    SPRAWDZ(ekran(p) == Ekran::K2);
     przycisk(p, ep(2026, 11, 4, 10, 2), BIT_PRAWY, {{0, BIT_PRAWY}, {300, 0}});
     SPRAWDZ(ekran(p) == Ekran::LICZBY);
-    // fail-path (R-EKR-51): profil wyłączony w trakcie oglądania; ekran zostaje do ◀ (◀ → S8), następne ▶ na S8 → „Sprzęt”
+    // fail-path: profil wyłączony w trakcie oglądania; ekran zostaje do naciśnięcia, ◀ → K2, następne ▶ na K2 omija
+    // „Co znaczą te liczby”
     p.pliki.pliki["/konfiguracja.txt"] = "profil=prywatny\n";
     przycisk(p, ep(2026, 11, 4, 10, 3), BIT_LEWY, {{0, BIT_LEWY}, {300, 0}});
-    SPRAWDZ(ekran(p) == Ekran::NORMA);
+    SPRAWDZ(ekran(p) == Ekran::K2);
     przycisk(p, ep(2026, 11, 4, 10, 4), BIT_PRAWY, {{0, BIT_PRAWY}, {300, 0}});
-    SPRAWDZ(ekran(p) == Ekran::SPRZET);
+    SPRAWDZ(ekran(p) == Ekran::USTAWIENIA || ekran(p) == Ekran::SPRAWY);
   }
-  // nawigacja bez dyrygenta: ten sam przełącznik (5.6.2)
+  // nawigacja bez dyrygenta: ten sam przełącznik (5.5.7)
   KontekstNaw k;
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::PRAWY, false, k).ekran == Ekran::SPRZET);  // następna strona
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);  // bez spraw i profilu
   k.profilPubliczny = true;
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::PRAWY, false, k).ekran == Ekran::LICZBY);
-  k.profilPubliczny = false;  // wyłączony w trakcie: z „Co znaczą te liczby” ◀ nadal wraca do S8
-  SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::LEWY, false, k).ekran == Ekran::NORMA);
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::LICZBY);
+  k.profilPubliczny = false;  // wyłączony w trakcie: z „Co znaczą te liczby” ◀ nadal wraca do K2
+  SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::LEWY, false, k).ekran == Ekran::K2);
+  SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);
 }
 
 int main() {

@@ -12,14 +12,15 @@ Author: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Status: beta (`1.0.0-
 
 | Day screen | Week summary | Your personal norm |
 |---|---|---|
-| ![Day screen with the alarm clock character](design/png/K22-dobra-noc.png) | ![Week summary card](design/png/K03-tydzien.png) | ![Cockpit page with the personal norm](design/png/S8-norma.png) |
+| ![Day screen with the alarm clock character](design/png/K22-dobra-noc.png) | ![Week summary card](design/png/K03-tydzien.png) | ![Personal norm screen](design/png/S8-norma.png) |
 
 Previews rendered from the design files (800×480, 1-bit), not photos of the device. The texts on the panel are in Polish.
 
 ## What it is
 
 - A morning **day screen**: the last night (time with mask, AHI, leak) compared with your personal norm from the last 30 valid nights, not with textbook thresholds. Usually it says there is nothing to do.
-- A **cockpit** of six pages (`1 / 6` … `6 / 6`): trends of the last 30 nights, details of the last night, open matters, your personal norm, equipment, settings.
+- A **night portrait** (`Portret nocy`): with AirBridge 2.3.1 or newer the first morning screen draws the last night on a 12-hour clock face: time with mask as a ring (gaps are breaks), leak as white segments, events (CPAP, AutoSet) or higher pressure support (ASV) as peaks, a mark where the clock window starts, and up to four short captions. It only describes the night, it does not assess it.
+- A **cockpit** of three pages (`1 / 3` … `3 / 3`): trends of the last 30 nights, details of the last night, settings; open matters as extra pages only when something is open.
 - **Context**: a short morning question "What was different yesterday?" after an unusual night (and on a random night as a control), bedroom temperature and humidity, optional outdoor weather and bedroom CO2, a night screen ("Dobranoc", Polish for "good night") from 23:30 to 05:00, and a day slot (airing window, tomorrow morning, equipment, sunrise).
 - **Talk to your doctor**: when a pattern lasts, the panel says whether and how soon to bring it up with a doctor and prepares a one-page A4 report, downloadable with a QR code from the panel's own local server for 15 minutes.
 - **Equipment**: reminders for mask and filter replacement.
@@ -70,7 +71,7 @@ pio run -e e1001 -t upload --upload-port /dev/cu.usbserial-XXXX
 - Upload speed is 115200 baud; the USB bridge of the panel loses data at higher speeds.
 - Uploading over Wi-Fi (`-e e1001_ota`) is locked in `platformio.ini` (`blokada_ota.py`) until a panel has been switched to the 32 MB partition layout over a cable. Details: [`firmware/prototyp/README.md`](firmware/prototyp/README.md).
 
-**First configuration.** A panel with no network saved starts its own WPA2 network `cpap-eink-XXXX` after power-up and shows two QR codes: one to join that network, one to open the setup form (`http://192.168.4.1/u/{token}/`). In the form you enter the home Wi-Fi and the AirBridge address, account and password. The panel checks AirBridge (`GET /api/status`) and saves the settings only when the check succeeds. Later the same form is opened from the settings page (`6 / 6`) by holding ▶ for 2 s; the panel network can be started again by holding ◀ for 2 s. Buttons on the housing are `<` (◀), `>` (▶) and the green one (↻).
+**First configuration.** A panel with no network saved starts its own WPA2 network `cpap-eink-XXXX` after power-up and shows two QR codes: one to join that network, one to open the setup form (`http://192.168.4.1/u/{token}/`). In the form you enter the home Wi-Fi and the AirBridge address, account and password. The panel checks AirBridge (`GET /api/status`) and saves the settings only when the check succeeds. Later the same form is opened from the settings page (`3 / 3`) by holding ▶ for 2 s; the panel network can be started again by holding ◀ for 2 s. Buttons on the housing are `<` (◀), `>` (▶) and the green one (↻).
 
 ## Tests
 
@@ -114,7 +115,7 @@ Documentation and code identifiers are in Polish.
 
 ## Status
 
-Beta `1.0.0-beta.1` (November 2026), running on two test units. Firmware `1.0.0-beta.1` implements specification 1.2 ([docs/spec/](docs/spec/README.md)). Thresholds marked `[PRÓG]` in the specification are not yet calibrated. The therapy modes `CPAP`, `AutoSet` and `ASV` were checked on synthetic data only. Not a release for the general public. The code on `main` includes the changes up to 10.11.2026 (see [CHANGELOG.md](CHANGELOG.md)); there is no new release and no firmware image to download: you build and flash the firmware yourself. Known limitations: [CHANGELOG.md](CHANGELOG.md) and [SECURITY.md](SECURITY.md).
+Beta `1.0.0-beta.1` (November 2026), running on two test units. Firmware `1.0.0-beta.1` implements specification 1.2 ([docs/spec/](docs/spec/README.md)). Thresholds marked `[PRÓG]` in the specification are not yet calibrated. The therapy modes `CPAP`, `AutoSet` and `ASV` were checked on synthetic data only. Not a release for the general public. The code on `main` includes the changes up to 12.11.2026 (see [CHANGELOG.md](CHANGELOG.md)); there is no new release and no firmware image to download: you build and flash the firmware yourself. Known limitations: [CHANGELOG.md](CHANGELOG.md) and [SECURITY.md](SECURITY.md).
 
 ## Disclaimer
 
@@ -148,14 +149,15 @@ Autor: Rafał Myrta ([cpapblog.pl](https://cpapblog.pl)). Stan: beta (`1.0.0-bet
 
 | Ekran dnia | Podsumowanie tygodnia | Twoja norma |
 |---|---|---|
-| ![Ekran dnia z budzikiem](design/png/K22-dobra-noc.png) | ![Karta podsumowania tygodnia](design/png/K03-tydzien.png) | ![Strona kokpitu Twoja norma](design/png/S8-norma.png) |
+| ![Ekran dnia z budzikiem](design/png/K22-dobra-noc.png) | ![Karta podsumowania tygodnia](design/png/K03-tydzien.png) | ![Ekran Twoja norma](design/png/S8-norma.png) |
 
 Podglądy wyrenderowane z plików projektowych (800×480, 1 bit), nie zdjęcia urządzenia. Teksty na panelu są po polsku.
 
 ## Czym jest
 
 - Rano **ekran dnia**: ostatnia noc (czas z maską, AHI, wyciek) wobec Twojej normy osobistej z ostatnich 30 nocy ważnych, a nie wobec progów z podręcznika. Zwykle mówi, że nie ma nic do zrobienia.
-- **Kokpit** z sześciu stron (`1 / 6` … `6 / 6`): trendy 30 nocy, szczegóły ostatniej nocy, otwarte sprawy, Twoja norma, sprzęt, ustawienia.
+- **Portret nocy**: z AirBridge 2.3.1 lub nowszym pierwszy ekran poranka rysuje ostatnią noc na tarczy zegara 12-godzinnego: czas z maską jako pierścień (dziury to przerwy), wyciek jako białe odcinki, zdarzenia (CPAP, AutoSet) albo większe wsparcie oddechu (ASV) jako piki, znacznik początku okna tarczy i do czterech krótkich podpisów. Opisuje noc, nie ocenia jej.
+- **Kokpit** z trzech stron (`1 / 3` … `3 / 3`): trendy 30 nocy, szczegóły ostatniej nocy, ustawienia; otwarte sprawy jako dodatkowe strony tylko wtedy, gdy coś jest otwarte.
 - **Kontekst**: krótkie pytanie rano „Co było inaczej?” po nietypowej nocy (i w losową noc jako grupa kontrolna), temperatura i wilgotność w sypialni, opcjonalnie pogoda za oknem i CO2 w sypialni, ekran nocny „Dobranoc” od 23:30 do 05:00 i slot dzienny (okno na wietrzenie, jutro rano, sprzęt, wschód słońca).
 - **Rozmowa z lekarzem**: gdy wzorzec się utrzymuje, panel mówi, czy i jak szybko pokazać to lekarzowi, i przygotowuje jednostronicowy raport A4 do pobrania kodem QR z lokalnego serwera panelu przez 15 minut.
 - **Sprzęt**: przypomnienia o wymianie maski i filtra.
@@ -197,7 +199,7 @@ pio run -e e1001 -t upload --upload-port /dev/cu.usbserial-XXXX
 - Prędkość wgrywania 115200 bodów; mostek USB panelu gubi dane przy wyższych.
 - Wgrywanie przez Wi-Fi (`-e e1001_ota`) jest zablokowane w `platformio.ini` (`blokada_ota.py`) do przejścia egzemplarza kablem na układ partycji 32 MB. Szczegóły: [`firmware/prototyp/README.md`](firmware/prototyp/README.md).
 
-**Pierwsza konfiguracja.** Panel bez zapisanej sieci po włączeniu zasilania uruchamia własną sieć WPA2 `cpap-eink-XXXX` i pokazuje dwa kody QR: jeden do połączenia z tą siecią, drugi do formularza (`http://192.168.4.1/u/{token}/`). W formularzu wpisujesz sieć domową oraz adres, konto i hasło AirBridge. Panel sprawdza AirBridge (`GET /api/status`) i zapisuje ustawienia tylko wtedy, gdy sprawdzenie się uda. Później ten sam formularz otwiera się ze strony ustawień (`6 / 6`) przytrzymaniem ▶ przez 2 s; sieć panelu można uruchomić znowu przytrzymaniem ◀ przez 2 s. Przyciski na obudowie: `<` (◀), `>` (▶) i zielony (↻).
+**Pierwsza konfiguracja.** Panel bez zapisanej sieci po włączeniu zasilania uruchamia własną sieć WPA2 `cpap-eink-XXXX` i pokazuje dwa kody QR: jeden do połączenia z tą siecią, drugi do formularza (`http://192.168.4.1/u/{token}/`). W formularzu wpisujesz sieć domową oraz adres, konto i hasło AirBridge. Panel sprawdza AirBridge (`GET /api/status`) i zapisuje ustawienia tylko wtedy, gdy sprawdzenie się uda. Później ten sam formularz otwiera się ze strony ustawień (`3 / 3`) przytrzymaniem ▶ przez 2 s; sieć panelu można uruchomić znowu przytrzymaniem ◀ przez 2 s. Przyciski na obudowie: `<` (◀), `>` (▶) i zielony (↻).
 
 ## Testy
 
@@ -244,7 +246,7 @@ Panel jest dla dorosłej osoby leczonej aparatem CPAP albo ASV pod opieką lekar
 
 ## Stan
 
-Beta `1.0.0-beta.1` (listopad 2026), działa na dwóch egzemplarzach testowych. Firmware `1.0.0-beta.1` realizuje specyfikację 1.2 ([docs/spec/](docs/spec/README.md)). Progi oznaczone w specyfikacji `[PRÓG]` nie są jeszcze skalibrowane. Tryby `CPAP`, `AutoSet` i `ASV` sprawdzono tylko na danych syntetycznych. To nie jest wydanie dla każdego. Kod na `main` zawiera zmiany do 10.11.2026 (zob. [CHANGELOG.md](CHANGELOG.md)); nowego wydania ani obrazu firmware do pobrania nie ma: firmware budujesz i wgrywasz sam. Znane ograniczenia: [CHANGELOG.md](CHANGELOG.md) i [SECURITY.md](SECURITY.md).
+Beta `1.0.0-beta.1` (listopad 2026), działa na dwóch egzemplarzach testowych. Firmware `1.0.0-beta.1` realizuje specyfikację 1.2 ([docs/spec/](docs/spec/README.md)). Progi oznaczone w specyfikacji `[PRÓG]` nie są jeszcze skalibrowane. Tryby `CPAP`, `AutoSet` i `ASV` sprawdzono tylko na danych syntetycznych. To nie jest wydanie dla każdego. Kod na `main` zawiera zmiany do 12.11.2026 (zob. [CHANGELOG.md](CHANGELOG.md)); nowego wydania ani obrazu firmware do pobrania nie ma: firmware budujesz i wgrywasz sam. Znane ograniczenia: [CHANGELOG.md](CHANGELOG.md) i [SECURITY.md](SECURITY.md).
 
 ## Zastrzeżenie
 

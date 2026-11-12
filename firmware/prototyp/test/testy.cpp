@@ -686,9 +686,9 @@ static void testNawigacja() {
   SPRAWDZ(P(Ekran::K1, Przycisk::LEWY, false).ekran == Ekran::DZIEN);  // ◀ z K1 do ekranu dnia
   SPRAWDZ(P(Ekran::K1, Przycisk::PRAWY, false).ekran == Ekran::K2);    // ▶ z K1 do K2
   SPRAWDZ(P(Ekran::K2, Przycisk::LEWY, false).ekran == Ekran::K1);
-  SPRAWDZ(P(Ekran::K2, Przycisk::LEWY, true).akcja == Akcja::NIC);     // U-01 to strona 6 / 6, nie przytrzymanie
+  SPRAWDZ(P(Ekran::K2, Przycisk::LEWY, true).akcja == Akcja::NIC);     // U-01 to strona 3 / 3, nie przytrzymanie
   SPRAWDZ(P(Ekran::K2, Przycisk::SRODEK, false).ekran == Ekran::DZIEN);
-  SPRAWDZ(P(Ekran::K2, Przycisk::SRODEK, true).akcja == Akcja::NIC);   // „Sprzęt” to strona 5 / 6
+  SPRAWDZ(P(Ekran::K2, Przycisk::SRODEK, true).akcja == Akcja::NIC);   // „Sprzęt” poza kokpitem (ADR-0041)
   SPRAWDZ(P(Ekran::PYTANIE, Przycisk::SRODEK, false).akcja == Akcja::PYT_ZAZNACZ);
   SPRAWDZ(P(Ekran::PYTANIE, Przycisk::SRODEK, true).akcja != Akcja::PYT_ZAPISZ);  // bez ruchu w siatce bez zapisu
   k.pytanieRuszone = true;
@@ -783,7 +783,7 @@ static void testDzien() {
   ROWNE(s3n.etykieta, "BRAK DANYCH Z NOCY");
   ROWNE(s3n.tytul, "Brak danych od 3 nocy");
   ROWNE(s3n.powod, "AirBridge nie odpowiada od 26.10. Sprawdzam co\xC2\xA0" "3\xC2\xA0" "h.");  //
-  ROWNE(s3n.krok, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 6 / 6.");
+  ROWNE(s3n.krok, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.");
   d.hist = &h;
   SPRAWDZ(nocyBezDanych(d) == 1);  // noc dziś jest: licznik dla S5 zaczyna się od 1 (nie ma ujemnych)
   std::vector<Noc> pusta;
@@ -2992,7 +2992,7 @@ static void testSkalaB() {
   SPRAWDZ(28 + szer(F_SN96, "365") + 20 + szer(F_P34B, "nocy z maską") <= 772);  // kamień
   SPRAWDZ(szer(F_P24B, "noc 13 z 14") + szer(F_P24B, "pełna norma od ok. 30.11") + 24 <= 744);  // S6
   SPRAWDZ(szer(F_SB44, "Nie rozumiem danych AirBridge") <= 728 && szer(F_SB44, "Brak danych z nocy 30.11") <= 728);  // S5 w ramce
-  SPRAWDZ(szer(F_P28B, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 6 / 6.") <= 728);
+  SPRAWDZ(szer(F_P28B, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.") <= 728);
   // reguła 4: powód S5 zawija się najwyżej na 2 linie, `co 30 min.` się nie rozdziela (R-EKR-08)
   for (const char* od : {"29.10 05:42", "05:42"}) {
     DaneDnia dd;

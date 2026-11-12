@@ -691,7 +691,9 @@ TrescOdkrycia trescOdkrycia(const reguly::Zestaw& z, const Wynik& w0, reguly::Tr
                : u.tylkoOcenyWylaczone ? "→ Część ocen wyłączona: zobacz ▶."
                : u.brakDanychWyciek    ? zKatalogu("S-K-18.krok_dane_wyciek", "→ Bezdechów nie oceniam: noce z wyciekiem.")
                : u.tylkoBrakDanych     ? "→ Część ocen jeszcze nie działa: za mało nocy."  //
-                                       : "→ Otwarte sprawy: strona 3 / 6.";
+               : u.bezKartSpraw        ? (u.bezSilnika ? "→ Część reguł nie działa: zobacz Test sprzętu."
+                                                       : "→ Obserwuj kolejne noce.")  // R-EKR-32, R-KOK-19
+                                       : "→ Otwarte sprawy: za stroną 2 / 3.";
     t.linia = true;
     t.podpisOsi = "ostatnie 30 nocy";
     if (hist) {

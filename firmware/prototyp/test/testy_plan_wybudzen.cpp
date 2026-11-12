@@ -1156,7 +1156,7 @@ static void testR_AW_24_sprawdzamCo3h() {
   TrescEkranu t3 = trescDnia("S5", "1", d);
   ROWNE(t3.tytul, "Brak danych od 3 nocy");
   ROWNE(t3.powod, "AirBridge nie odpowiada od 21.10. " + CO3H);  // 50 znaków (R-AW-24)
-  ROWNE(t3.krok, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 6 / 6.");
+  ROWNE(t3.krok, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.");
   // odrzucone logowanie (R-AW-34): ponawianie co 30 min także od 2. nocy, więc bez `co 3 h`
   d.logowanieOdrzucone = true;
   d.dzis = "2026-10-22";

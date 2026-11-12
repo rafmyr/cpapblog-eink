@@ -48,7 +48,7 @@ R-NOR-06.nowy_poziom,R-NOR-06,§4.7,21,noce,"metryka techniczna (M-01, M-07, M-1
 R-NOR-20.metryka_zdrowotna,R-NOR-20,§4.7,21,noce,"metryka zdrowotna w stanie odchylenia tyle kolejnych nocy ważnych: zdanie w raporcie dla lekarza, stan trwa",brak,spec 1.2,wszystkie,do kalibracji
 R-NOR-21.linia_od_nocy,R-NOR-21,,=R-NOR-20.metryka_zdrowotna,noce,linia „Od {n} tyg.” od tylu kolejnych nocy stanu odchylenia metryki zdrowotnej,brak,spec 1.2,wszystkie,do kalibracji
 R-NOR-21.linia_co_dni,R-NOR-21,§4.7,7,dni,"linia „Od {n} tyg.” metryki zdrowotnej najwyżej raz na tyle dni (okno kroczące)",brak,spec 1.2,wszystkie,do kalibracji
-R-EKR-36.p90_ahi,R-EKR-36,5.4.8|Krok,5,/h,"S8 w tonie „informacja”, gdy P90 normy AHI co najmniej tyle",brak,spec 1.2,wszystkie,do kalibracji
+R-EKR-36.p90_ahi,R-EKR-36,5.4.8|Krok;R-KOK-24,5,/h,"S8 w tonie „informacja”, gdy P90 normy AHI co najmniej tyle; ten sam próg dla linii kroku w K2 (R-KOK-24)",brak,spec 1.2,wszystkie,do kalibracji
 R-EKR-36.p90_ca,R-EKR-36,5.4.8|Krok,2,/h,"S8 w tonie „informacja”, gdy P90 normy CA/h co najmniej tyle; tylko poza trybem ASV (od 04.11.2026) i po zaliczeniu testu kalibracji; bez nocy strojenia w tym trybie (ADR-0030)",brak,spec 1.2,CPAP;AutoSet,do kalibracji
 E-05.bateria_linia,E-05,,15,%,linia o baterii ekranu przy tym poziomie i niżej,brak,spec 1.2,wszystkie,do kalibracji
 E-05.bateria_krytyczna,E-05,,5,%,krytyczny poziom baterii ekranu (stan brak danych),brak,spec 1.2,wszystkie,do kalibracji

@@ -189,6 +189,10 @@ struct Wejscie {
   // (R-EKR-32): uspokojenie niespełnione tylko przez punkty bez oceny: pkt 7 (reguły) albo pkt 3/5
   bool tylkoRegulyBezOceny = false, tylkoOcenyWylaczone = false;
   bool tylkoBrakDanych = false;                     // „nie oceniam” tylko z braku danych, bez awarii zestawu
+  // (R-EKR-32, R-KOK-19): „Otwarte sprawy” nie mają żadnej karty (strony nie ma w kokpicie), więc krok
+  // `→ Otwarte sprawy: za stroną 2 / 3.` wskazywałby nieistniejącą stronę: bez wyników silnika krok o regułach,
+  // z silnikiem `→ Obserwuj kolejne noce.`
+  bool bezKartSpraw = false, bezSilnika = false;
   bool brakDanychWyciek = false;                    // … i przyczyną są noce niepewne z wycieku (Stany::bezOcenZWycieku)
   int uwagaOMasce = UWAGA_O_MASCE_DOMYSLNIE;        // R-KONF-42 „Uwaga o masce od” (10–15 L/min): wariant opisowy S-K-10
   bool giTymczasowy = true;                         // ustawienie `GI` = `tymczasowy` (5.6.4; bez jedyny wariant)

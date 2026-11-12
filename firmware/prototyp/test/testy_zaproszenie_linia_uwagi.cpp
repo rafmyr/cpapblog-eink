@@ -96,22 +96,22 @@ static void testZaproszenieNaSK31MimoSK10Nizej() {
   SPRAWDZ("zaproszenie na S-K-31", !predykat);  // ekran dnia to S-K-31, więc zaproszenie nie powinno przepaść
 }
 
-// krok S-K-35 jest prawdziwy w nawigacji: z S8 ▶ wchodzi na „Sprzęt” z kursorem na masce (pierwszy
-// wiersz), ◀ 2 s zapisuje wymianę elementu pod kursorem, ↻ 2 s na masce to nowy model (nie wymiana).
-// Dla filtra potrzebne jest jeszcze ▶ (ramka niżej); krok mówi to słowami `ramka na filtrze`.
+// krok S-K-35 jest prawdziwy w nawigacji (R-MAS-18, ADR-0041): `→ Po wymianie przytrzymaj ◀ 2 s.` zapisuje na samym
+// ekranie dnia (dyrygent ustawia `sk31` przy S-K-35 z elementem ekranu); bez tego ◀ 2 s na ekranie dnia nic nie
+// zapisuje, a dawna strona „Sprzęt” jest poza kokpitem (każdy przycisk = ekran dnia).
 static void testDrogaDoSprzetu() {
   KontekstNaw k;
-  k.wierszySprzetu = EL_N;
-  k.kursorSprzetu = 0;
-  Przejscie z8 = nacisniecie(Ekran::NORMA, Przycisk::PRAWY, false, k);
-  SPRAWDZ("droga do „Sprzętu”", z8.ekran == Ekran::SPRZET);
-  Przejscie w = nacisniecie(Ekran::SPRZET, Przycisk::LEWY, true, k);
-  SPRAWDZ("droga do „Sprzętu”", w.akcja == Akcja::SPRZET_WYMIENIONE);
-  Przejscie m = nacisniecie(Ekran::SPRZET, Przycisk::SRODEK, true, k);
-  SPRAWDZ("droga do „Sprzętu”", m.akcja == Akcja::SPRZET_NOWY_MODEL);  // dlatego ↻ 2 s nie może stać w kroku S-K-35
-  // ◀ 2 s na ekranie dnia (S-K-35 nie jest S-K-31) nic nie zapisuje
   Przejscie d = nacisniecie(Ekran::DZIEN, Przycisk::LEWY, true, k);
   SPRAWDZ("droga do „Sprzętu”", d.akcja == Akcja::NIC);
+  k.sk31 = true;
+  Przejscie w = nacisniecie(Ekran::DZIEN, Przycisk::LEWY, true, k);
+  SPRAWDZ("droga do „Sprzętu”", w.akcja == Akcja::SPRZET_WYMIENIONE && w.ekran == Ekran::SPRZET_ZAPISANO);
+  for (Przycisk p : {Przycisk::LEWY, Przycisk::SRODEK, Przycisk::PRAWY})
+    SPRAWDZ("droga do „Sprzętu”", nacisniecie(Ekran::SPRZET, p, false, k).ekran == Ekran::DZIEN);
+  // `Wymiana zapisana.`: ◀ 2 s cofa (na ekran dnia), każdy inny przycisk ekran dnia, zapis zostaje (R-MAS-01)
+  Przejscie c = nacisniecie(Ekran::SPRZET_ZAPISANO, Przycisk::LEWY, true, k);
+  SPRAWDZ("droga do „Sprzętu”", c.akcja == Akcja::SPRZET_COFNIJ && c.ekran == Ekran::DZIEN);
+  SPRAWDZ("droga do „Sprzętu”", nacisniecie(Ekran::SPRZET_ZAPISANO, Przycisk::PRAWY, false, k).ekran == Ekran::DZIEN);
 }
 
 // Kolumna paska S2a: mediana czasu z maską w zapisie `12:59` (celowo innym niż noc `12 h 59` nad paskiem, 5.4.2) ze

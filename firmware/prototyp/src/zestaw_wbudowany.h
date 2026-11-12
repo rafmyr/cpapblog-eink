@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:bac68319f7afdc89b8a6beb35f9c4e8034d215c6ea02b1a09e11970e2bf29d37
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:bac68319f7afdc89b8a6beb35f9c4e8034d215c6ea02b1a09e11970e2bf29d37
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -438,7 +438,7 @@ R-KON-68.co_dni;7;dni;wszystkie
 R-NOR-12.delta.M-28p;2;cmH2O;ASV,ASVAuto
 S-K-30.m06p;1.5;cmH2O;ASV,ASVAuto
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -641,7 +641,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-7269731c244c pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4366d18ea0d6 skrot=sha256:58de5724063f57a4c94b8f05ebbf501b98ab78410410225946c4ed646f90f75f
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:13a0ee56a1c0de0d5e0b3784d03fcfad16a97cbb36957fe9e0a5e589cdf0be89
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.
@@ -745,12 +745,12 @@ L-01.tytul_asv;tytul;30;Bezdechy mimo pełnego wsparcia
 L-01.zdanie_po_zmianie;raport;120;Początek wzorca {n} nocy po zmianie ustawień {data}.
 L-02.krok;krok;60;→ Omów wynik z lekarzem w najbliższych tygodniach.
 L-02.linia_asv;raport;120;Oddychanie okresowe: aparat ASV go nie oznacza.
-L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 6.
+L-02.linia_b;linia;60;Oddychanie okresowe częściej. Na kontroli: raport 2 / 3.
 L-02.powod_a;powod;70;Oddychanie okresowe w {n} z {prog:L-02.a_okno} nocy, razem {min} min.
 L-02.powod_b;powod;70;Oddychanie okresowe {x}% czasu nocy, zwykle {norma}%.
 L-02.tytul;tytul;30;Urządzenie oznaczyło wzorzec
 L-03.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
-L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 6.
+L-03.linia_5_10;linia;60;Bezdechy {x} / h od 4 tygodni. Na kontroli: raport 2 / 3.
 L-03.powod;powod;70;Mediana z {prog:L-03.okno} nocy {x} / h, wyciek mały.
 L-03.tytul;tytul;30;Bezdechy utrzymują się wyżej
 L-04.krok;krok;60;→ Omów z lekarzem, pokaż raport z 2 tygodni.
@@ -762,12 +762,12 @@ L-04.tytul_asvauto;tytul;30;EPAP przy górnej granicy
 L-05.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
 L-05.powod;powod;70;Oddechy {x} / min, zwykle {norma}, od {n} nocy.
 L-05.tytul;tytul;30;Zmiana oddechu od kilku nocy
-L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
-L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 6.
+L-07.linia;linia;60;Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 3.
+L-07.linia_asv;linia;60;EPAP rośnie od 2 tygodni. Na kontroli: raport 2 / 3.
 L-07.tytul;tytul;30;Ciśnienie rośnie od tygodni
 L-07.tytul_asv;tytul;30;EPAP rośnie
 L-08.krok_szybki;krok;60;→ Omów to z lekarzem w najbliższych tygodniach.
-L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.
+L-08.linia;linia;60;Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 3.
 L-08.powod_szybki;powod;70;Ponad 4 h w {n} z 30 nocy, miesiąc temu {m} z 30.
 L-08.tytul_szybki;tytul;30;Dużo mniej nocy z maską
 L-09.krok;krok;60;→ Zapytaj dostawcę sprzętu o inną maskę.
@@ -775,7 +775,7 @@ L-09.linia;linia;60;Wyciek nie ustępuje od {n} nocy. Pokaż na kontroli.
 L-09.powod;powod;70;Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.
 L-09.tytul;tytul;30;Wyciek nie ustępuje
 L-10.krok;krok;60;→ Pokaż to lekarzowi w najbliższych tygodniach.
-L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 6.
+L-10.linia;linia;60;Spłaszczone wdechy i senność. Na kontroli: raport 2 / 3.
 L-10.powod;powod;70;Od {n} tygodni więcej spłaszczonych wdechów i senność.
 L-10.tytul;tytul;30;Spłaszczone wdechy i senność
 L-11.krok;krok;60;→ Pokaż to lekarzowi, sama liczba nie wystarczy.
@@ -830,6 +830,8 @@ O-12.tytul_ukryty;tytul;30;Odkrycie o czynniku nocy
 R-DANE-29.linia_nieznany;linia;60;Nie znam trybu aparatu: tej nocy nie oceniam.
 R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
 R-INF-10.linia;linia;60;Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.
+R-KOK-24.krok;krok;60;→ Pasmo AHI wysokie. Obserwuj kolejne noce.
+R-KOK-24.krok_krotki;krok;60;→ Pasmo AHI wysokie.
 R-KON-68.ahi;nazwa;17;AHI
 R-KON-68.czas;nazwa;17;czas z maską
 R-KON-68.linia;linia;60;Dobra zmiana: {wskaznik} {kierunek} niż zwykle od {n} nocy.
@@ -847,8 +849,6 @@ R-MAS-12.etykieta;etykieta;30;Sprzęt
 R-MAS-12.opis;powod;70;Wyciek spadł z {y} do {x} l/min od {data}.
 R-MAS-12.stopka;linia;60;Bez odpowiedzi do 11:00 = nie zapisuję wymiany.
 R-MAS-12.tytul;tytul;30;Wymieniona maska?
-R-MAS-14.powod;powod;70;Uczę się normy wycieku od nowa: 14 nocy.
-R-MAS-14.tytul;tytul;30;Nowy model maski zapisany.
 R-NOR-14.linia;linia;60;Nowe ustawienia aparatu. Uczę się normy.
 S-K-03.etykieta;etykieta;30;Przed snem
 S-K-03.krok;krok;60;→ Owiń rurę otuliną.
@@ -934,12 +934,13 @@ S-K-18.krok_dane_pliki;krok;60;→ Bezdechów nie oceniam: brak plików nocy.
 S-K-18.krok_dane_wyciek;krok;60;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-18.krok_linia;krok;60;→ Sprawa z linii wyżej wciąż otwarta.
 S-K-18.krok_nic;krok;60;→ Nic do zrobienia. Tak trzymaj.
+S-K-18.krok_obserwuj;krok;60;→ Obserwuj kolejne noce.
 S-K-18.krok_oceny;krok;60;→ Część ocen wyłączona: zobacz ▶.
 S-K-18.krok_pora;krok;60;→ Stała pora snu, też w weekend.
 S-K-18.krok_przerwy;krok;60;→ Sprawdź, co budzi w nocy.
 S-K-18.krok_reguly;krok;60;→ Część reguł nie działa: zobacz Test sprzętu.
 S-K-18.krok_sennosc;krok;60;→ Za kierownicą nie ryzykuj.
-S-K-18.krok_sprawy;krok;60;→ Otwarte sprawy: strona 3 / 6.
+S-K-18.krok_sprawy;krok;60;→ Otwarte sprawy: za stroną 2 / 3.
 S-K-18.krok_wyciek;krok;60;→ Sprawdź szczelność maski.
 S-K-18.powod;powod;70;Noc z maską: średnio {czas}.
 S-K-18.powod_bez;powod;70;W tym tygodniu bez nocy z maską.
@@ -1043,6 +1044,46 @@ S-K-47.podpis_lewo;podpis_lewo;40;ograniczenie przepływu · 14 nocy
 S-K-47.podpis_prawo;podpis_prawo;40;linia przerywana = zwykle {norma}
 S-K-47.powod;powod;70;Ograniczenie przepływu {x}, zwykle {norma}. Bywa przy zatkanym nosie.
 S-K-47.tytul;tytul;30;Wdechy bardziej spłaszczone
+S11.braki;portret;60;Nieznane: {lista}.
+S11.centralne;portret;60;Centralne: {n}
+S11.cisnienie_maks;portret;60;Ciśnienie na maksimum {n} min
+S11.cisnienie_maks_brak;portret;60;Maksimum ciśnienia: nieznane.
+S11.czesc_nocy;portret;60;Część nocy poza tarczą
+S11.drzemka;portret;60;Drzemka poza tarczą
+S11.epap_maks;portret;60;EPAP na maksimum {n} min
+S11.epap_maks_brak;portret;60;Maksimum EPAP: nieznane.
+S11.leg_centralne;portret;60;zdarzenia centralne
+S11.leg_kropka;portret;60;pojedyncze zdarzenie
+S11.leg_maska;portret;60;maska na twarzy
+S11.leg_wsparcie;portret;60;większe wsparcie oddechu
+S11.leg_wyciek;portret;60;wyciek od 15 l/min
+S11.leg_zdarzenia;portret;60;zdarzenia w 5 minutach
+S11.liczby;portret;60;{czas} z maską · AHI {x}
+S11.liczby_czas;portret;60;{czas} z maską
+S11.najgesciej;portret;60;Najgęściej {od}–{do}
+S11.nazwa_maksimum;portret;60;maksimum
+S11.nazwa_norma_ps;portret;60;norma wsparcia
+S11.nazwa_rodzaj;portret;60;rodzaj bezdechów
+S11.nazwa_wsparcie;portret;60;wsparcie
+S11.nazwa_wyciek;portret;60;wyciek
+S11.nazwa_zdarzenia;portret;60;zdarzenia
+S11.noc_niepewna;portret;60;Tej nocy nie oceniam: duży wyciek.
+S11.przerwa;portret;60;Przerwa {od}–{do}
+S11.przerwy;portret;60;Przerwy: {n}, najdłuższa {m} min
+S11.ps_brak;portret;60;Wsparcie oddechu: brak odczytu.
+S11.ps_uczy;portret;60;Wsparcie oddechu: uczę się.
+S11.rodzaj_brak;portret;60;Rodzaj bezdechów: brak zapisu.
+S11.rozruch;portret;60;Uczę się twojej normy: noc {n} z 14.
+S11.stopka_dalej;portret;60;▶ portret nocy
+S11.stopka_dalej_krotki;portret;60;▶ portret
+S11.stopka_wstecz;portret;60;◀ portret nocy
+S11.tydzien_jedna;portret;60;Tydzień: {metryka} {kierunek} niż zwykle.
+S11.tydzien_wiele;portret;60;Tydzień: {n} wskaźniki inaczej niż zwykle.
+S11.tydzien_zwykle;portret;60;Tydzień jak zwykle.
+S11.w_normie;portret;60;Noc w normie.
+S11.wyciek;portret;60;Wyciek przez {n} min
+S11.wyciek_brak;portret;60;Wyciek: brak odczytu.
+S11.zdarzenia_brak;portret;60;Zdarzenia: brak odczytu.
 S2D.G01.neutralna.powod;powod;100;Podobno zyskaliśmy godzinę. Księgowość snu nie potwierdza.
 S2D.G01.neutralna.tytul;tytul;90;Czas zmienił się w nocy.
 S2D.G01.neutralna_marzec.tytul;tytul;90;Dzisiaj śpisz godzinę krócej.

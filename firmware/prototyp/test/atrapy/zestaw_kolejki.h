@@ -75,7 +75,7 @@ inline reguly::Zestaw zestaw() {
         {{"podpis_lewo", "pełna = noc ponad 4 h z maską"}, {"podpis_prawo", "pusta = krócej albo bez maski"},
          {"rzad_1", "miesiąc temu"}, {"rzad_2", "ostatnie 30 nocy"}});
   dodaj(wiersz("L-08", "", StanReguly::AKTYWNA, Pilnosc::C, "R3"), nullptr, nullptr, nullptr,
-        "Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 6.");
+        "Regularność niższa od 4 tygodni. Na kontroli: raport 2 / 3.");
   reguly::WierszKatalogu l09 = wiersz("L-09", "", StanReguly::AKTYWNA, Pilnosc::BRAK, "R5c");
   l09.parametry["prog_linii"] = "E-20.wp95";
   dodaj(l09, "Wyciek nie ustępuje", "Duży wyciek w {n} z 14 nocy. Bezdechy mniej pewne.",
@@ -91,7 +91,7 @@ inline reguly::Zestaw zestaw() {
         "EPAP blisko maksimum {max}, bezdechy obturacyjne {y} / h.", "→ Omów z lekarzem, pokaż raport z 2 tygodni.",
         nullptr);
   dodaj(wiersz("L-07", "", StanReguly::TYLKO_RAPORT, Pilnosc::C, "R3"), nullptr, nullptr, nullptr,
-        "Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 6.");
+        "Ciśnienie rośnie od 2 tygodni. Na kontroli: raport 2 / 3.");
   dodaj(wiersz("L-06", "a", StanReguly::ZABLOKOWANA, Pilnosc::B, "R3"), "Saturacja: sprawa dla lekarza",
         "{min} min poniżej 88% w {n} z 7 nocy.", "→ Omów to z lekarzem w najbliższych tygodniach.", nullptr);
   return z;

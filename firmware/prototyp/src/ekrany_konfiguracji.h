@@ -27,6 +27,7 @@ struct DaneUstawien {
   int co2 = -1;                     // -1 panel bez czujnika (źródła otoczenia), 0 ekrany CO2 wyłączone, 1 włączone
   std::string wersja;               // wersja oprogramowania (jak U-05 `Oprogramowanie`, bez slotu)
   std::string aktualizacja;         // linia pod listą: aktualizacja::wierszU01() (stan wersji i droga do U-07); "" = bez
+  bool sprawy = false;              // przed U-01 „Otwarte sprawy” (co najmniej jedna sprawa, R-KOK-20): `◀ sprawy`
 };
 struct WierszUstawien {
   std::string nazwa, wartosc;
@@ -42,8 +43,10 @@ const int U01_SZER_WARTOSCI = 772 - U01_X_WARTOSCI;
 extern const char* const U01_PODPOWIEDZ[2];
 extern const char* const U01_GRANICA;                 // `Te ustawienia dotyczą tylko panelu, nie aparatu.`
 void rysujUstawienia(Plotno& p, const DaneUstawien& d);
-// Stopka U-01 (mapa 5.6.2): `◀ sprzęt · 2 s sieć`, `▶ 2 s telefon`, `↻ ekran dnia · 2 s aktualizacja`.
-std::vector<std::string> stopkaU01();
+// Stopka U-01 (mapa 5.6.2, 5.5.7 „Stopki stron”): ◀ podpisany stroną przed U-01: `◀ sprawy · 2 s sieć` przy
+// sprawach, w profilu publicznym bez spraw `◀ liczby · 2 s sieć`, inaczej `◀ 7 nocy · 2 s sieć`; dalej `▶ 2 s telefon`,
+// `↻ ekran dnia · 2 s aktualizacja`.
+std::vector<std::string> stopkaU01(bool sprawy = false, bool liczby = false);
 
 struct DaneFormularzaQr {
   std::string adresQr, adresReczny;  // "" = serwer nie działa (bez kodu)

@@ -384,6 +384,7 @@ bool LicznikNocy::dodajPlik(const std::string& nazwa, const uint8_t* b, size_t n
     uzycieZnane_[i] = p.rekordy == 0 || jest;
     zbierzKanaly(p, f.rodzaj, wartosci_, przeciekWysoki_, przeciek27_, maPrzeciek_);
     zbierzWsparcie(p, nazwa);
+    if (portret_) portret_->plikPld(p);  // Portret nocy: to samo przejście po próbkach (T-WYM-98)
   } else if (f.rodzaj == Rodzaj::SAD) {
     if (wSesji) {
       zbierzKanaly(p, f.rodzaj, wartosci_, przeciekWysoki_, przeciek27_, maPrzeciek_);
@@ -395,6 +396,13 @@ bool LicznikNocy::dodajPlik(const std::string& nazwa, const uint8_t* b, size_t n
     }
   }
   return true;
+}
+
+std::vector<std::pair<double, std::string>> LicznikNocy::zdarzeniaPortretu() const {
+  std::vector<std::pair<double, std::string>> v;
+  v.reserve(zdarzenia_.size());
+  for (auto& z : zdarzenia_) v.push_back({z.t, z.tekst});
+  return v;
 }
 
 size_t LicznikNocy::bajtyLicznikow() const {

@@ -335,7 +335,13 @@ static void testO03O04() {
     SPRAWDZ(t.linia && t.wartosci30.size() == 30);
     odkrycia::UstawieniaTekstow u;
     u.uspokojenie = false;  // R-EKR-32: krok zamienny
-    ROWNE(odkrycia::trescOdkrycia(zestawWbudowany(), *o3, Tryb::ASVAUTO, u, &h).krok, "→ Otwarte sprawy: strona 3 / 6.");
+    ROWNE(odkrycia::trescOdkrycia(zestawWbudowany(), *o3, Tryb::ASVAUTO, u, &h).krok, "→ Otwarte sprawy: za stroną 2 / 3.");
+    // bez kart spraw (strony nie ma, R-KOK-19) bez kroku do niej
+    u.bezKartSpraw = true;
+    ROWNE(odkrycia::trescOdkrycia(zestawWbudowany(), *o3, Tryb::ASVAUTO, u, &h).krok, "→ Obserwuj kolejne noce.");
+    u.bezSilnika = true;
+    ROWNE(odkrycia::trescOdkrycia(zestawWbudowany(), *o3, Tryb::ASVAUTO, u, &h).krok, "→ Część reguł nie działa: zobacz Test sprzętu.");
+    u.bezKartSpraw = u.bezSilnika = false;
     // O-03 bez wariantu publicznego (AHI w obu profilach)
     SPRAWDZ(odkrycia::trescOdkrycia(zestawWbudowany(), *o3, Tryb::ASVAUTO, u, &h).powod.rfind("AHI 1,0 / h", 0) == 0);
   }
@@ -523,27 +529,18 @@ static void testS8() {
   w.tryb = Tryb::ASVAUTO;
   ROWNE(podsumowanie::budujS8(w).krok, "Odchylenia liczę od tego.");
   w.wzorzecL = true;
-  ROWNE(podsumowanie::budujS8(w).krok, "→ Otwarte sprawy: strona 3 / 6.");  // numer strony kokpitu
+  ROWNE(podsumowanie::budujS8(w).krok, "→ Otwarte sprawy: za stroną 2 / 3.");  // numer strony kokpitu (R-KOK-23)
   n.ca.n = 0;  // bez normy CA/h: bez wiersza `Centralne`
   n.wp95.n = 0;
   d = podsumowanie::budujS8(w);
   SPRAWDZ(d.wiersze.size() == 3 && !d.centralne);
   ROWNE(d.wiersze[1], "Wyciek: uczę się");
   w.profilPubliczny = true;
-  w.zK1 = true;
   d = podsumowanie::budujS8(w);
   ROWNE(d.wiersze[0], "AHI 1,5–4,2 / h");  // AHI w obu profilach
-  ROWNE(d.stopkaLewo, "◀ sprawy   ▶ co znaczą liczby   ↻ ekran dnia");  // strona 4 / 6
-  // strona 4 / 6: nazwa strony w nagłówku (jak `Sprzęt`, `Otwarte sprawy`), tytuł jej nie powtarza; jako ekran dnia
-  // nagłówek z datą (pusty `naglowek`) i tytuł `Twoja norma` (R-EKR-34)
-  ROWNE(d.naglowek, "Twoja norma");
-  ROWNE(d.tytul, "");
-  ROWNE(podsumowanie::trescS8(d).tytul, "");
-  w.zK1 = false;
-  d = podsumowanie::budujS8(w);
-  ROWNE(d.naglowek, "");
+  // od ADR-0041 S8 jest tylko ekranem dnia (kamień milowy R7): tytuł `Twoja norma`, stopka standardowa (R-EKR-34)
   ROWNE(d.tytul, "Twoja norma");
-  w.zK1 = true;
+  SPRAWDZ(podsumowanie::trescS8(d).stopkaStandardowa);
   n.ahi.n = 20;
   SPRAWDZ(podsumowanie::kandydatS8(n, false) == false);  // norma AHI bez 30 nocy
   n.ahi.n = n.m01.n = 30;
@@ -553,21 +550,23 @@ static void testS8() {
   SPRAWDZ(podsumowanie::budujLiczby(Tryb::AUTOSET, true).wiersze.size() == 6);
   SPRAWDZ(podsumowanie::budujLiczby(Tryb::ASV, true).wiersze.size() == 7);
   ROWNE(l.zdanie, "Co jest dobre dla ciebie, powie lekarz.");
+  // R-KOK-22, 5.5.7 „Stopki stron”: po K2, ▶ „Otwarte sprawy” albo U-01
+  ROWNE(l.stopkaLewo, "◀ 7 nocy   ▶ ustawienia   ↻ ekran dnia");
+  ROWNE(podsumowanie::budujLiczby(Tryb::AUTOSET, false, true).stopkaLewo, "◀ 7 nocy   ▶ sprawy   ↻ ekran dnia");
 }
 
 static void testNawigacja() {
   KontekstNaw k;
-  // S8 to strona 4 / 6 (bez wyników silnika K2 ▶ S8), nie przytrzymanie w K1 (R-EKR-35)
+  // od ADR-0041 S8 nie jest stroną kokpitu (R-KOK-19): K2 ▶ U-01 bez spraw i profilu; S8 tylko ekranem dnia (R-EKR-33)
   SPRAWDZ(nacisniecie(Ekran::K1, Przycisk::LEWY, true, k).akcja == Akcja::NIC);
-  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::NORMA);
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::LEWY, false, k).ekran == Ekran::K2);
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::SRODEK, false, k).ekran == Ekran::DZIEN);
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::PRAWY, false, k).ekran == Ekran::SPRZET);  // profil wyłączony
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::USTAWIENIA);
+  for (Przycisk pr : {Przycisk::LEWY, Przycisk::SRODEK, Przycisk::PRAWY})  // dawna strona: każdy przycisk = ekran dnia
+    SPRAWDZ(nacisniecie(Ekran::NORMA, pr, false, k).ekran == Ekran::DZIEN);
   k.profilPubliczny = true;
-  SPRAWDZ(nacisniecie(Ekran::NORMA, Przycisk::PRAWY, false, k).ekran == Ekran::LICZBY);  // R-EKR-51
-  SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::LEWY, false, k).ekran == Ekran::NORMA);
+  SPRAWDZ(nacisniecie(Ekran::K2, Przycisk::PRAWY, false, k).ekran == Ekran::LICZBY);  // R-KOK-22
+  SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::LEWY, false, k).ekran == Ekran::K2);
   SPRAWDZ(nacisniecie(Ekran::LICZBY, Przycisk::SRODEK, false, k).ekran == Ekran::DZIEN);
-  SPRAWDZ(sekundDoPowrotu(Ekran::NORMA, 0, 8 * 60) == 300 && sekundDoPowrotu(Ekran::LICZBY, 300, 8 * 60) == 0);
+  SPRAWDZ(sekundDoPowrotu(Ekran::LICZBY, 0, 8 * 60) == 300 && sekundDoPowrotu(Ekran::LICZBY, 300, 8 * 60) == 0);
 }
 
 // R-CZY-07, R-CZY-15, R-CZY-01 (wzorzec A), R-CZY-17 (prośba) przez poranekCzynnikow() z okolicznościami ranka

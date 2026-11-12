@@ -351,7 +351,7 @@ static TrescEkranu s5(const DaneDnia& d) {
       } else {
         t.tytul = "Brak danych od " + std::to_string(n) + " nocy";
         t.powod = "AirBridge nie odpowiada od " + odKiedyBrak(d, n) + ". " + rytm;
-        t.krok = "→ Sprawdź AirBridge i sieć. Ustawienia: strona 6 / 6.";
+        t.krok = "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.";
       }
     }
   }

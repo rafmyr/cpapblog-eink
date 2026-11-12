@@ -389,7 +389,7 @@ static void testR_KONF_43_nawigacja() {
   k.aktualizacja = 0;  // aktualna, po udanej, wyłączone: ▶ nic
   SPRAWDZ(nacisniecie(Ekran::AKTUALIZACJA, Przycisk::PRAWY, false, k).akcja == Akcja::NIC);
   SPRAWDZ(numerStrony(Ekran::AKTUALIZACJA) == 0 && !zKolejkiWolno(Ekran::AKTUALIZACJA, false));
-  SPRAWDZ(ekranZRtc(17) == Ekran::AKTUALIZACJA && ekranZRtc(18) == Ekran::DZIEN);
+  SPRAWDZ(ekranZRtc(17) == Ekran::AKTUALIZACJA && ekranZRtc(19) == Ekran::DZIEN);
   // 5 min bez wyboru: U-01, bez instalacji (R-KONF-44); w nocy zostaje (R-PRZ-18)
   SPRAWDZ(sekundDoPowrotu(Ekran::AKTUALIZACJA, 299, 9 * 60) == 1 && sekundDoPowrotu(Ekran::AKTUALIZACJA, 300, 9 * 60) == 0);
   SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::AKTUALIZACJA, true, U07_CZAS_S, 9 * 60) == Ekran::USTAWIENIA);
@@ -400,7 +400,7 @@ static void testR_KONF_43_nawigacja() {
 // ---------- stopki: kolejność ◀ ▶ ↻ i szerokość ≤ 744 px (R-PRZ-04) ----------
 static void testR_KONF_43_stopki() {
   std::vector<std::string> u01 = stopkaU01();
-  SPRAWDZ((u01 == std::vector<std::string>{"◀ sprzęt · 2 s sieć", "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"}));
+  SPRAWDZ((u01 == std::vector<std::string>{"◀ 7 nocy · 2 s sieć", "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"}));
   std::vector<std::string> u = u01;
   uporzadkujPrzyciski(u);
   SPRAWDZ(u == u01);

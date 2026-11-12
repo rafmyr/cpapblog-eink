@@ -461,7 +461,7 @@ static void testBrakDanych() {
   for (const char* id : {"L-02.linia_b", "L-03.linia_5_10", "L-07.linia", "L-07.linia_asv", "L-08.linia", "L-10.linia"}) {
     std::string t = sk::tekst(id);
     SPRAWDZ(t.find("K2") == std::string::npos);
-    SPRAWDZ(t.size() > 26 && t.compare(t.size() - 26, 26, "Na kontroli: raport 2 / 6.") == 0);
+    SPRAWDZ(t.size() > 26 && t.compare(t.size() - 26, 26, "Na kontroli: raport 2 / 3.") == 0);
     SPRAWDZ(dlugoscZnakow(t) <= 60);
   }
 }
