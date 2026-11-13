@@ -18,7 +18,8 @@ bool terminRzadki(int m) { return m > PLAN_OKNO_DO && m < PLAN_NOC_OD && (m - PL
 
 // Powody z pełnym pobraniem (AirBridge: status, lista i raporty, zaległe doby; źródło otoczenia).
 const Powody PELNE = POWOD_OKNO_PORANNE | POWOD_SPRAWDZENIE_11 | POWOD_PONOWIENIE | POWOD_POGODA |
-                       POWOD_POCZATEK_NOCY | POWOD_CZAS | POWOD_OKNO_GESTE | POWOD_POWTORKA;
+                       POWOD_POCZATEK_NOCY | POWOD_CZAS | POWOD_OKNO_GESTE | POWOD_POWTORKA |
+                       POWOD_OKNO_ZASILANIE;
 // Powody slotu dziennego z Wi-Fi tylko na `/api/status` i źródło otoczenia (R-KON-42) albo prognozę (R-KON-52).
 const Powody SLOT_SIECIOWE = POWOD_SLOT_DZIENNY_START | POWOD_SLOT_DZIENNY_GODZINA | POWOD_PROGNOZA_GODZINOWA;
 const Powody SIECIOWE = PELNE | SLOT_SIECIOWE | POWOD_SLOT_WIECZORNY;  // wieczór tylko status i otoczenie
@@ -113,6 +114,13 @@ Powody powodyMinuty(const WejsciePlanu& w, int m) {
   // projektu 10.11.2026) albo odrzuconym logowaniem: E-01 w każdej postaci
   if (!w.nocKompletna && !(p & POWOD_OKNO_PORANNE) && m % PLAN_GESTE_CO_MIN == 0 && !w.e01 && wGestymOknie(w, m))
     p |= POWOD_OKNO_GESTE;
+  // R-DANE-63, R-DANE-64 (decyzja właściciela projektu 13.11.2026): na zasilaniu zewnętrznym dochodzą minuty co
+  // PLAN_ZASILANIE_CO_MIN w oknie porannym i co PLAN_ZASILANIE_GESTE_CO_MIN w gęstym oknie; terminy baterii wyżej
+  // zostają ze swoimi powodami. Te same wyłączenia co gęste okno: noc kompletna i E-01 w każdej postaci.
+  if (w.naZasilaniu && !w.nocKompletna && !w.e01 && !(p & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE)) &&
+      m > PLAN_OKNO_OD && m < PLAN_OKNO_DO &&
+      m % (wGestymOknie(w, m) ? PLAN_ZASILANIE_GESTE_CO_MIN : PLAN_ZASILANIE_CO_MIN) == 0)
+    p |= POWOD_OKNO_ZASILANIE;
   if (m == PLAN_OKNO_DO && !w.sprawdzenie11) p |= POWOD_SPRAWDZENIE_11;
   if (m > PLAN_OKNO_DO && m <= PLAN_NOC_OD && co30 && !w.nocKompletna) {
     bool rzadko = w.e01 && w.nocyBezDanych >= 2 && !w.logowanieOdrzucone;
@@ -262,7 +270,8 @@ Powody powodyTeraz(const WejsciePlanu& w) {
   // R-DANE-62: chwila powtórki minęła (sekunda, nie minuta siatki); gdy w tym wybudzeniu i tak jest termin okna
   // porannego albo gęstego (status będzie odczytany), powtórka nie zużywa licznika doby
   int powtorka = terminPowtorki(w);
-  if (powtorka >= 0 && powtorka <= teraz && !(p & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE))) p |= POWOD_POWTORKA;
+  if (powtorka >= 0 && powtorka <= teraz && !(p & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE | POWOD_OKNO_ZASILANIE)))
+    p |= POWOD_POWTORKA;
   if (sekundDoPowrotu(w.ekran, w.sekundOdNacisniecia, (int)(teraz / 60)) == 0) p |= POWOD_POWROT;
   if (koniecCofnieciaTeraz(w.ekran, w.sekundOdNacisniecia, (int)(teraz / 60))) p |= POWOD_POWROT;
   return p;
@@ -313,6 +322,10 @@ bool startSlotuPrzyciskiem(const WejsciePlanu& w, Ekran przed) {
 
 bool sieciowy(Powody powody) { return (powody & SIECIOWE) != 0; }
 
+bool tylkoRytmZasilania(Powody powody) {
+  return (powody & POWOD_OKNO_ZASILANIE) != 0 && (powody & (Powody)~(POWOD_OKNO_ZASILANIE | POWOD_CZUJNIKI)) == 0;
+}
+
 Pobranie pobranieZegarem(Powody powody) {
   Pobranie p;
   p.pobierz = sieciowy(powody);
@@ -343,7 +356,7 @@ std::string nazwyPowodow(Powody powody) {
                                       "odswiezenie",  "slot_dzienny",   "slot_dzienny_godzina",
                                       "prognoza_godzinowa", "slot_dzienny_bez_sieci", "slot_wieczorny",
                                       "slot_tygodniowy", "slot_wieczorny_bez_sieci", "okno_geste",
-                                      "powtorka_przetwarzania"};
+                                      "powtorka_przetwarzania", "okno_zasilanie"};
   std::string s;
   for (unsigned i = 0; i < sizeof NAZWY / sizeof NAZWY[0]; i++) {
     if (!(powody & (1u << i))) continue;

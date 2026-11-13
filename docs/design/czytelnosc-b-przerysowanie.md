@@ -62,7 +62,7 @@ Bez kursywy, bez IBM Plex, nic poniżej 22 px. Strzałki ↔ ↑ ↓ rysowane ja
 Rozbieżności prototypu z kanwą do przerysowania (prototyp i spec są już po zmianie):
 
 - **wszystkie karty z budzikiem (K01…K22, K05, K16, przerywniki K17…K20) i S9 A1, A2, A3:** bez zdania budzika; lewa część stopki karty jak na ekranie danych (pogoda albo podpowiedź, albo podpis akcji), prawa bez zmian; S9 A2 bez linii pod `Dobranoc.` (spec 5.7.2, 5.7.5, 5.8.11; ADR-0009, ADR-0018 „Zmiana 2026-11-10”);
-- **K1:** wiersz ze spokojnym trendem ma sam znak `↔`, legenda `↔ stabilnie` z prawej w wierszu nagłówków kolumn (R-KOK-17);
+- **K1:** wiersz ze spokojnym trendem ma sam znak `↔`, legenda `↔ stabilnie` z prawej w wierszu nagłówków kolumn (R-KOK-17); **zastąpione 13.11.2026:** K1 do przerysowania według R-KOK-17, R-KOK-25…R-KOK-28 (znak i słowo w każdym wierszu, bez legendy, linia 30 nocy 270 px, ocena od x 570, ` · dane {hh:mm}` w nagłówku, `duży wyciek` nad liczbą wycieku przy nocy niepewnej; wzorzec: podgląd `mak-k1.png` z `tools/prototyp/testy.sh`);
 - **„Sprzęt” (artboard `Sprzet`):** kolumny `element` · `wiek` · `następna wymiana` (od x 28, 180, 300), wartość `15.01.2027 · co 6 mies.`, bez daty `brak daty · co 4 tyg.` i podpowiedź pod tabelą; stopka na pierwszym wierszu `◀ norma` (R-MAS-15);
 - **U-01 „Ustawienia panelu”** (bez artboardu; makieta `docs/design/ekrany-2026-11-03`): lista bieżących ustawień do odczytu zamiast pozycji z kursorem (R-KONF-55);
 - **SK33-okno, SK36-pylek, SK37-slonce:** wariant z linią uwagi z niższym wykresem (słupki 66 px, pas doby 30 px); podpisy osi `HH:00` (R-KON-63);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Testy poprawek czytelności kokpitu i ekranów z nim związanych (10.11.2026): legenda `↔ stabilnie` w K1
+// Testy poprawek czytelności kokpitu i ekranów z nim związanych (10.11.2026; K1 od 13.11.2026: znak i słowo w każdym wierszu, bez legendy)
 // (R-KOK-17), lista do odczytu na U-01 (R-KONF-55), termin wymiany i nowy model maski w formularzu U-03
 // (R-MAS-16, R-MAS-17, ADR-0041), `ocena częściowa` w nagłówku K1 (R-KOK-21), powód S-K-01
 // bez powtórzonej liczby CO2, wizualizacja slotu dziennego przy linii uwagi i podpisy godzin osi (R-KON-63).
@@ -85,36 +85,241 @@ static Norma normaPelna() {
   return n;
 }
 
-// ---------- K1, słowo `stabilnie` raz, w legendzie (R-KOK-17) ----------
+// ---------- K1, znak i słowo w każdym wierszu oceny, bez legendy (R-KOK-17 od 13.11.2026) ----------
 // wymaganie: R-KOK-17
-static void testR_KOK_17_legenda() {
-  ROWNE(slowoOcenyK1("stabilnie"), "↔");
-  for (const char* s : {"rośnie", "spada", "uczę się", "wyżej niż zwykle", "niżej niż zwykle", ""}) ROWNE(slowoOcenyK1(s), s);
-  ROWNE(LEGENDA_K1, "↔ stabilnie");
-  // nagłówek kolumn: `ocena` od x 522 (bez odkrycia) i od 486 (z odkryciem O-12) nie dochodzi do legendy przy x 772
-  SPRAWDZ(522 + szer(F_P22B, "ocena") + 16 <= 772 - szer(F_P22B, LEGENDA_K1));
-  SPRAWDZ(486 + szer(F_P22B, "ocena") + 16 <= 772 - szer(F_P22B, LEGENDA_K1));
-  // ocena w jednej linii (pas odkrycia): `↔ wyciek widoczny` od x 486 do 772
-  SPRAWDZ(szer(F_P22B, "↔ wyciek widoczny") <= 286);
-  // dane bez zmian: cztery wiersze `stabilnie` w DaneK1 (R-KOK-16), na ekranie znak `↔`
+static void testR_KOK_17_znakISlowo() {
+  ROWNE(znakOcenyK1("stabilnie"), "↔");
+  ROWNE(znakOcenyK1("rośnie"), "↑");
+  ROWNE(znakOcenyK1("wyżej niż zwykle"), "↑");
+  ROWNE(znakOcenyK1("spada"), "↓");
+  ROWNE(znakOcenyK1("niżej niż zwykle"), "↓");
+  ROWNE(znakOcenyK1("uczę się"), "…");
+  ROWNE(znakOcenyK1(""), "");
+  WierszK1 w;
+  w.slowo = "stabilnie";
+  ROWNE(tekstOcenyK1(w), "↔ stabilnie");
+  w.slowo = "uczę się";
+  ROWNE(tekstOcenyK1(w), "… uczę się");
+  w.slowo = "";
+  ROWNE(tekstOcenyK1(w), "");  // metryka bez Δ: kolumna pusta, bez samotnego znaku
+  // dane bez zmian: cztery wiersze `stabilnie` w DaneK1 (R-KOK-16)
   std::vector<Noc> h = okno();
   DaneK1 d = budujK1(h, DZIS, normaPelna(), {});
   int stab = 0;
   for (int i = 0; i < d.wierszy; i++) stab += d.w[i].slowo == "stabilnie";
   SPRAWDZ(stab == 4);
-  // render: legenda w nagłówku kolumn (y 156…188) z prawej, przy x 650…772 piksele czarne
+  // render: w każdym wierszu znak w kolumnie znaku i słowo za nim; w nagłówku kolumn nie ma już legendy z prawej
   PlotnoTest p;
   rysujK1(p, d);
-  SPRAWDZ(p.czarne(772 - szer(F_P22B, LEGENDA_K1), 160, 772, 186) > 0);
-  // kolumna oceny w wierszu: sam znak `↔` jest węższy niż słowo `stabilnie`, więc pikseli mniej niż dawniej
-  PlotnoTest q;
-  rysujK1(q, d);
-  // wiersze od y 182 co 50 px; tekst oceny w środku wiersza, bez kresek między wierszami (y + 49)
-  for (int i = 0; i < 4; i++) {
+  const int xo = K1_XM + K1_ODSTEP_OCENY, wc = szer(F_P22B, "↔ ");
+  SPRAWDZ(p.czarne(xo + szer(F_P22B, "ocena") + 8, 160, 772, 181) == 0);  // za słowem `ocena` pusto
+  for (int i = 0; i < 4; i++) {  // wiersze od y 182 co 50 px
     int y = 182 + 50 * i;
-    SPRAWDZ(q.czarne(522, y + 5, 522 + szer(F_P22B, "↔") + 2, y + 44) > 0);       // znak `↔`
-    SPRAWDZ(q.czarne(522 + szer(F_P22B, "↔") + 4, y + 5, 772, y + 44) == 0);  // bez słowa za nim
+    SPRAWDZ(p.czarne(xo, y + 5, xo + wc, y + 44) > 0);                                        // znak `↔`
+    SPRAWDZ(p.czarne(xo + wc, y + 5, xo + wc + szer(F_P22B, "stabilnie") + 2, y + 44) > 0);   // słowo
+    SPRAWDZ(p.czarne(xo + wc + szer(F_P22B, "stabilnie") + 4, y + 5, 772, y + 44) == 0);      // nic dalej
   }
+}
+
+// ---------- K1, dopisek `lepiej` / `gorzej` przy trendzie AHI i wycieku (R-KOK-25) ----------
+// wymaganie: R-KOK-25
+static void testR_KOK_25_dopisek() {
+  ROWNE(dopisekTrenduK1("AHI", "spada"), "lepiej");
+  ROWNE(dopisekTrenduK1("AHI", "rośnie"), "gorzej");
+  ROWNE(dopisekTrenduK1("Wyciek", "spada"), "lepiej");
+  ROWNE(dopisekTrenduK1("Wyciek", "rośnie"), "gorzej");
+  for (const char* s : {"stabilnie", "uczę się", "wyżej niż zwykle", "niżej niż zwykle", ""}) {
+    ROWNE(dopisekTrenduK1("AHI", s), "");
+    ROWNE(dopisekTrenduK1("Wyciek", s), "");
+  }
+  // wiersze, w których kierunek nie ma jednego znaczenia: bez dopisku
+  for (const char* n : {"Czas z maską", "Ciśnienie", "EPAP", "Wsparcie"})
+    for (const char* s : {"rośnie", "spada"}) ROWNE(dopisekTrenduK1(n, s), "");
+  WierszK1 w;
+  w.slowo = "spada";
+  w.dopisek = "lepiej";
+  ROWNE(tekstOcenyK1(w), "↓ spada · lepiej");
+  // z danych: wyciek rośnie w 7 ostatnich nocach → `gorzej`; AHI stabilnie → bez dopisku
+  std::vector<Noc> h = okno();
+  for (int i = 0; i < 30; i++) h[i].wp95 = i < 23 ? 6.0f : 12.0f;
+  DaneK1 d = budujK1(h, DZIS, normaPelna(), {});
+  for (int i = 0; i < d.wierszy; i++) {
+    if (std::string(d.w[i].nazwa) == "Wyciek") {
+      ROWNE(d.w[i].slowo, "rośnie");
+      ROWNE(d.w[i].dopisek, "gorzej");
+    } else {
+      ROWNE(d.w[i].dopisek, "");
+    }
+  }
+  for (int i = 0; i < 30; i++) h[i].wp95 = i < 23 ? 12.0f : 6.0f;
+  d = budujK1(h, DZIS, normaPelna(), {});
+  for (int i = 0; i < d.wierszy; i++)
+    if (std::string(d.w[i].nazwa) == "Wyciek") ROWNE(tekstOcenyK1(d.w[i]), "↓ spada · lepiej");
+  // stan odchylenia ma pierwszeństwo (R-KOK-03): bez dopisku, także gdy trend by go dał
+  Stany st;
+  st.wp95.aktywny = true;
+  st.wp95.wyzej = true;
+  st.wp95.nocy = 9;
+  d = budujK1(h, DZIS, normaPelna(), {}, &st);
+  for (int i = 0; i < d.wierszy; i++)
+    if (std::string(d.w[i].nazwa) == "Wyciek") {
+      ROWNE(d.w[i].dopisek, "");
+      ROWNE(tekstOcenyK1(d.w[i]), "↑ wyżej niż zwykle");
+    }
+  // fail-path (ADR-0029 pkt 7): AHI `spada` policzone bez nocy niepewnych, a 3 ostatnie noce niepewne z wysokim AHI:
+  // panel nie mówi `lepiej` (tych nocy nie ocenia); `gorzej` przy nocy niepewnej zostaje
+  {
+    std::vector<Noc> hn = okno();
+    for (int i = 0; i < 30; i++) hn[i].ahi = i < 23 ? 4.0f : 1.0f;
+    DaneK1 dn = budujK1(hn, DZIS, normaPelna(), {});
+    for (int i = 0; i < dn.wierszy; i++)
+      if (std::string(dn.w[i].nazwa) == "AHI") ROWNE(tekstOcenyK1(dn.w[i]), "↓ spada · lepiej");  // kontrola: noce pewne
+    for (int i = 27; i < 30; i++) {
+      hn[i].ahi = 9.0f;
+      hn[i].wp95 = 30.0f;
+    }
+    dn = budujK1(hn, DZIS, normaPelna(), {});
+    for (int i = 0; i < dn.wierszy; i++)
+      if (std::string(dn.w[i].nazwa) == "AHI") {
+        ROWNE(dn.w[i].slowo, "spada");
+        ROWNE(dn.w[i].dopisek, "");
+      }
+    // jedna noc niepewna 5 nocy temu (w oknie 7 nocy) też zdejmuje `lepiej`; 8 nocy temu już nie
+    hn = okno();
+    for (int i = 0; i < 30; i++) hn[i].ahi = i < 23 ? 4.0f : 1.0f;
+    hn[24].wp95 = 30.0f;
+    dn = budujK1(hn, DZIS, normaPelna(), {});
+    for (int i = 0; i < dn.wierszy; i++)
+      if (std::string(dn.w[i].nazwa) == "AHI") ROWNE(dn.w[i].dopisek, "");
+    hn[24].wp95 = hn[23].wp95;
+    hn[21].wp95 = 30.0f;
+    dn = budujK1(hn, DZIS, normaPelna(), {});
+    for (int i = 0; i < dn.wierszy; i++)
+      if (std::string(dn.w[i].nazwa) == "AHI") ROWNE(dn.w[i].dopisek, "lepiej");
+    // `gorzej` zostaje także z nocą niepewną w oknie
+    hn = okno();
+    for (int i = 0; i < 30; i++) hn[i].ahi = i < 23 ? 1.0f : 4.0f;
+    hn[29].wp95 = 30.0f;
+    dn = budujK1(hn, DZIS, normaPelna(), {});
+    for (int i = 0; i < dn.wierszy; i++)
+      if (std::string(dn.w[i].nazwa) == "AHI" && dn.w[i].slowo == "rośnie") ROWNE(dn.w[i].dopisek, "gorzej");
+  }
+  // bez normy: `uczę się`, bez dopisku (panel nie ocenia tego, czego się uczy)
+  Norma bez = normaPelna();
+  bez.wp95 = NormaMetryki();
+  d = budujK1(h, DZIS, bez, {});
+  for (int i = 0; i < d.wierszy; i++)
+    if (std::string(d.w[i].nazwa) == "Wyciek") ROWNE(d.w[i].dopisek, "");
+}
+
+// ---------- K1, godzina danych w nagłówku (R-KOK-26) ----------
+// wymaganie: R-KOK-26
+static void testR_KOK_26_godzinaDanych() {
+  std::vector<Noc> h = okno();
+  DaneK1 d = budujK1(h, DZIS, normaPelna(), {});
+  SPRAWDZ(d.ubiegla);
+  const std::string baza = d.naglowek;
+  ROWNE(naglowekK1Lewo(d), baza);  // godzina nieznana: bez dopisku, bez samego słowa `dane`
+  d.godzinaDanych = "07:12";
+  ROWNE(naglowekK1Lewo(d), baza + " · dane 07:12");
+  d.romb = true;
+  ROWNE(naglowekK1Lewo(d), baza + " · dane 07:12 ◆");
+  // ostatnia zapisana noc nie jest ubiegłą (R-KOK-04): `Noc {data}` bez godziny dzisiejszego odczytu
+  DaneK1 s = budujK1(h, dodajDni(DZIS, 2), normaPelna(), {});
+  SPRAWDZ(!s.ubiegla);
+  s.godzinaDanych = "07:12";
+  SPRAWDZ(naglowekK1Lewo(s).find("dane") == std::string::npos);
+  // brak nocy: sam tytuł
+  DaneK1 e = budujK1({}, DZIS, normaPelna(), {});
+  e.godzinaDanych = "07:12";
+  ROWNE(naglowekK1Lewo(e), "Ostatnia noc");
+  // najdłuższy nagłówek z godziną, rombem i oceną mieści się w 744 px z odstępem 24 px
+  // najszerszy z 7 skrótów dni i cyfr (`wt 05.05`, `05:55`), nie tylko przykład ze spec
+  for (const char* n : {"Ostatnia noc · śr 30.12 · dane 07:12 ◆", "Ostatnia noc · wt 05.05 · dane 05:55 ◆",
+                        "Ostatnia noc · cz 28.08 · dane 08:08 ◆", "Ostatnia noc · nd 20.06 · dane 06:00 ◆"})
+    SPRAWDZ(szer(F_P24B, n) + 24 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
+}
+
+// ---------- K1, przyczyna oceny ograniczonej przy liczbie wycieku (R-KOK-27) ----------
+// wymaganie: R-KOK-27
+static void testR_KOK_27_duzyWyciek() {
+  std::vector<Noc> h = okno();
+  DaneK1 d = budujK1(h, DZIS, normaPelna(), {});
+  ROWNE(d.opisy[3], "wyciek l/min");  // noc pewna
+  h.back().wp95 = 16.0f;  // noc niepewna od 15 L/min (4.9)
+  SPRAWDZ(nocNiepewna(h.back()));
+  d = budujK1(h, DZIS, normaPelna(), {});
+  ROWNE(d.opisy[3], OPIS_DUZY_WYCIEK);
+  ROWNE(d.liczby[3], "16");  // liczba zostaje
+  h.back().wp95 = 14.9f;
+  d = budujK1(h, DZIS, normaPelna(), {});
+  ROWNE(d.opisy[3], "wyciek l/min");
+  // opis mieści się w kolumnie liczby wycieku (608…772)
+  SPRAWDZ(szer(F_P22B, OPIS_DUZY_WYCIEK) <= 772 - 608);
+}
+
+// ---------- K1, tabela 30 nocy na całą szerokość treści (R-KOK-28) ----------
+// wymaganie: R-KOK-28
+static void testR_KOK_28_uklad() {
+  const int xo = K1_XM + K1_ODSTEP_OCENY, wc = szer(F_P22B, "↔ "), miejsce = 772 - xo - wc;
+  // każda pierwsza i druga linia oceny mieści się za znakiem do prawego marginesu
+  for (const char* s : {"stabilnie", "rośnie · gorzej", "spada · lepiej", "rośnie", "spada", "uczę się",
+                        "wyżej niż zwykle", "niżej niż zwykle", "od 999 nocy", "wyciek widoczny"}) {
+    if (szer(F_P22B, s) > miejsce) printf("  za szerokie: %s (%d > %d)\n", s, szer(F_P22B, s), miejsce);
+    SPRAWDZ(szer(F_P22B, s) <= miejsce);
+  }
+  // linia 30 nocy kończy się przed najszerszą medianą (`10:59`, P28B) z odstępem co najmniej 8 px
+  SPRAWDZ(K1_X_LINII + K1_WL + 8 <= K1_XM - szer(F_P28B, "10:59"));
+  SPRAWDZ(K1_WL >= 260);  // szersza niż dawne 210 px
+  // nagłówki kolumn nie nachodzą na siebie
+  SPRAWDZ(28 + szer(F_P22B, "Ostatnie 30 nocy") + 16 <= K1_XM - szer(F_P22B, "mediana"));
+  // z pasem odkrycia: ocena w jednej linii, kandydaci po kolei aż do mieszczącego się
+  const int m1 = 772 - (K1_XM_ODKRYCIE + K1_ODSTEP_OCENY);
+  WierszK1 w;
+  w.slowo = "spada";
+  w.dopisek = "lepiej";
+  w.slowo2 = "wyciek widoczny";
+  ROWNE(ocenaK1JednaLinia(w, m1), "↓ spada · wyciek widoczny");  // pełna za szeroka: bez dopisku
+  ROWNE(ocenaK1JednaLinia(w, 1000), "↓ spada · lepiej · wyciek widoczny");
+  w = WierszK1();
+  w.slowo = "stabilnie";
+  w.slowo2 = "wyciek widoczny";
+  ROWNE(ocenaK1JednaLinia(w, m1), "↔ wyciek widoczny");  // pełna za szeroka o kilkanaście px
+  ROWNE(ocenaK1JednaLinia(w, 1000), "↔ stabilnie · wyciek widoczny");
+  w = WierszK1();
+  w.slowo = "wyżej niż zwykle";
+  w.slowo2 = "od 3 nocy";
+  SPRAWDZ(szer(F_P22B, ocenaK1JednaLinia(w, m1)) <= m1);
+  // stan od wielu nocy: pełny tekst (298 px) nie mieści się, więc krótsze słowo ze znakiem; nigdy szerzej niż miejsce
+  for (const char* od : {"od 99 nocy", "od 120 nocy", "od 999 nocy"})
+    for (const char* sl : {"wyżej niż zwykle", "niżej niż zwykle"}) {
+      w.slowo = sl;
+      w.slowo2 = od;
+      SPRAWDZ(szer(F_P22B, ocenaK1JednaLinia(w, m1)) <= m1);
+    }
+  w.slowo = "wyżej niż zwykle";
+  w.slowo2 = "od 120 nocy";
+  ROWNE(ocenaK1JednaLinia(w, m1), "↑ wyżej od 120 nocy");
+  w.slowo2 = "od 3 nocy";
+  ROWNE(ocenaK1JednaLinia(w, m1), "wyżej niż zwykle od 3 nocy");  // krótki stan bez zmian
+  // każda kombinacja słowa, dopisku i drugiej linii mieści się w miejscu
+  for (const char* sl : {"stabilnie", "rośnie", "spada", "uczę się"})
+    for (const char* dp : {"", "lepiej", "gorzej"})
+      for (const char* s2 : {"", "wyciek widoczny"}) {
+        WierszK1 x;
+        x.slowo = sl;
+        x.dopisek = dp;
+        x.slowo2 = s2;
+        SPRAWDZ(szer(F_P22B, ocenaK1JednaLinia(x, m1)) <= m1);
+      }
+  w.slowo = "uczę się";
+  w.slowo2 = "";
+  ROWNE(ocenaK1JednaLinia(w, m1), "… uczę się");
+  // render prawdziwego K1: prawa część wiersza nie jest pusta (dawniej 772 − 522 px z samym znakiem)
+  std::vector<Noc> h = okno();
+  PlotnoTest p;
+  rysujK1(p, budujK1(h, DZIS, normaPelna(), {}));
+  SPRAWDZ(p.czarne(420, 190, K1_X_LINII + K1_WL, 230) > 0);  // linia 30 nocy sięga za dawne 406 px
 }
 
 // ---------- U-01 jako lista do odczytu (R-KONF-55) ----------
@@ -392,7 +597,7 @@ static void testR_KOK_21_ocenaWNaglowkuK1() {
   d.ocena.clear();
   ROWNE(naglowekK1Prawo(d), "1 / 3");
   // najdłuższy nagłówek mieści się w 744 px z odstępem
-  SPRAWDZ(szer(F_P24B, "Ostatnia noc · śr 30.12 ◆") + 16 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
+  SPRAWDZ(szer(F_P24B, "Ostatnia noc · śr 30.12 · dane 07:12 ◆") + 16 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
   // render: prawa część nagłówka zaczyna się dalej w lewo przy dopisku (piksele w x 500…640 tylko z dopiskiem)
   d.ocena = "ocena ograniczona";
   PlotnoTest a, b;
@@ -429,7 +634,11 @@ static void testR_KON_01_powodBezLiczby() {
 }
 
 int main() {
-  testR_KOK_17_legenda();
+  testR_KOK_17_znakISlowo();
+  testR_KOK_25_dopisek();
+  testR_KOK_26_godzinaDanych();
+  testR_KOK_27_duzyWyciek();
+  testR_KOK_28_uklad();
   testR_KONF_55_listaUstawien();
   testR_KONF_55_wierszAktualizacjiPodLista();
   testR_MAS_17_terminWFormularzu();

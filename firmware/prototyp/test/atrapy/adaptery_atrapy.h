@@ -501,6 +501,14 @@ class AtrapaCzujnikow : public Czujniki {
  public:
   OdczytCzujnikow o{21.5f, 45.0f, 3.95f};
   OdczytCzujnikow czytaj() override { return o; }
+  Zasilanie zas = Zasilanie::NIEZNANE;  // R-DANE-65: stan zasilania zewnętrznego, który „widzi” panel
+  int odczytowZasilania = 0;
+  OdczytZasilania zasilanie() override {
+    odczytowZasilania++;
+    OdczytZasilania odczyt;
+    odczyt.stan = zas;
+    return odczyt;
+  }
 };
 
 class AtrapaDzwieku : public Dzwiek {

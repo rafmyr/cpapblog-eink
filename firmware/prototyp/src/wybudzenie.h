@@ -151,6 +151,10 @@ struct StanRtc {
   int32_t powtorkiDoba = 0;
   uint8_t powtorki = 0;
   uint32_t pobranieRanoEp = 0;
+  // R-DANE-65: sen przed tym wybudzeniem był zaplanowany w rytmie zasilania zewnętrznego (1). Powody wybudzenia
+  // zegarem liczą się z tego stanu (wybudzenie zaplanowane na zasilaniu ma swój powód także po odłączeniu kabla,
+  // R-NF-02), a następny termin z odczytu z bieżącego wybudzenia. Po zaniku zasilania 0 (jak bateria).
+  uint8_t planNaZasilaniu = 0;
   // Portret nocy (R-POR-04, R-POR-05, R-POR-24; spec 5.4.16): doba poranka z Portretem (jak pamiecDoba: nrDnia + 1;
   // 0 = brak), czas unix pierwszego narysowania Portretu tego ranka (drugi ekran po PORTRET_DRUGI_S), ekran dnia rano
   // to ekran problemu z Portretem pod ▶ (1) i K1 otwarte ze strony Portretu (◀ wraca do Portretu). Kopia doby i chwili

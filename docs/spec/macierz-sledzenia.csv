@@ -2,12 +2,15 @@ wymaganie,id_odwolania,rodzina_odwolania,ekran,sekcja_wymagania,zrodlo_powiazani
 R-DANE-01,R-DANE-31,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-01
 R-DANE-02,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-02; przypadki 7.8: 19
 R-DANE-19,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-19,R-DANE-63,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
+R-DANE-19,R-DANE-64,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-19,R-DANE-62,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-19,R-DANE-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-19,R-DANE-04,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-19; przypadki 7.8: 19
 R-DANE-61,M-18,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
 R-DANE-61,M-01,M,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
 R-DANE-61,R-DANE-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
+R-DANE-61,R-DANE-64,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
 R-DANE-61,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
 R-DANE-61,R-AW-34,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
 R-DANE-61,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-61
@@ -20,6 +23,27 @@ R-DANE-62,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
 R-DANE-62,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
 R-DANE-62,R-DANE-24,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
 R-DANE-62,R-EKR-57,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-62
+R-DANE-63,R-DANE-65,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-AW-34,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-03,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-24,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-33,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-64,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-63,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-63
+R-DANE-64,R-DANE-61,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,R-DANE-65,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,R-DANE-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,R-DANE-19,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,R-DANE-63,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,E-01,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-64,R-DANE-62,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-64
+R-DANE-65,R-DANE-63,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-65
+R-DANE-65,R-DANE-64,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-65
+R-DANE-65,R-NF-02,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-65
 R-DANE-20,R-DANE-18,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
 R-DANE-20,R-DANE-35,R,nie,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
 R-DANE-20,E-10,E,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-20; przypadki 7.8: 20
@@ -880,9 +904,24 @@ R-KOK-16,M-28,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
 R-KOK-16,R-KOK-05,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
 R-KOK-16,R-KOK-03,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
 R-KOK-17,R-KOK-16,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-17,R-KOK-03,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-17,R-KOK-05,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
 R-KOK-17,R-EKR-59,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-17,R-KOK-25,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
 R-KOK-17,O-12,O,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
-R-KOK-17,R-EKR-56,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-25,R-KOK-16,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-25,R-KOK-03,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-25,R-NOR-19,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-25,R-KOK-17,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-26,R-KOK-14,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-26
+R-KOK-26,R-KOK-04,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-26
+R-KOK-26,R-EKR-04,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-26
+R-KOK-27,R-KOK-21,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-27,E-20,E,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-27,R-EKR-46,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-27,R-POR-15,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-28,O-12,O,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-28
+R-KOK-28,R-CZY-20,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-28
 R-KOK-18,R-KOK-09,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-18
 R-KOK-18,M-13,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-18
 R-KOK-18,M-17,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-18
@@ -902,6 +941,7 @@ R-KOK-21,M-15,M,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK
 R-KOK-21,M-28,M,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-21
 R-KOK-21,M-09,M,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-21
 R-KOK-21,M-10,M,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-21
+R-KOK-21,R-KOK-26,R,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-21
 R-KOK-22,U-01,U,tak,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-22
 R-KOK-22,S8,stan,tak,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-22
 R-KOK-23,R-KOK-19,R,nie,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-23
@@ -2212,6 +2252,8 @@ R-NF-02,R-DANE-03,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7
 R-NF-02,R-DANE-19,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-61,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-62,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-63,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
+R-NF-02,R-DANE-64,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-09,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-10,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
 R-NF-02,R-DANE-15,R,nie,8.2 Wymagania,wymaganie,weryfikacja R-NF-02; przypadki 7.8: 38
@@ -2510,7 +2552,13 @@ R-KOK-15,S2a,stan,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15; przypadki 
 R-KOK-15,K2,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-15; przypadki 7.8: 70
 R-KOK-16,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-16
 R-KOK-17,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
-R-KOK-17,S2a,stan,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-17,pytanie „gorzej”,nazwany,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-17; przypadki 7.8: 61
+R-KOK-25,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-25,pytanie „gorzej”,nazwany,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-25
+R-KOK-26,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-26
+R-KOK-27,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-27,S2a,stan,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-27
+R-KOK-28,K1,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-28
 R-KOK-18,K2,kokpit,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-18
 R-KOK-19,K1,kokpit,tak,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-19; przypadki 7.8: 32
 R-KOK-19,K2,kokpit,tak,5.5.7 Krótszy kokpit (ADR-0041),wymaganie,weryfikacja R-KOK-19; przypadki 7.8: 32

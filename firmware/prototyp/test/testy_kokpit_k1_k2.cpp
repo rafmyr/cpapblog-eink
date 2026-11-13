@@ -430,10 +430,11 @@ struct PlotnoTest : Plotno {
 };
 
 static void testSzerokosci() {
-  // ocena K1: P22B od x 522 do 772 (250 px)
-  for (const char* s : {"rośnie", "spada", "stabilnie", "uczę się", "wyżej niż zwykle", "niżej niż zwykle",
+  // ocena K1 (R-KOK-28): P22B za znakiem, od x 570 + szerokość `↔ ` do 772
+  const int miejsceOceny = 772 - (K1_XM + K1_ODSTEP_OCENY) - szer(F_P22B, "↔ ");
+  for (const char* s : {"rośnie · gorzej", "spada · lepiej", "stabilnie", "uczę się", "wyżej niż zwykle", "niżej niż zwykle",
                         "od 999 nocy", "wyciek widoczny"})
-    if (szer(F_P22B, s) > 250) { zle++; printf("BŁĄD ocena K1 za szeroka: %s\n", s); } else ok++;
+    if (szer(F_P22B, s) > miejsceOceny) { zle++; printf("BŁĄD ocena K1 za szeroka: %s\n", s); } else ok++;
   // nazwa wiersza K1 (P24B od x 28) przed linią 30 nocy (x 196)
   for (const char* s : {"AHI", "Czas z maską", "Ciśnienie", "EPAP", "Wsparcie", "Wyciek"})
     SPRAWDZ(28 + szer(F_P24B, s) <= 196 - 8);

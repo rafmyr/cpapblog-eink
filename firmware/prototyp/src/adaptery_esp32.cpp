@@ -56,6 +56,24 @@
 #define I2C_SCL 20
 #define BAT_ADC 1
 #define BAT_EN 21
+// Ładowarka baterii U2 SY6974B na drugiej magistrali I2C (R-DANE-65). Źródła: schemat producenta reTerminal E1001
+// v1.2 (historia zmian w PDF: 20.11.2025; ramka arkusza: 2025-11-14), arkusz „03 Power” (U2 SY6974B: SCL = ESP_IO40/I2C1_SCL, SDA = ESP_IO39/I2C1_SDA, BUS =
+// TYPEC_5V; wyjście STAT idzie tylko do czerwonej diody, nie do ESP32):
+// https://files.seeedstudio.com/wiki/reterminal_e10xx/res/202004307_reTerminal_E1001_V1_2_SCH_251120.pdf
+// adres 0x6B i rejestry: opis płytki i sterownik w Zephyrze (boards/seeed/reterminal_e1001/
+// reterminal_e1001_procpu.dts `sy6974b@6b`, drivers/charger/charger_sy6974b.c). Historia zmian schematu: przed v1.2
+// U2 to ETA6003 (bez I2C), więc na starszych płytkach odczyt się nie uda i stan zostaje NIEZNANE.
+// NIEZWERYFIKOWANE NA EGZEMPLARZU: do pomiaru z kablem i bez.
+#define I2C1_SDA 39
+#define I2C1_SCL 40
+#define LAD_ADRES 0x6B           // SY6974B
+#define LAD_REJ_STAN 0x08        // REG08: stan
+#define LAD_STAN_PG 0x04         // REG08 bit 2 (PG_STAT): napięcie na wejściu BUS dobre
+#define LAD_REJ_UKLAD 0x0B       // REG0B: bity 6..3 = numer układu
+#define LAD_UKLAD_MASKA 0x78
+#define LAD_UKLAD_SY6974B 0x40   // 1000 na bitach 6..3
+#define LAD_REJ_WEJSCIE 0x0A     // REG0A: bit 7 BUS_GD (sterownik Zephyra bierze z niego „online”); tylko do logu
+#define LAD_LIMIT_MS 20          // limit czasu magistrali I2C1 na jedną operację (wisząca magistrala)
 
 static const char* STREFA = "CET-1CEST,M3.5.0,M10.5.0/3";
 static const char* OTA_HOST = "cpap-eink";  // cpap-eink.local, upload_port w [env:e1001_ota]
@@ -885,6 +903,33 @@ OdczytCzujnikow CzujnikiEsp32::czytaj() {
   }
   o.bateriaV = suma / 8.0f * 2.0f / 1000.0f;
   digitalWrite(BAT_EN, LOW);
+  return o;
+}
+
+// Jeden rejestr ładowarki; false = brak potwierdzenia na magistrali albo brak bajtu.
+static bool rejestrLadowarki(uint8_t rejestr, uint8_t& wartosc) {
+  Wire1.beginTransmission(LAD_ADRES);
+  Wire1.write(rejestr);
+  if (Wire1.endTransmission(false) != 0) return false;
+  if (Wire1.requestFrom(LAD_ADRES, 1) != 1) return false;
+  wartosc = (uint8_t)Wire1.read();
+  return true;
+}
+
+// R-DANE-65: zasilanie zewnętrzne z rejestru stanu ładowarki (PG_STAT), tylko odczyt (żadnego zapisu do ładowarki).
+// Układ rozpoznany po numerze w REG0B; inny układ, brak odpowiedzi albo błąd odczytu = NIEZNANE (rdzeń: jak bateria).
+// Każda operacja na magistrali ma limit LAD_LIMIT_MS (najwyżej 3 odczyty rejestrów, czyli wisząca magistrala kosztuje
+// ułamek sekundy na wybudzenie, nie blokuje go). REG0A idzie tylko do logu (PG z REG08 czy BUS_GD z REG0A).
+OdczytZasilania CzujnikiEsp32::zasilanie() {
+  OdczytZasilania o;
+  if (!Wire1.begin(I2C1_SDA, I2C1_SCL)) return o;
+  Wire1.setTimeOut(LAD_LIMIT_MS);
+  uint8_t uklad = 0, stan = 0, wejscie = 0;
+  if (!rejestrLadowarki(LAD_REJ_UKLAD, uklad) || (uklad & LAD_UKLAD_MASKA) != LAD_UKLAD_SY6974B) return o;
+  if (!rejestrLadowarki(LAD_REJ_STAN, stan)) return o;
+  o.rejStanu = stan;
+  if (rejestrLadowarki(LAD_REJ_WEJSCIE, wejscie)) o.rejWejscia = wejscie;
+  o.stan = (stan & LAD_STAN_PG) ? Zasilanie::ZEWNETRZNE : Zasilanie::BATERIA;
   return o;
 }
 

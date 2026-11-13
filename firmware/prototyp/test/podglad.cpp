@@ -304,8 +304,11 @@ static void makiety(PlotnoPamiec& p) {
   k1.naglowek = "Ostatnia noc · cz 12.11";
   k1.romb = true;
   k1.jestNoc = true;
+  k1.ubiegla = true;  // R-KOK-26: godzina danych w nagłówku
+  k1.godzinaDanych = "07:12";
+  k1.ocena = "ocena ograniczona";  // najdłuższy nagłówek: data, godzina, romb, ocena i numer strony
   const char* liczby[4] = {"10:59", "12,4", "14,5", "112"};
-  const char* opisy[4] = {"czas z maską", "AHI", "EPAP (urządzenie)", "wyciek l/min"};
+  const char* opisy[4] = {"czas z maską", "AHI", "EPAP (urządzenie)", OPIS_DUZY_WYCIEK};  // R-KOK-27
   for (int i = 0; i < 4; i++) { k1.liczby[i] = liczby[i]; k1.opisy[i] = opisy[i]; }
   struct { const char* n; double b, r, tr, med; const char* md; const char* s1; const char* s2; bool neg; } w1[5] = {
       {"AHI", 5, 2, 0.25, 6, "12,4", "wyżej niż zwykle", "od 12 nocy", true},
@@ -320,6 +323,7 @@ static void makiety(PlotnoPamiec& p) {
     k1.w[i].slowo = w1[i].s1;
     k1.w[i].slowo2 = w1[i].s2;
     k1.w[i].stan = w1[i].neg;
+    k1.w[i].dopisek = dopisekTrenduK1(w1[i].n, w1[i].s1);  // R-KOK-25
   }
   rysujK1(p, k1);
   zapisz(p, "mak-k1");

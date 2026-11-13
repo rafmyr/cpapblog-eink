@@ -241,6 +241,9 @@ class Przebieg {
   uint32_t obsluzonePrzyStarcie = 0;  // wybudzenie zegarem ze znanym czasem: chwila powodyTeraz
   std::string ostatniPrzycisk = "-";
   float temp = NAN, wilg = NAN, bateria = NAN;
+  // R-DANE-65: stan zasilania zewnętrznego z początku tego wybudzenia (NIEZNANE = jak bateria)
+  Zasilanie zasilanie = Zasilanie::NIEZNANE;
+  OdczytZasilania odczytZasilania;  // z surowymi rejestrami ładowarki do logu
   int procentBat = -1;  // M-25: procent baterii po wygładzeniu (src/bateria.h); -1 = brak odczytu napięcia
   bool bateriaZOdczytu = false;  // M-25 z napięcia zmierzonego w tym wybudzeniu (U-05 `Bateria: –` bez niego, R-KONF-41)
   bool wSilniku = false;         // trwa silnikDzis(): E-05 krytyczne jeszcze nie znane (e05KrytyczneTeraz())
@@ -314,6 +317,9 @@ class Przebieg {
   // Od 06.11.2026 także ocena slotu dziennego o pełnej godzinie (R-KON-42): stopka z odczytów
   // klatki, wybór ekranu ze świeżych; e-ink tylko, gdy zmienia się coś poza odczytami w stopce.
   bool stopkaZPamieci = false;
+  // R-DANE-63, R-DANE-64: wybudzenie z samego rytmu zasilania (tylkoRytmZasilania()); jego
+  // pobranie nie czyta źródła otoczenia, chyba że przyniosło noc kompletną (zostaje odczyt z ostatniego terminu baterii)
+  bool rytmZasilaniaTeraz = false;
   // naciśnięcie odtwarzane z kolejki (R-PRZ-20): bez pisku w rdzeniu; pisk był w chwili naciśnięcia (adapter), a pisk
   // przy odtwarzaniu przychodziłby po rysowaniu i kilka naraz zlewało się w nieregularne sygnały
   bool zKolejkiTeraz = false;
@@ -5071,6 +5077,15 @@ class Przebieg {
       case Ekran::K1: {
         DaneK1 k1 = budujK1(hist, dzis, norma(dzis), czynniki, &stany(dzis), r.ab.tryb);
         k1.ocena = ocenaNaglowkaK1(stanyOcenyB5(dzis));  // R-KOK-21: stan po ocenie silnika
+        {  // R-KOK-26: chwila importu tej nocy, nie ostatniego odczytu AirBridge (ten przesuwa się w ciągu dnia:
+          // sprawdzenie o 11:00, początek nocy 23:30, i mówiłby „dane 23:30” o nocy pobranej rano). Najpierw pole
+          // `import` rekordu nocy, potem chwila importu z tego wybudzenia; bez żadnej z nich nagłówek bez godziny.
+          const Noc* nd = dzis.empty() ? nullptr : nocZDnia(hist, dzis);
+          uint32_t ep = nd && nd->import && sekundaDzis(nd->import) >= 0 ? nd->import
+                        : sekundaDzis(r.importNocyEp) >= 0 ? r.importNocyEp : 0;
+          k1.godzinaDanych = ep ? godzina(ep) : "";
+          log("K1: godzina danych %s (R-KOK-26)", k1.godzinaDanych.empty() ? "brak" : k1.godzinaDanych.c_str());
+        }
         // R-POR-24, R-PRZ-04: K1 otwarte ze strony Portretu: ◀ wraca do Portretu (przejsciePortretu()), więc tak podpisane
         if (r.k1ZPortretu && r.portretStrona) {
           k1.stopkaWstecz = sk::tekst("S11.stopka_wstecz");
@@ -6523,7 +6538,18 @@ class Przebieg {
     // zobaczyło w sprawie ostatniej nocy
     obserwujNoc(w == 0 && httpKod != KOD_E03 ? stan_nocy::Obserwacja::BRAK_ODPOWIEDZI : obsNocy);
     r.logowanieOdrzucone = httpKod == 401;  // R-AW-34: ponawianie co 30 min także od drugiej nocy (src/plan.h)
-    pobierzOtoczenie(przerywalny);
+    // R-DANE-63, R-DANE-64: wybudzenie z samego rytmu zasilania sprawdza tylko AirBridge. Źródło otoczenia
+    // czytają terminy baterii (jak na baterii), inaczej CO2 inne przy każdym odczycie odświeżałoby e-ink co 2–5 min.
+    // Wyjątek: to wybudzenie przyniosło noc kompletną, wtedy nowy ekran dnia dostaje świeży odczyt. Tylko pierwsze
+    // pobranie wybudzenia (kolejne, np. po przycisku, czytają źródło jak zwykle).
+    bool bezOtoczenia = rytmZasilaniaTeraz && !nocKompletnaDzis(hist, dzisiaj(), wczytajStanHist().pom);
+    rytmZasilaniaTeraz = false;
+    if (bezOtoczenia) {
+      otoTeraz = false;
+      if (otoUzywalne()) log("otoczenie: bez odczytu w wybudzeniu z rytmu zasilania, zostają dane z %s", godzina(r.oto.pobrano).c_str());
+    } else {
+      pobierzOtoczenie(przerywalny);
+    }
     if (otoTeraz && zegar()) dodajCo2(r.buforSyp, dzisiaj(), minutaDoby(), co2DoBufora(r.oto, teraz()));
     uint32_t przed = r.ab.bladOd;
     r.ab.bladOd = bladOdPoOdczycie(odczytUdany, r.ab.bladOd, zegar(), teraz());
@@ -6628,6 +6654,7 @@ class Przebieg {
     w.przetwarzaOd = sekundaDzis(r.przetwarzaEp);
     w.powtorekDzis = r.powtorkiDoba != 0 && r.powtorkiDoba == dobaPamieci() ? r.powtorki : 0;
     w.drugiEkranPortretu = dzis.empty() ? -1 : minutaDrugiegoEkranu(dzis);  // R-POR-04
+    w.naZasilaniu = zasilanie == Zasilanie::ZEWNETRZNE;  // R-DANE-63, R-DANE-64; nieznane = jak bateria (R-DANE-65)
     return w;
   }
 
@@ -6958,6 +6985,7 @@ class Przebieg {
     r.obsluzoneDo = chwilaObsluzona();
     WejsciePlanu wp = wejsciePlanu(r.obsluzoneDo);
     Termin t = nastepnyTermin(wp);
+    r.planNaZasilaniu = wp.naZasilaniu ? 1 : 0;  // R-DANE-65: z jakiego rytmu jest ten sen
     if (powodyZalegle(wp)) log("termin w trakcie wybudzenia: %s", nazwyPowodow(t.powody).c_str());
     wcisniety();  // zaciete bez puszczonych
     r.zaciete = zaciete;  // zacięty ignorowany także w kolejnych wybudzeniach
@@ -7052,6 +7080,9 @@ class Przebieg {
     wilg = cz.wilg;
     bateria = cz.bateriaV;
     procentBaterii25();
+    // R-DANE-65: stan zasilania zewnętrznego raz na wybudzenie, przed planem (powody i następny termin)
+    odczytZasilania = a.czujniki.zasilanie();
+    zasilanie = odczytZasilania.stan;
 
     wczytajPliki(w);
     // T-WYM-87: okno przywracania przed jakimkolwiek Wi-Fi, przy każdym starcie zasilania (i po pierwszym
@@ -7064,12 +7095,19 @@ class Przebieg {
     // 7.1 krok 4: powody tego wybudzenia z planu (R-NF-02); po zegarze bez powodu sieciowego bez Wi-Fi (R-NF-03)
     // terminy od ostatniej obsłużonej chwili (RTC), nie tylko z ostatniej minuty
     wybudzenieZ = w;
-    Powody powody = w == PowodWybudzenia::ZEGAR ? powodyTeraz(wejsciePlanu(r.obsluzoneDo)) : 0;
+    // R-DANE-65: powody z rytmu, w którym ten sen zaplanowano (kabel odłączony w czasie snu: wybudzenie zaplanowane
+    // na zasilaniu zachowuje powód `okno_zasilanie`); następny termin (spij()) już ze stanu odczytanego wyżej
+    Powody powody = 0;
+    if (w == PowodWybudzenia::ZEGAR) {  // plan tylko po zegarze, jak dotąd (przycisk i start nie liczą powodów)
+      WejsciePlanu planTeraz = wejsciePlanu(r.obsluzoneDo);
+      planTeraz.naZasilaniu = r.planNaZasilaniu != 0;
+      powody = powodyTeraz(planTeraz);
+    }
     if (w == PowodWybudzenia::ZEGAR && zegar()) obsluzonePrzyStarcie = teraz();
     if (powody & POWOD_POWTORKA) policzPowtorke();  // R-DANE-62: licznik doby przed pobraniem
     // termin okna porannego albo gęstego i tak odczyta status: powtórka czekająca na tę chwilę przepada bez licznika
     // (bez tego nieudane połączenie zostawiłoby zaległą powtórkę na sen 1 s)
-    if (powody & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE)) r.przetwarzaEp = 0;
+    if (powody & (POWOD_OKNO_PORANNE | POWOD_OKNO_GESTE | POWOD_OKNO_ZASILANIE)) r.przetwarzaEp = 0;
     powodBaterii = powodWpisuBaterii(w, powody);
     // tylko przerysowanie R-EKR-60 (ewentualnie z zapisem czujników), bez pobrania: tryb i linia z RTC
     // ocena slotu dziennego (R-KON-41, R-KON-42) przerysowuje ekran dnia tak samo
@@ -7081,9 +7119,15 @@ class Przebieg {
                      (((powody & POWOD_SLOT_WIECZORNY_BEZ_SIECI) &&
                        (powody & (Powody)~(POWOD_SLOT_WIECZORNY_BEZ_SIECI | POWOD_CZUJNIKI)) == 0) ||
                       ((powody & POWOD_SLOT_DZIENNY_GODZINA) &&
-                       (powody & (Powody)~(POWOD_SLOT_DZIENNY_GODZINA | POWOD_CZUJNIKI)) == 0));
+                       (powody & (Powody)~(POWOD_SLOT_DZIENNY_GODZINA | POWOD_CZUJNIKI)) == 0) ||
+                      tylkoRytmZasilania(powody));  // R-DANE-63, R-DANE-64: bez odświeżeń od samej temperatury
+    rytmZasilaniaTeraz = w == PowodWybudzenia::ZEGAR && tylkoRytmZasilania(powody);
     log("cpap-eink %s, wybudzenie %s, licznik %lu", a.uruchomienie.wersja(), powodBaterii.c_str(),
         (unsigned long)r.wybudzen);
+    // surowe rejestry ładowarki (-1 = nieodczytany): REG08 bit 2 PG daje stan, REG0A bit 7 BUS_GD tylko do porównania
+    log("zasilanie: %s, REG08=%d, REG0A=%d",
+        zasilanie == Zasilanie::ZEWNETRZNE ? "zewnetrzne" : zasilanie == Zasilanie::BATERIA ? "bateria" : "nieznane",
+        (int)odczytZasilania.rejStanu, (int)odczytZasilania.rejWejscia);
     // skąd sieć i AirBridge (src/sekrety.h), bez haseł (R-KONF-38)
     if (!k.opisSekretow.empty()) log("konfiguracja: %s", k.opisSekretow.c_str());
     odnow();

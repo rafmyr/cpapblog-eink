@@ -149,11 +149,20 @@ bool kartaPrzerywnikaMiesci(const TrescEkranu& t);  // S2d: tytuł do 2 linii (S
 void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& scena);
 void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t);
 void rysujK1(Plotno& p, const DaneK1& d);
-// Słowo oceny wiersza K1 tak, jak stoi na ekranie (5.5.2, R-KOK-16): trend `stabilnie` jako sam znak `↔`, bo słowo
-// stoi raz w legendzie nagłówka kolumny `ocena` (LEGENDA_K1), jak `↔ jak zwykle` w pasku ekranu dnia; pozostałe
-// słowa (`rośnie`, `spada`, `wyżej niż zwykle`, `niżej niż zwykle`, `uczę się`) bez zmian. Puste zostaje puste.
-std::string slowoOcenyK1(const std::string& slowo);
-extern const char* const LEGENDA_K1;  // `↔ stabilnie`: legenda kolumny `ocena` w K1
+// Ocena wiersza K1 tak, jak stoi na ekranie (5.5.2, R-KOK-17 od 13.11.2026): w każdym wierszu znak i słowo
+// (`↔ stabilnie`, `↑ rośnie`, `↓ spada`, `↑ wyżej niż zwykle`, `↓ niżej niż zwykle`, `… uczę się`), po słowie trendu
+// w wierszach `AHI` i `Wyciek` dopisek ` · lepiej` / ` · gorzej` (R-KOK-25). Bez legendy w nagłówku kolumn.
+std::string znakOcenyK1(const std::string& slowo);   // "" dla słowa pustego albo nieznanego
+std::string tekstOcenyK1(const WierszK1& w);          // pierwsza linia oceny: znak, słowo, dopisek
+// Ocena w jednej linii (K1 z pasem odkrycia, wiersz < 46 px) w `maxW` px: po kolei pełna, bez dopisku, przy
+// `stabilnie` sam znak przed dopiskiem (`↔ wyciek widoczny`), bez znaku, a przy stanie odchylenia od wielu nocy
+// krótsze słowo ze znakiem (`↑ wyżej od 120 nocy`).
+std::string ocenaK1JednaLinia(const WierszK1& w, int maxW);
+// Geometria tabeli „Ostatnie 30 nocy” w K1 (R-KOK-28): linia 30 nocy od K1_X_LINII, mediana do prawej na xm, ocena
+// od xm + K1_ODSTEP_OCENY do prawego marginesu 772. Zwykły K1: ocena w 2 liniach; z pasem odkrycia: w jednej, dłuższej.
+const int K1_X_LINII = 196, K1_ODSTEP_OCENY = 16;
+const int K1_XM = 554, K1_WL = 270;                 // zwykły K1: ocena od 570 (202 px)
+const int K1_XM_ODKRYCIE = 470, K1_WL_ODKRYCIE = 174;  // pas odkrycia: ocena od 486 (286 px)
 void rysujK2(Plotno& p, const DaneK2& d);
 // R-KOK-18: które wiersze K2 rysować jako jedną linię pod tabelą. Przyjmuje dane K2 i tablicę `zwin` na
 // DaneK2::WIERSZE pozycji; ustawia zwin[r] dla wierszy `pusty` w kolejności tabeli, dopóki linia
@@ -203,6 +212,7 @@ void uporzadkujPrzyciski(std::vector<std::string>& grupy);  // ◀ ▶ ↻ jak p
 std::vector<std::string> stopkaK1(bool jestNoc, const std::string& wstecz = "");  // wstecz "" = `◀ ekran dnia` (R-POR-24)
 std::vector<std::string> stopkaK2(bool sprawy = true, bool liczby = false);  // 5.5.7 „Stopki stron”
 std::string naglowekK1Prawo(const DaneK1& d);  // R-KOK-21: `[ocena … · ]1 / 3`
+std::string naglowekK1Lewo(const DaneK1& d);   // R-KOK-26: `Ostatnia noc · pt 13.11[ · dane 07:12][ ◆]`
 // R-KOK-24: linia kroku pasma AHI w K2 o tyle niżej niż linia bazowa legendy, najniżej na linii bazowej 425 (dolny
 // wydłużnik P22B 6 px nad kreską stopki 434); niżej linia nie jest rysowana (DaneK2::krokPasma tylko poza ASV)
 const int K2_KROK_ODSTEP = 26, K2_KROK_BAZA_MAKS = 425;

@@ -64,6 +64,11 @@ const Powody POWOD_SLOT_WIECZORNY_BEZ_SIECI = 1u << 16;  // „slot_wieczorny_be
 const Powody POWOD_OKNO_GESTE = 1u << 17;   // „okno_geste”: R-DANE-61 (co 5 min wokół zwykłej pory końca terapii); z Wi-Fi
 const Powody POWOD_POWTORKA = 1u << 18;     // „powtorka_przetwarzania”: R-DANE-62 (2 min po statusie
                                             // „przetwarza”, najwyżej 5 na dobę); z Wi-Fi
+// Częstsze sprawdzanie rano na zasilaniu zewnętrznym (decyzja właściciela projektu 13.11.2026): wybudzenia, których
+// na baterii by nie było. Z pełnym pobraniem jak okno poranne (przy terapii sam status).
+const Powody POWOD_OKNO_ZASILANIE = 1u << 19;  // „okno_zasilanie”: R-DANE-63 (co 5 min w oknie porannym) i
+                                               // R-DANE-64 (co 2 min w gęstym oknie), tylko na zasilaniu
+                                               // zewnętrznym (R-DANE-65); z Wi-Fi
 
 // Stałe planu kroku 2 (wszystkie [PRÓG] ze spec, minuty doby czasu lokalnego).
 const int PLAN_OKNO_OD = 5 * 60;            // R-DANE-02: okno poranne 05:00–11:00
@@ -98,6 +103,12 @@ const int PLAN_GESTE_PRZED_MIN = 45;    // [PRÓG] R-DANE-61
 const int PLAN_GESTE_PO_MIN = 45;       // [PRÓG] R-DANE-61
 const int PLAN_GESTE_NOCY = 14;         // [PRÓG] R-DANE-61 (jak R-KON-09)
 const int PLAN_GESTE_NOCY_MIN = 3;      // [PRÓG] R-DANE-61 (jak R-KON-09)
+// Rytm na zasilaniu zewnętrznym (R-DANE-63, R-DANE-64; decyzja właściciela projektu 13.11.2026, bez źródła;
+// docs/spec/progi-poza-zakresem.csv). Tylko przy WejsciePlanu::naZasilaniu; na baterii i przy stanie nieznanym plan
+// jest taki sam jak przed 13.11.2026. Terminy baterii zostają (te same minuty i powody), dochodzą minuty podzielne
+// przez PLAN_ZASILANIE_CO_MIN w oknie porannym poza gęstym oknem i przez PLAN_ZASILANIE_GESTE_CO_MIN w gęstym oknie.
+const int PLAN_ZASILANIE_CO_MIN = 5;        // [PRÓG] R-DANE-63: okno poranne na zasilaniu (na baterii 30 min)
+const int PLAN_ZASILANIE_GESTE_CO_MIN = 2;  // [PRÓG] R-DANE-64: gęste okno na zasilaniu (na baterii 5 min)
 // Powtórka przy przetwarzaniu (B, R-DANE-62): następne wybudzenie PLAN_POWTORKA_S po odczycie `/api/status`
 // z przetwarzaniem plików po terapii (src/airbridge.h modulPrzetwarza()), najwyżej PLAN_POWTORKI_MAKS na dobę.
 const uint32_t PLAN_POWTORKA_S = 2 * 60;  // [PRÓG] R-DANE-62
@@ -170,6 +181,9 @@ struct WejsciePlanu {
   int przetwarzaOd = -1;
   // powtorekDzis: powtórki R-DANE-62 wykonane dziś (StanRtc::powtorki z dobą powtorkiDoba).
   int powtorekDzis = 0;
+  // naZasilaniu (R-DANE-65): panel jest na zasilaniu zewnętrznym (USB) według odczytu z początku tego wybudzenia
+  // (Czujniki::zasilanie() == ZEWNETRZNE); false na baterii i przy stanie nieznanym. Włącza R-DANE-63 i R-DANE-64.
+  bool naZasilaniu = false;
   // Portret nocy (R-POR-04): minuta doby drugiego ekranu poranka (pierwsze narysowanie Portretu + 30 min); -1 = brak.
   // W tej minucie POWOD_ODSWIEZENIE (przerysowanie ekranu dnia bez Wi-Fi), przed startem slotu dziennego.
   int drugiEkranPortretu = -1;
@@ -233,6 +247,13 @@ Termin nastepnyTermin(const WejsciePlanu& w);
 //    termin powtórki, który już minął (np. w czuwaniu po przycisku), daje sen ZALEGLY_TERMIN_S z tym powodem;
 //    powodyTeraz() nie daje POWOD_POWTORKA, gdy w tym samym przedziale jest POWOD_OKNO_PORANNE albo POWOD_OKNO_GESTE
 //    (powtórka nie zużywa wtedy licznika).
+// (R-DANE-63, R-DANE-64) w nastepnyTermin(), tylko przy naZasilaniu:
+//  - POWOD_OKNO_ZASILANIE: w oknie porannym (05:00, 11:00) bez końców, dopóki !nocKompletna i !e01 (jak gęste okno:
+//    bez zagęszczenia po braku odpowiedzi AirBridge albo Wi-Fi i po odrzuconym logowaniu), w minutach bez
+//    POWOD_OKNO_PORANNE i POWOD_OKNO_GESTE: poza gęstym oknem co PLAN_ZASILANIE_CO_MIN, w gęstym oknie
+//    (wGestymOknie()) co PLAN_ZASILANIE_GESTE_CO_MIN. Terminy baterii zostają bez zmian, więc plan na zasilaniu
+//    zawiera każdy termin planu na baterii. Powtórka R-DANE-62 nie dostaje powodu, gdy w tym samym przedziale jest
+//    POWOD_OKNO_ZASILANIE (jak przy POWOD_OKNO_GESTE).
 // Powody bieżącego wybudzenia zegarem (dziennik wybudzeń, decyzja o Wi-Fi). Przyjmuje stan planu z chwili wybudzenia
 // (przed pobraniem). Zwraca bity tych terminów z reguł nastepnyTermin(), których chwila wypada w przedziale
 // (obsluzoneDo, teraz] (przy obsluzoneZnane i obsluzoneDo < teraz; po północy od 00:00), inaczej
@@ -262,7 +283,7 @@ int poczatekSlotuDziennego(const WejsciePlanu& w);
 Powody powodyZalegle(const WejsciePlanu& w);
 
 // Czy powody wymagają Wi-Fi (R-NF-03): OKNO_PORANNE, SPRAWDZENIE_11, PONOWIENIE, POGODA, POCZATEK_NOCY, CZAS,
-// OKNO_GESTE i POWTORKA (R-DANE-61, R-DANE-62);
+// OKNO_GESTE i POWTORKA (R-DANE-61, R-DANE-62), OKNO_ZASILANIE (R-DANE-63, R-DANE-64);
 // także SLOT_DZIENNY_START i SLOT_DZIENNY_GODZINA (`/api/status`, R-KON-42) i PROGNOZA_GODZINOWA (R-KON-52).
 // CZUJNIKI, POWROT, PYTANIE, ODSWIEZENIE i SLOT_DZIENNY_BEZ_SIECI same nie włączają Wi-Fi (R-DANE-33, T-WYM-31, T-WYM-24, R-EKR-60).
 bool sieciowy(Powody powody);
@@ -291,6 +312,11 @@ bool startSlotuPrzyciskiem(const WejsciePlanu& w, Ekran przed);
 // PLAN_OKNO_DO) bez jego końców (05:00 jest zawsze terminem okna porannego, 11:00 sprawdzeniem R-DANE-24).
 // Nie patrzy na nocKompletna (to robi plan przy terminach).
 bool wGestymOknie(const WejsciePlanu& w, int minuta);
+
+// Wybudzenie tylko z rytmu zasilania (R-DANE-63, R-DANE-64): powody zawierają OKNO_ZASILANIE i poza nim najwyżej
+// CZUJNIKI. Dyrygent bierze wtedy odczyt czujnika do stopki z ostatniej klatki (jak przy ocenie slotu dziennego), żeby
+// samo wahanie temperatury nie odświeżało e-ink co 2 albo 5 min; nowa noc albo inny ekran rysują się normalnie.
+bool tylkoRytmZasilania(Powody powody);
 
 // Termin powtórki przy przetwarzaniu (R-DANE-62). Przyjmuje stan planu. Zwraca sekundę doby przetwarzaOd +
 // PLAN_POWTORKA_S, gdy jest zegar, teraz przed 11:00, przetwarzaOd w oknie porannym (od 05:00), termin przed 11:00,

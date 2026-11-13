@@ -62,6 +62,7 @@ TESTY+=("$FW/test/testy_profil_publiczny.cpp" "$FW/test/testy_profil_publiczny_b
 TESTY+=("$FW/test/testy_aparat_autoset_brzegowe.cpp") # przypadki brzegowe: aparat AirSense AutoSet
 TESTY+=("$FW/test/testy_poranek_szybciej.cpp") # szybszy wynik nocy rano: gęste okno, powtórka przy przetwarzaniu, pobranie po przycisku
 TESTY+=("$FW/test/testy_poranek_brzegowe.cpp") # przypadki brzegowe szybszego wyniku nocy rano
+TESTY+=("$FW/test/testy_zasilanie_rytm.cpp") # częstsze sprawdzanie rano na zasilaniu zewnętrznym (R-DANE-63…65)
 TESTY+=("$FW/test/testy_zegar_ntp.cpp") # zegar nowego panelu, NTP 3 próby i czas z AirBridge (R-AW-18, T-TEST-327)
 TESTY+=("$FW/test/testy_str_edf.cpp") # STR.edf: czytnik EDF, noce 'S', pierwszeństwo, STR w dyrygencie (ADR-0035)
 TESTY+=("$FW/test/testy_str_edf_brzegowe.cpp") # przypadki brzegowe STR.edf

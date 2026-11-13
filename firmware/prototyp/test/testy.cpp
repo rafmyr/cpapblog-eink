@@ -3174,6 +3174,7 @@ static void testSkalaB() {
         kk.w[r].slowo = r % 2 ? "niżej niż zwykle" : "wyżej niż zwykle";
         kk.w[r].slowo2 = "od 99 nocy";
       }
+      const int xoK1 = K1_XM + K1_ODSTEP_OCENY;  // kolumna oceny (R-KOK-28)
       PlotnoTest kq;
       rysujK1(kq, kk);
       for (int r = 0; r < DaneK1::WIERSZE; r++) {
@@ -3182,10 +3183,10 @@ static void testSkalaB() {
           SPRAWDZ(kq.cz(12, y + 10) && kq.cz(400, y - 1) && kq.cz(400, y + 50));  // ramka y − 1 … y + 50
           for (int yy : {y + 1, y + 2, y + 47, y + 48}) SPRAWDZ(kq.czarne(14, yy, 786, yy + 1) == 0);  // 2 px od ramki
         } else {
-          for (int yy : {y + 1, y + 2, y + 47, y + 48}) SPRAWDZ(kq.czarne(522, yy, 786, yy + 1) == 0);
+          for (int yy : {y + 1, y + 2, y + 47, y + 48}) SPRAWDZ(kq.czarne(xoK1, yy, 786, yy + 1) == 0);
         }
-        SPRAWDZ(kq.czarne(522, y + 24, 786, y + 26) == 0);  // 2 px między linią 1 a linią 2
-        SPRAWDZ(kq.czarne(522, y + 3, 786, y + 24) > 100 && kq.czarne(522, y + 26, 786, y + 47) > 100);  // obie linie są
+        SPRAWDZ(kq.czarne(xoK1, y + 24, 786, y + 26) == 0);  // 2 px między linią 1 a linią 2
+        SPRAWDZ(kq.czarne(xoK1, y + 3, 786, y + 24) > 100 && kq.czarne(xoK1, y + 26, 786, y + 47) > 100);  // obie linie są
         if (zle != zle0) printf("  K1 wiersz %d (wzór %d): tekst styka się z ramką albo z drugą linią\n", r, wzor);
       }
       SPRAWDZ(kq.czarne(0, 433, 800, 434) == 0);  // ostatni wiersz kończy się nad stopką (linia na 434)

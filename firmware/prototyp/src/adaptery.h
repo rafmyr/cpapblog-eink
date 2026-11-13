@@ -230,11 +230,23 @@ struct OdczytCzujnikow {
   float temp = NAN, wilg = NAN;  // SHT40 w obudowie; NAN = brak odczytu
   float bateriaV = NAN;          // napięcie baterii bez obciążenia (przed ekranem i Wi-Fi)
 };
+// Stan zasilania zewnętrznego (USB) w chwili odczytu (R-DANE-65). NIEZNANE = adapter nie umie tego rozpoznać
+// (np. płytka bez ładowarki z I2C) albo odczyt się nie udał; rdzeń traktuje NIEZNANE jak BATERIA.
+enum class Zasilanie : uint8_t { NIEZNANE = 0, BATERIA = 1, ZEWNETRZNE = 2 };
+// Odczyt stanu zasilania z surowymi bajtami rejestrów ładowarki do logu (pomiar na egzemplarzu ma pokazać,
+// który bit jest właściwy); -1 = rejestr nieodczytany albo adapter bez ładowarki z odczytem.
+struct OdczytZasilania {
+  Zasilanie stan = Zasilanie::NIEZNANE;
+  int16_t rejStanu = -1;    // SY6974B REG08 (bit 2 PG_STAT: z niego `stan`)
+  int16_t rejWejscia = -1;  // SY6974B REG0A (bit 7 BUS_GD: tylko do logu)
+};
 // Czujnik w obudowie i bateria (część T-KOMP-19).
 class Czujniki {
  public:
   virtual ~Czujniki() = default;
   virtual OdczytCzujnikow czytaj() = 0;
+  // Stan zasilania zewnętrznego teraz (R-DANE-65); domyślnie NIEZNANE (adapter bez takiego odczytu).
+  virtual OdczytZasilania zasilanie() { return OdczytZasilania(); }
 };
 
 // Buzzer (T-KOMP-22).

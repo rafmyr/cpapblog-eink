@@ -65,11 +65,11 @@ Makiety: `k1.png` (tryb ASV, 5 wierszy, wiersz w negatywie, `EPAP (urządzenie)`
 | 4 liczby | 54–154 | opis **nad** liczbą: `czas z maską`, `bezdechy / h`, `EPAP` (`EPAP (urządzenie)`), `wyciek l/min` | P22B, linia bazowa 82 | kolumny od x = 28, 222, 398, 608 (nierówne: `EPAP (urządzenie)` ma 190 px) |
 | | | liczba | SN56, linia bazowa 140 | `10:59` 150 px |
 | Linia | 154 | 2 px | | |
-| Nagłówki kolumn | 156–188 | `Ostatnie 30 nocy` · `mediana` (do prawej, x 506) · `ocena` (x 522) · legenda `↔ stabilnie` (do prawej, x 772; zmiana 2026-11-10) | P22B, l. bazowa 181 | rozstrzyga, co jest nocą (góra), a co medianą 30 nocy (dół); ten sam pomysł co tytuł paska `OSTATNIE 7 NOCY · MEDIANA` w SPEC-B; legenda jak `↔ jak zwykle` w pasku ekranu dnia |
+| Nagłówki kolumn | 156–188 | `Ostatnie 30 nocy` · `mediana` (do prawej, x 506) · `ocena` (x 522) · legenda `↔ stabilnie` (do prawej, x 772; zmiana 2026-11-10). **Zmiana 2026-11-13 (R-KOK-17, R-KOK-28):** bez legendy, `mediana` do prawej x 554, `ocena` x 570 | P22B, l. bazowa 181 | rozstrzyga, co jest nocą (góra), a co medianą 30 nocy (dół); ten sam pomysł co tytuł paska `OSTATNIE 7 NOCY · MEDIANA` w SPEC-B; legenda jak `↔ jak zwykle` w pasku ekranu dnia |
 | 5 wierszy | 188–428, 48 px | nazwa | P24B, x 28 | `Czas z maską` 155 px |
-| | | linia 30 nocy | 210×32 px, 3 px, przerywana mediana normy | x 196–406; przerwy w nocach bez danych (R-KOK-02) |
-| | | mediana 30 nocy | P28B, do prawej x 506 | |
-| | | ocena | P22B, x 522, do 772 | negatyw (R-KOK-03): 2 linie `wyżej niż zwykle` / `od {n} nocy` (290 px w 1 linii nie mieści się w 250); trend `stabilnie` jako sam znak `↔` (słowo w legendzie nagłówka; zmiana 2026-11-10) |
+| | | linia 30 nocy | 210×32 px, 3 px, przerywana mediana normy | x 196–406; przerwy w nocach bez danych (R-KOK-02). **Zmiana 2026-11-13 (R-KOK-28):** 270×32 px, x 196–466 (z pasem odkrycia O-12 bez zmian: 174 px) |
+| | | mediana 30 nocy | P28B, do prawej x 506 | **zmiana 2026-11-13:** do prawej x 554 (z pasem odkrycia 470) |
+| | | ocena | P22B, x 522, do 772 | negatyw (R-KOK-03): 2 linie `wyżej niż zwykle` / `od {n} nocy` (290 px w 1 linii nie mieści się w 250); trend `stabilnie` jako sam znak `↔` (słowo w legendzie nagłówka; zmiana 2026-11-10). **Zmiana 2026-11-13 (R-KOK-17, R-KOK-25):** ocena od x 570 do 772, w każdym wierszu znak w stałej kolumnie 28 px i słowo (`↔ stabilnie`, `↑ rośnie`, `↓ spada`, `… uczę się`, `↑ wyżej niż zwykle`), w wierszach `AHI` i `Wyciek` po trendzie ` · lepiej` / ` · gorzej`, druga linia pod słowem; w nagłówku ` · dane {hh:mm}` (R-KOK-26), opis `duży wyciek` przy nocy niepewnej (R-KOK-27) |
 | Stopka | 434–480 | 2.1 | | |
 
 O-12 (`k1-odkrycie.png`): tytuł `P28B` i powód `P22B` stoją w miejscu 4 liczb, a czas i AHI nocy przechodzą do nagłówka (`Ostatnia noc · czw 12.11 · 10 h 59 · 12,4 / h ◆`). Powód: przy 22 px nie ma miejsca na oba bloki.

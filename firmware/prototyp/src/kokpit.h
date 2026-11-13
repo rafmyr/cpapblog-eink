@@ -60,14 +60,27 @@ struct WierszK1 {
   std::string mediana;  // mediana 30 nocy (z nocy z wartością w oknie)
   std::string slowo;    // `stabilnie`, `rośnie`, `spada`, `uczę się`, `wyżej niż zwykle` / `niżej niż zwykle`
   std::string slowo2;   // druga linia oceny (T3): `od {n} nocy` albo `wyciek widoczny`; "" = ocena w jednej linii
+  // R-KOK-25: dopisek po słowie trendu `rośnie` / `spada` w wierszach `AHI` i `Wyciek`: `lepiej` albo `gorzej`
+  // (dopisekTrenduK1); "" = bez dopisku (pozostałe wiersze i słowa)
+  std::string dopisek;
   bool stan = false;    // R-KOK-03: metryka w stanie odchylenia, wiersz w ramce
 };
+
+// R-KOK-25: `lepiej` / `gorzej` dla słowa trendu wiersza K1; tylko `AHI` i `Wyciek` (mniej = lepiej), inne wiersze ""
+std::string dopisekTrenduK1(const std::string& nazwaWiersza, const std::string& slowo);
+// R-KOK-27: opis liczby wycieku ostatniej nocy, gdy noc jest niepewna przez wyciek (4.9): przyczyna `ocena ograniczona`
+extern const char* const OPIS_DUZY_WYCIEK;
 
 struct DaneK1 {
   std::string naglowek;  // `Ostatnia noc · czw 12.11` albo `Noc 18.10` (R-KOK-04)
   // R-KOK-21: prawa część nagłówka przed numerem strony: `ocena częściowa` albo `ocena ograniczona`; "" = ocena pełna
   // (sam numer `1 / 3`). Ustawia budujK1() ze stanów (ocenaNaglowkaK1), dyrygent nadpisuje stanem po ocenie silnika.
   std::string ocena;
+  // R-KOK-26: godzina pobrania danych (`07:12`, jak w nagłówku porannym, R-EKR-04) dopisywana w nagłówku po dacie
+  // jako ` · dane 07:12`, tylko gdy ostatnia noc jest nocą ubiegłą (`ubiegla`); "" = nieznana, bez dopisku. Ustawia
+  // dyrygent.
+  std::string godzinaDanych;
+  bool ubiegla = false;  // ostatnia zapisana noc jest nocą ubiegłą (nagłówek `Ostatnia noc · …`, nie `Noc {data}`)
   bool romb = false;     // R-KOK-14
   bool jestNoc = false;  // jest noc, o którą można zapytać (↻ 2 s, R-CZY-08)
   // podpis ◀ w stopce, gdy ◀ nie prowadzi do ekranu dnia: K1 otwarte ze strony Portretu (R-POR-24) → `◀ portret nocy`

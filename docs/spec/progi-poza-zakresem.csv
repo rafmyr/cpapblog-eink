@@ -188,6 +188,8 @@ R-KON-56,3 s,parametr techniczny,"limit odpowiedzi jedynej próby `/api/status` 
 R-HUM-12,3 zdania,powtórzenie,"= WY15.pula_min (weryfikacja R-HUM-12: co najmniej tyle zdań na typ ekranu, docelowo 8)"
 R-DANE-61,"co 5 min; 45 min przed i po zwykłej porze końca terapii; 14 nocy, co najmniej 3",czas interfejsu,"gęste okno rano, decyzja właściciela projektu 10.11.2026 bez źródła; 14 i 3 jak R-KON-09"
 R-DANE-62,"2 min; 5 powtórek na dobę",czas interfejsu,"powtórka przy przetwarzaniu plików w AirBridge, decyzja właściciela projektu 10.11.2026 bez źródła"
+R-DANE-63,"co 5 min; 05:00–11:00",czas interfejsu,"okno poranne na zasilaniu zewnętrznym, decyzja właściciela projektu 13.11.2026 bez źródła; 05:00–11:00 jak R-DANE-02"
+R-DANE-64,"co 2 min",czas interfejsu,"gęste okno na zasilaniu zewnętrznym, decyzja właściciela projektu 13.11.2026 bez źródła"
 R-PRZ-22,"05:00–11:00; raz na 2 min",czas interfejsu,"pobranie rano po przycisku; okno jak R-DANE-02, limit decyzją właściciela projektu 10.11.2026"
 5.4.16|odcinek,"5 min; 30 próbek",wygląd ekranu,"Portret nocy (ADR-0040): długość odcinka i minimum próbek 2 s w odcinku; makiety ekranu, bez źródła"
 5.4.16|wyciek w odcinku (rysunek),"60 s; 15 L/min",wygląd ekranu,"Portret nocy: biały odcinek od 60 s próbek Leak ≥ 15 L/min w odcinku (12.11.2026; obserwacja własna, 1 osoba); 15 L/min jak R-NOR-05.niepewna_p95"

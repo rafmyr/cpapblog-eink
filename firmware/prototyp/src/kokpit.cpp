@@ -212,6 +212,17 @@ std::string ocenaNaglowkaK1(const Stany* st) {
   return st->ocenaNiepelna ? "ocena częściowa" : "";
 }
 
+const char* const OPIS_DUZY_WYCIEK = "duży wyciek";
+
+std::string dopisekTrenduK1(const std::string& nazwaWiersza, const std::string& slowo) {
+  // tylko metryki, w których kierunek ma jedno znaczenie: mniej zdarzeń i mniejszy wyciek = lepiej. Czas z maską,
+  // ciśnienie, EPAP i wsparcie bez dopisku (więcej nie znaczy lepiej ani gorzej; ADR-0002: bez oceny ustawień).
+  if (nazwaWiersza != "AHI" && nazwaWiersza != "Wyciek") return "";
+  if (slowo == "spada") return "lepiej";
+  if (slowo == "rośnie") return "gorzej";
+  return "";
+}
+
 DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norma& nm,
                const std::vector<WpisCzynnikow>& cz, const Stany* st, const std::string& trybStatusu) {
   DaneK1 d;
@@ -220,6 +231,7 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   if (!ost) d.naglowek = "Ostatnia noc";
   else if (ost->data == dzis) d.naglowek = std::string("Ostatnia noc · ") + DNI_KROTKO[dzienTygodnia(dzis)] + " " + ddmm(dzis);
   else d.naglowek = "Noc " + ddmm(ost->data);  // R-KOK-04
+  d.ubiegla = ost && ost->data == dzis;
   d.romb = ost && romb(wpisZDnia(cz, ost->data));
   d.jestNoc = ost != nullptr;
   d.ocena = ocenaNaglowkaK1(st);  // R-KOK-21
@@ -241,6 +253,8 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
     d.liczby[2] = format(M_EMED, ost->emed);
     d.opisy[2] = "EPAP (urządzenie)";
   }
+  // R-KOK-27: noc niepewna (4.9: każdy warunek to wyciek) → opis nad liczbą wycieku mówi, skąd `ocena ograniczona`
+  if (ost && nocNiepewna(*ost)) d.opisy[3] = OPIS_DUZY_WYCIEK;
   struct Def { const char* n; Metryka m; };
   static const Def W_ASV[5] = {
       {"AHI", M_AHI}, {"Czas z maską", M_M01}, {"EPAP", M_EMED}, {"Wsparcie", M_PSMED}, {"Wyciek", M_WP95}};
@@ -273,6 +287,19 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
       w.slowo = slowoTrendu(hist, koniec, w.linia, m, tr);  // R-KOK-16
       // za mało nocy w oknie 7 albo 23: `uczę się`; metryka bez Δ (M-28): kolumna oceny pusta
       if (w.slowo.empty() && !std::isnan(deltaTrendu(m))) w.slowo = "uczę się";
+      w.dopisek = dopisekTrenduK1(w.nazwa, w.slowo);  // R-KOK-25
+      // R-KOK-25 fail-path (ADR-0029 pkt 7): trend AHI pomija noce niepewne (R-NOR-19), więc `spada` może wynikać
+      // tylko ze starszych nocy; gdy w 7 ostatnich nocach okna jest noc niepewna, panel nie mówi `lepiej`
+      // (`gorzej` zostaje: ostrzeżenie nie wymaga pewności)
+      if (m == M_AHI && w.dopisek == "lepiej" && dataOk(koniec)) {
+        for (int k = 0; k < 7; k++) {  // 7 ostatnich nocy okna 30 nocy, jak w slowoTrendu()
+          const Noc* n = nocZDnia(hist, dodajDni(koniec, -k));
+          if (n && nocNiepewna(*n)) {
+            w.dopisek.clear();
+            break;
+          }
+        }
+      }
     }
     // R-EKR-59: wyciek widoczny (informacja, nie ocena), w dokładności ekranu (mediana `10` nie daje słowa)
     if (m == M_WP95 && !w.stan && !std::isnan(med) && zaokr(m, med) > WYCIEK_WIDOCZNY + 1e-9) w.slowo2 = "wyciek widoczny";

@@ -118,6 +118,9 @@ echo "testy przypadków brzegowych (test/testy_poranek_brzegowe.cpp: szybszy wyn
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_poranek_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_poranek_brzegowe"
 "$BUD/testy_poranek_brzegowe"
 "$BUD/testy_poranek_szybciej"
+echo "testy rytmu na zasilaniu zewnętrznym (test/testy_zasilanie_rytm.cpp: R-DANE-63 okno poranne co 5 min, R-DANE-64 gęste okno co 2 min, R-DANE-65 stan zasilania; bateria bez zmian)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zasilanie_rytm.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zasilanie_rytm"
+"$BUD/testy_zasilanie_rytm"
 
 echo "testy magazynu danych (test/testy_magazyn_danych.cpp: magazyn danych, migracje, układ pamięci 32 MB, przywracanie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_magazyn_danych.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_magazyn_danych"
@@ -161,10 +164,16 @@ echo "symulator doby (test/symulator.cpp): pełny zestaw ostrzeżeń, doba na zr
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/symulator.cpp" "${OBIEKTY[@]}" -o "$BUD/symulator"
 SYM="$(mktemp -d "${TMPDIR:-/tmp}/cpap-eink-sym-XXXXXX")"
 python3 "$REPO/tools/symulator/generuj_zrzut.py" "$SYM/zrzut" >/dev/null
-printf '2026-11-04T07:15 prawy\n' > "$SYM/przyciski.txt" # ▶ z ekranu dnia → K1
+# ▶ z ekranu dnia → K1 rano i drugi raz po sprawdzeniu o 11:00 (R-KOK-26: godzina danych to import nocy, nie ostatni odczyt)
+printf '2026-11-04T07:15 prawy\n2026-11-04T07:17 srodkowy\n2026-11-04T13:00 prawy\n' > "$SYM/przyciski.txt"
 "$BUD/symulator" --dane "$SYM/zrzut" --od 2026-11-04T05:00 --do 2026-11-04T23:59 --przyciski "$SYM/przyciski.txt" \
   --wyjscie "$SYM/wynik"
 ls "$SYM/wynik" | grep -q -- '-0715-K1\.pbm$' || { echo "BŁĄD: symulator bez K1 po ▶ o 07:15"; exit 1; }
+GD_RANO="$(sed -n 's/^2026-11-04 07:15:00  K1: godzina danych \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
+GD_POL="$(sed -n 's/^2026-11-04 13:00:00  K1: godzina danych \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
+if [ -z "$GD_RANO" ] || [ "$GD_RANO" != "$GD_POL" ]; then
+  echo "BŁĄD: godzina danych K1 rano „$GD_RANO”, o 13:00 „$GD_POL” (R-KOK-26: ma być ta sama chwila importu nocy)"; exit 1
+fi
 ls "$SYM/wynik" | grep -q -- '-Dobranoc\.pbm$' || { echo "BŁĄD: symulator bez ekranu Dobranoc"; exit 1; }
 echo "  symulator: ok ($SYM/wynik)"
 

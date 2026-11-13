@@ -494,6 +494,12 @@ std::vector<std::string> stopkaK2(bool sprawy, bool liczby) {
 std::string naglowekK1Prawo(const DaneK1& d) {
   return d.ocena.empty() ? numerStronyTekst(Ekran::K1) : d.ocena + " · " + numerStronyTekst(Ekran::K1);
 }
+std::string naglowekK1Lewo(const DaneK1& d) {
+  // godzina tylko przy nocy ubiegłej: przy `Noc 18.10` (R-KOK-04) dzisiejsza godzina odczytu myliłaby, z kiedy są dane
+  std::string l = d.naglowek;
+  if (d.ubiegla && !d.godzinaDanych.empty()) l += " · dane " + d.godzinaDanych;
+  return l + (d.romb ? " ◆" : "");
+}
 std::vector<std::string> stopkaPytania() {
   // bez liczby zaznaczonych w nawiasie (`zapisz (2)` czytało się jak „zapisz za 2 s”); ile jest
   // zaznaczone, widać na siatce
@@ -737,14 +743,52 @@ void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t) {
 }
 
 // ---------- K1 (5.5.2, SPEC-KOKPIT 3) ----------
-const char* const LEGENDA_K1 = "↔ stabilnie";
+std::string znakOcenyK1(const std::string& slowo) {
+  if (slowo == "stabilnie") return "↔";
+  if (slowo == "rośnie" || slowo == "wyżej niż zwykle") return "↑";
+  if (slowo == "spada" || slowo == "niżej niż zwykle") return "↓";
+  if (slowo == "uczę się") return "…";
+  return "";
+}
 
-std::string slowoOcenyK1(const std::string& slowo) { return slowo == "stabilnie" ? "↔" : slowo; }
+std::string tekstOcenyK1(const WierszK1& w) {
+  if (w.slowo.empty()) return "";
+  const std::string z = znakOcenyK1(w.slowo);
+  return (z.empty() ? std::string() : z + " ") + w.slowo + (w.dopisek.empty() ? std::string() : " · " + w.dopisek);
+}
+
+std::string ocenaK1JednaLinia(const WierszK1& w, int maxW) {
+  // `od {n} nocy` czyta się dalej zdania, inne dopiski po `·` (separator panelu)
+  auto zloz = [&](const std::string& pierwsza) {
+    if (w.slowo2.empty()) return pierwsza;
+    if (pierwsza.empty()) return w.slowo2;
+    return pierwsza + (w.slowo2.rfind("od ", 0) == 0 ? " " : " · ") + w.slowo2;
+  };
+  WierszK1 bez = w;
+  bez.dopisek.clear();
+  // po kolei: pełna, bez dopisku, przy `stabilnie` sam znak przed dopiskiem (`↔ wyciek widoczny`), na końcu bez znaku
+  std::vector<std::string> kandydaci = {zloz(tekstOcenyK1(w)), zloz(tekstOcenyK1(bez))};
+  if (w.slowo == "stabilnie" && !w.slowo2.empty()) kandydaci.push_back(znakOcenyK1(w.slowo) + " " + w.slowo2);
+  kandydaci.push_back(zloz(w.slowo));
+  // stan odchylenia od wielu nocy (`wyżej niż zwykle od 120 nocy`, 298 px) nie mieści się w 286 px: krótsze słowo
+  // ze znakiem (`↑ wyżej od 120 nocy`), żeby tekst nie doszedł do ramki wiersza
+  const std::string niz = " niż zwykle";
+  if (w.slowo.size() > niz.size() && w.slowo.compare(w.slowo.size() - niz.size(), niz.size(), niz) == 0) {
+    WierszK1 krotki = w;
+    krotki.dopisek.clear();
+    const std::string znak = znakOcenyK1(w.slowo);
+    krotki.slowo = w.slowo.substr(0, w.slowo.size() - niz.size());
+    kandydaci.push_back(zloz(znak + " " + krotki.slowo));
+  }
+  for (const std::string& k : kandydaci)
+    if (szer(F_P22B, k) <= maxW) return k;
+  return kandydaci.back();
+}
 
 void rysujK1(Plotno& p, const DaneK1& d) {
   p.prostokat(0, 0, 800, 480, false);
   // R-KOK-21: `ocena częściowa · 1 / 3` albo `ocena ograniczona · 1 / 3`, przy ocenie pełnej sam numer
-  naglowekDanych(p, {d.naglowek + (d.romb ? " ◆" : ""), naglowekK1Prawo(d)}, F_P22B);
+  naglowekDanych(p, {naglowekK1Lewo(d), naglowekK1Prawo(d)}, F_P22B);
   // R-CZY-20 (5.5.2 „Odkrycie o czynniku”): tytuł i powód O-12 pod nagłówkiem, nad 4 liczbami ostatniej nocy
   // (liczby zostają). Wygląd („dopasuj do całości”):
   // wariant to zwykły K1 z dodatkowym pasem. Pas: tytuł P24B na linii bazowej opisów liczb (82), powód P22B (≤ 2 linie
@@ -782,18 +826,19 @@ void rysujK1(Plotno& p, const DaneK1& d) {
   // y + 1 … y + 48 (48 px). Tekst P22B zajmuje od −17 do +3 px wokół linii bazowej (21 px), więc dwie linie oceny
   // na y + 20 i y + 43 mają po 2 px odstępu od ramki i między sobą.
   // Z odkryciem wiersze mają (432 − góra) / wierszy px. Ocena w dwóch liniach P22B mieści się od 46 px; niżej idzie
-  // w jednej linii P22B (`wyżej niż zwykle od 3 nocy`, `↔ wyciek widoczny`, do 296 px), a linia trendu
-  // i mediana przesuwają się w lewo o 36 px, żeby zmieścić ją do prawego marginesu.
+  // w jednej linii P22B do 286 px (`wyżej niż zwykle od 3 nocy`, `↔ wyciek widoczny`; ocenaK1JednaLinia()), a linia trendu
+  // i mediana stoją bliżej lewej (K1_XM_ODKRYCIE), żeby zmieścić ją do prawego marginesu.
+  // Zwykły K1 (R-KOK-28): tabela na całą szerokość treści, linia 30 nocy 270 px, ocena od 570 do 772.
   const int top = yKreska + 28;
   const int hw = odk ? std::min(50, (432 - top) / std::max(1, d.wierszy)) : 50;
   const bool jednaLinia = hw < 46;
-  const int xm = jednaLinia ? 470 : 506, wl = jednaLinia ? 174 : 210;
+  const int xm = jednaLinia ? K1_XM_ODKRYCIE : K1_XM, wl = jednaLinia ? K1_WL_ODKRYCIE : K1_WL;
+  const int xo = xm + K1_ODSTEP_OCENY;
+  const int wciecie = szer(F_P22B, "↔ ");  // druga linia oceny pod słowem, nie pod znakiem
   const int yKol = top - 6;  // nagłówki kolumn: noc u góry, mediana 30 nocy niżej (T2)
   tekst(p, F_P22B, X, yKol, "Ostatnie 30 nocy");
   tekstPrawo(p, F_P22B, xm, yKol, "mediana");
-  tekst(p, F_P22B, xm + 16, yKol, "ocena");
-  // wiersze spokojne (trend `stabilnie`) mają sam znak `↔`; słowo stoi raz, w legendzie z prawej (R-KOK-17)
-  tekstPrawo(p, F_P22B, XP, yKol, LEGENDA_K1);
+  tekst(p, F_P22B, xo, yKol, "ocena");
   for (int i = 0; i < d.wierszy; i++) {  // 4 wiersze w CPAP i AutoSet, 5 w ASV (R-KOK-15)
     const WierszK1& w = d.w[i];
     int y = top + i * hw, sr = y + hw / 2;
@@ -801,17 +846,21 @@ void rysujK1(Plotno& p, const DaneK1& d) {
     if (w.stan) p.ramka(12, y - 1, 776, hw + 2, 2);  // R-KOK-03: wiersz w ramce (legenda: ramka = poza twoją normą)
     tekst(p, F_P24B, X, sr + 9, w.nazwa);
     int hl = hw >= 50 ? 32 : hw - 14;  // linia trendu niższa przy niższym wierszu
-    linia30(p, 196, sr - hl / 2, wl, hl, w.linia, 3, false);
+    linia30(p, K1_X_LINII, sr - hl / 2, wl, hl, w.linia, 3, false);
     tekstPrawo(p, F_P28B, xm, sr + 10, w.mediana);
-    const std::string slowo = slowoOcenyK1(w.slowo);
-    if (w.slowo2.empty()) {
-      tekst(p, F_P22B, xm + 16, sr + 8, slowo);
-    } else if (jednaLinia) {  // `od {n} nocy` czyta się dalej zdania, inne dopiski po `·` (separator panelu)
-      tekst(p, F_P22B, xm + 16, sr + 8, slowo + (w.slowo2.rfind("od ", 0) == 0 || slowo == "↔" ? " " : " · ") + w.slowo2);
-    } else {  // T3: `wyżej niż zwykle` / `od {n} nocy` w 2 liniach; przy wierszu 46…49 px o 1 px ciaśniej
-      tekst(p, F_P22B, xm + 16, y + (hw >= 50 ? 20 : 19), slowo);
-      tekst(p, F_P22B, xm + 16, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
+    if (jednaLinia) {
+      tekst(p, F_P22B, xo, sr + 8, ocenaK1JednaLinia(w, XP - xo));
+      continue;
     }
+    // znak w stałej kolumnie (szerokość `↔ `), słowo i druga linia pod sobą: słowa wierszy stoją w jednym pionie
+    const std::string znak = znakOcenyK1(w.slowo);
+    const std::string slowa = w.slowo + (w.dopisek.empty() ? std::string() : " · " + w.dopisek);
+    const int xs = xo + (znak.empty() ? 0 : wciecie);
+    // T3: `↑ wyżej niż zwykle` / `od {n} nocy` w 2 liniach; przy wierszu 46…49 px o 1 px ciaśniej
+    const int y1 = w.slowo2.empty() ? sr + 8 : y + (hw >= 50 ? 20 : 19);
+    if (!znak.empty()) tekst(p, F_P22B, xo, y1, znak);
+    tekst(p, F_P22B, xs, y1, slowa);
+    if (!w.slowo2.empty()) tekst(p, F_P22B, xs, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
   }
   stopkaAkcji(p, "", stopkaK1(d.jestNoc, d.stopkaWstecz));
 }

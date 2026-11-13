@@ -141,6 +141,7 @@ class PrzyciskiEsp32 : public Przyciski {
 class CzujnikiEsp32 : public Czujniki {
  public:
   OdczytCzujnikow czytaj() override;
+  OdczytZasilania zasilanie() override;
 };
 
 class DzwiekEsp32 : public Dzwiek {
