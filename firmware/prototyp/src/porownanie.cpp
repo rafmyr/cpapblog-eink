@@ -314,6 +314,9 @@ std::vector<std::string> wartosciU05(const Licznik& l, Zrodlo z) {
   return w;
 }
 
+bool usterkaU05(const Licznik& l, Zrodlo z) { return z == Zrodlo::POROWNANIE && l.porownane > l.zgodne; }
+bool bezOcenyU05(const Licznik& l, Zrodlo z) { return z == Zrodlo::POROWNANIE && l.porownane == 0; }
+
 std::string liniaDiagnostyki(const std::vector<Wpis>& wpisy, Zrodlo z) {
   const char* tryb = z == Zrodlo::JSON ? "json" : z == Zrodlo::PLIK ? "plik" : "porownanie";
   Licznik l = policz(wpisy);

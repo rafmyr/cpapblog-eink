@@ -44,6 +44,51 @@ def test_opis_jak_firmware():
     assert json.loads(t)["rozmiar"] == 100
 
 
+def test_opis_z_nowosciami_jak_firmware():
+    """Pole `nowosci` (R-KONF-56) na końcu, z ucieczką jak aktualizacja::zapiszOpis(); bez linii pola nie ma."""
+    obraz = b"\xe9" + b"x" * 99
+    d = wydaj.opis("1.0.1", obraz, 0x1A2B3C4D, nowosci=["Portret nocy: łagodniejsze piki", 'Cudzysłów " i ukośnik \\'])
+    t = wydaj.tekst_opisu(d)
+    assert t.endswith(',"plik":"cpap-eink-1.0.1.bin","nowosci":["Portret nocy: łagodniejsze piki",'
+                      '"Cudzysłów \\" i ukośnik \\\\"]}\n')
+    assert json.loads(t)["nowosci"][1] == 'Cudzysłów " i ukośnik \\'
+    assert "nowosci" not in wydaj.opis("1.0.1", obraz, 0x1A2B3C4D)
+    assert "nowosci" not in wydaj.opis("1.0.1", obraz, 0x1A2B3C4D, nowosci=[])
+
+
+@pytest.mark.parametrize("linie", [
+    [],
+    ["Portret nocy: łagodniejsze piki", "Znak na belce, gdy dane są nieaktualne", "Ustawienia w nowym układzie"],
+    ["x" * 40],
+    ["Nowy wykres ciśnienia w kokpicie"],   # o panelu, bez wartości i bez czynności na aparacie
+])
+def test_nowosci_dobre(linie):
+    assert wydaj.bledy_nowosci(linie) == []
+
+
+@pytest.mark.parametrize("linie,fraza", [
+    (["a", "b", "c", "d"], "najwyżej 3"),
+    (["x" * 41], "41 znaków"),
+    ([""], "pusta"),
+    (["Emoji 😀"], "nie wyświetli"),
+    (["Strzałka ▶ w środku"], "nie wyświetli"),
+    (["Ciśnienie 7 cmH2O"], "ADR-0002"),
+    (["Obniż EPR o 1"], "ADR-0002"),
+    (["Ustaw minimum ciśnienia na 7"], "ADR-0002"),
+])
+def test_nowosci_zle(linie, fraza):
+    b = wydaj.bledy_nowosci(linie)
+    assert b and any(fraza in x for x in b)
+
+
+def test_main_nowosci(tmp_path, monkeypatch, capsys):
+    """--sprawdz-nowosci kończy bez budowy; zła linia zatrzymuje wydanie przed budową (kod 2)."""
+    monkeypatch.setattr(wydaj.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("bez budowy")))
+    assert wydaj.main(["--sprawdz-nowosci", "--nowosc", "Portret nocy: łagodniejsze piki"]) == 0
+    assert wydaj.main(["1.0.1", "--nowosc", "Obniż EPR o 1"]) == 2
+    assert "ADR-0002" in capsys.readouterr().err
+
+
 def test_uklad_jak_firmware():
     u = wydaj.uklad()
     assert isinstance(u, int) and 0 < u <= 0xFFFFFFFF
@@ -209,7 +254,8 @@ def test_wydaj_sh_skladnia_i_bramki():
     assert subprocess.run(["bash", "-n", sciezka]).returncode == 0
     with open(sciezka, encoding="utf-8") as f:
         t = f.read()
-    for fraza in ('= "main" ]', "git status --porcelain", "check-runs", '[ "$ODP" = "tak" ]', "--publikuj"):
+    for fraza in ('= "main" ]', "git status --porcelain", "check-runs", '[ "$ODP" = "tak" ]', "--publikuj",
+                  "--sprawdz-nowosci", '${NOWOSCI[@]+"${NOWOSCI[@]}"}'):
         assert fraza in t
 
 

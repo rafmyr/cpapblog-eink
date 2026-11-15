@@ -110,6 +110,14 @@ bool znaneKody(const std::string& k) {
   }
   return true;
 }
+// Wartość okresu z pliku do pola formularza: najwyżej MAKS_OKRESU_Z_PLIKU bajtów, cięcie przed bajtem kontynuacji
+// UTF-8 (nie rozcina znaku). Wartość ≤ 3 znaków (każda poprawna) bez zmian; dłuższa zostaje dłuższa niż 3, czyli zła.
+std::string przytnijOkres(const std::string& v) {
+  if (v.size() <= MAKS_OKRESU_Z_PLIKU) return v;
+  size_t n = MAKS_OKRESU_Z_PLIKU;
+  while (n > 0 && ((unsigned char)v[n] & 0xC0) == 0x80) n--;
+  return v.substr(0, n);
+}
 std::string opcjeWyboru(const char* nazwa, const std::string& v, std::initializer_list<std::pair<const char*, const char*>> o) {
   std::string s = std::string("<select name=\"") + nazwa + "\" id=\"" + nazwa + "\">";
   for (auto& x : o)
@@ -117,7 +125,65 @@ std::string opcjeWyboru(const char* nazwa, const std::string& v, std::initialize
          "</option>";
   return s + "</select>";
 }
+// Sekcja „Ekrany” (ADR-0045, R-KONF-60). Pola: `ekrany_start` (sekcja w formularzu), `kk_start` i `dk_start` (kolejność
+// pokazana w formularzu, jak `cz_start`), `kk_{id}` i `dk_{id}` (miejsce 1…n z listy), `pokaz_{id}` (pole wyboru).
+// Bez JavaScriptu każde miejsce wybiera się z listy; pozycja, której miejsce się zmieniło, idzie na to miejsce (w górę:
+// przed stojącą tam, w dół: za nią), reszta zachowuje kolejność. Ze skryptem strzałki ▲ ▼ przestawiają wiersze
+// i numerują miejsca od nowa, więc serwer dostaje spójną kolejność. Ekrany zawsze włączone nie mają pól; nazwa spoza
+// listy w ciele POST (np. `pokaz_ostatnia_noc`) nic nie zmienia.
+void nowaKolejnosc(const std::map<std::string, std::string>& m, const char* prefiks, const char* const* ids, int n,
+                   const int* stara, int* nowa, std::map<std::string, std::string>& bledy) {
+  struct Poz { int id, klucz, stare; };
+  std::vector<Poz> poz;
+  for (int i = 0; i < n; i++) {
+    int id = stara[i], miejsce = i + 1;
+    std::string nazwa = std::string(prefiks) + ids[id];
+    auto it = m.find(nazwa);
+    if (it != m.end()) {
+      int v = 0;
+      if (indeksZTekstu(it->second.c_str(), n + 1, v) && v >= 1) miejsce = v;
+      else bledy[nazwa] = "Wybierz miejsce z listy.";
+    }
+    // klucz sortowania: 2 × miejsce, przesunięte o −1 (w górę) albo +1 (w dół) dla pozycji, której miejsce się zmieniło
+    int k = 2 * miejsce + (miejsce < i + 1 ? -1 : miejsce > i + 1 ? 1 : 0);
+    poz.push_back({id, k, i});
+  }
+  std::stable_sort(poz.begin(), poz.end(), [](const Poz& a, const Poz& b) { return a.klucz < b.klucz; });
+  for (int i = 0; i < n; i++) nowa[i] = poz[(size_t)i].id;
+}
 }  // namespace
+
+void walidujEkrany(const std::map<std::string, std::string>& m, Wynik& w) {
+  if (m.find("ekrany_start") == m.end()) return;  // sekcji nie było w formularzu: układ bez zmian
+  UkladEkranow st;  // kolejność pokazana w formularzu (pola ukryte); zła = domyślna, z błędem sekcji
+  std::vector<std::string> bl;
+  bool jest = false;
+  wierszUkladu(KLUCZ_KOKPIT_KOLEJNOSC, wartosc(m, "kk_start", jest), st, bl);
+  wierszUkladu(KLUCZ_DZIEN_KOLEJNOSC, wartosc(m, "dk_start", jest), st, bl);
+  if (!bl.empty()) {
+    w.bledy["ekrany_start"] = "Odśwież stronę i ustaw kolejność jeszcze raz.";
+    return;
+  }
+  std::map<std::string, std::string> bledy;
+  UkladEkranow u;
+  int stara[RODZAJOW_PRZESTAWNYCH], nowa[RODZAJOW_PRZESTAWNYCH];
+  for (int i = 0; i < STRON_PRZESTAWNYCH; i++) stara[i] = static_cast<int>(st.kokpit.kolejnosc[i]);
+  nowaKolejnosc(m, "kk_", ID_STRONY, STRON_PRZESTAWNYCH, stara, nowa, bledy);
+  for (int i = 0; i < STRON_PRZESTAWNYCH; i++) u.kokpit.kolejnosc[i] = static_cast<StronaPrzestawna>(nowa[i]);
+  u.kokpit.sypialnia = zaznaczone(m, "pokaz_sypialnia");
+  for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) stara[i] = static_cast<int>(st.dzien.kolejnosc[i]);
+  nowaKolejnosc(m, "dk_", ID_DZIENNY, RODZAJOW_PRZESTAWNYCH, stara, nowa, bledy);
+  for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) u.dzien.kolejnosc[i] = static_cast<RodzajDzienny>(nowa[i]);
+  for (int i = 0; i < RODZAJOW_DZIENNYCH; i++) u.dzien.pokaz[i] = zaznaczone(m, (std::string("pokaz_") + ID_DZIENNY[i]).c_str());
+  if (!bledy.empty()) {  // R-KONF-18: zła wartość odrzucona, poprzedni układ zostaje
+    for (auto& kv : bledy) w.bledy[kv.first] = kv.second;
+    return;
+  }
+  w.plik[KLUCZ_KOKPIT_KOLEJNOSC] = kolejnoscKokpituTekst(u.kokpit);
+  w.plik[KLUCZ_KOKPIT_UKRYTE] = ukryteKokpituTekst(u.kokpit);
+  w.plik[KLUCZ_DZIEN_KOLEJNOSC] = kolejnoscDniaTekst(u.dzien);
+  w.plik[KLUCZ_DZIEN_UKRYTE] = ukryteDniaTekst(u.dzien);
+}
 
 std::string html(const std::string& s) {
   std::string r;
@@ -216,9 +282,13 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
     // (`okres.filtr_tyg`, a bez niego stary `okres.filtr` w miesiącach × 4)
     if (k == "wymiana.maska" && dataOk(v) && v > p.wymiana[0]) p.wymiana[0] = v;
     if (k == "wymiana.poduszka" && dataOk(v) && v > p.wymiana[0]) p.wymiana[0] = v;
-    if (k == "wymiana.filtr") p.wymiana[1] = v;
-    if (k == "okres.maska") p.okres[0] = v;
-    if (k == "okres.filtr_tyg") { p.okres[1] = v; jestTyg = true; }
+    // data filtra w tej samej postaci co pozostałe daty (RRRR-MM-DD); inna postać = pole puste, jak po wyczyszczeniu
+    // przez przeglądarkę (pole `date` nie przyjmuje innej postaci), więc licznik zmian nie liczy jej od wczytania
+    if (k == "wymiana.filtr") p.wymiana[1] = dataOk(v) ? v : "";
+    // okres: poprawna wartość ma najwyżej 3 cyfry; dłuższa (zła) wartość z ręcznie poprawionego pliku przycięta do
+    // MAKS_OKRESU_Z_PLIKU bajtów (bez rozcinania znaku UTF-8), więc zostaje zła i nie powiększa strony bez granicy
+    if (k == "okres.maska") p.okres[0] = przytnijOkres(v);
+    if (k == "okres.filtr_tyg") { p.okres[1] = przytnijOkres(v); jestTyg = true; }
     if (k == "okres.filtr") staryFiltr = v;
     if (k == "aktualizacja_auto") p.aktualizacjaAuto = v == "tak" ? "tak" : "nie";  // zła wartość = `nie`
   }
@@ -249,6 +319,7 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
   uint8_t cz = raport::czynnikiZKonfiguracji(konf, ustawione);
   p.czynniki = ustawione ? kody(cz) : CZYNNIKI_DOMYSLNIE;
   p.uwagaOMasce = std::to_string(u.uwagaOMasce > 0 ? u.uwagaOMasce : UWAGA_O_MASCE_DOMYSLNIE);  // R-KONF-42
+  p.ekrany = u.ekrany;  // ADR-0045: ten sam parser co panel
   return p;
 }
 
@@ -422,6 +493,7 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
       else w.hasloOkna = ho;
     }
   }
+  walidujEkrany(m, w);  // sekcja „Ekrany” (ADR-0045, R-KONF-60)
   {  // czynniki w raporcie dla lekarza (R-CZY-06): `cz_start` = stan pokazany w formularzu, zmiana tylko, gdy wybór jest inny
     bool jestS = false;
     std::string start = wartosc(m, "cz_start", jestS);
@@ -459,23 +531,189 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
   return r;
 }
 
+namespace {
+// Sekcje strony U-03 w kolejności z makiety 14.11.2026 (R-KONF-59): numer sekcji pola, w którym walidacja zgłosiła
+// błąd; -1 = pole spoza znanych sekcji (strona otwiera wtedy wszystkie sekcje, żeby błąd nie został ukryty).
+const int SEKCJE = 9;  // 0 sieć, 1 AirBridge, 2 pogoda, 3 panel, 4 dźwięk i humor, 5 sprzęt, 6 raport, 7 aktualizacje,
+                       // 8 ekrany (ADR-0045; na stronie zaraz po „Panel”)
+int sekcjaPola(const std::string& k) {
+  if (k == "ssid" || k == "wifi_haslo" || k == "wifi_bez") return 0;
+  if (k.compare(0, 3, "ab_") == 0) return 1;
+  if (k == "miasto") return 2;
+  if (k == "profil" || k == "co2") return 3;
+  if (k == "humor" || k == "buzzer" || k == "cisza_od" || k == "cisza_do" || k == "podpowiedz") return 4;
+  if (k.compare(0, 8, "wymiana.") == 0 || k.compare(0, 6, "okres.") == 0 || k.compare(0, 10, "nowy_model") == 0 ||
+      k == "uwaga_o_masce")
+    return 5;
+  if (k.compare(0, 3, "cz_") == 0) return 6;
+  if (k == "aktualizacja_auto" || k == "klucz_wydan" || k == "klucz_usun" || k == "haslo_okna") return 7;
+  if (k.compare(0, 3, "kk_") == 0 || k.compare(0, 3, "dk_") == 0 || k.compare(0, 6, "pokaz_") == 0 || k == "ekrany_start")
+    return 8;
+  return -1;
+}
+// Początek sekcji zwijanej: nagłówek z tytułem i bieżącą wartością (bez haseł i kluczy, R-KONF-38), treść w `div.w`.
+std::string sekcja(const char* tytul, const std::string& wartosc, bool otwarta) {
+  return std::string("<details") + (otwarta ? " open" : "") + "><summary><b>" + tytul + "</b><span>" + html(wartosc) +
+         "</span></summary><div class=\"w\">";
+}
+const char* const KONIEC_SEKCJI = "</div></details>";
+std::string dataPL(const std::string& d) {  // RRRR-MM-DD → DD.MM.RRRR (inna postać bez zmian)
+  return dataOk(d) ? d.substr(8, 2) + "." + d.substr(5, 2) + "." + d.substr(0, 4) : d;
+}
+std::string liczbaCzynnikow(const std::string& kodyCz) {  // nagłówek sekcji „Raport dla lekarza”
+  int n = 0;
+  for (char c : kodyCz)
+    for (auto& poz : POZYCJE)
+      if (poz.bit != CZ_NIC && poz.kod == c) n++;
+  if (n == 0) return "bez czynników";
+  if (n == 1) return "1 czynnik";
+  bool kilka = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+  return std::to_string(n) + (kilka ? " czynniki" : " czynników");
+}
+// Licznik niezapisanych zmian (R-KONF-59): zapamiętuje stan pól przy uruchomieniu skryptu (po wczytaniu i ewentualnym
+// oczyszczeniu wartości przez przeglądarkę) i liczy pola różne od niego; bez skryptu licznik zostaje ukryty, a
+// formularz działa jak bez niego. Strona po odesłaniu z błędami (`data-b` na liczniku) pokazuje licznik dopiero po
+// pierwszej zmianie pola. Pole z błędem przeglądarki w zwiniętej sekcji otwiera tę sekcję.
+// Sekcja „Ekrany” (ADR-0045, R-KONF-60): w każdej liście `.l` skrypt dokłada do wiersza przyciski ▲ ▼ (44 px), które
+// przestawiają wiersz i numerują pola „miejsce” od nowa; bez skryptu przycisków nie ma, a miejsce wybiera się z listy.
+// Stan pól zapamiętany przy samym polu (`_p`), więc przestawienie wierszy nie myli licznika.
+const char* const SKRYPT =
+    "<script>(function(){var f=document.forms[0],n=document.getElementById('n'),e=f.elements,h=n.hasAttribute("
+    "'data-b'),i;function w(x){return x.type=='checkbox'?x.checked:x.tagName=='SELECT'?x.selectedIndex:x.value}"
+    "function z(){var k=0,x;for(i=0;i<e.length;i++){x=e[i];if(x.type!='hidden'&&x.type!='submit'&&x.type!='button'"
+    "&&w(x)!==x._p)k++}n.textContent=k==0?'Brak niezapisanych zmian':k==1?'1 niezapisana zmiana':k+(k%10>1&&k%10<5&&"
+    "(k%100<12||k%100>14)?' niezapisane zmiany':' niezapisanych zmian');n.hidden=h}function u(){h=false;z()}"
+    "[].forEach.call(document.querySelectorAll('.l'),function(l){[].forEach.call(l.children,function(d){['\u25B2',"
+    "'\u25BC'].forEach(function(t,k){var b=document.createElement('button');b.type='button';b.textContent=t;"
+    "b.setAttribute('aria-label',k?'ni\u017Cej':'wy\u017Cej');b.onclick=function(){var o=k?"
+    "d.nextElementSibling:d.previousElementSibling;if(!o)return;l.insertBefore(k?o:d,k?d:o);[].forEach.call("
+    "l.children,function(r,j){r.querySelector('select').selectedIndex=j});u()};d.appendChild(b)})})});"
+    "for(i=0;i<e.length;i++)e[i]._p=w(e[i]);f.addEventListener('input',u);f.addEventListener('change',u);"
+    "f.addEventListener('invalid',function(v){var s=v.target.closest('details');if(s)s.open=true},true);z()})();"
+    "</script>";
+std::string odmianaEkranow(int n) {  // `1 ekran dzienny`, `3 ekrany dzienne`, `5 ekranów dziennych`
+  if (n == 1) return "1 ekran dzienny";
+  bool kilka = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+  return std::to_string(n) + (kilka ? " ekrany dzienne" : " ekranów dziennych");
+}
+// Pole „miejsce” wiersza: lista 1…n z bieżącym miejscem (etykieta `miejsce` obejmuje listę; `</option>` pominięte,
+// HTML 5 na to pozwala, strona krótsza).
+std::string miejsce(const std::string& nazwa, int biezace, int n) {
+  std::string s = "<label class=\"m\">miejsce <select name=\"" + nazwa + "\">";
+  for (int i = 1; i <= n; i++) s += "<option" + std::string(i == biezace ? " selected>" : ">") + std::to_string(i);
+  return s + "</select></label>";
+}
+std::string poleWyboru(const std::string& nazwa, bool zaznaczone, const char* opis) {
+  return "<label class=\"c\"><input type=\"checkbox\" name=\"" + nazwa + "\" value=\"1\"" +
+         (zaznaczone ? " checked" : "") + "> " + opis + "</label>";
+}
+// Sekcja „Ekrany” (ADR-0045, R-KONF-60): dwie listy `.l` z wierszami `.p` (pole „pokazuj” albo nazwa z „zawsze”,
+// opis, miejsce), pod listami ekrany bez miejsca i to, co zawsze włączone. Wszystkie napisy stałe (bez danych z pliku).
+std::string sekcjaEkranow(const Pola& p, const std::map<std::string, std::string>& b, bool otwarta) {
+  const UkladKokpitu& k = p.ekrany.kokpit;
+  const UkladDnia& d = p.ekrany.dzien;
+  // nagłówek liczy strony z numerem, które naprawdę mogą być w kokpicie: „Ostatnia noc”, „7 nocy”
+  // i „Ustawienia” zawsze, „Sypialnia · 30 nocy” tylko z odczytami z 30 nocy (formularz ich nie zna), więc „do 4 stron”
+  std::string s = sekcja("Ekrany", std::string(k.sypialnia ? "do 4 stron" : "3 strony") + " · " + odmianaEkranow(d.wlaczonych()),
+                         otwarta);
+  s += "<p class=\"s\">Ekranów, które ostrzegają albo czekają na odpowiedź, nie da się wyłączyć. Ekrany rano "
+       "zostają w tej samej kolejności.</p><p><b>Strony kokpitu</b></p><div class=\"l\">";
+  // prostym językiem, bez nazw wewnętrznych: dlaczego tej strony nie da się ukryć
+  static const char* const OPIS_STRONY[STRON_PRZESTAWNYCH] = {
+      "zawsze widoczna (nie da się ukryć): tu jest ocena nocy i pytanie „Co było inaczej?”",
+      "zawsze widoczna (nie da się ukryć): tu są uwagi, których nie ma rano na ekranie, i raport dla lekarza (▶ 2 s)",
+      "tylko gdy są odczyty z sypialni z 30 nocy"};
+  std::string start;
+  for (int i = 0; i < STRON_PRZESTAWNYCH; i++) {
+    int id = static_cast<int>(k.kolejnosc[i]);
+    std::string n = std::string("kk_") + ID_STRONY[id];
+    start += (i ? "," : "") + std::string(ID_STRONY[id]);
+    s += "<div class=\"p\">" +
+         (id == static_cast<int>(StronaPrzestawna::SYPIALNIA) ? poleWyboru("pokaz_sypialnia", k.sypialnia, NAZWA_STRONY[id])
+                                                               : std::string("<b class=\"c\">") + NAZWA_STRONY[id] + "</b>") +
+         "<p class=\"s\">" + OPIS_STRONY[id] + "</p>" + miejsce(n, i + 1, STRON_PRZESTAWNYCH) + blad(b, n.c_str()) + "</div>";
+  }
+  s += "</div><p class=\"s\"><b>Ustawienia</b> zawsze na końcu. Po „7 nocy” według swoich reguł: „Co znaczą te "
+       "liczby” (profil publiczny) i „Otwarte sprawy” (gdy jest sprawa).</p><input type=\"hidden\" name=\"ekrany_start\" "
+       "value=\"1\"><input type=\"hidden\" name=\"kk_start\" value=\"" + start + "\"><p><b>Ekrany w ciągu dnia</b></p>"
+       "<p class=\"s\">Zawsze przed listą: ekran z rana ze sprawą (pytanie, brak danych, lekarz, problem z nocy), "
+       "przeciek w drzemce i „Przewietrz teraz” (ekrany o CO2 w „Panel”). Ostrzeżenia i bateria są na każdym "
+       "ekranie.</p><div class=\"l\">";
+  static const char* const OPIS[RODZAJOW_PRZESTAWNYCH] = {"kiedy otworzyć okno", "ślisko, mróz, deszcz, wiatr",
+                                                         "termin maski i filtra", "rodzaje z wydania panelu"};
+  start.clear();
+  for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) {
+    int id = static_cast<int>(d.kolejnosc[i]);
+    std::string n = std::string("dk_") + ID_DZIENNY[id];
+    start += (i ? "," : "") + std::string(ID_DZIENNY[id]);
+    s += "<div class=\"p\">" + poleWyboru(std::string("pokaz_") + ID_DZIENNY[id], d.pokaz[id], NAZWA_DZIENNEGO[id]) +
+         "<p class=\"s\">" + OPIS[id] + "</p>" + miejsce(n, i + 1, RODZAJOW_PRZESTAWNYCH) + blad(b, n.c_str()) + "</div>";
+  }
+  s += "</div><input type=\"hidden\" name=\"dk_start\" value=\"" + start + "\">" +
+       poleWyboru("pokaz_dzien_i_noc", d.pokazuj(RodzajDzienny::DZIEN_I_NOC), NAZWA_DZIENNEGO[4]) +
+       "<p class=\"s\">zachód słońca, gdy nic nie czeka</p>" +
+       poleWyboru("pokaz_obrazek", d.pokazuj(RodzajDzienny::OBRAZEK), NAZWA_DZIENNEGO[5]) +
+       "<p class=\"s\">pierwsze 2 h dnia. Bez ekranu dziennego zostaje ekran z rana.</p>" + blad(b, "ekrany_start") +
+       KONIEC_SEKCJI;
+  return s;
+}
+}  // namespace
+
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,
                    const std::map<std::string, std::string>& b) {
   static const char* const PROFILE[][2] = {{"prywatny", "prywatny"}, {"publiczny", "publiczny"}};
-  std::string s =
-      "<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
-      "content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light\"><link "
-      "rel=\"icon\" href=\"data:,\"><title>Ustawienia panelu</title><style>:root{color-scheme:light}body{font-family:sans-serif;max-width:34em;margin:1em auto;padding:0 1em;color:#000;"
-      "background:#fff}label{display:block;margin:.8em 0 .2em;font-weight:bold}input,select{width:100%;box-sizing:"
-      "border-box;padding:.6em;font-size:1em;border:2px solid #000;border-radius:6px;color:#000;background:#fff}input[type=checkbox]{width:auto}"
-      "label.c{font-weight:normal}button{display:block;width:100%;margin:1.2em 0;padding:.9em;font-size:1.1em;"
-      "border:2px solid #000;border-radius:6px;-webkit-appearance:none;appearance:none;background:#000;color:#fff;"
-      "font-weight:bold}.b{color:#b00;margin:.2em 0}.s{color:#555;margin:.2em 0;font-size:.9em}.r{border:2px solid #000;"
-      "padding:.6em;margin:1em 0}fieldset{border:0;padding:0;margin:1.2em 0}legend{font-size:1.2em;font-weight:bold}"
-      "</style></head><body><h1>Ustawienia panelu</h1><p>Te ustawienia dotyczą tylko panelu, nie aparatu.</p>";
+  // R-KONF-59: sekcja otwarta po odesłaniu, gdy ma pole z błędem; przy pierwszej konfiguracji (brak sieci, brak
+  // AirBridge) ta sekcja otwarta od razu; przy wyłączonym dźwięku „Dźwięk i humor” otwarta (ostrzeżenie widoczne);
+  // okres wymiany z pliku poza zakresem pola otwiera „Sprzęt” (inaczej przeglądarka zatrzymałaby zapis na polu,
+  // którego nie widać)
+  bool otw[SEKCJE] = {};
+  for (auto& kv : b) {
+    int n = sekcjaPola(kv.first);
+    if (n >= 0) otw[n] = true;
+    else
+      for (bool& o : otw) o = true;
+  }
+  if (p.ssid.empty()) otw[0] = true;
+  if (p.abAdres.empty()) otw[1] = true;
+  if (p.buzzer == "nie") otw[4] = true;  // ostrzeżenie o wyłączonym dźwięku widoczne bez dotykania
+  for (int e = 0; e < ELEMENTY; e++) {
+    int n = 0;
+    if (!p.okres[e].empty() && !liczbaOkresu(p.okres[e], n, e == 0 ? 60 : 104)) otw[5] = true;
+  }
+  std::string s;
+  s.reserve(REZERWACJA_STRONY);  // jedna rezerwacja zamiast kolejnych powiększeń przy składaniu (pamięć ESP32)
+  s += "<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
+       "content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light\"><link "
+       "rel=\"icon\" href=\"data:,\"><title>Ustawienia panelu</title><style>:root{color-scheme:light}html{scroll-padding-bottom:10em}"
+       "body{font-family:system-ui,sans-serif;max-width:34em;margin:0 auto;color:#000;background:#fff}"
+       "header{padding:1.2em 1em .8em;border-bottom:2px solid #000}header div{display:flex;flex-wrap:wrap;"
+       "justify-content:space-between;align-items:baseline;gap:0 1em}h1{margin:0;font-size:1.4em}header p{margin:.3em 0 "
+       "0;color:#444}details{border-bottom:1px solid #000}details[open]{background:#f2f2f2}summary{display:flex;"
+       "align-items:center;gap:.75em;min-height:52px;box-sizing:border-box;padding:.4em 1em;cursor:pointer;list-style:"
+       "none}summary::-webkit-details-marker{display:none}summary span{margin-left:auto;color:#444;font-size:.9em;"
+       "text-align:right;overflow-wrap:anywhere}summary::after{content:\"\";flex:none;width:.5em;height:.5em;"
+       "border:solid #000;border-width:0 2px 2px 0;transform:rotate(-45deg)}details[open]>summary::after{transform:"
+       "rotate(45deg)}summary:focus-visible,button:focus-visible{outline:3px solid #000;outline-offset:-3px}.w{padding:0 "
+       "1em 1em}label{display:block;margin:.8em 0 .2em;font-weight:bold}input,select{width:100%;min-height:46px;"
+       "box-sizing:border-box;padding:.5em;font:inherit;font-size:1em;border:2px solid #000;border-radius:6px;color:"
+       "#000;background:#fff}label.c{display:flex;align-items:center;gap:.6em;min-height:44px;margin:.2em 0;"
+       "font-weight:normal}input[type=checkbox]{width:24px;height:24px;min-height:0;margin:0;flex:none}"
+       ".b{margin:.3em 0;padding-left:.5em;border-left:4px solid #000;font-weight:bold}.s{color:#444;margin:.2em 0;"
+       "font-size:.9em}.r{border:2px solid #000;padding:.6em;margin:1em}.z{position:sticky;bottom:0;background:#fff;"
+       "border-top:2px solid #000;padding:.75em 1em 1em}.z p{margin:0 0 .5em;font-weight:bold}button{display:block;"
+       "width:100%;min-height:52px;margin:0;padding:.8em;font:inherit;font-size:1.1em;border:2px solid #000;"
+       "border-radius:6px;-webkit-appearance:none;appearance:none;background:#000;color:#fff;font-weight:bold}"
+       ".p{display:flex;flex-wrap:wrap;align-items:center;gap:0 .5em;border-top:1px solid #000;padding:.3em 0}.p .c{"
+       "flex:1 1 10em;margin:0}.p .s{flex-basis:100%;margin:0 0 .3em}.p .b{flex-basis:100%;order:1}.m{display:flex;align-items:center;gap:.4em;"
+       "margin:0;font-weight:normal}.m select{width:auto}.p button{display:inline-block;width:44px;min-height:44px;"
+       "padding:0;font-size:1em;background:#fff;color:#000}"
+       "</style></head><body><header><div><h1>Ustawienia panelu</h1>";
+  if (!p.wersja.empty()) s += "<span>wersja " + html(p.wersja) + "</span>";
+  s += "</div><p>Te ustawienia dotyczą tylko panelu, nie aparatu.</p></header>";
   if (!komunikat.empty()) s += "<p class=\"r\">" + html(komunikat) + "</p>";
   s += "<form method=\"post\" action=\"" + html(akcja) + "\" autocomplete=\"off\">";
-  s += "<fieldset><legend>Sieć domowa</legend><label for=\"ssid\">Nazwa sieci Wi-Fi</label>" +
+  s += sekcja("Sieć domowa", p.ssid.empty() ? "nie ustawiona" : p.ssid, otw[0]) +
+       "<label for=\"ssid\">Nazwa sieci Wi-Fi</label>" +
        pole("text", "ssid", p.ssid, " maxlength=\"32\" autocapitalize=\"none\"") + blad(b, "ssid") +
        "<label for=\"wifi_haslo\">Hasło sieci</label>" +
        pole("password", "wifi_haslo", "",
@@ -483,8 +721,9 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
                 (p.hasloWifi ? " placeholder=\"ustawione\"" : "")) +
        blad(b, "wifi_haslo") + (p.hasloWifi ? "<p class=\"s\">Puste pole = hasło bez zmian.</p>" : "") +
        "<label class=\"c\"><input type=\"checkbox\" name=\"wifi_bez\" value=\"1\"> bez hasła</label>"
-       "<p>Sieć domowa musi działać w paśmie 2,4 GHz.</p></fieldset>";
-  s += "<fieldset><legend>AirBridge</legend><label for=\"ab_adres\">Adres AirBridge</label>" +
+       "<p>Sieć domowa musi działać w paśmie 2,4 GHz.</p>" + KONIEC_SEKCJI;
+  s += sekcja("AirBridge", p.abAdres.empty() ? "nie ustawiony" : p.abAdres, otw[1]) +
+       "<label for=\"ab_adres\">Adres AirBridge</label>" +
        pole("text", "ab_adres", p.abAdres, " maxlength=\"64\" autocapitalize=\"none\" inputmode=\"url\"") +
        blad(b, "ab_adres") + "<p>Adres AirBridge znajdziesz w routerze, na liście urządzeń.</p>" +
        "<label for=\"ab_konto\">Konto AirBridge</label>" +
@@ -495,18 +734,10 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
                 (p.hasloAb ? " placeholder=\"ustawione\"" : "")) +
        blad(b, "ab_haslo") + (p.hasloAb ? "<p class=\"s\">Puste pole = hasło bez zmian.</p>" : "") +
        "<label class=\"c\"><input type=\"checkbox\" name=\"ab_bez\" value=\"1\"> bez hasła</label>"
-       "<p>Konto i hasło, którymi logujesz się do AirBridge.</p></fieldset>";
-  s += "<fieldset><legend>Panel</legend><label for=\"profil\">Profil publiczny</label>" +
-       wybor("profil", p.profil, PROFILE, 2) + blad(b, "profil");
-  if (p.zrodloOto)
-    s += "<label for=\"co2\">Ekrany o CO2 w sypialni</label>" +
-         opcjeWyboru("co2", p.co2, {{"tak", "tak"}, {"nie", "nie"}}) + blad(b, "co2") +
-         "<p class=\"s\">Dotyczy ekranów z czujnika CO2. Wybór działa od następnego wybudzenia panelu.</p>";
-  else
-    s += "<p class=\"s\">Ten panel nie ma czujnika CO2.</p>";
-  s += "</fieldset>";
+       "<p>Konto i hasło, którymi logujesz się do AirBridge.</p>" + KONIEC_SEKCJI;
   // miasto do pogody i wschodu słońca; lista z pamięci panelu, panel nie pyta internetu o miasto (ADR-0001)
-  s += "<fieldset><legend>Pogoda</legend><label for=\"miasto\">Miasto do pogody i wschodu słońca</label>"
+  s += sekcja("Pogoda", p.miasto.empty() ? "nie wybrano" : p.miasto, otw[2]) +
+       "<label for=\"miasto\">Miasto do pogody i wschodu słońca</label>"
        "<select name=\"miasto\" id=\"miasto\"><option value=\"\"" + std::string(p.miasto.empty() ? " selected" : "") +
        ">nie wybrano (ustawienie z wgrania panelu, jeśli jest)</option>";
   for (int i = 0; i < miasta::MIASTA_N; i++)
@@ -514,8 +745,19 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
          html(miasta::MIASTA[i].nazwa) + "</option>";
   s += "</select>" + blad(b, "miasto") +
        "<p class=\"s\">Panel nie pyta internetu o miasto: współrzędne ma w pamięci. Nowe miasto działa od następnego "
-       "wybudzenia.</p></fieldset>";
-  s += "<fieldset><legend>Dźwięk i humor</legend><label for=\"humor\">Humor na ekranie dnia</label>" +
+       "wybudzenia.</p>" + KONIEC_SEKCJI;
+  s += sekcja("Panel", "profil " + p.profil, otw[3]) + "<label for=\"profil\">Profil publiczny</label>" +
+       wybor("profil", p.profil, PROFILE, 2) + blad(b, "profil");
+  if (p.zrodloOto)
+    s += "<label for=\"co2\">Ekrany o CO2 w sypialni</label>" +
+         opcjeWyboru("co2", p.co2, {{"tak", "tak"}, {"nie", "nie"}}) + blad(b, "co2") +
+         "<p class=\"s\">Dotyczy ekranów z czujnika CO2. Wybór działa od następnego wybudzenia panelu.</p>";
+  else
+    s += "<p class=\"s\">Ten panel nie ma czujnika CO2.</p>";
+  s += KONIEC_SEKCJI;
+  s += sekcjaEkranow(p, b, otw[8]);  // ADR-0045, R-KONF-60
+  s += sekcja("Dźwięk i humor", p.buzzer == "nie" ? "dźwięk wyłączony" : "cisza " + p.ciszaOd + "–" + p.ciszaDo, otw[4]) +
+       "<label for=\"humor\">Humor na ekranie dnia</label>" +
        opcjeWyboru("humor", p.humor, {{"normalny", "normalny"}, {"oszczedny", "oszczędny"}, {"wylaczony", "wyłączony"}}) +
        blad(b, "humor") + "<label for=\"buzzer\">Dźwięk (buzzer)</label>" +
        opcjeWyboru("buzzer", p.buzzer, {{"tak", "włączony"}, {"nie", "wyłączony"}}) + blad(b, "buzzer") +
@@ -527,17 +769,9 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
        "<p class=\"s\">W ciszy nocnej dźwięk czeka do jej końca. Zmiana działa od najbliższego ekranu dnia.</p>"
        "<label for=\"podpowiedz\">Podpowiedź „co do poprawy”</label>" +
        opcjeWyboru("podpowiedz", p.podpowiedz, {{"tak", "włączona"}, {"nie", "wyłączona"}}) + blad(b, "podpowiedz") +
-       "</fieldset>";
-  s += "<fieldset><legend>Raport dla lekarza</legend><p>Czynniki nocy, o których ma wspominać raport:</p>";
-  for (auto& poz : POZYCJE) {
-    if (poz.bit == CZ_NIC) continue;
-    s += std::string("<label class=\"c\"><input type=\"checkbox\" name=\"cz_") + poz.kod + "\" value=\"1\"" +
-         (p.czynniki.find(poz.kod) != std::string::npos ? " checked" : "") + "> " + html(poz.etykieta) + "</label>";
-  }
-  s += "<input type=\"hidden\" name=\"cz_start\" value=\"" + html(p.czynniki) + "\">" + blad(b, "cz_start") +
-       "<p class=\"s\">Bez zmiany raport podaje katar lub infekcję i leki tylko przy bezdechach centralnych. Po zapisie "
-       "wybór obowiązuje zawsze.</p></fieldset>";
-  s += "<fieldset><legend>Sprzęt: ostatnia wymiana i okres</legend>";
+       KONIEC_SEKCJI;
+  s += sekcja("Sprzęt",
+              p.wymiana[0].empty() ? "maska: brak daty" : "maska " + dataPL(p.wymiana[0]), otw[5]);
   for (int e = 0; e < ELEMENTY; e++) {
     std::string kw = std::string("wymiana.") + KLUCZE_ELEMENTOW[e], ko = e == 0 ? "okres.maska" : "okres.filtr_tyg";
     s += "<label for=\"" + kw + "\">";
@@ -567,9 +801,22 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
        blad(b, "uwaga_o_masce") +
        "<p class=\"s\">Od tej wartości do 15 l/min panel opisuje wyciek ekranem „Wyciek widoczny”, bez rady o masce. "
        "Domyślnie 10, 15 = bez tej informacji.</p>";
-  s += "</fieldset>";
-  // sekcja „Aktualizacje” (przyjęta 09.11.2026); klucz jak pola haseł
-  s += "<fieldset><legend>Aktualizacje</legend><label for=\"aktualizacja_auto\">Instaluj nowe wersje samodzielnie</label>" +
+  s += KONIEC_SEKCJI;
+  s += sekcja("Raport dla lekarza", liczbaCzynnikow(p.czynniki), otw[6]) +
+       "<p>Czynniki nocy, o których ma wspominać raport:</p>";
+  for (auto& poz : POZYCJE) {
+    if (poz.bit == CZ_NIC) continue;
+    s += std::string("<label class=\"c\"><input type=\"checkbox\" name=\"cz_") + poz.kod + "\" value=\"1\"" +
+         (p.czynniki.find(poz.kod) != std::string::npos ? " checked" : "") + "> " + html(poz.etykieta) + "</label>";
+  }
+  s += "<input type=\"hidden\" name=\"cz_start\" value=\"" + html(p.czynniki) + "\">" + blad(b, "cz_start") +
+       "<p class=\"s\">Bez zmiany raport podaje katar lub infekcję i leki tylko przy bezdechach centralnych. Po zapisie "
+       "wybór obowiązuje zawsze.</p>" + KONIEC_SEKCJI;
+  // sekcja „Aktualizacje” (przyjęta 09.11.2026); klucz jak pola haseł, w nagłówku tylko tryb i brak klucza
+  s += sekcja("Aktualizacje",
+              std::string(p.aktualizacjaAuto == "tak" ? "samodzielnie" : "ręcznie") + (p.kluczWydan ? "" : " · bez klucza"),
+              otw[7]) +
+       "<label for=\"aktualizacja_auto\">Instaluj nowe wersje samodzielnie</label>" +
        opcjeWyboru("aktualizacja_auto", p.aktualizacjaAuto, {{"nie", "nie"}, {"tak", "tak"}}) +
        blad(b, "aktualizacja_auto") +
        "<p class=\"s\">Panel instaluje sam tylko w dzień, poza terapią, przy naładowanej baterii. Raz na dobę pyta "
@@ -587,10 +834,14 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
                 (p.hasloOkna ? " placeholder=\"ustawione\"" : "")) +
        blad(b, "haslo_okna") +
        "<p class=\"s\">Wgrywanie przez Wi-Fi z komputera w oknie serwisowym. Co najmniej 16 znaków; puste pole = bez "
-       "zmiany.</p>";
-  s += "</fieldset><button type=\"submit\">Zapisz</button></form>"
-       "<p class=\"r\">Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc.</p>"
-       "</body></html>";
+       "zmiany.</p>" + KONIEC_SEKCJI;
+  // R-KONF-59: przycisk przyklejony do dołu ekranu, nad nim licznik niezapisanych zmian (ukryty bez skryptu; po
+  // odesłaniu z błędami walidacji `data-b`: ukryty do pierwszej zmiany pola)
+  s += std::string("<div class=\"z\"><p id=\"n\" aria-live=\"polite\"") + (b.empty() ? "" : " data-b") +
+       " hidden></p><button type=\"submit\">Zapisz na panelu</button></div>"
+       "</form><p class=\"r\">Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc.</p>";
+  s += SKRYPT;
+  s += "</body></html>";
   return s;
 }
 
@@ -607,7 +858,7 @@ bool Sesja::aktywna(uint32_t ms) const {
 }
 
 Odpowiedz Sesja::obsluz(const std::string& metoda, const std::string& pelna, const std::string& cialo, uint32_t ms,
-                        const std::string& str) {
+                        std::string str) {
   Odpowiedz o;
   if (!aktywna(ms)) return o;
   std::string s = pelna.substr(0, pelna.find('?'));
@@ -625,7 +876,7 @@ Odpowiedz Sesja::obsluz(const std::string& metoda, const std::string& pelna, con
   if (metoda == "GET") {
     o.kod = 200;
     o.typ = "text/html; charset=utf-8";
-    o.cialo = str;
+    o.cialo = std::move(str);  // bez drugiej kopii strony
     return o;
   }
   if (metoda == "POST") {

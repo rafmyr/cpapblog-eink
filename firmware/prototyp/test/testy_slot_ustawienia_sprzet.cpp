@@ -217,7 +217,10 @@ static void testU01Brzegowe() {
   d.ciszaOd = 23 * 60 + 59;
   d.ciszaDo = 0;
   std::vector<WierszUstawien> w = wierszeUstawien(d);
-  for (auto& x : w) SPRAWDZ("wartość szersza niż kolumna", szer(F_P24B, x.wartosc) <= U01_SZER_WARTOSCI);
+  for (size_t i = 0; i < w.size(); i++) {
+    int kol = (int)i < U01_WIERSZY_LEWA ? U01_KOLUMNA_L : U01_KOLUMNA_P;
+    SPRAWDZ("wartość szersza niż kolumna", szer(F_P20, w[i].nazwa) + TEST_ODSTEP + szer(F_P20B, w[i].wartosc) <= kol);
+  }
   // skracanie po znakach UTF-8: SSID z polskimi znakami nie może zostać ucięte w połowie znaku
   d.ssid = "ŻÓŁĆżółćŻÓŁĆżółćŻÓŁĆżółćŻÓŁĆżó";  // 32 znaki, 64 bajty (SSID ma do 32 BAJTÓW, ale test kroju)
   w = wierszeUstawien(d);
@@ -271,7 +274,7 @@ static void testKartaStopkaAkcja() {
   t.stopkaLewo = "◀ 2 s: wymienione dziś";
   t.stopkaPrawo = "przy łóżku 35° · 100% · CO2 4999";
   PlotnoR p;
-  rysujKarte(p, {"cz 30.11", "dane 05:46"}, t, "");
+  rysujKarte(p, {"Poranek", "cz 30.11"}, t, "");
   int lewo = 0;
   for (int y = 444; y < 472; y++)
     for (int x = 28; x < 28 + szer(F_P22B, t.stopkaLewo); x++) lewo += p.px[y * 800 + x];

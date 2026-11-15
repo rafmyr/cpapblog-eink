@@ -15,6 +15,10 @@ ZRODLA+=("$FW/src/edf.cpp" "$FW/src/str.cpp")
 ZRODLA+=("$FW/src/noc_pliki.cpp")
 # Portret nocy: odcinki 5 min ostatniej nocy i plik /dane/portret.csv (src/portret.cpp), ADR-0040
 ZRODLA+=("$FW/src/portret.cpp" "$FW/src/portret_ekran.cpp")
+# strona kokpitu „Sypialnia · 30 nocy” (src/sypialnia_ekran.cpp), ADR-0044
+ZRODLA+=("$FW/src/sypialnia_ekran.cpp")
+# układ ekranów z telefonu: kolejność stron kokpitu i ekranów dziennych (src/uklad_ekranow.cpp), ADR-0045
+ZRODLA+=("$FW/src/uklad_ekranow.cpp")
 # porównanie nocy z plików z raportem JSON (src/porownanie.cpp), tryb `noc_zrodlo=porownanie`, ADR-0036
 ZRODLA+=("$FW/src/porownanie.cpp")
 # ekrany zdarzeń E w tonie „problem” (S3, src/ekrany_zdarzen.cpp)
@@ -63,6 +67,7 @@ TESTY+=("$FW/test/testy_aparat_autoset_brzegowe.cpp") # przypadki brzegowe: apar
 TESTY+=("$FW/test/testy_poranek_szybciej.cpp") # szybszy wynik nocy rano: gęste okno, powtórka przy przetwarzaniu, pobranie po przycisku
 TESTY+=("$FW/test/testy_poranek_brzegowe.cpp") # przypadki brzegowe szybszego wyniku nocy rano
 TESTY+=("$FW/test/testy_zasilanie_rytm.cpp") # częstsze sprawdzanie rano na zasilaniu zewnętrznym (R-DANE-63…65)
+TESTY+=("$FW/test/testy_belka.cpp") # belka informacyjna: pola, ustępowanie środka, bateria, ekrany bez belki (ADR-0043)
 TESTY+=("$FW/test/testy_zegar_ntp.cpp") # zegar nowego panelu, NTP 3 próby i czas z AirBridge (R-AW-18, T-TEST-327)
 TESTY+=("$FW/test/testy_str_edf.cpp") # STR.edf: czytnik EDF, noce 'S', pierwszeństwo, STR w dyrygencie (ADR-0035)
 TESTY+=("$FW/test/testy_str_edf_brzegowe.cpp") # przypadki brzegowe STR.edf
@@ -72,6 +77,8 @@ TESTY+=("$FW/test/testy_portret.cpp") # Portret nocy: odcinki wobec tools/portre
 TESTY+=("$FW/test/testy_porownanie.cpp") # tryb porównawczy: noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv
 TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu porównawczego
 TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
+TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
+TESTY+=("$FW/test/testy_kolejnosc_portret.cpp" "$FW/test/testy_kolejnosc_slot_dyrygent.cpp") # ADR-0045 z dyrygentem: Portret ▶ na pierwszą stronę, dzien.ukryte w slocie dziennym
 INCLUDY=(-I"$FW/src" -I"$FW/include" -I"$FW/test/atrapy")
 # Flagi ostrzeżeń. Pełny zestaw dla rdzenia i podglądu.
 OSTRZEZENIA=(-Wall -Wextra -Werror -Wshadow -Wconversion -Wformat=2 -Wduplicated-cond -Wlogical-op -Wnull-dereference)
@@ -87,6 +94,7 @@ TESTY+=("$FW/test/testy_parsowanie_liczb.cpp") # liczbaCalk/Dluga/Rzecz równowa
 TESTY+=("$FW/test/testy_sprzet_maska_filtr.cpp") # SPRZĘT tylko maska i filtr, migracja dat, filtr w tygodniach, formularz bez rury i komory
 TESTY+=("$FW/test/testy_nawigacja.cpp") # nowa nawigacja (▶ dalej, ◀ wstecz, ↻ ekran dnia, przytrzymanie = zapis, strony n / 3, ADR-0041)
 TESTY+=("$FW/test/testy_nawigacja_mapa_brzegowe.cpp") # przypadki brzegowe: mapa nawigacji 5.6.2 tabelarycznie
+TESTY+=("$FW/test/testy_sypialnia_30.cpp") # strona kokpitu „Sypialnia · 30 nocy” (R-KOK-29…R-KOK-33, ADR-0044)
 TESTY+=("$FW/test/testy_formularz_u03.cpp") # formularz U-03 uzupełniony (miasto, CO2, humor, dźwięk, cisza, podpowiedź, czynniki)
 TESTY+=("$FW/test/testy_alarm_baterii.cpp") # E-05: M-25 z napięcia, linia ≤ 15%, S5 ≤ 5%, R-PIE-07 (decyzja 05.11.2026)
 TESTY+=("$FW/test/testy_konfiguracja_z_telefonu.cpp") # sekrety z NVS, formularz konfiguracji, pierwsza konfiguracja

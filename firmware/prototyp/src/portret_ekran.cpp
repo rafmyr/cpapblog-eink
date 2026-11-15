@@ -39,6 +39,16 @@ const int32_t SIN_POL_STOPNIA[181] = {
     65048,65115,65177,65234,65287,65334,65376,65414,65446,65474,65496,65514,65526,65534,65536,
 };
 
+// exp(−x² / 2) · 65536 dla x = i / KROKI_NA_SIGMA, i = 0…63 (x do 3, czyli d do 3σ); wygenerowane:
+// round(exp(−(i/21)² / 2) · 65536); tablica nie zależy od σ (σ zmienia się jedną stałą SIGMA_S; przy σ = 420 s
+// krok tablicy to 20 s); ta sama tabela we wzorcu tools/portret/rysunek.py (EXP_GARBU)
+const int32_t EXP_GARBU[64] = {
+    65536,65462,65239,64871,64358,63704,62915,61994,60949,59785,58511,57135,55664,54108,52477,50780,49026,47226,
+    45388,43524,41641,39750,37858,35975,34108,32265,30452,28676,26943,25257,23622,22044,20524,19066,17671,16342,
+    15078,13880,12748,11683,10682,9745,8869,8054,7298,6597,5951,5355,4808,4308,3850,3434,3055,2712,2402,2123,1872,
+    1647,1446,1266,1106,964,839,728,
+};
+
 const int X_TARCZY = 200;
 const int DOL_TRESCI = 434;
 const int R_CYFR = 82, R_KRESKA_OD = 77, R_KRESKA_DO = 87, R_KROPKI = 110, R_SLAD = 126;
@@ -52,10 +62,24 @@ const int R_PIERSCIEN_OD = 118, R_PIERSCIEN_DO = 134, R_BIALY_OD = 121, R_BIALY_
 // to samo w liczbach zmiennoprzecinkowych, T-TEST-415). [PRÓG] wygląd ekranu
 const int R_ZNACZNIK_OD = 110, R_ZNACZNIK_DO = 150;
 const int ZN_POL_SZER4 = 9, ZN_PRZERWA4 = 17, GROT_CZUBEK = 15;
+// biała obwódka znacznika na tle pików, 2 px [PRÓG] wygląd ekranu; GROT_OBWODKA_B to
+// odsunięcie boków grota o ZN_OBWODKA px w jednostkach warunku 51·|da| ≤ 56·(15 − t), da = 2·|a − (r2 − 7,5)|:
+// 2·ZN_OBWODKA·√(51² + 28²) ≈ 233
+const int ZN_OBWODKA = 2, GROT_OBWODKA_B = 233;
 const int KOL_X = 390, KOL_W = 382;
 const int OGRANICZENIE_K = 7;       // [PRÓG]
 const int PROG_WSPARCIA10 = 20;     // +2 cmH2O [PRÓG]
-const int POL_PODSTAWY_S = 300;     // podstawa garbu 10 min (±5 min) [PRÓG]
+// Kształt piku „dzwon” (zmiana 2026-11-14, ADR-0040, decyzja właściciela projektu 14.11.2026, wariant B): garb odcinka to krzywa
+// Gaussa h·exp(−d²/(2σ²)) wokół środka odcinka, σ = 420 s [PRÓG], zasięg do ±3σ (1260 s); obwiednia = maksimum garbów
+// (nie suma), więc czubek najwyższego odcinka w skupisku równa się jego wysokości (niższy sąsiad w zasięgu garbu nie ma
+// własnego czubka); obwiednia poniżej 0,75 px (12/16 px) nie jest rysowana; piki tylko w sesji (rysujTarcze).
+const int SIGMA_S = 420;             // [PRÓG] wygląd ekranu
+const int ZASIEG_S = 3 * SIGMA_S;    // garb do ±3σ
+const int KROKI_NA_SIGMA = 21;       // tablica exp: 21 kroków na σ, 63 kroki do 3σ (nie zależy od σ)
+const int PROG_GARBU16 = 12;         // 0,75 px w 1/16 px [PRÓG] wygląd ekranu
+// Wysokości pików: 0,75 dotychczasowej skali (zmiana 2026-11-14) [PRÓG]: na zewnątrz do 27 px, co najmniej 9 px
+// (CPAP, AutoSet), do środka do 15 px
+const int PIK_ZEWN_PX = 27, PIK_ZEWN_MIN_PX = 9, PIK_WEWN_PX = 15;
 const int NAJGESCIEJ_MIN = 60, NAJGESCIEJ_PIKOW = 3, PRZERWA_MIN = 10, MAKSIMUM_MIN = 5;  // [PRÓG]
 const int BIALY_WYC_S = 60;         // biały odcinek: co najmniej 60 s próbek wycieku ≥ 15 L/min w odcinku [PRÓG]
 
@@ -75,21 +99,6 @@ void punkt(int cx, int cy, int r, int skala, int h, int& x, int& y) {
   long long m = 100LL * 65536LL;
   x = cx + (int)dzielWDol((long long)r * skala * sinPol(h) + m / 2, m);
   y = cy - (int)dzielWDol((long long)r * skala * cosPol(h) + m / 2, m);
-}
-
-uint64_t isqrt(uint64_t v) {
-  uint64_t r = 0, b = 1ULL << 62;
-  while (b > v) b >>= 2;
-  while (b) {
-    if (v >= r + b) {
-      v -= r + b;
-      r = (r >> 1) + b;
-    } else {
-      r >>= 1;
-    }
-    b >>= 2;
-  }
-  return r;
 }
 
 bool wOknie(int od, int w) { return w <= od && od < w + OKNO_MIN; }
@@ -115,24 +124,28 @@ bool wSesji(const Przebieg& p, long u) {
   return false;
 }
 
-// obwiednia garbów w 1/16 px w chwili u (sekundy od 12:00): największy garb sąsiednich odcinków
-int obwiednia(const std::vector<int>& h16, long u) {
-  long k0 = u / 300;
-  int m = 0;
-  for (long k = k0 - 1; k <= k0 + 1; k++) {
-    if (k < 0 || k >= (long)h16.size() || h16[(size_t)k] <= 0) continue;
-    long d = u - (k * 300 + 150);
-    if (d < 0) d = -d;
-    if (d >= POL_PODSTAWY_S) continue;
-    uint64_t h = (uint64_t)h16[(size_t)k];
-    uint64_t p2 = (uint64_t)POL_PODSTAWY_S * POL_PODSTAWY_S;
-    int g = (int)isqrt(h * h * (p2 - (uint64_t)(d * d)) / p2);
-    m = std::max(m, g);
-  }
-  return m;
+}  // namespace
+
+int garb16(int h16, long d) {
+  if (h16 <= 0) return 0;
+  if (d < 0) d = -d;
+  if (d >= ZASIEG_S) return 0;
+  // pozycja w tablicy w jednostkach σ / KROKI_NA_SIGMA (przy σ = 420 s: i = d / 20, ułamek f / σ = (d % 20) / 20)
+  const long n = d * KROKI_NA_SIGMA, i = n / SIGMA_S, f = n % SIGMA_S;
+  // interpolacja liniowa w dół tablicy (licznik nieujemny, więc dzielenie całkowite nie zależy od znaku)
+  const int64_t e = EXP_GARBU[i] - ((int64_t)(EXP_GARBU[i] - EXP_GARBU[i + 1]) * f + SIGMA_S / 2) / SIGMA_S;
+  return (int)(((int64_t)h16 * e + 32768) / 65536);
 }
 
-}  // namespace
+int obwiednia16(const std::vector<int>& h16, long u) {
+  const long k0 = u / 300, zasieg = ZASIEG_S / 300 + 1;
+  int m = 0;
+  for (long k = k0 - zasieg; k <= k0 + zasieg; k++) {
+    if (k < 0 || k >= (long)h16.size()) continue;
+    m = std::max(m, garb16(h16[(size_t)k], u - (k * 300 + 150)));
+  }
+  return m >= PROG_GARBU16 ? m : 0;
+}
 
 bool asv(const std::string& t) { return t == "ASV" || t == "ASVAuto"; }
 
@@ -193,18 +206,18 @@ int pikZewn16(const DanePortretu& d, const Odcinek& o, int skala) {
     int d10 = o.ps - d.normaPs10;
     if (d10 < PROG_WSPARCIA10) return 0;
     long f = std::min(4000L, 1800L + 55L * (d10 - PROG_WSPARCIA10));  // (0,45 + 0,55·(ΔPS − 2)/4) · 4000
-    return (int)(16L * 36L * f * skala / (4000L * 100L));
+    return (int)(16L * PIK_ZEWN_PX * f * skala / (4000L * 100L));
   }
   if (o.zew == BRAK || o.zew <= 0) return 0;
   long k = std::min(o.zew, OGRANICZENIE_K);
-  long h = 16L * 36L * (210L + 65L * (k - 1)) * skala / (600L * 100L);  // 36 · (0,35 + 0,65·(k − 1)/6)
-  return (int)std::max(h, 16L * 12L * skala / 100L);
+  long h = 16L * PIK_ZEWN_PX * (210L + 65L * (k - 1)) * skala / (600L * 100L);  // 27 · (0,35 + 0,65·(k − 1)/6)
+  return (int)std::max(h, 16L * PIK_ZEWN_MIN_PX * skala / 100L);
 }
 
 int pikWewn16(const DanePortretu& d, const Odcinek& o, int skala) {
   if (asv(d.tryb) || o.centr == BRAK || o.centr <= 0) return 0;
   long k = std::min(o.centr, OGRANICZENIE_K);
-  return (int)(16L * 20L * (270L + 55L * (k - 1)) * skala / (600L * 100L));  // 20 · (0,45 + 0,55·(k − 1)/6)
+  return (int)(16L * PIK_WEWN_PX * (270L + 55L * (k - 1)) * skala / (600L * 100L));  // 15 · (0,45 + 0,55·(k − 1)/6)
 }
 
 std::string pierwszyPodpis(const DanePortretu& d) {
@@ -344,12 +357,14 @@ namespace {
 // (12.11.2026): `bezToru` = pierwszy albo ostatni odcinek okna jest biały na rysunku (wyciek
 // przy starcie okna); wtedy kreska i biała przerwa nie wchodzą w tor pierścienia (promienie rIn…rOut), żeby biały
 // odcinek z czarnym obrysem został nietknięty: znacznik to część kreski pod pierścieniem, nad nim i grot.
+// poza torem pierścienia biała obwódka ZN_OBWODKA px wokół kreski i grota, żeby
+// znacznik był czytelny na tle piku stojącego do ok. 20 min od startu okna (obwódka może ściąć czubek takiego piku).
 void rysujZnacznikStartu(Plotno& p, int cx, int cy, int w, int skala, bool bezToru) {
   const int h = ((w % 720) + 720) % 720;
   const int64_t J = 65536, s = sinPol(h), c = cosPol(h);
   const int64_t r1 = promien(R_ZNACZNIK_OD, skala), r2 = promien(R_ZNACZNIK_DO, skala);
   const int64_t rIn = promien(R_PIERSCIEN_OD, skala), rOut = promien(R_PIERSCIEN_DO, skala);
-  const int z = (int)r2 + GROT_CZUBEK + 2;
+  const int z = (int)r2 + GROT_CZUBEK + ZN_OBWODKA + 2;
   for (int y = cy - z; y <= cy + z; y++)
     for (int x = cx - z; x <= cx + z; x++) {
       const int64_t X = x - cx, Y = cy - y;
@@ -370,11 +385,23 @@ void rysujZnacznikStartu(Plotno& p, int cx, int cy, int w, int skala, bool bezTo
         }
       }
       // grot: t ∈ [2,25; 15), |a − (r2 − 7,5)| ≤ 28/51 · (15 − t) (podstawa 14 px przy t = 2,25)
-      if (4 * t >= ZN_POL_SZER4 * J && t < GROT_CZUBEK * J) {
-        int64_t da = 2 * a - (2 * r2 - 15) * J;
-        if (da < 0) da = -da;
-        if (51 * da <= 56 * (GROT_CZUBEK * J - t)) p.piksel(x, y, true);
+      int64_t da = 2 * a - (2 * r2 - 15) * J;
+      if (da < 0) da = -da;
+      if (4 * t >= ZN_POL_SZER4 * J && t < GROT_CZUBEK * J && 51 * da <= 56 * (GROT_CZUBEK * J - t)) {
+        p.piksel(x, y, true);
+        continue;
       }
+      // biała obwódka ZN_OBWODKA px wokół kreski i grota poza torem pierścienia,
+      // żeby znacznik był czytelny także na tle piku (pik do ok. 20 min od startu okna). Kreska: |t| < 4,25 px,
+      // a ∈ [r1 − 2,5; r2 + 1,5); grot: boki odsunięte o 2 px (51·|da| ≤ 56·(15 − t) + 2·2·√3385 ≈ 233), t ∈ [0,25; 17).
+      // W torze pierścienia obwódki nie ma (tam jest biała przerwa albo, przy wycieku, nietknięty biały odcinek).
+      const int64_t rr = X * X + Y * Y;
+      if (rr >= rIn * rIn && rr < rOut * rOut) continue;
+      const bool obwKreski = t4 < (ZN_POL_SZER4 + int64_t{4} * ZN_OBWODKA) * J && 2 * a >= (2 * r1 - 1 - int64_t{2} * ZN_OBWODKA) * J &&
+                             2 * a < (2 * r2 - 1 + int64_t{2} * ZN_OBWODKA) * J;
+      const bool obwGrota = 4 * t >= (ZN_POL_SZER4 - int64_t{4} * ZN_OBWODKA) * J && t < (GROT_CZUBEK + ZN_OBWODKA) * J &&
+                            51 * da <= 56 * (GROT_CZUBEK * J - t) + GROT_OBWODKA_B * J;
+      if (obwKreski || obwGrota) p.piksel(x, y, false);
     }
 }
 
@@ -409,18 +436,22 @@ void rysujTarcze(Plotno& p, const DanePortretu& d, int cy, int skala) {
       if (r2 < (long)rMin * rMin || r2 >= (long)rMax * rMax) continue;
       long q = katTarczy((int)dx, (int)dy);
       long u = baza + ((q - bazaTarczy) % 43200 + 43200) % 43200;
-      if (r2 >= (long)rIn * rIn && r2 < (long)rOut * rOut && wSesji(pr, u)) {
+      // pierścień i piki tylko w chwilach z maską (ten sam warunek `wSesji`), więc
+      // garb sięgający ±19 min nie stoi nad przerwą w terapii ani za końcem sesji i kończy się na tej samej granicy
+      // kąta co pierścień (0 s poza sesją)
+      if (!wSesji(pr, u)) continue;
+      if (r2 >= (long)rIn * rIn && r2 < (long)rOut * rOut) {
         bool bialy = r2 >= (long)bIn * bIn && r2 < (long)bOut * bOut && u >= 0 && u / 300 < ODCINKI_DOBY &&
                      biale[(size_t)(u / 300)];
         p.piksel(x, y, !bialy);
       }
       if (r2 >= (long)rOut * rOut) {
-        long g = obwiednia(hz, u);
+        long g = obwiednia16(hz, u);
         long gr = (long)rOut * 16 + g;
         if (g > 0 && r2 * 256 < gr * gr) p.piksel(x, y, true);
       }
       if (r2 < (long)rIn * rIn) {
-        long g = obwiednia(hw, u);
+        long g = obwiednia16(hw, u);
         long gr = (long)rIn * 16 - g;
         if (g > 0 && gr > 0 && r2 * 256 >= gr * gr) p.piksel(x, y, true);
       }

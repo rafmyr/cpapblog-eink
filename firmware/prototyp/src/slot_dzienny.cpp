@@ -747,6 +747,7 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
     // klucze `raport=` i `raport.czynniki=` czyta src/raport.cpp (wariantZKonfiguracji, czynnikiZKonfiguracji),
     // więc nie są tu „pominiętym wierszem” w logu
     if (k == "raport" || k == "raport.czynniki") continue;
+    if (wierszUkladu(k, v, u.ekrany, u.bledy)) continue;  // ADR-0045: części złe w `bledy`, reszta działa
     bool ok = false;
     int m = 0;
     if (k == "wymiana.maska") { ok = dataOk(v); if (ok) u.sprzet[EL_MASKA].wymieniono = v; }
@@ -937,29 +938,75 @@ WyborSlotu wybierzSlot(const WejscieSlotu& w) {
     r.jutro = jutroRano(*w.prognoza, w.dzis);
     r.pylek = pylekDnia(*w.prognoza, w.dzis, godz, w.pylki);
   }
-  bool okno = r.okno.wariant != Wietrzenie::BRAK;
+  const UkladDnia& u = w.uklad;
+  // R-KON-72: `Przewietrz teraz.` (wariant CO2, tylko przy włączonych ekranach CO2) zawsze zaraz po D0a, przed blokiem
+  // obrazka i przed listą D1…D4, bez przełącznika „Wietrzenie” (dotąd: R-KON-44, R-KON-50, okno „teraz” w R-KON-46)
+  if (r.okno.wariant == Wietrzenie::CO2) {
+    r.ekran = EkranSlotu::SK33;
+    return r;
+  }
+  const bool obrazek = w.obrazekJest && !w.liniaUwagi && u.pokazuj(RodzajDzienny::OBRAZEK);
   // w pierwszym bloku slotu S-K-38 przed zwykłymi S-K-33…S-K-37 (R-KON-50); przed nim
-  // tylko D0a (wyżej) i `Przewietrz teraz.` (R-KON-44), a z linią uwagi (R-KON-54) obrazka nie ma
-  if (w.obrazekJest && !w.liniaUwagi && r.okno.wariant != Wietrzenie::CO2 && wBlokuObrazka(w.minuta, w.slotOd)) {
+  // tylko D0a i `Przewietrz teraz.` (wyżej), a z linią uwagi (R-KON-54) albo wyłączony (R-KON-71) obrazka nie ma
+  if (obrazek && wBlokuObrazka(w.minuta, w.slotOd)) {
     r.ekran = EkranSlotu::SK38;
     return r;
   }
-  bool jutro = r.jutro.wariant != Jutro::BRAK;
-  // R-KON-46: po 16:00 S-K-34 przed S-K-33, chyba że okno trwa albo zaczyna się w ciągu 60 min (wariant CO2 to „teraz”)
-  bool oknoBliskie = r.okno.wariant == Wietrzenie::TRWA || r.okno.wariant == Wietrzenie::CO2 ||
-                     (r.okno.wariant == Wietrzenie::POZNIEJ && r.okno.od - godz <= 1);
-  if (jutro && okno && godz >= JUTRO_PRZED_OKNEM_OD && !oknoBliskie) { r.ekran = EkranSlotu::SK34; return r; }
-  if (okno) { r.ekran = EkranSlotu::SK33; return r; }
-  if (jutro) { r.ekran = EkranSlotu::SK34; return r; }
-  if (w.sprzet) {
-    r.wymiana = wymianaSprzetu(*w.sprzet, w.dzis, w.ostatnieSK35);
-    if (r.wymiana.element >= 0) { r.ekran = EkranSlotu::SK35; return r; }
+  const bool okno = r.okno.wariant != Wietrzenie::BRAK && u.pokazuj(RodzajDzienny::WIETRZENIE);
+  const bool jutro = r.jutro.wariant != Jutro::BRAK && u.pokazuj(RodzajDzienny::JUTRO_RANO);
+  // kolejność D1…D4 (R-KON-70); niepoprawna (nie permutacja) = domyślna
+  RodzajDzienny kol[RODZAJOW_PRZESTAWNYCH];
+  {
+    bool byl[RODZAJOW_PRZESTAWNYCH] = {}, dobra = true;
+    for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) {
+      int x = static_cast<int>(u.kolejnosc[i]);
+      if (x < 0 || x >= RODZAJOW_PRZESTAWNYCH || byl[x]) dobra = false;
+      else byl[x] = true;
+      kol[i] = u.kolejnosc[i];
+    }
+    if (!dobra)
+      for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) kol[i] = UkladDnia().kolejnosc[i];
   }
-  if (r.pylek.rodzaj >= 0) { r.ekran = EkranSlotu::SK36; return r; }
-  // D5 poza blokiem obrazka (R-KON-50): S-K-37, a bez współrzędnych miasta zastępstwo S-K-38 (R-KON-54)
-  if (w.wspolrzedne) r.slonce = dzienINoc(w.dzis, w.lat, w.lon);
-  bool sk37 = r.slonce.jest, sk38 = w.obrazekJest && !w.liniaUwagi;
-  r.ekran = sk37 ? EkranSlotu::SK37 : sk38 ? EkranSlotu::SK38 : EkranSlotu::BRAK;
+  // R-KON-46: po 16:00 S-K-34 przed S-K-33, chyba że okno trwa albo zaczyna się w ciągu 60 min; przy kolejności, w której
+  // S-K-34 i tak stoi wyżej, bez zmian
+  const bool oknoBliskie =
+      r.okno.wariant == Wietrzenie::TRWA || (r.okno.wariant == Wietrzenie::POZNIEJ && r.okno.od - godz <= 1);
+  if (jutro && okno && godz >= JUTRO_PRZED_OKNEM_OD && !oknoBliskie) {
+    int iw = 0, ij = 0;
+    for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) {
+      if (kol[i] == RodzajDzienny::WIETRZENIE) iw = i;
+      if (kol[i] == RodzajDzienny::JUTRO_RANO) ij = i;
+    }
+    if (iw < ij) {  // S-K-34 tuż przed S-K-33, reszta bez zmian
+      for (int i = ij; i > iw; i--) kol[i] = kol[i - 1];
+      kol[iw] = RodzajDzienny::JUTRO_RANO;
+    }
+  }
+  for (RodzajDzienny x : kol) {
+    switch (x) {
+      case RodzajDzienny::WIETRZENIE:
+        if (okno) { r.ekran = EkranSlotu::SK33; return r; }
+        break;
+      case RodzajDzienny::JUTRO_RANO:
+        if (jutro) { r.ekran = EkranSlotu::SK34; return r; }
+        break;
+      case RodzajDzienny::WYMIANA:
+        if (w.sprzet && u.pokazuj(RodzajDzienny::WYMIANA)) {
+          r.wymiana = wymianaSprzetu(*w.sprzet, w.dzis, w.ostatnieSK35);
+          if (r.wymiana.element >= 0) { r.ekran = EkranSlotu::SK35; return r; }
+        }
+        break;
+      case RodzajDzienny::PYLEK:
+        if (r.pylek.rodzaj >= 0 && u.pokazuj(RodzajDzienny::PYLEK)) { r.ekran = EkranSlotu::SK36; return r; }
+        break;
+      default: break;
+    }
+  }
+  // D5 poza blokiem obrazka (R-KON-50): S-K-37, a bez współrzędnych miasta albo wyłączony zastępstwo S-K-38 (R-KON-54,
+  // R-KON-71); bez obu ekran z rana (BRAK)
+  if (w.wspolrzedne && u.pokazuj(RodzajDzienny::DZIEN_I_NOC)) r.slonce = dzienINoc(w.dzis, w.lat, w.lon);
+  bool sk37 = r.slonce.jest;
+  r.ekran = sk37 ? EkranSlotu::SK37 : obrazek ? EkranSlotu::SK38 : EkranSlotu::BRAK;
   return r;
 }
 

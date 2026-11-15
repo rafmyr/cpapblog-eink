@@ -143,6 +143,12 @@ struct StanRtc {
   // M-25 (E-05): wygładzony procent baterii i surowy procent poprzedniego pomiaru
   // (src/bateria.h wygladzProcent()); -1 = brak (po zaniku zasilania od nowa z pierwszego pomiaru).
   int8_t bateriaProc = -1, bateriaSurowy = -1;
+  // Belka (R-EKR-66, R-KON-69): stan baterii narysowany w ostatnio wyświetlonej klatce (procent, -1 = nieznany;
+  // flagi: bit 0 stan ważny, bit 1 kabel, bit 2 „niska bateria” w tej klatce) oraz stan bieżący między wybudzeniami:
+  // bit 3 histereza „niska bateria”, bit 4 ostatni znany stan zasilania = kabel (odczyt „nieznane” go nie zmienia).
+  // Dopóki stoi ta sama klatka, belka rysuje stan z niej, więc sama zmiana procentu nie odświeża e-ink.
+  int8_t klatkaBatProc = -1;
+  uint8_t klatkaBatFlagi = 0;
   // Szybszy wynik nocy rano (src/plan.h, R-DANE-62, R-PRZ-22): czas unix ostatniego odczytu `/api/status`
   // z przetwarzaniem plików po terapii (0 = ostatni odczyt bez przetwarzania), powtórki R-DANE-62 wykonane w dobie
   // `powtorkiDoba` (jak pamiecDoba: nrDnia + 1; 0 = brak) i czas unix ostatniego pobrania przy wybudzeniu przyciskiem
@@ -155,6 +161,9 @@ struct StanRtc {
   // zegarem liczą się z tego stanu (wybudzenie zaplanowane na zasilaniu ma swój powód także po odłączeniu kabla,
   // R-NF-02), a następny termin z odczytu z bieżącego wybudzenia. Po zaniku zasilania 0 (jak bateria).
   uint8_t planNaZasilaniu = 0;
+  // R-KONF-61: ostatnio narysowany ekran dnia to informacja po aktualizacji samodzielnej (U-07 na miejscu ekranu
+  // dnia); przycisk na ekranie dnia ją wtedy zamyka. Po starcie innym niż wybudzenie z uśpienia 0 (rysowanie ustawi).
+  uint8_t informacjaNaEkranie = 0;  // tu, obok planNaZasilaniu: bez dodatkowego wyrównania struktury
   // Portret nocy (R-POR-04, R-POR-05, R-POR-24; spec 5.4.16): doba poranka z Portretem (jak pamiecDoba: nrDnia + 1;
   // 0 = brak), czas unix pierwszego narysowania Portretu tego ranka (drugi ekran po PORTRET_DRUGI_S), ekran dnia rano
   // to ekran problemu z Portretem pod ▶ (1) i K1 otwarte ze strony Portretu (◀ wraca do Portretu). Kopia doby i chwili
@@ -167,6 +176,12 @@ struct StanRtc {
   // wypadł przed nim albo w tej samej chwili (drugi ekran nie przepada)
   uint8_t portretDrugi = 0;
   uint8_t slotOdlozony = 0;
+  // R-EKR-67 (14.11.2026): czas unix ostatniej chwili, w której panel poznał
+  // stan nocy oczekiwanej (src/dzien.h daneNieaktualne()): lista nocy odczytana bez zaległych dób, noc oczekiwana
+  // nieobecna (bez terapii) albo w budowie; 0 = żadnej. Nie StanAB::pobrano: sam `/api/status` nie mówi o nocy.
+  // Kopia w NVS `cpap`/`ab_znn` (zapis tylko, gdy zmienia się noc, której stan poznano), odtwarzana po zaniku
+  // zasilania razem ze StanAB.
+  uint32_t nocZnanaEp = 0;
 };
 // StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
 static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "wspolne.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cctype>
@@ -111,6 +112,7 @@ std::string przecinek1(double v) {
 
 std::string calkowita(double v) {
   if (std::isnan(v)) return "–";
+  v = std::max(-1e15, std::min(1e15, v));  // rzutowanie na long bez zachowania niezdefiniowanego (także inf)
   long n = (long)std::floor(v + 0.5 + 1e-4);
   return n < 0 ? "\xE2\x88\x92" + std::to_string(-n) : std::to_string(n);  // minus U+2212
 }

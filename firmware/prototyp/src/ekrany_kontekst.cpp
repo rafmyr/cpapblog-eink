@@ -19,7 +19,7 @@ const GFXfont* const F_SN72 = &SN72;  // liczby faktów S-K-34 i S-K-39 (Source 
 
 void etykieta(Plotno& p, int y, const std::string& u, bool cz) { tekst(p, F_P22B, X, y, wersaliki(u), cz, 2); }
 
-void naglowek(Plotno& p, const Naglowek& n, bool cz) {
+void naglowek(Plotno& p, const NaglowekSlotu& n, bool cz) {
   tekst(p, F_P24B, X, 35, n.lewo, cz);
   if (!n.prawo.empty()) tekstPrawo(p, F_P24B, XP, 35, n.prawo, cz);
   p.prostokat(0, 52, 800, 2, cz);
@@ -29,6 +29,15 @@ void stopka(Plotno& p, const StopkaDzienna& s) {
   p.prostokat(0, 436, 800, 44, false);  // stopka biała także pod negatywem S-K-39
   p.prostokat(0, 434, 800, 2, true);
   std::string prawo = s.prawo, lewo = s.lewo;
+  if (s.bateriaNiska) {  // R-KON-69: zamiast wyniku nocy ikona baterii i `{x}% · podłącz kabel`; prawa część ustępuje
+    const BateriaEkranu b = bateriaEkranu();
+    const std::string t = tekstNiskiejBaterii(b);
+    const int w = BATERIA_W + BATERIA_NOSEK_W + BATERIA_ODSTEP + szer(F_P22B, t);
+    rysujBaterie(p, X, 465, b, t);
+    prawo = skrocDoSlow(F_P22B, s.prawo, prawyBrzegStopki() - X - w - 26);
+    if (!prawo.empty()) tekstPrawo(p, F_P22B, prawyBrzegStopki(), 465, prawo);
+    return;
+  }
   if (ikonaAktualizacjiWlaczona()) {  // R-EKR-61: pełne słowa przed ikoną
     prawo = skrocDoSlow(F_P22B, s.prawo, prawyBrzegStopki() - X);
     lewo = skrocDoSlow(F_P22B, s.lewo, prawyBrzegStopki() - X - (prawo.empty() ? 0 : szer(F_P22B, prawo) + 26));
@@ -260,7 +269,7 @@ std::string naglowekSlotu(const std::string& dzis) {
   return std::string(DNI_KROTKO[dt]) + " " + ddmm(dzis);
 }
 
-void rysujSlotDzienny(Plotno& p, const Naglowek& n, const WyborSlotu& w, const TekstySlotu& t, const WejscieSlotu& we,
+void rysujSlotDzienny(Plotno& p, const NaglowekSlotu& n, const WyborSlotu& w, const TekstySlotu& t, const WejscieSlotu& we,
                       const StopkaDzienna& s) {
   p.prostokat(0, 0, 800, 480, false);
   bool negatyw = w.ekran == EkranSlotu::SK39;
@@ -345,10 +354,10 @@ void rysujObrazekDnia(Plotno& p, const ObrazPbm& o, const StopkaDzienna& s) {
   stopka(p, s);
 }
 
-void rysujEkranKontekstu(Plotno& p, const Naglowek& n, const TrescKontekstu& k, const std::string& sl,
+void rysujEkranKontekstu(Plotno& p, const Belka& n, const TrescKontekstu& k, const std::string& sl,
                          const std::string& sp) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowek(p, n, true);
+  belka(p, n);
   int dy = liniaUwagiEkranu(p, k.t.linia, k.t.liniaA, k.t.liniaOstrzezenie, false);
   etykieta(p, 94 + dy, k.t.etykieta, true);
   tekst(p, F_SB44, X, 145 + dy, k.t.tytul);

@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <map>
 #include <string>
 #include <vector>
 #include "adaptery_atrapy.h"
@@ -423,6 +424,184 @@ static void testR_KON_42_stopkaZKlatki() {
   SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 10 * 60, 10 * 60 + 1));
 }
 
+// ---------- belka informacyjna i bateria w slocie dziennym (spec 5.4.17, R-EKR-66, R-KON-69) ----------
+// Doba 4.11.2026 od 00:05 do 20:30 jak wyżej; `ustaw(s, t, nr)` ustawia przed każdym wybudzeniem napięcie baterii
+// i stan zasilania, który „widzi” panel.
+struct DobaBaterii {
+  int odswiezen = 0, wybudzen = 0;
+  std::vector<Wyb> v;
+  std::vector<uint8_t> klatka;                 // ostatnia wyświetlona klatka
+  std::map<std::string, std::string> pliki;    // pliki panelu po dobie
+  std::map<std::string, std::string> nvsTeksty;
+  std::map<std::string, uint32_t> nvsLiczbyU;
+  std::map<std::string, int32_t> nvsLiczby;
+};
+static bool czarnyK(const std::vector<uint8_t>& k, int x, int y) {
+  return k.size() == 48000 && (k[(size_t)(y * 100 + x / 8)] & (0x80 >> (x & 7))) != 0;
+}
+// ikona baterii w stopce slotu dziennego: górna krawędź obrysu 34 px na y 447 od x 28 i nosek na x 62…64
+static bool ikonaWStopce(const std::vector<uint8_t>& k) {
+  for (int x = 28; x < 62; x++)
+    if (!czarnyK(k, x, 447) || !czarnyK(k, x, 464)) return false;
+  return czarnyK(k, 62, 455) && czarnyK(k, 64, 455);
+}
+template <typename F>
+static DobaBaterii dobaBaterii(bool obrazki, F ustaw, const std::string& konfiguracja = "",
+                               uint32_t doT = 0) {
+  PanelSym s;
+  if (obrazki) {
+    s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
+    s.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
+  }
+  if (!konfiguracja.empty()) s.p.pliki.pliki["/konfiguracja.txt"] = konfiguracja;
+  DobaBaterii d;
+  zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+  uint32_t t = ep(2026, 11, 4, 0, 5);
+  if (!doT) doT = ep(2026, 11, 4, 20, 30);
+  PowodWybudzenia pw = PowodWybudzenia::START;
+  const KonfiguracjaPanelu k = konf(true);
+  for (int i = 0; i < 600 && t < doT; i++) {
+    odpowiedziB9(s, t);
+    ustaw(s, t, i);
+    Wyb w = wybudz(s, t, pw, k);
+    d.v.push_back(w);
+    d.odswiezen += w.m.odswiezen;
+    d.wybudzen++;
+    if (w.m.odswiezen) d.klatka.assign(s.ekran.bufor(), s.ekran.bufor() + 48000);
+    if (!w.spal) break;
+    uint32_t snu = s.sen.plan.budzZegarem ? s.sen.plan.sekund : OKRES_SNU_S;
+    if (snu == 0) snu = 1;
+    t += w.m.msPrzySnie / 1000 + snu;
+    pw = PowodWybudzenia::ZEGAR;
+  }
+  d.pliki = s.p.pliki.pliki;
+  d.nvsTeksty = s.p.nvs.teksty;
+  d.nvsLiczbyU = s.p.nvs.liczbyU;
+  d.nvsLiczby = s.p.nvs.liczby;
+  return d;
+}
+static auto stanStaly(float v, Zasilanie z) {
+  return [=](PanelSym& s, uint32_t, int) {
+    s.p.czujniki.o.bateriaV = v;
+    s.p.czujniki.zas = z;
+  };
+}
+static const float V78 = 4.002f, V18 = 3.722f, V15 = 3.710f, V4 = 3.550f;  // krzywa M-25 (src/bateria.cpp)
+
+// R-KON-69 na dyrygencie: ostrzeżenie w stopce slotu dziennego tylko w paśmie między progiem linii E-05 (15%)
+// a 20%; przy aktywnym E-05 o baterii mówi linia uwagi i stopka zostaje z wynikiem nocy; na kablu bez ostrzeżenia.
+// wymaganie: R-KON-69
+static void testR_KON_69_stopkaSlotuZDyrygenta() {
+  DobaBaterii b78 = dobaBaterii(true, stanStaly(V78, Zasilanie::BATERIA));
+  DobaBaterii b18 = dobaBaterii(true, stanStaly(V18, Zasilanie::BATERIA));
+  DobaBaterii b15 = dobaBaterii(true, stanStaly(V15, Zasilanie::BATERIA));
+  DobaBaterii k18 = dobaBaterii(true, stanStaly(V18, Zasilanie::ZEWNETRZNE));
+  SPRAWDZ(logMa(b18.v, "slot dzienny: S-K-3", 8 * 60, 21 * 60) && logMa(b78.v, "slot dzienny: S-K-3", 8 * 60, 21 * 60));
+  SPRAWDZ(!ikonaWStopce(b78.klatka));  // 78%: wynik nocy
+  SPRAWDZ(ikonaWStopce(b18.klatka));   // 18%: ikona baterii i `18% · podłącz kabel`
+  SPRAWDZ(!ikonaWStopce(b15.klatka));  // 15%: linia E-05 aktywna, stopka z wynikiem nocy (bez dublowania)
+  SPRAWDZ(logMa(b15.v, "E-05") || logMa(b15.v, "bateria"));
+  SPRAWDZ(!ikonaWStopce(k18.klatka));  // 18% na kablu: bez ostrzeżenia
+  // slot dzienny nie ma belki: wiersze 41…43 nie są linią belki na żadnej z klatek końca dnia
+  for (const DobaBaterii* d : {&b78, &b18, &b15}) {
+    bool linia = true;
+    for (int x = 0; x < 800; x++) linia = linia && czarnyK(d->klatka, x, 42);
+    SPRAWDZ(!linia);
+  }
+  printf("  slot dzienny, e-ink w dobie: 78%% %d, 18%% %d, 15%% %d, 18%% na kablu %d odświeżeń\n", b78.odswiezen,
+         b18.odswiezen, b15.odswiezen, k18.odswiezen);
+  // stały stan „niska bateria” nie dodaje odświeżeń wobec 78% (stopka ma inny tekst, ale ten sam przez cały dzień)
+  ROWNE_L(b18.odswiezen, b78.odswiezen);
+  ROWNE_L(k18.odswiezen, b78.odswiezen);
+}
+
+// Stan „nie wiem” nie przełącza stanu „niska bateria” i nie odświeża e-ink: zasilanie na zmianę „zewnętrzne”
+// i „nieznane” przy 18% (odczyt ładowarki raz się udaje, raz nie) daje tyle odświeżeń co stałe „zewnętrzne”;
+// brak pomiaru napięcia w co trzecim wybudzeniu przy 18% tyle co stały pomiar.
+// wymaganie: R-EKR-66
+static void testR_EKR_66_stanNieznanyBezOdswiezen() {
+  DobaBaterii staleKabel = dobaBaterii(true, stanStaly(V18, Zasilanie::ZEWNETRZNE));
+  DobaBaterii miga = dobaBaterii(true, [](PanelSym& s, uint32_t, int nr) {
+    s.p.czujniki.o.bateriaV = V18;
+    s.p.czujniki.zas = nr % 2 ? Zasilanie::NIEZNANE : Zasilanie::ZEWNETRZNE;
+  });
+  DobaBaterii staleBat = dobaBaterii(true, stanStaly(V18, Zasilanie::BATERIA));
+  DobaBaterii brakPomiaru = dobaBaterii(true, [](PanelSym& s, uint32_t, int nr) {
+    s.p.czujniki.o.bateriaV = nr % 3 == 2 ? NAN : V18;
+    s.p.czujniki.zas = Zasilanie::BATERIA;
+  });
+  DobaBaterii dwaBraki = dobaBaterii(true, [](PanelSym& s, uint32_t, int nr) {  // dwa wybudzenia z rzędu bez pomiaru
+    s.p.czujniki.o.bateriaV = nr % 4 >= 2 ? NAN : V18;
+    s.p.czujniki.zas = Zasilanie::BATERIA;
+  });
+  printf("  e-ink w dobie przy 18%%: kabel stale %d, kabel / nieznane na zmianę %d; bateria stale %d, brak pomiaru co "
+         "trzecie wybudzenie %d, dwa braki z rzędu co cztery %d (wybudzeń %d)\n",
+         staleKabel.odswiezen, miga.odswiezen, staleBat.odswiezen, brakPomiaru.odswiezen, dwaBraki.odswiezen,
+         staleBat.wybudzen);
+  SPRAWDZ(staleKabel.odswiezen > 0);
+  ROWNE_L(miga.odswiezen, staleKabel.odswiezen);
+  ROWNE_L(brakPomiaru.odswiezen, staleBat.odswiezen);
+  ROWNE_L(dwaBraki.odswiezen, staleBat.odswiezen);
+  SPRAWDZ(!ikonaWStopce(miga.klatka));        // ostatni znany stan to kabel: bez ostrzeżenia
+  SPRAWDZ(ikonaWStopce(brakPomiaru.klatka));  // ostrzeżenie zostaje mimo wybudzeń bez pomiaru
+}
+
+// Drugie rysowanie ze świeżym stanem baterii (gdy klatka i tak się zmienia) nie może niczego liczyć dwa razy:
+// po dobie ze slotem dziennym pliki panelu (dzienniki ekranów i obrazków, czynniki, reguły, noce) i NVS są takie
+// same przy napięciu stałym i przy spadającym (70% → 40%, każda zmiana klatki rysuje wtedy dwa razy). Poza
+// porównaniem: dziennik wybudzeń i plik baterii, które zapisują samo napięcie.
+// wymaganie: R-EKR-66
+static void testR_EKR_66_drugieRysowanieNieLiczyDwaRazy() {
+  const uint32_t od = ep(2026, 11, 4, 0, 5), doT = ep(2026, 11, 4, 22, 0);
+  DobaBaterii stale = dobaBaterii(true, stanStaly(3.950f, Zasilanie::BATERIA), "", doT);
+  DobaBaterii spada = dobaBaterii(true, [=](PanelSym& s, uint32_t t, int) {
+    s.p.czujniki.o.bateriaV = 3.950f - 0.150f * (float)(t - od) / (float)(doT - od);
+    s.p.czujniki.zas = Zasilanie::BATERIA;
+  }, "", doT);
+  int dwaRazy = 0;
+  for (auto& w : spada.v)
+    for (auto& z : w.zdarzenia) dwaRazy += z.find("slot dzienny: S-K-3") != std::string::npos;
+  int raz = 0;
+  for (auto& w : stale.v)
+    for (auto& z : w.zdarzenia) raz += z.find("slot dzienny: S-K-3") != std::string::npos;
+  auto bezNapiecia = [](std::map<std::string, std::string> m) {
+    m.erase("/log/wybudzenia.csv");
+    m.erase("/bateria.csv");
+    return m;
+  };
+  std::map<std::string, std::string> a = bezNapiecia(stale.pliki), b = bezNapiecia(spada.pliki);
+  int rozne = 0;
+  for (auto& x : a)
+    if (!b.count(x.first) || b[x.first] != x.second) { rozne++; printf("  różny plik: %s\n", x.first.c_str()); }
+  for (auto& x : b)
+    if (!a.count(x.first)) { rozne++; printf("  plik tylko przy spadku: %s\n", x.first.c_str()); }
+  printf("  drugie rysowanie: rysowań slotu przy napięciu stałym %d, przy spadającym %d; plików porównanych %zu, "
+         "różnych %d; e-ink %d i %d\n", raz, dwaRazy, a.size(), rozne, stale.odswiezen, spada.odswiezen);
+  SPRAWDZ(dwaRazy > raz);  // scenariusz naprawdę rysuje drugi raz
+  ROWNE_L(rozne, 0);
+  SPRAWDZ(stale.nvsTeksty == spada.nvsTeksty && stale.nvsLiczbyU == spada.nvsLiczbyU && stale.nvsLiczby == spada.nvsLiczby);
+  ROWNE_L(spada.odswiezen, stale.odswiezen);
+  SPRAWDZ(a.count("/dane/obrazki.csv") == 1 && a.count("/dane/humor.csv") + a.count("/humor.csv") >= 1);
+}
+
+// S-K-35 z zapisem wymiany przytrzymaniem ◀ ma w stopce podpisy przycisków (R-PRZ-04, R-MAS-18): przy niskiej
+// baterii zostają, ostrzeżenie ich nie zastępuje.
+// wymaganie: R-KON-69
+static void testR_KON_69_SK35ZostajeZPodpisami() {
+  const std::string kf = "wymiana.filtr=2026-10-07\nokres.filtr_tyg=4\n";  // termin 4.11: S-K-35 w slocie dziennym
+  DobaBaterii b78 = dobaBaterii(false, stanStaly(V78, Zasilanie::BATERIA), kf, ep(2026, 11, 4, 12, 30));
+  DobaBaterii b18 = dobaBaterii(false, stanStaly(V18, Zasilanie::BATERIA), kf, ep(2026, 11, 4, 12, 30));
+  SPRAWDZ(logMa(b78.v, "slot dzienny: S-K-35") && logMa(b18.v, "slot dzienny: S-K-35"));
+  SPRAWDZ(logMa(b18.v, "◀ 2 s zapisuje wymianę (R-MAS-18)"));
+  SPRAWDZ(!ikonaWStopce(b18.klatka));
+  // stopka (wiersze 436…479) identyczna przy 78% i 18%
+  bool taSama = b78.klatka.size() == 48000 && b18.klatka.size() == 48000;
+  for (int y = 436; taSama && y < 480; y++)
+    for (int x = 0; x < 800; x++)
+      if (czarnyK(b78.klatka, x, y) != czarnyK(b18.klatka, x, y)) { taSama = false; break; }
+  SPRAWDZ(taSama);
+}
+
 int main() {
   testR_KON_42_stopkaZKlatki();
   setenv("TZ", STREFA_PANELU, 1);
@@ -430,6 +609,10 @@ int main() {
   testSlotDziennyZObrazkiem();
   testSlotBezObrazkowIBezMiasta();
   testDrzemka();
+  testR_KON_69_stopkaSlotuZDyrygenta();
+  testR_EKR_66_stanNieznanyBezOdswiezen();
+  testR_EKR_66_drugieRysowanieNieLiczyDwaRazy();
+  testR_KON_69_SK35ZostajeZPodpisami();
   printf("testy_slot_dzienny_dyrygent: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

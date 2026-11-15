@@ -21,17 +21,21 @@ bool parsujSypialnie(const std::string& l, NocSypialni& n) {
   NocSypialni r;
   r.data = p[0];
   if (!dataOk(r.data)) return false;
-  auto liczba = [](const std::string& x, float& out) {
+  // `inf`, `nan` i liczby poza zakresem float odrzucają wiersz (nie są odczytem); wartość skrajna
+  // przycięta do zakresu pola (SYP_ZAKRES_*), żeby dalsza arytmetyka i calkowita() nie wychodziły poza typ
+  auto liczba = [](const std::string& x, float& out, double mn, double mx) {
     if (x.empty()) { out = NAN; return true; }
     char* e;
     out = strtof(x.c_str(), &e);
-    return e != x.c_str() && *e == 0;
+    if (e == x.c_str() || *e != 0 || !std::isfinite(out)) return false;
+    out = (float)std::max(mn, std::min(mx, (double)out));
+    return true;
   };
-  if (!liczba(p[1], r.t) || !liczba(p[2], r.w)) return false;
-  if (p.size() >= 4 && !liczba(p[3], r.co2)) return false;
+  if (!liczba(p[1], r.t, SYP_T_MIN, SYP_T_MAX) || !liczba(p[2], r.w, 0, 100)) return false;
+  if (p.size() >= 4 && !liczba(p[3], r.co2, 0, SYP_CO2_MAX)) return false;
   if (p.size() == 7) {
     float a5 = NAN, a6 = NAN;
-    if (!liczba(p[4], a5) || !liczba(p[5], a6)) return false;
+    if (!liczba(p[4], a5, 0, 24 * 60) || !liczba(p[5], a6, 0, SYP_CO2_MAX)) return false;
     r.co2Ponad = std::isnan(a5) ? -1 : (int)a5;
     r.co2Maks = std::isnan(a6) ? -1 : (int)a6;
     for (char c : p[6])
@@ -68,9 +72,9 @@ bool parsujCo2Nocy(const std::string& l, std::string& data, float& co2) {
   if (!dataOk(d) || v.empty()) return false;
   char* e;
   float x = strtof(v.c_str(), &e);
-  if (e == v.c_str() || *e || std::isnan(x) || x <= 0) return false;
+  if (e == v.c_str() || *e || !std::isfinite(x) || x <= 0) return false;  // także `inf`
   data = d;
-  co2 = x;
+  co2 = std::min(x, (float)SYP_CO2_MAX);  // wartość skrajna przycięta
   return true;
 }
 
@@ -195,7 +199,7 @@ std::string stopkaCzujnika(float t, float w, int co2) {
 std::string slowoSypialni(double v, const NormaMetryki& nm, bool& spokojne, const char* jednostka) {
   spokojne = false;
   if (!nm.jest()) return "uczę się";
-  if (std::isnan(v)) return "–";
+  if (!std::isfinite(v)) return "–";  // `inf` to nie odczyt, jak na stronie sypialni
   if (v <= nm.p90 + 1e-6 && v >= nm.p10 - 1e-6) {
     spokojne = true;
     return "↔ jak zwykle";

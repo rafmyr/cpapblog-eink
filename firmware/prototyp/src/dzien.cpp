@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "nawigacja.h"
 #include "dzien.h"
 #include "ekrany_zdarzen.h"
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include <cstring>
 #include "humor.h"
 #include "kokpit.h"
+#include "plan.h"
 #include "wspolne.h"
 
 std::string kiedyOdczyt(const std::string& data, int minuta, const std::string& dzis) {
@@ -32,19 +34,93 @@ std::string opisNocyPytania(const Noc& n, const Norma& nm, bool innaNoc) {
   return godzMin(n.m01) + " · AHI " + przecinek1(n.ahi);
 }
 
-std::string naglowekDniaLewo(const DaneDnia& d) {
+std::string dataDnia(const DaneDnia& d) {
   if (!dataOk(d.dzis)) return "bez zegara";
   return std::string(DNI_KROTKO[dzienTygodnia(d.dzis)]) + " " + ddmm(d.dzis);
 }
 
-std::string naglowekDniaPrawo(const DaneDnia& d) {
-  const Noc* n = d.hist && dataOk(d.dzis) ? ostatniaNoc(*d.hist, d.dzis) : nullptr;
-  if (!n) return "";
-  if (n->data != d.dzis) return "dane z " + ddmm(n->data);  // R-EKR-39
-  std::string p = d.godzinaDanych.empty() ? std::string("dane") : "dane " + d.godzinaDanych;  // R-EKR-04
-  if (nocNiepewna(*n)) p += " · ocena ograniczona";  // R-EKR-46 (a)
-  return p;
+std::string nocOczekiwana(const std::string& dzis, int minuta) {
+  if (!dataOk(dzis)) return "";
+  return minuta >= PLAN_OKNO_DO ? dzis : dodajDni(dzis, -1);
 }
+
+namespace {
+// chwila (znanyData, znanyMinuta) z przyszłości względem (dzis, minuta): zegar panelu cofnięty po błędzie
+bool zPrzyszlosci(const std::string& dzis, int minuta, const std::string& znanyData, int znanyMinuta) {
+  return znanyData > dzis || (znanyData == dzis && znanyMinuta > minuta);
+}
+// stan nocy `n` nieznany: ostatnia zapisana noc starsza niż `n` i brak obserwacji stanu po 11:00 dnia `n`
+bool nocNieznana(const std::vector<Noc>& hist, const std::string& dzis, const std::string& n,
+                 const std::string& znanyData, int znanyMinuta) {
+  const Noc* ost = ostatniaNoc(hist, dzis);
+  if (ost && ost->data >= n) return false;
+  if (!dataOk(znanyData)) return true;
+  return !(znanyData > n || (znanyData == n && znanyMinuta >= PLAN_OKNO_DO));
+}
+}  // namespace
+
+bool daneNieaktualne(const std::vector<Noc>& hist, const std::string& dzis, int minuta, const std::string& znanyData,
+                     int znanyMinuta) {
+  const std::string n = nocOczekiwana(dzis, minuta);
+  if (n.empty()) return false;
+  if (zPrzyszlosci(dzis, minuta, znanyData, znanyMinuta)) return nocNieznana(hist, dzis, n, "", -1);
+  return nocNieznana(hist, dzis, n, znanyData, znanyMinuta);
+}
+
+bool stanZnanyPrzedNocaWBudowie(const std::vector<Noc>& hist, const std::string& dzis, int minuta,
+                                const std::string& znanyData, int znanyMinuta) {
+  if (!dataOk(dzis) || minuta < PLAN_OKNO_DO) return false;  // przed 11:00 noc z dziś nie jest oczekiwana
+  const bool przyszla = zPrzyszlosci(dzis, minuta, znanyData, znanyMinuta);
+  return !nocNieznana(hist, dzis, dodajDni(dzis, -1), przyszla ? "" : znanyData, przyszla ? -1 : znanyMinuta);
+}
+
+bool stanNocyZnany(const std::vector<DzienListy>& lista, const std::vector<Noc>& hist, const std::string& dzis,
+                   int minuta, bool wBudowie) {
+  const std::string n = nocOczekiwana(dzis, minuta);
+  if (n.empty()) return false;
+  const Noc* ost = ostatniaNoc(hist, dzis);
+  const std::string od = ost ? ost->data : std::string();
+  for (const DzienListy& x : lista) {
+    const std::string d = dataPoranka(x.day);
+    if (d <= od || d > n) continue;     // pobrana albo starsza od ostatniej pobranej; po nocy oczekiwanej: nieważna
+    if (nocZDnia(hist, d)) continue;    // pobrana (luka przed ostatnią)
+    if (d == n && wBudowie) continue;   // noc oczekiwana w budowie: stan znany
+    return false;                       // doba na AirBridge, której panel nie ma: stan nieznany (zaległa)
+  }
+  return true;
+}
+
+namespace {
+// Belka ekranu dnia albo Portretu (`przed` = `noc na `): części środka i kolejność ustępowania
+Belka belkaNocyDnia(const DaneDnia& d, const std::string& nazwa, const char* przed) {
+  Belka b(nazwa, "");
+  if (!dataOk(d.dzis)) {
+    b.srodek = "bez zegara";
+    return b;
+  }
+  SrodekNocy s;
+  s.przed = przed;
+  s.dzien = DNI_KROTKO[dzienTygodnia(d.dzis)];
+  s.data = ddmm(d.dzis);
+  const Noc* n = d.hist ? ostatniaNoc(*d.hist, d.dzis) : nullptr;
+  if (n && n->data != d.dzis) {
+    s.dopisek = "dane z " + ddmm(n->data);  // R-EKR-39: bez godziny dzisiejszego odczytu
+    s.dataStala = true;                     // obie daty zostają: bez daty poranka `dane z …` byłoby niejasne
+  } else if (n) {
+    s.odczyt = d.godzinaImportu;                       // R-EKR-04
+    if (nocNiepewna(*n)) s.dopisek = "ocena ograniczona";  // R-EKR-46 (a)
+  }
+  ustawSrodekNocy(b, s);
+  ustawAlarmNocy(b, s);  // R-EKR-67: dane nieaktualne (znakiBelki())
+  return b;
+}
+}  // namespace
+
+std::string srodekDnia(const DaneDnia& d) { return belkaNocyDnia(d, BELKA_PORANEK, "").srodek; }
+
+Belka belkaDnia(const DaneDnia& d, const std::string& nazwa) { return belkaNocyDnia(d, nazwa, ""); }
+
+Belka belkaPortretu(const DaneDnia& d) { return belkaNocyDnia(d, "Portret nocy", "noc na "); }
 
 bool nocWNormie(const Noc& n, const Stany& st) {
   // 5.4.2: `W normie` tylko bez odchylenia w jednej nocy (4.5) i przy spełnionym warunku uspokojenia (5.4.13: także
@@ -351,7 +427,7 @@ static TrescEkranu s5(const DaneDnia& d) {
       } else {
         t.tytul = "Brak danych od " + std::to_string(n) + " nocy";
         t.powod = "AirBridge nie odpowiada od " + odKiedyBrak(d, n) + ". " + rytm;
-        t.krok = "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.";
+        t.krok = numeryStronWTekscie("→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.");  // R-KOK-30
       }
     }
   }
@@ -479,7 +555,7 @@ DaneWzorca trescWzorca(const sprawy::SprawaL& s, const DaneDnia& d) {
     w.liniaA = d.liniaA;
     w.liniaOstrzezenie = d.liniaOstrzezenie;
   }
-  w.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+  w.naglowek = belkaDnia(d);
   w.lekarz = s.ton != sprawy::Ton::PROBLEM;
   w.etykieta = w.lekarz ? etykietaPilnosci(s.pilnosc) : "";
   w.tytul = s.tytul;
@@ -520,7 +596,7 @@ DaneWzorca trescWzorca(const sprawy::SprawaL& s, const DaneDnia& d) {
 
 DanePotwierdzenia trescPrzeniesione(const sprawy::SprawaL& s, const DaneDnia& d, bool cofniecie) {
   DanePotwierdzenia p;
-  p.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+  p.naglowek = belkaDnia(d);
   p.tytul = "Przeniesione na " + std::to_string(sprawy::dniWiem(s)) + " dni.";
   p.powod = "Do tego czasu przypomnę na pasku u góry: " + s.tytul + ".";
   if (cofniecie) p.stopka = {"◀ 2 s cofnij"};  // cofnięcie zawsze przytrzymaniem ◀
@@ -529,7 +605,7 @@ DanePotwierdzenia trescPrzeniesione(const sprawy::SprawaL& s, const DaneDnia& d,
 
 DanePotwierdzenia trescZapisano(sprawy::Pytanie q, bool tak, const DaneDnia& d, bool cofniecie) {
   DanePotwierdzenia p;
-  p.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+  p.naglowek = belkaDnia(d);
   p.nad = trescPytaniaTN(q, d, -1, 0).tytul;
   p.tytul = tak ? "Zapisano: tak." : "Zapisano: nie.";
   if (cofniecie) p.stopka = {"◀ 2 s cofnij"};  // ten sam podpis cofnięcia na wszystkich potwierdzeniach
@@ -538,7 +614,7 @@ DanePotwierdzenia trescZapisano(sprawy::Pytanie q, bool tak, const DaneDnia& d, 
 
 DaneRaportu trescRaportu(const sprawy::SprawaL& s, const DaneDnia& d) {
   DaneRaportu r;
-  r.naglowek = {naglowekDniaLewo(d), ""};
+  r.naglowek = {"Raport", dataDnia(d)};
   r.temat = s.tytul;
   r.kod = KOD_RAPORTU_BRAK;
   return r;
@@ -547,7 +623,7 @@ DaneRaportu trescRaportu(const sprawy::SprawaL& s, const DaneDnia& d) {
 DaneOmowione trescOmowione(const sprawy::SprawaL& s, const std::string& dzis, int wariant) {
   DaneOmowione o;
   std::string dz = dataOk(dzis) ? std::string(DNI_KROTKO[dzienTygodnia(dzis)]) + " " + ddmm(dzis) : "";
-  o.naglowek = {dz + " · po wizycie", "przytrzymano ◀ 2 s"};
+  o.naglowek = {"Po wizycie", (dz.empty() ? std::string() : dz + " · ") + "przytrzymano ◀ 2 s"};
   o.nazwa = s.tytul;
   o.zdania = wariant < 0 ? zdaniaOmowione(s.pilnosc == reguly::Pilnosc::A) : zdaniaOmowienia(wariant);
   o.blokada = wariant == 5;  // NAJPIERW_RAPORT (R-LEK-26)
@@ -556,8 +632,8 @@ DaneOmowione trescOmowione(const sprawy::SprawaL& s, const std::string& dzis, in
 
 DaneSpraw trescSpraw(const std::vector<sprawy::KartaSprawy>& karty, int i, const sprawy::WejscieSpraw& w) {
   DaneSpraw d;
-  d.naglowek = "Otwarte sprawy";
-  if (dataOk(w.dzis)) d.naglowek += std::string(" · ") + DNI_KROTKO[dzienTygodnia(w.dzis)] + " " + ddmm(w.dzis);
+  d.naglowek.nazwa = "Otwarte sprawy";  // strona kokpitu bez numeru (R-KOK-19)
+  if (dataOk(w.dzis)) d.naglowek.srodek = std::string(DNI_KROTKO[dzienTygodnia(w.dzis)]) + " " + ddmm(w.dzis);
   sprawy::KartaSprawy k;
   if (karty.empty()) {
     k = sprawy::kartaPusta(w);
@@ -584,7 +660,7 @@ DanePytaniaTN trescPytaniaTN(sprawy::Pytanie p, const DaneDnia& d, int termin, i
                                : "11:00";
   switch (p) {
     case sprawy::Pytanie::SENNOSC:  // 5.12.8, brzmienie po przeglądzie klinicznym
-      t.naglowek = {naglowekDniaLewo(d) + " · tydzień", ""};
+      t.naglowek = {BELKA_PYTANIE, dataDnia(d) + " · tydzień"};
       t.etykieta = "Jedno pytanie, raz w tygodniu";
       t.tytul = "Zasnąłeś w dzień mimo woli?";
       t.opis = "W ostatnim tygodniu, gdy chciałeś nie spać.";
@@ -592,32 +668,32 @@ DanePytaniaTN trescPytaniaTN(sprawy::Pytanie p, const DaneDnia& d, int termin, i
       t.stopka = "Bez odpowiedzi przez 30 min = brak, nie „nie”.";
       break;
     case sprawy::Pytanie::GORZEJ:
-      t.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      t.naglowek = belkaDnia(d, BELKA_PYTANIE);
       t.etykieta = "Pytanie poranne";
       t.tytul = "Czujesz się gorzej niż zwykle?";
       t.opis = "Odpowiedź uwzględnię w ocenie ostatnich nocy.";
       t.stopka = "Bez odpowiedzi do " + hh + " = brak, nie „nie”.";
       break;
     case sprawy::Pytanie::PRZERWA:
-      t.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      t.naglowek = belkaDnia(d, BELKA_PYTANIE);
       t.etykieta = "Po " + std::to_string(nocyPrzerwy) + " nocach przerwy";
       t.tytul = "Przerwa była planowana?";
       t.opis = "Np. urlop albo zabieg bez aparatu.";
       t.stopka = "Bez odpowiedzi do " + hh + " = brak, nie „nie”.";
       break;
     case sprawy::Pytanie::INFEKCJA:  // S-K-30 (5.10.2); ekran rysuje src/kontekst_sk.h, tu nad „Zapisano”
-      t.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      t.naglowek = belkaDnia(d, BELKA_PYTANIE);
       t.etykieta = "Rano · noc inna niż zwykle";
       t.tytul = "Katar albo infekcja?";
       break;
     case sprawy::Pytanie::PODUSZKA:  // R-MAS-12 (5.9.5, artboard Q-poduszka); opis z liczbami ustawia dyrygent
-      t.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      t.naglowek = belkaDnia(d, BELKA_PYTANIE);
       t.etykieta = "Sprzęt";
       t.tytul = "Wymieniona maska?";
       t.stopka = "Bez odpowiedzi do " + hh + " = nie zapisuję wymiany.";
       break;
     case sprawy::Pytanie::WYJAZD:  // R-CZY-22: teksty z okresu (czynniki.h tekstyWyjazdu(), dyrygent)
-      t.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      t.naglowek = belkaDnia(d, BELKA_PYTANIE);
       break;
   }
   return t;

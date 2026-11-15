@@ -12,6 +12,7 @@ Użycie:
   python3 tools/wydanie/wydaj.py 1.0.1 --obraz firmware.bin  # bez budowy, z gotowego obrazu bez sekretów
   python3 tools/wydanie/wydaj.py 1.0.1 --publikuj            # jak wyżej i wydanie na GitHubie (tylko na wyraźne polecenie)
   python3 tools/wydanie/wydaj.py --nastepna                  # tylko wypisuje następny numer po ostatnim wydaniu
+  python3 tools/wydanie/wydaj.py 1.0.1 --nowosc "Portret nocy: łagodniejsze piki" --nowosc "…"   # „Co nowego” (do 3)
 Na co dzień: tools/wydanie/wydaj.sh (sprawdza main i CI, sam bierze następny numer, pyta „tak”, publikuje).
 """
 import argparse
@@ -116,9 +117,10 @@ def uklad(tablica=TABLICA):
     return m.identyfikator_pliku(tablica)
 
 
-def opis(wersja, obraz, uklad_id, plytka=PLYTKA):
-    """Słownik `wydanie.json` w kolejności pól aktualizacja::zapiszOpis()."""
-    return {
+def opis(wersja, obraz, uklad_id, plytka=PLYTKA, nowosci=()):
+    """Słownik `wydanie.json` w kolejności pól aktualizacja::zapiszOpis(); `nowosci` (R-KONF-56) tylko, gdy niepuste,
+    jako ostatnie pole (panele bez obsługi pola je pomijają, panele z obsługą bez pola pomijają blok „Co nowego”)."""
+    d = {
         "wersja": wersja,
         "plytka": plytka,
         "uklad": "0x%08x" % uklad_id,
@@ -126,6 +128,73 @@ def opis(wersja, obraz, uklad_id, plytka=PLYTKA):
         "sha256": hashlib.sha256(obraz).hexdigest(),
         "plik": nazwa_obrazu(wersja),
     }
+    if nowosci:
+        d["nowosci"] = list(nowosci)
+    return d
+
+
+# „Co nowego” na ekranie U-07 (R-KONF-56): limity jak aktualizacja::NOWOSCI_MAKS i NOWOSC_MAKS_ZNAKOW
+NOWOSCI_MAKS = 3
+NOWOSC_MAKS_ZNAKOW = 40
+# znaki, które panel ma w krojach (tools/prototyp/generuj.py: ASCII 0x20–0x7E i EXTRA), bez ikon przycisków
+ZNAKI_PANELU = set(chr(c) for c in range(0x20, 0x7F)) | set("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ„”°·→↓↑–’…≥↔₂−")
+# ADR-0002: panel nie podaje wartości ani drogi do zmiany ustawień aparatu; „Co nowego” mówi o panelu. Filtr działa
+# na tekście znormalizowanym (_normalizuj(): małe litery, bez ogonków, indeksy ₀…₉ jako cyfry), więc „OBNIZ EPR”,
+# „Zwieksz cisnienie” i „cm H₂O” nie przechodzą bokiem. Linia jest odrzucana, gdy:
+# 1) ma jednostkę ciśnienia albo liczbę z `cm` (`7 cm`, `cmH2O`, `hPa`, `mbar`);
+# 2) liczba stoi obok słowa o ustawieniu aparatu lub terapii (`EPR na 2`, `ciśnienie 7`, `EPR3`, `9 cm`), także
+#    przez krótkie słowo łączące (na, do, o, od, jako, =, :);
+# 3) czasownik o ustawieniu (ustaw, obniż, zwiększ, zmniejsz, podnieś, włącz, wyłącz, przestaw, zmień, przełącz,
+#    w każdej odmianie) stoi w jednej linii ze słowem o ustawieniu aparatu albo nazwą trybu (CPAP, APAP, AutoSet, ASV);
+# 4) nazwa trybu jest celem ustawienia (`tryb CPAP`, `na APAP`).
+# Zwykłe opisy panelu („Nowy wykres ciśnienia w kokpicie”, „Ustawienia w nowym układzie”) przechodzą: słowo
+# o aparacie bez liczby i bez czasownika albo czasownik bez słowa o aparacie.
+_OGONKI = str.maketrans("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ₀₁₂₃₄₅₆₇₈₉−", "acelnoszzACELNOSZZ0123456789-")
+# słowa o ustawieniu aparatu lub terapii; temperatura tylko nawilżacza albo rury (temperatura sypialni to dane panelu)
+_SLOWA_APARATU = (r"epr|epap|ipap|ps|cisnien\w*|ramp\w*|nawilz\w*|temperatur\w*\s+(?:rury|weza|nawilz\w*)|"
+                  r"climateline\w*|aparat\w*|minimum|maksimum|cpap|apap|autoset|asv\w*")
+_TRYBY = r"cpap|apap|autoset|asv\w*|vauto|s/?t"
+_LACZNIK = r"\s*(?:(?:[=:]|na|do|o|od|jako|wynosi|to)\s*)?"
+_JEDNOSTKI = re.compile(r"cm\s*h\s*2\s*o|\bhpa\b|\bmbar\b|\d\s*cm\b")
+_LICZBA_PRZY_APARACIE = re.compile(
+    r"\b(?:%s)%s\d|\d+(?:[.,]\d+)?\s*(?:cm\s*)?(?:%s)\b" % (_SLOWA_APARATU, _LACZNIK, _SLOWA_APARATU))
+_EPR_Z_CYFRA = re.compile(r"\bepr\s*-?\d")
+# czasowniki w każdej odmianie, bez rzeczowników („Ustawienia w nowym układzie” przechodzi)
+_CZYNNOSC = re.compile(r"\b(?:ustaw(?!ieni|ien\b)\w*|obniz\w*|zwieksz\w*|zmniejsz\w*|podnies\w*|podwyzsz\w*|"
+                       r"wlacz\w*|wylacz\w*|przestaw(?!ieni)\w*|zmien\w*|przelacz\w*|zredukuj\w*)")
+_APARAT = re.compile(r"\b(?:%s|temperatur\w*|min|max)\b" % _SLOWA_APARATU)
+_TRYB_JAKO_CEL = re.compile(r"\b(?:tryb\w*|na)\s+(?:%s)\b" % _TRYBY)
+
+
+def _normalizuj(t):
+    """Tekst do filtra ADR-0002: małe litery, bez polskich znaków, indeksy dolne jako cyfry, minus jako `-`."""
+    return t.translate(_OGONKI).lower()
+
+
+def narusza_adr0002(t):
+    """True, gdy linia podaje wartość albo drogę zmiany ustawienia aparatu (ADR-0002); reguły w komentarzu wyżej."""
+    n = _normalizuj(t)
+    return bool(_JEDNOSTKI.search(n) or _LICZBA_PRZY_APARACIE.search(n) or _EPR_Z_CYFRA.search(n)
+                or (_CZYNNOSC.search(n) and _APARAT.search(n)) or _TRYB_JAKO_CEL.search(n))
+
+
+def bledy_nowosci(nowosci):
+    """Lista błędów linii „Co nowego”: liczba linii, długość w znakach, znaki spoza krojów panelu, granica ADR-0002."""
+    b = []
+    if len(nowosci) > NOWOSCI_MAKS:
+        b.append("„Co nowego” ma %d linii, najwyżej %d" % (len(nowosci), NOWOSCI_MAKS))
+    for n, t in enumerate(nowosci, 1):
+        if not t.strip():
+            b.append("linia %d „Co nowego” jest pusta" % n)
+            continue
+        if len(t) > NOWOSC_MAKS_ZNAKOW:
+            b.append("linia %d „Co nowego” ma %d znaków, najwyżej %d: %s" % (n, len(t), NOWOSC_MAKS_ZNAKOW, t))
+        obce = sorted(set(c for c in t if c not in ZNAKI_PANELU))
+        if obce:
+            b.append("linia %d „Co nowego” ma znaki, których panel nie wyświetli: %s" % (n, " ".join(obce)))
+        if narusza_adr0002(t):
+            b.append("linia %d „Co nowego” mówi o ustawieniach aparatu (ADR-0002: panel ich nie podaje): %s" % (n, t))
+    return b
 
 
 def tekst_opisu(o):
@@ -232,7 +301,20 @@ def main(argv=None):
     a.add_argument("--katalog", help="katalog wynikowy (domyślnie build/wydanie-{wersja})")
     a.add_argument("--nota", default="", help="krótka nota wydania")
     a.add_argument("--publikuj", action="store_true", help="utwórz wydanie na GitHubie (gh release create)")
+    a.add_argument("--nowosc", action="append", default=[], metavar="TEKST",
+                   help="linia „Co nowego” na ekranie aktualizacji panelu (do %d, po najwyżej %d znaków; pole "
+                        "`nowosci` w wydanie.json)" % (NOWOSCI_MAKS, NOWOSC_MAKS_ZNAKOW))
+    a.add_argument("--sprawdz-nowosci", action="store_true",
+                   help="tylko sprawdź linie --nowosc (limity, znaki, ADR-0002) i zakończ, bez budowy")
     o = a.parse_args(argv)
+    bn = bledy_nowosci(o.nowosc)
+    for b in bn:
+        print("BŁĄD:", b, file=sys.stderr)
+    if bn:
+        return 2
+    if o.sprawdz_nowosci:
+        print("„Co nowego”: %d linii, w porządku" % len(o.nowosc))
+        return 0
     if o.nastepna:
         try:
             n = nastepna_wersja(tagi_wydan(o.repo))
@@ -273,7 +355,7 @@ def main(argv=None):
         return 1
     kat = o.katalog or os.path.join(REPO, "build", "wydanie-" + o.wersja)
     os.makedirs(kat, exist_ok=True)
-    d = opis(o.wersja, obraz, uklad())
+    d = opis(o.wersja, obraz, uklad(), nowosci=o.nowosc)
     plik_obrazu = os.path.join(kat, nazwa_obrazu(o.wersja))
     shutil.copyfile(sciezka, plik_obrazu)
     plik_opisu = os.path.join(kat, "wydanie.json")
@@ -282,6 +364,8 @@ def main(argv=None):
     plik_noty = os.path.join(kat, "nota.md")
     with open(plik_noty, "w", encoding="utf-8") as f:
         f.write("cpap-eink %s\n\n%s\n" % (o.wersja, o.nota or "Wydanie firmware panelu (obraz bez sekretów)."))
+        if o.nowosc:
+            f.write("\nCo nowego:\n\n" + "".join("- %s\n" % t for t in o.nowosc))
     print("obraz %s, %d B, SHA-256 %s" % (plik_obrazu, d["rozmiar"], d["sha256"]))
     print("UWAGA: obraz wydania nie ma haseł ani adresów. Wolno go instalować tylko na panelu, który ma już w "
           "pamięci sieć, AirBridge, hasło okna serwisowego, źródło otoczenia i współrzędne z wersji z aktualizatorem "

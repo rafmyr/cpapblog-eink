@@ -17,6 +17,7 @@
 #include "adaptery_atrapy.h"
 #include "airbridge.h"
 #include "dyrygent.h"
+#include "ekrany.h"
 #include "noc.h"
 #include "plan.h"
 #include "start.h"
@@ -700,6 +701,13 @@ static WybP przycisk(PanelP& s, uint32_t t, uint8_t bit, Ekran e = Ekran::DZIEN)
   s.p.przyciski.skrypt = {{0, bit}, {150, 0}};
   return wybudz(s, t, PowodWybudzenia::PRZYCISK);
 }
+// R-EKR-68, Decyzja „wariant oszczędny”: żadna klatka przebiegu z pobraniem po przycisku nie ma klepsydry
+// (odświeżenie po pobraniu jest tylko przy nowej nocy, więc klepsydra zostałaby na e-inku albo kosztowała odświeżenie)
+static bool klatkaZKlepsydra(PanelP& s) {
+  for (auto& z : s.p.d.z)
+    if (z.find("belka: klepsydra") != std::string::npos) return true;
+  return false;
+}
 static void testR_PRZ_22_dyrygent() {
   ScenariuszAB jest;  // AirBridge ma noc
   {  // ◀ na ekranie dnia (bez akcji): pobranie, noc w historii, ekran dnia narysowany od nowa
@@ -716,7 +724,10 @@ static void testR_PRZ_22_dyrygent() {
     bool odNowa = false;
     for (auto& z : s.p.d.z) odNowa = odNowa || z.find("nowa noc po przycisku, ekran dnia od nowa") != std::string::npos;
     SPRAWDZ(odNowa);
+    // R-EKR-68 wariant oszczędny: klatka akcji bez klepsydry, bez odświeżenia; ekran dnia z nocą: 1 (jak przed
+    // częścią C)
     ROWNE_L(w.odswiezen, 1);
+    SPRAWDZ(!klatkaZKlepsydra(s));
     ROWNE_L(s.p.start.stan.ekran, (int)Ekran::DZIEN);
     SPRAWDZ(w.powody == "przycisk");  // dziennik wybudzeń bez zmiany formatu (Wi-Fi w kolumnie wifi_ms)
   }
@@ -728,7 +739,11 @@ static void testR_PRZ_22_dyrygent() {
     ROWNE_L(s.p.start.stan.ekran, (int)Ekran::K1);
     ROWNE_L(w.polaczen, 1);
     SPRAWDZ(w.noc);
+    // R-EKR-68 wariant oszczędny: K1 bez klepsydry, jedno odświeżenie (jak przed częścią C); K1 nie ma
+    // drugiego rysowania po pobraniu
     ROWNE_L(w.odswiezen, 1);
+    SPRAWDZ(!klatkaZKlepsydra(s));
+    SPRAWDZ(!klepsydraNarysowana());
   }
   {  // kilka naciśnięć z rzędu: drugie po 60 s bez pobrania, trzecie po 2 min z pobraniem
     PanelP s(5);
@@ -837,6 +852,42 @@ static void testR_NF_01_budzetDoby() {
   ROWNE_L(zPo, zPrzed);
 }
 
+// R-EKR-67 w dyrygencie: odwrócone pole „dane nieaktualne” na belce dopiero po zamknięciu okna porannego (11:00) i tylko
+// bez kontaktu z AirBridge; noc bez terapii przy działającym AirBridge (E-10) to nie dane nieaktualne.
+static void testR_EKR_67_dyrygent() {
+  for (int wariant = 0; wariant < 2; wariant++) {  // 0: AirBridge milczy od 04:00, 1: odpowiada, nocy nie ma (E-10)
+    PanelP s(5);
+    uint32_t t = ep(2026, 11, 4, 4, 0);
+    PowodWybudzenia pw = PowodWybudzenia::START;
+    int przed11 = 0, po11 = 0, wybudzenPo11 = 0;
+    for (int i = 0; i < 400 && t < ep(2026, 11, 4, 13, 0); i++) {
+      s.p.siec.odpowiedzi.clear();
+      if (wariant == 1) {
+        s.p.siec.dodaj("/api/status", 200, STATUS_SPOCZYNEK);
+        s.p.siec.dodaj(sciezkaListy(), 200, lista(DOBA - 5, DOBA - 1));  // bez dnia ostatniej nocy
+      }
+      WybP w = wybudz(s, t, pw);
+      bool st = false;
+      for (auto& z : s.p.d.z) st = st || z.find("belka: dane nieaktualne") != std::string::npos;
+      if (w.minuta < 11 * 60) przed11 += st;
+      else {
+        po11 += st;
+        wybudzenPo11++;
+      }
+      if (!w.spal) break;
+      uint32_t snu = s.p.sen.plan.budzZegarem ? s.p.sen.plan.sekund : OKRES_SNU_S;
+      t += s.p.zegar.msTeraz / 1000 + (snu ? snu : 1);
+      pw = PowodWybudzenia::ZEGAR;
+    }
+    printf("  R-EKR-67 dyrygent, %s: wybudzeń z polem przed 11:00 %d, od 11:00 %d z %d\n",
+           wariant ? "noc bez terapii (AirBridge odpowiada)" : "AirBridge milczy", przed11, po11, wybudzenPo11);
+    ROWNE_L(przed11, 0);
+    SPRAWDZ(wybudzenPo11 > 0);
+    if (wariant == 0) ROWNE_L(po11, wybudzenPo11);
+    else ROWNE_L(po11, 0);
+  }
+}
+
 int main() {
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
@@ -855,6 +906,7 @@ int main() {
   testKryteria_dyrygentKrotkaHistoria();
   testR_DANE_61_bezOdpowiedzi();
   testR_PRZ_22_dyrygent();
+  testR_EKR_67_dyrygent();
   testKrotkieNaEkranachD();
   // (d)
   testR_NF_01_budzetDoby();

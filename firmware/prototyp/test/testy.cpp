@@ -270,7 +270,9 @@ static void testKokpit() {
   zapiszOdpowiedz(cz, "2026-10-28", CZ_ALKOHOL);
   Norma nm = normaReczna();
   DaneK2 k = budujK2(h, "2026-10-29", nm, cz);
-  ROWNE(k.zakres, "23–29 października");  // T4: małymi literami; nagłówek `Ostatnie 7 nocy · …` · `2 / 2`
+  ROWNE(k.zakres, "23–29.10");  // zakres dat w środku belki K2 (`7 nocy 2 / 3`, R-EKR-64)
+  ROWNE(belkaK2(k).nazwa, "7 nocy 2 / 3");
+  ROWNE(belkaK2(k).srodek, "23–29.10");  // bez godziny importu bez słowa `odczyt` (R-KOK-26)
   ROWNE(k.kol[0], "pt 23");  // jednoznaczne skróty dni
   ROWNE(k.kol[6], "cz 29");
   SPRAWDZ(k.romb[5] && !k.romb[6]);  // R-KOK-14
@@ -295,7 +297,9 @@ static void testKokpit() {
   SPRAWDZ(!kp.w[0].k[2].poza && kp.w[0].k[1].ponadProg);
 
   DaneK1 a = budujK1(h, "2026-10-29", nm, cz);
-  ROWNE(a.naglowek, "Ostatnia noc · cz 29.10");
+  ROWNE(belkaK1(a).nazwa, "Ostatnia noc 1 / 3");  // belka: nazwa ze stałym numerem strony (R-EKR-64)
+  SPRAWDZ(a.ubiegla && a.dzienNocy == "cz" && a.dataNocy == "29.10");
+  ROWNE(belkaK1(a).srodek, "cz 29.10 · ocena częściowa");  // bez stanów ocena częściowa (R-KOK-21)
   ROWNE(a.liczby[0], "5:48");
   ROWNE(a.liczby[1], "1,1");
   ROWNE(a.liczby[2], "–");  // EPAP: noce testu bez EPAP (ASV, ADR-0016)
@@ -309,16 +313,18 @@ static void testKokpit() {
   // linia 30 nocy K1 z przerywaną medianą normy (SPEC-KOKPIT 3); przerwa w nocy bez rekordu (R-KOK-02)
   SPRAWDZ(a.w[0].linia.ma[29] && !a.w[0].linia.ma[27] && a.w[0].linia.medNormy == 1.4);
   DaneK1 b = budujK1(h, "2026-10-31", pusta, cz);  // R-KOK-04: ostatnia zapisana noc nie jest ubiegłą
-  ROWNE(b.naglowek, "Noc 29.10");
+  SPRAWDZ(!b.ubiegla && b.dataNocy == "29.10" && b.dzienNocy.empty());
+  SPRAWDZ(belkaK1(b).srodek.rfind("noc 29.10", 0) == 0);  // R-KOK-04: środek belki zaczyna się od `noc {data}`
   ROWNE(b.w[0].slowo, "uczę się");  // R-KOK-05
   DaneK1 c = budujK1(h, "2026-10-28", nm, cz);
   SPRAWDZ(c.romb);
   DaneK1 e = budujK1({}, "2026-10-29", pusta, cz);  // fail-path R-KOK-01: brak nocy
-  ROWNE(e.naglowek, "Ostatnia noc");
+  SPRAWDZ(e.dataNocy.empty() && belkaK1(e).nazwa == "Ostatnia noc 1 / 3");  // brak nocy: środek bez daty
+  SPRAWDZ(belkaK1(e).srodek.find("noc") == std::string::npos && belkaK1(e).srodek.find("odczyt") == std::string::npos);
   ROWNE(e.liczby[1], "–");
   ROWNE(e.w[4].mediana, "–");
   DaneK2 kr = budujK2(h, "2026-11-02", nm, cz);
-  ROWNE(kr.zakres, "23–29 października");  // okno kończy się na ostatniej zapisanej nocy (29.10)
+  ROWNE(kr.zakres, "23–29.10");  // okno kończy się na ostatniej zapisanej nocy (29.10)
   h.push_back(noc("2026-11-02", 400, 1.0f));
   kr = budujK2(h, "2026-11-02", nm, cz);
   ROWNE(kr.zakres, "27.10–02.11");
@@ -735,7 +741,7 @@ static void testDzien() {
   d.norma = liczNorme(h, d.dzis, {});
   d.przyLozku = stopkaCzujnika(22.2f, 45.4f);
   // nagłówek wszystkich ekranów dnia i kart bez liczb nocy
-  ROWNE(naglowekDniaLewo(d), "cz 29.10");
+  ROWNE(dataDnia(d), "cz 29.10");
   TrescEkranu a = trescDnia("S2A", "1", d);
   ROWNE(a.tytul, "Noc: 6 h 38 z maską.");  // K22: tytuł bez liczb; noc z odchyleniem AHI (4,5 > P90 1,0 i ≥ mediana + 3)
   ROWNE(a.stopkaPrawo, "przy łóżku 22° · 45%");  // stopka: odczyt czujnika panelu, nie `sypialnia`
@@ -987,7 +993,7 @@ static void testAsv() {
   ROWNE(t.tytul, "Brak zapisanych nocy.");
   ROWNE(t.kolumny[2].w, "–");
   ROWNE(t.kolumny[0].p, "uczę się");
-  ROWNE(naglowekDniaLewo(d), "cz 29.10");
+  ROWNE(dataDnia(d), "cz 29.10");
 
   // szerokości (px z krojów, nie na oko): nic nie wychodzi poza swoje miejsce (SPEC-KOKPIT 3–4, SPEC-B 4)
   for (int r = 0; r < DaneK2::WIERSZE; r++)  // K2: etykieta (z wcięciem 14 px) w kolumnie 20–164
@@ -2149,7 +2155,8 @@ static void testTytulINaglowek() {
   ROWNE(trescDnia("S2A", "1", d).tytul, "Noc w normie.");  // 5.4.2
   d.stany = &st;
   ROWNE(t.powod, "Tydzień jak zwykle.");
-  ROWNE(naglowekDniaPrawo(d), "dane 07:12");
+  ROWNE(srodekDnia(d), "wt 20.10");  // belka: sama data poranka; godzina odczytu stoi w K1 i K2 (R-KOK-26)
+  ROWNE(belkaDnia(d).nazwa, "Poranek");
   SPRAWDZ(t.uklad == Uklad::TYDZIEN && t.kolumny.size() == 4);
   ROWNE(t.kolumny[0].et, "czas z maską");
   ROWNE(t.kolumny[0].s, "↔");
@@ -2173,7 +2180,7 @@ static void testTytulINaglowek() {
   d.hist = &h3;
   d.stany = &s3;
   ROWNE(trescDnia("S2A", "1", d).tytul, "Noc: 6 h 38 z maską.");
-  ROWNE(naglowekDniaPrawo(d), "dane 07:12 · ocena ograniczona");
+  ROWNE(srodekDnia(d), "wt 20.10 · ocena ograniczona");
   // R2: karta K22 po nocy niepewnej z P95 18 L/min (wariant C) bez liczby AHI,
   // w miejscu AHI `–` z podpisem `AHI niepewne`, jak faktyPrzerywnika() (R-EKR-46, ADR-0029 pkt 7)
   {
@@ -2197,8 +2204,8 @@ static void testTytulINaglowek() {
   Stany s4 = liczStany(h4, dzis, {});
   d.hist = &h4;
   d.stany = &s4;
-  ROWNE(naglowekDniaPrawo(d), "dane z 18.10");
-  ROWNE(naglowekDniaLewo(d), "wt 20.10");
+  ROWNE(srodekDnia(d), "wt 20.10 · dane z 18.10");
+  ROWNE(dataDnia(d), "wt 20.10");
   // brak M-02 w ostatniej nocy (fail-path R-EKR-41) → `Noc: 6 h 38.` (przy pełnej ocenie `W normie: 6 h 38.`)
   std::vector<Noc> h5 = h;
   h5.back().ahi = NAN;
@@ -2407,7 +2414,7 @@ static void testPrzypadkiBrzegowe() {
     dd.stany = &st;
     dd.norma = st.norma;
     ROWNE(tytulNocy(n.noc, st), "Noc zapisana.");
-    ROWNE(naglowekDniaLewo(dd), "pt 30.10");
+    ROWNE(dataDnia(dd), "pt 30.10");
     for (const char* typ : {"S2A", "S2C", "S2B", "S6", "KM", "S5"}) {
       TrescEkranu t = trescDnia(typ, "100", dd);
       std::string wszystko = t.tytul + "|" + t.powod + "|" + t.krok;
@@ -2765,11 +2772,9 @@ struct PlotnoTest : Plotno {
   }
 };
 
-// wymaganie: T-WYM-39, R-KONF-41, T-WYM-83
-// U-05 narysowany według kanwy
-// design/kanwa/U05-test-sprzetu.dc.html. Kreski w pozycjach z kanwy co do piksela, a obwiednie tekstów z podglądu
-// design/png/U05-test-sprzetu.png z tolerancją rasteryzacji kroju: ±1 px w pionie, ±6 px
-// w poziomie (strzałka `→` nagłówka z innego kroju w przeglądarce).
+// wymaganie: T-WYM-39, R-KONF-41, T-WYM-83, R-KONF-58
+// U-05 narysowany według makiety 14.11.2026 (decyzja 4) i poprawek po przeglądzie
+//: belka, pas werdyktu, dwie kolumny po 5 wierszy i `Noce z plików` na całą szerokość, wiersze z usterką w odwróconym polu z `!`, ramka okna serwisowego, stopka jak na ekranach danych.
 struct Obwiednia { int x0, y0, x1, y1; };
 static Obwiednia obwiednia(const PlotnoTest& p, int x0, int y0, int x1, int y1) {  // [x0, x1) × [y0, y1)
   Obwiednia o{9999, 9999, -1, -1};
@@ -2778,138 +2783,297 @@ static Obwiednia obwiednia(const PlotnoTest& p, int x0, int y0, int x1, int y1) 
       if (p.cz(x, y)) { o.x0 = std::min(o.x0, x); o.y0 = std::min(o.y0, y); o.x1 = std::max(o.x1, x); o.y1 = std::max(o.y1, y); }
   return o;
 }
-static bool blisko(const Obwiednia& a, const Obwiednia& k) {
-  bool ok = std::abs(a.x0 - k.x0) <= 6 && std::abs(a.x1 - k.x1) <= 6 && std::abs(a.y0 - k.y0) <= 1 && std::abs(a.y1 - k.y1) <= 1;
-  if (!ok) printf("  U-05: obwiednia (%d,%d,%d,%d), kanwa (%d,%d,%d,%d)\n", a.x0, a.y0, a.x1, a.y1, k.x0, k.y0, k.x1, k.y1);
-  return ok;
-}
 static bool wierszCzarny(const PlotnoTest& p, int y, int x0, int x1) {  // [x0, x1]
   for (int x = x0; x <= x1; x++) if (!p.cz(x, y)) return false;
   return true;
 }
-static void testU05WedlugKanwy() {
-  DaneTestu d;  // wartości z kanwy
-  d.lewa = {{"Oprogramowanie", "1.0.1 (app1)"}, {"Zestaw reguł", "2026-12-01"}, {"Pamięć panelu", "wolne 18 MB"},
-            {"Karta", "kopia 03.11 05:40"}, {"Źródło otoczenia", "OK 05:31"}};
-  d.prawa = {{"Panel", "192.168.30.51"}, {"Wi-Fi", "Dom −61 dBm"}, {"AirBridge", "192.168.20.205 · v2.3.0"},
-             {"Ostatnie pobranie", "03.11 05:32"}, {"Bateria", "64%"}};
-  d.ramkaLewo = "Wgrywanie przez Wi-Fi do 10:14";
+static DaneTestu daneU05Makiety() {
+  DaneTestu d;
+  d.sprawdzono = "14.11 14:06";
+  d.lewa = {{"Oprogramowanie", "1.0.0 · jest 1.1.0"}, {"Zegar panelu", "14.11 14:06"}, {"Pamięć panelu", "wolne 23 MB"},
+            {"Bateria", "na zasilaniu · 70%"}, {"Zestaw reguł", "wbudowany"}};
+  d.prawa = {{"Wi-Fi", "Dom · sygnał dobry"}, {"Adres panelu", "192.168.0.10"}, {"AirBridge", "brak odp. od 13.11 23:40", true},
+             {"Ostatnie pobranie", "12.11 05:32"}, {"Pogoda i powietrze", "odrzucony klucz", true, "pogoda"}};
+  d.dol = {{"Noce z plików", "zgodne 7 z 7, można przełączyć na pliki"}};
+  d.ramkaLewo = "Wgrywanie przez Wi-Fi do 23:59";
   d.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
+  return d;
+}
+static void testU05WedlugMakiety() {
+  DaneTestu d = daneU05Makiety();
   PlotnoTest p;
   rysujTest(p, d);
-  // kreski: nagłówek 2 px na 48, nazwy kolumn 2 px na 89, 5 wierszy po 1 px co 47 od 137, ramka 2 px 26..773 × 378..421,
-  // stopka 2 px na 436
-  SPRAWDZ(wierszCzarny(p, 48, 0, 799) && wierszCzarny(p, 49, 0, 799) && !p.cz(400, 47) && !p.cz(400, 50));
-  SPRAWDZ(wierszCzarny(p, 436, 0, 799) && wierszCzarny(p, 437, 0, 799) && !p.cz(400, 435) && !p.cz(400, 438));
-  for (int x0 : {26, 414}) {
-    SPRAWDZ(wierszCzarny(p, 89, x0, x0 + 359) && wierszCzarny(p, 90, x0, x0 + 359) && !p.cz(x0 - 1, 89) && !p.cz(x0 + 360, 89));
-    for (int i = 0; i < 5; i++) {
-      int y = 137 + 47 * i;
-      SPRAWDZ(wierszCzarny(p, y, x0, x0 + 359) && !p.cz(x0 + 200, y - 1) && !p.cz(x0 + 200, y + 1));
-    }
+  // belka 3 px na 41…43; pas werdyktu w negatywie 28…771 × 52…89 (są usterki)
+  SPRAWDZ(wierszCzarny(p, 41, 0, 799) && wierszCzarny(p, 43, 0, 799) && !p.cz(400, 44));
+  SPRAWDZ(p.cz(28, 52) && p.cz(771, 89) && p.cz(700, 60) && !p.cz(27, 70) && !p.cz(772, 70) && !p.cz(400, 90));
+  ROWNE(werdyktTestu(d), "2 rzeczy do sprawdzenia: AirBridge, pogoda");
+  SPRAWDZ(usterkiTestu(d) == 2);
+  // nazwy kolumn z kreską 2 px na 118, kolumny 28…391 i 408…771, odstęp 16 px pusty; kreski 1 px pod
+  // każdym z 5 wierszy kolumny (także pod ostatnim: pod nim `Noce z plików`)
+  for (int x0 : {28, 28 + TEST_KOLUMNA + TEST_ODSTEP_KOLUMN}) {
+    SPRAWDZ(wierszCzarny(p, 118, x0, x0 + TEST_KOLUMNA - 1) && wierszCzarny(p, 119, x0, x0 + TEST_KOLUMNA - 1));
+    SPRAWDZ(!p.cz(x0 - 1, 118) && !p.cz(x0 + TEST_KOLUMNA, 118));
+    for (int i = 0; i < 5; i++) SPRAWDZ(wierszCzarny(p, 120 + 38 * i + 37, x0, x0 + TEST_KOLUMNA - 1));  // kreski 1 px
   }
-  SPRAWDZ(p.czarne(386, 89, 414, 326) == 0);  // odstęp 28 px między kolumnami
-  for (int y : {378, 379, 420, 421}) SPRAWDZ(wierszCzarny(p, y, 26, 773));
-  for (int y = 378; y <= 421; y++) SPRAWDZ(p.cz(26, y) && p.cz(27, y) && p.cz(772, y) && p.cz(773, y));
-  SPRAWDZ(!p.cz(28, 400) && !p.cz(771, 400) && !p.cz(25, 400) && !p.cz(774, 400));
-  SPRAWDZ(p.czarne(0, 326, 800, 378) == 0);  // pod ostatnim wierszem do ramki pusto (kanwa: ramka na dole)
-  SPRAWDZ(p.czarne(0, 422, 800, 436) == 0 && p.czarne(0, 0, 800, 12) == 0);
-  // teksty: obwiednie z podglądu kanwy
-  SPRAWDZ(blisko(obwiednia(p, 0, 0, 400, 48), {26, 17, 140, 33}));     // `Test sprzętu`
-  SPRAWDZ(blisko(obwiednia(p, 400, 0, 800, 48), {530, 17, 772, 33}));  // `Ustawienia → Test sprzętu`
-  SPRAWDZ(blisko(obwiednia(p, 26, 52, 386, 89), {27, 64, 274, 81}));   // `OPROGRAMOWANIE I PAMIĘĆ`
-  SPRAWDZ(blisko(obwiednia(p, 414, 52, 774, 89), {414, 64, 596, 81})); // `ŁĄCZNOŚĆ I BATERIA`
-  const Obwiednia kan[5][4] = {
-      {{27, 106, 183, 123}, {287, 106, 383, 123}, {416, 106, 465, 120}, {645, 106, 771, 120}},
-      {{27, 153, 146, 170}, {281, 153, 383, 167}, {415, 154, 460, 167}, {648, 153, 772, 167}},
-      {{28, 200, 159, 217}, {268, 200, 384, 214}, {415, 200, 559, 217}, {560, 200, 772, 214}},
-      {{28, 248, 74, 261}, {224, 247, 384, 264}, {415, 247, 559, 264}, {560, 247, 772, 261}},
-      {{27, 291, 179, 308}, {301, 294, 383, 308}, {416, 295, 478, 308}, {731, 294, 772, 308}}};
-  for (int i = 0; i < 5; i++) {
-    int y0 = 91 + 47 * i;
-    SPRAWDZ(blisko(obwiednia(p, 26, y0, 200, y0 + 46), kan[i][0]));
-    SPRAWDZ(blisko(obwiednia(p, 200, y0, 386, y0 + 46), kan[i][1]));
-    SPRAWDZ(blisko(obwiednia(p, 414, y0, 560, y0 + 46), kan[i][2]));
-    SPRAWDZ(blisko(obwiednia(p, 560, y0, 774, y0 + 46), kan[i][3]));
+  SPRAWDZ(p.czarne(28 + TEST_KOLUMNA, 100, 28 + TEST_KOLUMNA + TEST_ODSTEP_KOLUMN, 310) == 0);
+  // `Noce z plików` na całą szerokość (310…347): nazwa od 28, pełny tekst przy prawym brzegu, bez kreski pod spodem
+  SPRAWDZ(!wierszCzarny(p, 120 + 38 * 5 + 37, 28, 771));
+  {
+    Obwiednia o = obwiednia(p, 28, 312, 400, 346), v = obwiednia(p, 400, 312, 800, 346);
+    SPRAWDZ(o.x0 <= 30 && v.x1 >= 768 && v.x1 <= 771);
+    SPRAWDZ(szer(F_P20B, d.dol[0].wartosc) <= miejsceNaWartosc("Noce z plików", TEST_SZEROKOSC));
   }
-  SPRAWDZ(blisko(obwiednia(p, 28, 380, 380, 420), {43, 392, 335, 409}));   // okno serwisowe
-  SPRAWDZ(blisko(obwiednia(p, 380, 380, 772, 420), {406, 392, 756, 409})); // `hasła i dane terapii nie są pokazywane`
-  // kolejność jak przyciski na obudowie, `◀ wróć` z lewej, `↻ odśwież · 2 s pakiet z karty` z prawej (kanwa miała odwrotnie)
-  // `◀ wróć · 2 s sieć panelu` (było `◀ wróć` do 79 px)
-  // trzy grupy od lewej `◀ ustawienia · 2 s sieć panelu`, `▶ odśwież`, `↻ ekran dnia`, całość do 780 px
+  // wiersz z usterką: odwrócone pole przy prawym brzegu kolumny (AirBridge, 3. wiersz prawej kolumny)
+  SPRAWDZ(p.cz(771, 120 + 38 * 2 + 6) && p.cz(771, 120 + 38 * 2 + 30));
+  SPRAWDZ(!p.cz(771, 120 + 38 * 1 + 6));  // wiersz bez usterki: tło białe przy brzegu
+  // ramka 2 px 28…771 × 356…395, pod nią do stopki pusto, stopka: kreska 2 px na 434, grupy P22B od x 28
+  for (int y : {356, 357, 394, 395}) SPRAWDZ(wierszCzarny(p, y, 28, 771));
+  SPRAWDZ(p.czarne(0, 397, 800, 434) == 0);
+  SPRAWDZ(wierszCzarny(p, 434, 0, 799) && wierszCzarny(p, 435, 0, 799));
   {
     Obwiednia o = obwiednia(p, 0, 438, 800, 480);
-    SPRAWDZ(o.x0 == 20 && o.x1 <= 780 && o.y0 >= 448 && o.y1 <= 468);
+    SPRAWDZ(o.x0 == 28 && o.x1 <= 772 && o.y1 <= 470);
   }
-  SPRAWDZ(!p.cz(28, 470));  // ikony bez kwadratu (kanwa: znaki kroju, nie przyciski w ramce)
+  SPRAWDZ(p.cz(30, 455));  // ikona przycisku w kwadracie jak na pozostałych ekranach
+  SPRAWDZ(stopkaTestu(false) == std::vector<std::string>({"◀ ustawienia · 2 s sieć panelu", "▶ odśwież", "↻ ekran dnia"}));
+  SPRAWDZ(szerStopki(stopkaTestu(false)) <= 744);
 
-  // wiersz `Źródło otoczenia` (R-AW-25, R-NF-27): krótkie wartości stanu źródła, pełny opis w logu
+  // bez usterek: `Wszystko działa` w ramce 2 px (bez negatywu)
+  for (auto& w : d.prawa) w.usterka = false;
+  ROWNE(werdyktTestu(d), "Wszystko działa");
+  PlotnoTest q;
+  rysujTest(q, d);
+  SPRAWDZ(q.cz(28, 52) && q.cz(29, 53) && q.cz(771, 89));  // ramka pasa
+  SPRAWDZ(!q.cz(700, 60) && !q.cz(771, 120 + 38 * 2 + 6));
+  // wiersz bez oceny przy braku usterek → `Bez usterek · nie sprawdzono: …` w ramce, nigdy
+  // `Wszystko działa`; usterki mają pierwszeństwo; wiersz `dol` liczy się do werdyktu
+  {
+    DaneTestu n = d;
+    n.lewa[3] = WierszTestu::bezOceny("Bateria", "brak odczytu", "bateria");
+    n.prawa[3] = WierszTestu::bezOceny("Ostatnie pobranie", "–", "pobieranie nocy");
+    ROWNE(werdyktTestu(n), "Bez usterek · nie sprawdzono: bateria, pobieranie nocy");
+    SPRAWDZ(usterkiTestu(n) == 0);
+    PlotnoTest r0;
+    rysujTest(r0, n);
+    SPRAWDZ(r0.cz(28, 52) && r0.cz(771, 89) && !r0.cz(700, 60));  // ramka, bez negatywu
+    n.dol[0].nieSprawdzono = true;
+    n.dol[0].krotko = "noce z plików";
+    // lista, która nie mieści się w pasie, kończy się `…`
+    ROWNE(werdyktTestu(n), "Bez usterek · nie sprawdzono: bateria, pobieranie nocy, …");
+    n.lewa[3] = {"Bateria", "70%"};
+    ROWNE(werdyktTestu(n), "Bez usterek · nie sprawdzono: pobieranie nocy, noce z plików");
+    n.prawa[2].usterka = true;
+    ROWNE(werdyktTestu(n), "1 rzecz do sprawdzenia: AirBridge");
+    n.prawa[2].usterka = false;
+    n.dol[0] = {"Noce z plików", "rozjazd 1 z 7 (M-05, M-02)", true, "noce z plików"};
+    ROWNE(werdyktTestu(n), "1 rzecz do sprawdzenia: noce z plików");
+    PlotnoTest r1;
+    rysujTest(r1, n);
+    SPRAWDZ(r1.cz(771, 310 + 6) && r1.cz(700, 60));  // rozjazd w odwróconym polu wiersza `dol`, pas w negatywie
+    // wierszU05(): bezOceny przy usterce nie liczy się (usterka ma pierwszeństwo)
+    WierszTestu u = wierszU05("Bateria", {"7%"}, true, "bateria", true);
+    SPRAWDZ(u.usterka && !u.nieSprawdzono);
+  }
+  // odmiana: 1 rzecz, 5 rzeczy; lista, która się nie mieści, kończy się `…`
+  d.prawa[2].usterka = true;
+  ROWNE(werdyktTestu(d), "1 rzecz do sprawdzenia: AirBridge");
+  for (auto* k : {&d.lewa, &d.prawa})
+    for (auto& w : *k) w.usterka = true;
+  std::string wd = werdyktTestu(d);
+  SPRAWDZ(wd.rfind("10 rzeczy do sprawdzenia: ", 0) == 0 && wd.size() > 3 && wd.compare(wd.size() - 3, 3, "…") == 0);
+  SPRAWDZ(szer(F_P24B, "! " + wd) <= 744 - 28);
+  // nazwa w werdykcie: `krotko` albo nazwa wiersza małą literą (AirBridge i Wi-Fi bez zmiany)
+  DaneTestu k;
+  k.lewa = {{"Zegar panelu", "nie ustawiony", true}, {"Karta", "brak karty"}};
+  k.prawa = {{"Wi-Fi", "brak połączenia", true}};
+  ROWNE(werdyktTestu(k), "2 rzeczy do sprawdzenia: zegar panelu, Wi-Fi");
+
+  // wiersz `Pogoda i powietrze` (do 14.11.2026 `Źródło otoczenia`; R-AW-25, R-NF-27): słowa zamiast kodów, pełny
+  // opis z kodem w logu
   {
     Otoczenie o;
     wyczyscOtoczenie(o, false);
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "wyłączone");
+    SPRAWDZ(!usterkaOtoczenia(o));
     wyczyscOtoczenie(o, true);
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "jeszcze bez odczytu");
+    SPRAWDZ(!usterkaOtoczenia(o));
     nieudanaOtoczenia(o, 401, 1793395800u);
-    ROWNE(wartosciTestuOtoczenia(o, "05:16").front(), "HTTP 401");
+    ROWNE(wartosciTestuOtoczenia(o, "05:16").front(), "odrzucony klucz");  // słowo zamiast kodu (14.11.2026)
+    SPRAWDZ(usterkaOtoczenia(o));
+    for (const std::string& v : wartosciTestuOtoczenia(o, "05:16")) SPRAWDZ(v.find("HTTP") == std::string::npos);
+    o.stan = (int8_t)StanOto::HTTP;
+    o.kod = 404;
+    ROWNE(wartosciTestuOtoczenia(o, "").front(), "zły adres");
+    o.kod = 503;
+    ROWNE(wartosciTestuOtoczenia(o, "").front(), "błąd serwera");
+    o.kod = 418;
+    ROWNE(wartosciTestuOtoczenia(o, "").front(), "odmowa serwera");
+    SPRAWDZ(usterkaOtoczenia(o));
     o.stan = (int8_t)StanOto::POZA_SIECIA;
-    ROWNE(dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "")), "poza siecią domową");
+    // pełny wariant, gdy się mieści; krótszy z tym samym sensem (w kolumnie bez usterki i z usterką)
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, "")), "nie w sieci domu");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, ""), TEST_KOLUMNA, true), "nie w sieci domu");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, ""), 744), "adres poza siecią domową");
+    o.stan = (int8_t)StanOto::NIE_BYLO;
+    SPRAWDZ(bezOcenyOtoczenia(o) && !usterkaOtoczenia(o));
     o.stan = (int8_t)StanOto::PRZEKIEROWANIE;
-    ROWNE(dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "")), "przekierowanie");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, "")), "przekierowanie");
     o.stan = (int8_t)StanOto::OK;
-    ROWNE(dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "05:31")), "OK 05:31");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, "05:31")), "OK 05:31");
+    SPRAWDZ(!usterkaOtoczenia(o));
     o.stan = (int8_t)StanOto::BRAK_ODPOWIEDZI;
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "brak odpowiedzi");
+    SPRAWDZ(usterkaOtoczenia(o));
     o.stan = (int8_t)StanOto::ZLA_WERSJA;
     o.wersja = 2;
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "wersja kontraktu 2");
     o.wersja = -1;
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "brak wersji kontraktu");
     o.stan = (int8_t)StanOto::NIECZYTELNE;
-    ROWNE(dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "")), "nieczytelna");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, "")), "nieczytelna");
     o.stan = (int8_t)StanOto::ZA_DUZE;
-    ROWNE(dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "")), "odpowiedź za duża");
+    ROWNE(dopasujWartosc("Pogoda i powietrze", wartosciTestuOtoczenia(o, "")), "za duża");
     o.stan = 99;  // stan spoza listy (np. RTC z innej wersji): `–`
     ROWNE(wartosciTestuOtoczenia(o, "").front(), "–");
   }
-  // wartości za długie na kolumnę: pierwszy wariant, który się mieści, a bez takiego skrót z `…`
-  SPRAWDZ(miejsceNaWartosc("Pamięć panelu") == 360 - szer(F_P20, "Pamięć panelu") - 12);
+  // siła sygnału słowem (progi [PRÓG] w src/ekrany.h)
+  ROWNE(slowoSygnalu(-40), "dobry");
+  ROWNE(slowoSygnalu(SYGNAL_DOBRY), "dobry");
+  ROWNE(slowoSygnalu(SYGNAL_DOBRY - 1), "średni");
+  ROWNE(slowoSygnalu(SYGNAL_SLABY + 1), "średni");
+  ROWNE(slowoSygnalu(SYGNAL_SLABY), "słaby");
+  ROWNE(slowoSygnalu(0), "");
+  // wartości za długie na kolumnę: pierwszy wariant, który się mieści, a bez takiego skrót z `…`; z usterką mniej
+  // miejsca (`! ` i brzegi pola)
+  SPRAWDZ(miejsceNaWartosc("Pamięć panelu") == TEST_KOLUMNA - szer(F_P20, "Pamięć panelu") - 12);
   ROWNE(dopasujWartosc("Pamięć panelu", {"wolne 18 MB"}), "wolne 18 MB");
-  ROWNE(dopasujWartosc("Pamięć panelu", {"przywrócono 412 z 412", "przywrócono 412/412"}), "przywrócono 412/412");
-  ROWNE(dopasujWartosc("Źródło otoczenia", {"adres poza siecią domową", "poza siecią domową"}), "poza siecią domową");
-  std::string w = dopasujWartosc("Wi-Fi", {"Bardzo-Dluga-Nazwa-Sieci-Domowej-Ponad-Kolumne −90 dBm"});
+  ROWNE(dopasujWartosc("Pamięć panelu", {"przywrócono 412 z 412", "przywrócono 412/412"}), "przywrócono 412 z 412");
+  // `dane z nowszej wersji` w całości, gdy się mieści; z usterką `dane nowszej wersji` (bez gubienia „dane”)
+  ROWNE(dopasujWartosc("Pamięć panelu", wariantyNowszychDanychU05("czynniki.csv")), "dane z nowszej wersji");
+  ROWNE(dopasujWartosc("Pamięć panelu", wariantyNowszychDanychU05("czynniki.csv"), TEST_KOLUMNA, true),
+        "dane nowszej wersji");
+  std::string w = dopasujWartosc("Wi-Fi", {"Bardzo-Dluga-Nazwa-Sieci-Domowej-Ponad-Kolumne · sygnał słaby"});
   SPRAWDZ(w.size() > 3 && w.compare(w.size() - 3, 3, "…") == 0 && szer(F_P20B, w) <= miejsceNaWartosc("Wi-Fi"));
-  // każda wartość z wariantów firmware mieści się obok nazwy (najdłuższe wartości z liczbami i adresami)
-  struct { const char* n; const char* w; } dl[] = {
-      {"Oprogramowanie", "10.10.10 (app1)"}, {"Pamięć panelu", "nie zamontowana"}, {"Pamięć panelu", "układ: wgraj kablem"},
-      {"Pamięć panelu", "niezgodna liczba nocy"}, {"Pamięć panelu", "migracja noce: błąd"},
-      {"Pamięć panelu", "dane z nowszej wersji"}, {"Pamięć panelu", "wolne 999 MB"}, {"Karta", "brak karty"},
-      {"Źródło otoczenia", "jeszcze bez odczytu"}, {"Źródło otoczenia", "OK 30.12 23:59"},
-      {"Źródło otoczenia", "odpowiedź za duża"}, {"Źródło otoczenia", "wersja kontraktu 99"},
-      {"Panel", "192.168.100.200 (30.12 23:59)"}, {"Panel", "brak połączenia z Wi-Fi"},
-      {"AirBridge", "192.168.100.200 · v12.10.10"}, {"AirBridge", "brak odp. od 30.12 23:59"},
-      {"AirBridge", "192.168.20.205 · bez wersji"}, {"Ostatnie pobranie", "30.12 23:59"}, {"Tryb awaryjny", "wybudzenie z uśpienia"}};
+  std::string wu = dopasujWartosc("Wi-Fi", {"Bardzo-Dluga-Nazwa-Sieci-Domowej-Ponad-Kolumne · sygnał słaby"}, TEST_KOLUMNA,
+                                  true);
+  SPRAWDZ(szer(F_P20B, "! " + wu) + TEST_USTERKA_DODATEK <= miejsceNaWartosc("Wi-Fi") && wu.size() < w.size());
+  // każda wartość z wariantów firmware mieści się obok nazwy (najdłuższe wartości z liczbami i adresami); wartości
+  // wierszy, które mogą być usterką, także w odwróconym polu
+  struct { const char* n; const char* w; bool u; } dl[] = {
+      {"Oprogramowanie", "1.0.0 · jest 1.1.0", false}, {"Oprogramowanie", "jest 10.10.11", false},
+      {"Oprogramowanie", "10.10.10 (app1)", false},
+      {"Zegar panelu", "30.12 23:59", false}, {"Zegar panelu", "nie ustawiony", true},
+      {"Pamięć panelu", "nie zamontowana", true}, {"Pamięć panelu", "wgraj kablem", true},
+      {"Pamięć panelu", "niezgodna liczba", true}, {"Pamięć panelu", "błąd migracji", true},
+      {"Pamięć panelu", "dane nowszej wersji", true}, {"Pamięć panelu", "wolne 999 MB", false},
+      {"Pamięć panelu", "przywrócono 412 z 412", false},
+      {"Bateria", "na zasilaniu · 100%", false}, {"Bateria", "brak odczytu", false}, {"Bateria", "19%", true},
+      {"Pogoda i powietrze", "nie w sieci domu", true}, {"Pogoda i powietrze", "odrzucony klucz", true},
+      {"Pogoda i powietrze", "bez odczytu", false}, {"Pogoda i powietrze", "OK 30.12 23:59", false},
+      {"Pogoda i powietrze", "zły klucz", true}, {"Pogoda i powietrze", "błąd serwera", true},
+      {"Pogoda i powietrze", "milczy", true},
+      // adres z godziną ostatniego połączenia przy najdłuższym adresie z sieci domowej (test przywrócony)
+      {"Adres panelu", "192.168.100.200", false}, {"Adres panelu", "192.168.100.200 (23:59)", false},
+      {"Wi-Fi", "brak połączenia", true},
+      {"AirBridge", "192.168.100.200 · v12.10.10", false}, {"AirBridge", "brak odpowiedzi", true},
+      {"AirBridge", "odrzuca logowanie", true}, {"AirBridge", "błąd AirBridge: zły adres", true},
+      {"AirBridge", "błąd AirBridge", true}, {"Ostatnie pobranie", "30.12 23:59", true},
+      // `Noce z plików` na całą szerokość: pełne teksty jak do 14.11.2026
+      {"Noce z plików", "zgodne 7 z 7, można przełączyć na pliki", false},
+      {"Noce z plików", "brak porównania: AirBridge < 2.3.1", false},
+      {"Noce z plików", "rozjazd 7 z 7 (M-05, M-02)", true},
+      {"Tryb awaryjny", "wybudzenie z uśpienia", true}};
   for (auto& e : dl) {
-    if (szer(F_P20B, e.w) > miejsceNaWartosc(e.n)) printf("  U-05: za długa wartość %s: %s\n", e.n, e.w);
-    SPRAWDZ(szer(F_P20B, e.w) <= miejsceNaWartosc(e.n));
+    // tryb awaryjny: jedna kolumna na całą szerokość (744 px)
+    int kol = std::string(e.n) == "Tryb awaryjny" || std::string(e.n) == "Noce z plików" ? TEST_SZEROKOSC : TEST_KOLUMNA;
+    int m = miejsceNaWartosc(e.n, kol) - (e.u ? szer(F_P20B, "! ") + TEST_USTERKA_DODATEK : 0);
+    if (szer(F_P20B, e.w) > m) printf("  U-05: za długa wartość %s: %s\n", e.n, e.w);
+    SPRAWDZ(szer(F_P20B, e.w) <= m);
   }
-  // ramka: najdłuższe lewe części obok prawej (716 px wnętrza: 748 − 2 × 2 − 2 × 14, odstęp co najmniej 12 px)
+  // wiersze U-05 z danych (jedno miejsce wariantów)
+  {
+    // przy słabym sygnale nazwa sieci zostaje (`{sieć} · słaby`, `{sieć…} · słaby`) przed `sygnał słaby`
+    WierszTestu wf = wierszU05Wifi("Dom", -90, "");
+    SPRAWDZ(wf.usterka);
+    ROWNE(wf.wartosc, "Dom · sygnał słaby (−90 dBm)");
+    wf = wierszU05Wifi("Bardzo-Dluga-Nazwa-Sieci-Domowej", -90, " (10:00)");
+    SPRAWDZ(wf.usterka && wf.wartosc.rfind("Bardzo-", 0) == 0 && wf.wartosc.find("… · słaby") != std::string::npos);
+    SPRAWDZ(szer(F_P20B, "! " + wf.wartosc) + TEST_USTERKA_DODATEK <= miejsceNaWartosc("Wi-Fi"));
+    ROWNE(dopasujZOgonem("Wi-Fi", "Bardzo-Dluga-Nazwa-Sieci-Domowej", " · słaby", 120), "");  // nie mieści się nic
+    wf = wierszU05Wifi("Dom", -60, "");
+    SPRAWDZ(!wf.usterka && !wf.nieSprawdzono);
+    ROWNE(wf.wartosc, "Dom · sygnał dobry (−60 dBm)");
+    wf = wierszU05Wifi("", 0, "");
+    SPRAWDZ(wf.usterka);
+    ROWNE(wf.wartosc, "brak połączenia");
+    // adres z chwilą ostatniego połączenia, godzina nigdy ucięta
+    ROWNE(wierszU05Adresu("10.0.0.5", "04.11", "10:00", true).wartosc, "10.0.0.5 (04.11 10:00)");
+    ROWNE(wierszU05Adresu("192.168.1.50", "04.11", "10:00", true).wartosc, "192.168.1.50 (10:00)");
+    ROWNE(wierszU05Adresu("192.168.100.200", "04.11", "10:00", true).wartosc, "192.168.100.200 (10:00)");
+    ROWNE(wierszU05Adresu("192.168.100.200", "03.11", "23:59", false).wartosc, "192.168.100.200 (03.11)");
+    ROWNE(wierszU05Adresu("192.168.1.50", "", "", false).wartosc, "192.168.1.50");
+    ROWNE(wierszU05Adresu("", "", "", false).wartosc, "–");
+    for (bool dz : {true, false}) {
+      std::string a = wierszU05Adresu("255.255.255.255", "30.12", "23:59", dz).wartosc;
+      SPRAWDZ(a.find("…") == std::string::npos && (a.find('(') == std::string::npos || a.back() == ')'));
+    }
+    // na kablu procent zostaje; bez kabla i pomiaru wiersz bez oceny
+    ROWNE(wierszU05Baterii(true, 70, 20).wartosc, "na zasilaniu · 70%");
+    ROWNE(wierszU05Baterii(true, -1, 20).wartosc, "na zasilaniu");
+    WierszTestu bt = wierszU05Baterii(false, -1, 20);
+    SPRAWDZ(bt.nieSprawdzono && !bt.usterka && bt.wartosc == "brak odczytu");
+    SPRAWDZ(wierszU05Baterii(false, 19, 20).usterka && !wierszU05Baterii(false, 20, 20).usterka);
+    // każdy kod inny niż 200 to błąd AirBridge słowem (401, brak odpowiedzi i 0 osobno)
+    for (int kod : {404, 500, 503, 302, 418, AB_KOD_URWANE, AB_KOD_ZA_DUZO, KOD_E03}) {
+      std::vector<std::string> b = bladAirBridgeU05(kod);
+      SPRAWDZ(!b.empty() && b.back() == "błąd AirBridge");
+    }
+    for (int kod : {0, 200, 401, -1, KOD_WIFI}) SPRAWDZ(bladAirBridgeU05(kod).empty());
+    // usterka tylko przy nowszej nocy na AirBridge albo starym kontakcie; bez oceny bez pobrania
+    SPRAWDZ(wierszU05Pobrania("02.11 05:32", true, false, false).usterka);
+    SPRAWDZ(wierszU05Pobrania("02.11 05:32", false, true, false).usterka);
+    WierszTestu pb = wierszU05Pobrania("02.11 05:32", false, false, false);
+    SPRAWDZ(!pb.usterka && !pb.nieSprawdzono);
+    pb = wierszU05Pobrania("–", false, false, true);
+    SPRAWDZ(!pb.usterka && pb.nieSprawdzono);
+    // (R-KONF-58): zaległe noce pobierane partiami → `pobieram`, bez usterki, z oceną
+    // (nie wchodzi do pasa „rzeczy do sprawdzenia” ani do „nie sprawdzono”); doby czekające po nieudanej próbie
+    // i stary kontakt mają pierwszeństwo
+    pb = wierszU05Pobrania("02.11 05:32", false, false, false, true);
+    SPRAWDZ(!pb.usterka && !pb.nieSprawdzono && pb.wartosc.find("pobieram") != std::string::npos);
+    SPRAWDZ(pb.wartosc == "02.11 05:32 · pobieram" || pb.wartosc == "02.11 · pobieram");
+    SPRAWDZ(wierszU05Pobrania("02.11 05:32", true, false, false, true).usterka);
+    SPRAWDZ(wierszU05Pobrania("02.11 05:32", false, true, false, true).usterka);
+    {
+      DaneTestu dt;
+      dt.lewa = {{"Zegar panelu", "14.11 07:12"}};
+      dt.prawa = {wierszU05Pobrania("14.11 07:10", false, false, false, true)};
+      SPRAWDZ(usterkiTestu(dt) == 0);
+      ROWNE(werdyktTestu(dt), "Wszystko działa");
+    }
+  }
+  // ramka: najdłuższe lewe części obok prawej (712 px wnętrza: 744 − 2 × 16, odstęp co najmniej 12 px)
   for (const char* l : {"Wgrywanie przez Wi-Fi: wyłączone", "Wgrywanie przez Wi-Fi: brak sieci", "Wgrywanie przez Wi-Fi: zamknięte",
                         "Wgrywanie przez Wi-Fi: 10 min", "Okno przywracania do 23:59", "Okno przywracania: 10 min"})
-    SPRAWDZ(szer(F_P20B, l) + 12 + szer(F_P20, "hasła i dane terapii nie są pokazywane") <= 716);
+    SPRAWDZ(szer(F_P20B, l) + 12 + szer(F_P20, "hasła i dane terapii nie są pokazywane") <= 712);
 
-  // tryb awaryjny (T-WYM-83): jedna kolumna z 2 wierszami, prawa pusta, stopka tylko `◀ wróć`
+  // tryb awaryjny (T-WYM-83): jedna kolumna z 2 wierszami (przyczyna jako usterka), prawa pusta, stopka tylko `◀ wróć`
   DaneTestu a;
   a.awaryjny = true;
-  a.lewa = {{"Oprogramowanie", "1.0.0 (app1)"}, {"Tryb awaryjny", "błąd programu"}};
+  a.lewa = {{"Oprogramowanie", "1.0.0 (app1)"}, {"Tryb awaryjny", "błąd programu", true, "tryb awaryjny"}};
   a.ramkaLewo = "Wgrywanie przez Wi-Fi do 10:14";
   a.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
-  PlotnoTest q;
-  rysujTest(q, a);
-  SPRAWDZ(wierszCzarny(q, 89, 26, 385) && wierszCzarny(q, 137, 26, 385) && wierszCzarny(q, 184, 26, 385));
-  SPRAWDZ(!q.cz(200, 231) && q.czarne(386, 52, 800, 378) == 0);  // bez 3. wiersza i bez prawej kolumny
-  SPRAWDZ(q.czarne(0, 438, 400, 480) == 0 && blisko(obwiednia(q, 400, 438, 800, 480), {719, 451, 778, 467}));
-  SPRAWDZ(blisko(obwiednia(q, 28, 380, 380, 420), {43, 392, 335, 409}));
+  ROWNE(werdyktTestu(a), "1 rzecz do sprawdzenia: tryb awaryjny");
+  PlotnoTest r;
+  rysujTest(r, a);
+  // jedna kolumna na całą szerokość: kreska nazwy kolumny 28…771, jedna kreska między 2 wierszami, bez 3. wiersza
+  SPRAWDZ(wierszCzarny(r, 118, 28, 771) && wierszCzarny(r, 157, 28, 771) && !wierszCzarny(r, 195, 28, 771));
+  SPRAWDZ(r.czarne(28, 197, 800, 348) == 0 && r.czarne(28, 95, 400, 112) == r.czarne(28, 95, 800, 112));
+  SPRAWDZ(r.cz(771, 120 + 38 + 6));  // przyczyna w odwróconym polu przy prawym brzegu
+  SPRAWDZ(stopkaTestu(true) == std::vector<std::string>({"◀ wróć"}));
+  Obwiednia st = obwiednia(r, 0, 438, 800, 480);
+  SPRAWDZ(st.x0 == 28 && st.x1 < 200);
 }
 
 static void testSkalaB() {
@@ -2930,7 +3094,7 @@ static void testSkalaB() {
   t.stopkaPrawo = "przy łóżku 21° · 45%";
   SPRAWDZ(slowaWPasku(t) && gornaPaska(t) == 280 && wysokoscPaska(t) == 142);  // bez linii pasek od 280, słowa na 412
   PlotnoTest p;
-  rysujEkranDanych(p, {"cz 30.11", "dane 23:59"}, t);
+  rysujEkranDanych(p, {"Poranek", "cz 30.11"}, t);
   SPRAWDZ(p.czarne(28, 398, 200, 414) > 50);  // rząd słów jest
   // reguła ustępowania 2: przy linii uwagi i stopce słowa zostają w kolumnach innych niż `jak zwykle`;
   // pasek się zagęszcza (128 px, od 294); zdanie (dół 219 + 58 = 277 przy linii 48 px) nad paskiem
@@ -2938,7 +3102,7 @@ static void testSkalaB() {
   t.liniaOstrzezenie = true;
   SPRAWDZ(slowaWPasku(t) && gornaPaska(t) == 294 && wysokoscPaska(t) == 128);
   PlotnoTest q;
-  rysujEkranDanych(q, {"cz 30.11", "dane 23:59"}, t);
+  rysujEkranDanych(q, {"Poranek", "cz 30.11"}, t);
   SPRAWDZ(q.czarne(28, 404, 200, 420) > 50);  // rząd słów jest (słowo na 294 + 119 = 413)
   SPRAWDZ(q.czarne(28, 424, 200, 434) == 0);  // nic nie wchodzi między pasek a linię stopki
   SPRAWDZ(q.czarne(28, 370, 200, 392) > 50);  // wartości (B5 na 294 + 94 = 388)
@@ -2955,7 +3119,7 @@ static void testSkalaB() {
   zr.kolumny[1].s = "↑";
   zr.kolumny[1].poza = true;
   PlotnoTest qz;
-  rysujEkranDanych(qz, {"cz 30.11", "dane 23:59"}, zr);
+  rysujEkranDanych(qz, {"Poranek", "cz 30.11"}, zr);
   int kx = 28 + 186;
   SPRAWDZ(qz.czarne(kx, 400, kx + szer(F_P22B, "wyżej niż zwykle"), 418) > 50);  // słowo jest
   SPRAWDZ(qz.cz(kx - 5, 360) && qz.cz(kx - 4, 360) && !qz.cz(kx - 3, 360) && !qz.cz(kx - 6, 360));  // lewa krawędź 2 px
@@ -2967,7 +3131,7 @@ static void testSkalaB() {
   t.stopkaPrawo.clear();  // reguła 0: bez stopki strefa do 466, słowa wracają
   SPRAWDZ(slowaWPasku(t) && gornaPaska(t) == 324);
   PlotnoTest r;
-  rysujEkranDanych(r, {"cz 30.11", "dane 23:59"}, t);
+  rysujEkranDanych(r, {"Poranek", "cz 30.11"}, t);
   SPRAWDZ(r.czarne(0, 434, 800, 436) == 0);  // bez linii stopki
 
   // najdłuższe teksty mieszczą się w strefach (px z krojów, SPEC-B 6, SPEC-KOKPIT 2–7)
@@ -2983,8 +3147,15 @@ static void testSkalaB() {
                         "Noc w normie. Sypialnia: różnice niżej.",
                         "Noc w normie. Dobre warunki do snu."})
     SPRAWDZ(szer(F_P34B, z) <= 744 - 20);  // zapas co najmniej 20 px
-  // nagłówek ekranów dnia i kart: `{dzień} {data}` i najdłuższy stan danych
-  SPRAWDZ(szer(F_P24B, "cz 30.11") + szer(F_P24B, "dane 23:59 · ocena ograniczona") + 24 <= 744);
+  // belka ekranów dnia i kart: najdłuższy środek mieści się przed prawym polem przy najszerszym stanie baterii
+  {
+    BateriaEkranu b100;
+    b100.procent = 100;
+    ustawBaterieEkranu(b100);
+    for (const char* sr : {"cz 30.11 · ocena ograniczona", "cz 30.11 · dane z 29.11"})
+      SPRAWDZ(szer(F_P22B, sr) <= miejsceSrodkaBelki(Belka{"Poranek", sr}));
+    ustawBaterieEkranu(BateriaEkranu());
+  }
   SPRAWDZ(szer(F_P22B, wersaliki("Przy łóżku · ostatnia noc"), 2) + szer(F_P22B, "↔ jak zwykle") + 24 <= 744);
   ROWNE(wersaliki("Przy łóżku · ostatnia noc ąćęńśźż"), "PRZY ŁÓŻKU · OSTATNIA NOC ĄĆĘŃŚŹŻ");
   SPRAWDZ(28 + szer(F_S120, "1000") + 20 + szer(F_P34B, "nocy z rzędu") <= 772);  // S2b, seria 4-cyfrowa
@@ -3004,7 +3175,7 @@ static void testSkalaB() {
   SPRAWDZ(zawin(F_P28B, "Wyjazd z aparatem? Dane wrócą same. Sprawdzam co\xC2\xA0" "3\xC2\xA0" "h.", 728).size() <= 2);  //
   SPRAWDZ(zawin(F_P28B, "Ostatnia noc: 12 h 59 z maską, wyciek 112 l/min.", 744).size() <= 2);  // S6, R-EKR-45, bez P95
   // stopki (wzór 2.1): grupy w jednej linii 744 px
-  // (stopka U-05 ma krój P18B i własny układ według kanwy: testU05WedlugKanwy)
+  // (stopka U-05 od 14.11.2026 jak na ekranach danych: testU05WedlugMakiety)
   SPRAWDZ(szerStopki(stopkaK2()) <= 744 && szerStopki(stopkaK1(true)) <= 744 && szerStopki(stopkaPytania()) <= 744);
   SPRAWDZ(szerStopki({"◀ ostatnia noc · 2 s ustawienia", "↻ ekran dnia · 2 s sprzęt", "▶ raport"}) <= 744);  // pełna mapa K2
   // stopka karty bez zdania budzika (od 10.11.2026, ADR-0009 „Zmiana 2026-11-10”): lewo jak na ekranie danych
@@ -3014,7 +3185,7 @@ static void testSkalaB() {
     kt.tytul = "Noc: 6 h 38 z maską.";
     kt.stopkaPrawo = "przy łóżku 35° · 100%";
     PlotnoTest kp;
-    rysujKarte(kp, {"cz 30.11", "dane 05:46"}, kt, "");
+    rysujKarte(kp, {"Poranek", "cz 30.11"}, kt, "");
     int x0 = 772 - szer(F_P22B, kt.stopkaPrawo);
     SPRAWDZ(kp.czarne(x0, 444, 772, 472) > 50);   // odczyt czujnika w całości
     SPRAWDZ(kp.czarne(0, 440, x0 - 4, 480) == 0);  // bez zdania budzika z lewej
@@ -3022,7 +3193,7 @@ static void testSkalaB() {
     TrescEkranu pusta;
     pusta.tytul = kt.tytul;
     PlotnoTest kq;
-    rysujKarte(kq, {"cz 30.11", "dane 05:46"}, pusta, "");
+    rysujKarte(kq, {"Poranek", "cz 30.11"}, pusta, "");
     SPRAWDZ(kq.czarne(0, 433, 800, 480) == 0);
   }
   // S9 A1: fakty i krok w kolumnie tekstu 474 px; A3: linia 2 obok budzika (≤ 500)
@@ -3032,7 +3203,7 @@ static void testSkalaB() {
   // pytanie: opis nocy obok etykiety, etykieta leków w 2 liniach lewej kolumny (376 − 58)
   SPRAWDZ(28 + szer(F_P22B, "INNA NOC", 1) + 32 + szer(F_P22B, "AHI 12,4 przy zwykłych 10,5–12,3, maska zdjęta 12 razy") <= 772);
   SPRAWDZ(zawin(F_P22B, "leki nasenne, uspokajające albo silne przeciwbólowe", 376 - 58).size() == 2);
-  // ekran testu zastąpiony przez U-05 według kanwy: testU05WedlugKanwy
+  // ekran testu zastąpiony przez U-05 według makiety 14.11.2026: testU05WedlugMakiety
   // opis nocy na pytaniu pod etykietą, na 744 px, najwyżej 2 linie; najgorsze pary metryk
   for (const char* o : {"AHI 112,5 przy zwykłych 10,5–12,3, maska 12:59 przy zwykłych 10:48–11:59",
                         "AHI 112,5 przy zwykłych 10,5–12,3, wyciek 112 l/min przy zwykłych 100–112",
@@ -3068,7 +3239,7 @@ static void testSkalaB() {
     dl.powod = "Bardzo długi powód, który na pewno nie mieści się w dwóch liniach tekstu, bo ma dużo słów i jeszcze "
                "więcej słów, a potem jeszcze kilka słów na koniec.";
     PlotnoTest po;
-    rysujEkranDanych(po, {"cz 30.11", ""}, dl);
+    rysujEkranDanych(po, {"Poranek", "cz 30.11"}, dl);
     SPRAWDZ(po.czarne(0, 54 + 40 + 51 + 14 + 3 * 36 - 20, 800, 54 + 40 + 51 + 14 + 3 * 36 + 8) == 0);  // bez 3. linii
   }
 
@@ -3130,19 +3301,20 @@ static void testSkalaB() {
     z.kolumny = trescDnia("S2A", "1", da).kolumny;
     z.linia = "Co było inaczej? ↻ 2 s";
     PlotnoTest zp;
-    rysujEkranDanych(zp, {"wt 27.10", "dane 05:38"}, z);
+    rysujEkranDanych(zp, {"Poranek", "wt 27.10"}, z);
     SPRAWDZ(zp.cz(12, 80) && zp.cz(13, 80) && !zp.cz(14, 80) && zp.cz(400, 57) && !zp.cz(400, 70));  // ramka 2 px
     printf("  linia zaproszenia: %d px\n", zp.czarne(0, 54, 800, 102));
     SPRAWDZ(zp.czarne(0, 54, 800, 102) < 8000);  // nie czarny pasek (pasek: 38 400 px)
     SPRAWDZ(zp.czarne(28, 66, 28 + szer(F_P24B, "C"), 88) > 20);  // tekst od 28 px: bez `!` przed nim
     z.liniaOstrzezenie = true;
     PlotnoTest zo;
-    rysujEkranDanych(zo, {"wt 27.10", "dane 05:38"}, z);
+    rysujEkranDanych(zo, {"Poranek", "wt 27.10"}, z);
     SPRAWDZ(zo.czarne(0, 54, 800, 102) > 30000);
     // pkt 6: jeden nagłówek ekranów dnia i kart, bez liczb nocy
     for (const char* typ : {"S2A", "S2B", "S2C", "S6", "KM", "S5"}) {
-      std::string l = naglowekDniaLewo(da);
-      SPRAWDZ(l == "cz 29.10" && trescDnia(typ, "100", da).naglowekLewo.empty());
+      (void)typ;  // jedna belka dla każdego typu ekranu dnia: nazwa `Poranek` i data, bez liczb nocy
+      SPRAWDZ(belkaDnia(da).nazwa == "Poranek" && dataDnia(da) == "cz 29.10" &&
+              srodekDnia(da).find("AHI") == std::string::npos && srodekDnia(da).find(" h ") == std::string::npos);
     }
     // pkt 7 i druga przegląd K22 `Noc: {czas} z maską.` bez oceny, czas nie powtarza się w faktach
     TrescEkranu k22 = trescDnia("S2A", "1", da);
@@ -3450,7 +3622,7 @@ static void testOtoczenie() {
     ROWNE(t.stopkaLewo, l);
     ROWNE(t.stopkaPrawo, p);
     PlotnoTest pt;
-    rysujEkranDanych(pt, {"pt 30.10", "dane 05:40"}, t);
+    rysujEkranDanych(pt, {"Poranek", "pt 30.10"}, t);
     int kl = 28 + szer(F_P22B, l), pp = 772 - szer(F_P22B, p);
     SPRAWDZ(pp - kl >= ODSTEP_STOPKI && pt.czarne(kl + 1, 440, pp - 1, 480) == 0);
     SPRAWDZ(pt.czarne(28, 444, kl, 472) > 50 && pt.czarne(pp, 444, 772, 472) > 50);
@@ -3465,8 +3637,8 @@ static void testOtoczenie() {
     stary.pogoda = "";
     stary.przyLozku = stopkaCzujnika(22.2f, 45.4f);
     PlotnoTest p1, p2r;
-    rysujEkranDanych(p1, {"pt 30.10", "dane 05:40"}, tb);
-    rysujEkranDanych(p2r, {"pt 30.10", "dane 05:40"}, trescDnia("S2A", "1", stary));
+    rysujEkranDanych(p1, {"Poranek", "pt 30.10"}, tb);
+    rysujEkranDanych(p2r, {"Poranek", "pt 30.10"}, trescDnia("S2A", "1", stary));
     SPRAWDZ(p1.px == p2r.px);  // piksel w piksel
     // karta (bez zdania budzika od 10.11.2026): odczyt z dopiskiem CO2 stoi w całości z prawej, pogoda z lewej
     TrescEkranu kt;
@@ -3474,7 +3646,7 @@ static void testOtoczenie() {
     kt.stopkaLewo = "Katowice 7° · pochmurno";
     kt.stopkaPrawo = "przy łóżku 35° · 99% · CO2 4999";
     PlotnoTest kp2;
-    rysujKarte(kp2, {"cz 30.11", "dane 05:46"}, kt, "");
+    rysujKarte(kp2, {"Poranek", "cz 30.11"}, kt, "");
     int x0 = 772 - szer(F_P22B, "przy łóżku 35° · 99% · CO2 4999");
     SPRAWDZ(kp2.czarne(x0, 444, 772, 472) > 50);
     SPRAWDZ(kp2.czarne(28, 444, 28 + szer(F_P22B, kt.stopkaLewo), 472) > 50);
@@ -3520,7 +3692,7 @@ static void testOtoczenie() {
     SPRAWDZ(!t.liniaOstrzezenie);
     SPRAWDZ(szer(F_P24B, t.linia) <= 744);
     PlotnoTest lp;
-    rysujEkranDanych(lp, {"pt 30.10", "dane 05:40"}, t);
+    rysujEkranDanych(lp, {"Poranek", "pt 30.10"}, t);
     SPRAWDZ(lp.cz(12, 80) && lp.cz(13, 80) && !lp.cz(14, 80));  // ramka 2 px
     SPRAWDZ(lp.czarne(0, 54, 800, 102) < 8000);                 // biały pasek, nie czarny
   }
@@ -3646,7 +3818,7 @@ static void testOtoczenie() {
       SPRAWDZ(!tc.kolumny[2].ponadProg);
       ROWNE(tc.powod, "Dobre warunki do snu.");
       PlotnoTest pp;  // czarne pole kolumny CO2 z białym tekstem (jedna legenda: czarne = ponad próg)
-      rysujEkranDanych(pp, {"so 31.10", "dane 06:30"}, ta);
+      rysujEkranDanych(pp, {"Poranek", "so 31.10"}, ta);
       int kx = 28 + 2 * 186, top = gornaPaska(ta);
       SPRAWDZ(pp.czarne(kx - 5, top + 40, kx + 179, top + 120) > 70 * 184 * 8 / 10);
     }
@@ -3656,7 +3828,7 @@ static void testOtoczenie() {
     dzis.co2 = 4999;
     t = trescDnia("S2C", "2", d);
     PlotnoTest sp;
-    rysujEkranDanych(sp, {"so 31.10", "dane 06:30"}, t);
+    rysujEkranDanych(sp, {"Poranek", "so 31.10"}, t);
     SPRAWDZ(szer(F_P28B, "4999") + 8 + szer(F_P28B, "↑") < 186 && szer(F_P22B, "zwykle 4999") < 180);  // kolumna 186 px
     SPRAWDZ(sp.czarne(0, 424, 800, 434) == 0);  // pasek kończy się nad stopką także z linią uwagi
   }
@@ -3871,7 +4043,7 @@ int main() {
   testPrzypadkiBrzegowe();
   testPrzypadkiBrzegoweDalsze();
   testSkalaB();
-  testU05WedlugKanwy();
+  testU05WedlugMakiety();
   testOtoczenie();
   testBateria();
   testNumerZdaniaZPliku();

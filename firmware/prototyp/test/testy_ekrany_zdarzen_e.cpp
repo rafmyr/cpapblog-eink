@@ -314,7 +314,8 @@ static void testTrescIRysowanie() {
   SPRAWDZ(st.size() == 2 && st[0] == "▶ kokpit" && st[1] == "↻ 2 s wiem");
   Bufor b;
   rysujWzorzec(b, w);
-  SPRAWDZ(b.cz(5, 5) && b.cz(400, 470) && b.cz(400, 75));  // negatyw (5.4.3 ton „problem”), bez linii brak paska
+  // negatyw (5.4.3 ton „problem”), bez linii brak paska; belka nad negatywem jasna z linią 41…43 (ADR-0043)
+  SPRAWDZ(!b.cz(5, 5) && !b.cz(400, 38) && b.cz(400, 42) && b.cz(5, 50) && b.cz(400, 470) && b.cz(400, 75));
   // z linią zdrowia: biały pasek pod nagłówkiem (54…102), tytuł niżej
   d.linia = "Wciąż: Noce z AHI powyżej 5.";
   d.liniaOstrzezenie = true;

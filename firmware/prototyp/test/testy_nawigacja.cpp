@@ -335,21 +335,26 @@ static void testStopki() {
     for (int i = 1; i <= std::max(1, n); i++)
       for (bool l : {false, true}) st.push_back(stopkaSpraw(i, n, l));
   for (bool spr : {false, true})
-    for (bool l : {false, true}) {
-      st.push_back(stopkaK2(spr, l));
-      st.push_back(stopkaU01(spr, l));
-    }
+    for (bool l : {false, true}) st.push_back(stopkaK2(spr, l));
   for (auto& g : st) {
     SPRAWDZ(maGrupe(g, "◀") && maGrupe(g, "▶") && maGrupe(g, "↻"));
     SPRAWDZ(szerStopki(g) <= 744);
   }
+  // U-01 (od 14.11.2026): w stopce tylko krótkie ◀ i ↻ (krótkie ▶ nic nie robi, R31-04); przytrzymania ◀ ▶ ↻
+  // podpisane w kafelkach `PRZYTRZYMAJ 2 S` na ekranie
+  for (bool spr : {false, true})
+    for (bool l : {false, true}) {
+      std::vector<std::string> g = stopkaU01(spr, l);
+      SPRAWDZ(maGrupe(g, "◀") && !maGrupe(g, "▶") && maGrupe(g, "↻") && szerStopki(g) <= 744);
+    }
+  SPRAWDZ(std::string(U01_KAFELEK_TYTUL[0]).rfind("◀", 0) == 0 && std::string(U01_KAFELEK_TYTUL[1]).rfind("▶", 0) == 0);
   // 5.5.7 „Stopki stron”: podpis celu według ciągu stron
   SPRAWDZ(stopkaK2(true)[1] == "▶ sprawy · 2 s raport" && stopkaK2(false)[1] == "▶ ustawienia · 2 s raport");
   SPRAWDZ(stopkaK2(false, true)[1] == "▶ liczby · 2 s raport" && stopkaK2(true, true)[1] == "▶ liczby · 2 s raport");
   SPRAWDZ(stopkaSpraw(1, 3)[0] == "◀ 7 nocy" && stopkaSpraw(3, 3)[1] == "▶ ustawienia");
   SPRAWDZ(stopkaSpraw(1, 3, true)[0] == "◀ liczby" && stopkaSpraw(2, 3, true)[0] == "◀ poprzednia");
-  SPRAWDZ(stopkaU01(true)[0] == "◀ sprawy · 2 s sieć" && stopkaU01(false)[0] == "◀ 7 nocy · 2 s sieć");
-  SPRAWDZ(stopkaU01(false, true)[0] == "◀ liczby · 2 s sieć" && stopkaU01(true, true)[0] == "◀ sprawy · 2 s sieć");
+  SPRAWDZ(stopkaU01(true)[0] == "◀ sprawy" && stopkaU01(false)[0] == "◀ 7 nocy");
+  SPRAWDZ(stopkaU01(false, true)[0] == "◀ liczby" && stopkaU01(true, true)[0] == "◀ sprawy");
   SPRAWDZ(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));
   for (bool spr : {false, true}) {
     std::string s = podsumowanie::budujLiczby(reguly::Tryb::ASV, true, spr).stopkaLewo;
@@ -557,7 +562,9 @@ static void testEkranZRtc() {
   SPRAWDZ(ekranZRtc(0) == Ekran::DZIEN && ekranZRtc(9) == Ekran::RAPORT);
   SPRAWDZ(ekranZRtc((unsigned char)Ekran::SIEC_PANELU) == Ekran::SIEC_PANELU);
   SPRAWDZ(ekranZRtc((unsigned char)Ekran::PORTRET) == Ekran::PORTRET);
-  SPRAWDZ(ekranZRtc((unsigned char)Ekran::PORTRET + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
+  // od 14.11.2026 (ADR-0044) za PORTRET stoi SYPIALNIA; bajt za ostatnią wartością wyliczenia: ekran dnia
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::PORTRET + 1) == Ekran::SYPIALNIA);
+  SPRAWDZ(ekranZRtc((unsigned char)Ekran::SYPIALNIA + 1) == Ekran::DZIEN && ekranZRtc(255) == Ekran::DZIEN);
   // powrót po uśpieniu (pamięć RTC, R-KOK-19): strony kokpitu `n / 3` i bez numeru wracają same, dawne S8 i „Sprzęt”
   // (obraz sprzed ADR-0041) dają ekran dnia; numery wyliczenia za nimi bez zmian (U-01 = 14)
   SPRAWDZ((int)Ekran::USTAWIENIA == 14 && (int)Ekran::SPRZET_ZAPISANO == 13 && (int)Ekran::LICZBY == 11);

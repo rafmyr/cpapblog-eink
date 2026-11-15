@@ -8,6 +8,7 @@
 #include <ctime>
 #include <deque>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include "adaptery.h"
@@ -89,7 +90,9 @@ class AtrapaNvs : public Nvs {
     auto i = teksty.find(k(p, kl));
     return i == teksty.end() ? dom : i->second;
   }
+  std::set<std::string> nieudaneTeksty;  // klucze `p/kl`, których zapis tekstu się nie udaje (pełna NVS)
   bool ustawTekst(const char* p, const char* kl, const std::string& v) override {
+    if (nieudaneTeksty.count(k(p, kl))) return false;
     teksty[k(p, kl)] = v; zapis(p, kl); return true;
   }
   uint32_t liczbaU(const char* p, const char* kl, uint32_t dom) override {
@@ -640,9 +643,12 @@ class AtrapaWydan : public Wydania {
   uint32_t msZadania = 300, msObrazu = 60000;
 
   // Wydanie `wersja` z obrazem `bajty` (opis zgodny z panelem przy `uklad` = ukladWkompilowany()).
-  void ustaw(const std::string& wersja, const std::string& bajty, uint32_t uklad, const std::string& plytka = PLYTKA_WYDANIA) {
+  // `nowosci`: pole „Co nowego” opisu (R-KONF-56); puste = wydanie bez pola, jak wydania sprzed 14.11.2026.
+  void ustaw(const std::string& wersja, const std::string& bajty, uint32_t uklad, const std::string& plytka = PLYTKA_WYDANIA,
+             const std::vector<std::string>& nowosci = {}) {
     obraz = bajty;
     aktualizacja::OpisWydania o;
+    o.nowosci = nowosci;
     o.wersja = wersja;
     o.plytka = plytka;
     o.uklad = uklad;

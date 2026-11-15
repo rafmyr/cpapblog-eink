@@ -1,6 +1,8 @@
 # Czytelny kokpit i ekrany pomocnicze: specyfikacja makiet
 
 > **Stan dokumentu.** Projekt skali B z 30.10.2026. Makiety 1-bit: [`makiety/`](makiety/) (wybrane stany; wygenerowane narzędziem spoza repozytorium). Po audycie UX z 30.10.2026 (decyzja) obowiązuje spec, a nie ten plik, tam gdzie się różnią: ramka zamiast negatywu dla „poza normą” (kolumna paska, wiersz K1, etykieta K2), linia zaproszenia jako biały pasek w ramce, `AHI` jako jedyna nazwa M-02, nagłówek `{dzień} {data}` bez liczb, stopka `przy łóżku {t}° · {w}%`, S2c `Przy łóżku · ostatnia noc`, K2 z nagłówkiem `2 / 2` (spec 5.4.2, 5.4.3, 5.5).
+>
+> **Zmiana 2026-11-14 ([ADR-0043](../../decisions/0043-belka-informacyjna.md)).** Nagłówki opisane w tym dokumencie (linia 2 px na 52, 46 albo 44, data po lewej, `dane {hh:mm}` albo numer strony po prawej, nagłówek testu sprzętu 20 px) zastąpiła belka informacyjna: pas 44 px z linią 3 px na y 41…43, nazwa ekranu (P24B), środek (P22B) i bateria panelu. Obowiązuje spec 5.4.17; treść pod belką stoi tam, gdzie stała. S9 zachowuje swój nagłówek.
 
 
 Dotyczy: K1, K2, pytanie „Co było inaczej?” (F08), S9 „Dobranoc” (A1, A2, A3), stopki z akcjami, test sprzętu, teksty kart.

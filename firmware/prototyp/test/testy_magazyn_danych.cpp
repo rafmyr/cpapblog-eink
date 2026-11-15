@@ -1071,9 +1071,9 @@ static void testR_NF_27_bezZadaniaPozaSiecia() {
   SPRAWDZ(!tokenWyslany);
   SPRAWDZ(!zawiera(log1, token) && !zawiera(s.p.port.log, token));
   SPRAWDZ(!zawiera(t1.linieTestu, token) && !zawiera(t1.diagnostykaTestu, token));
-  SPRAWDZ(zawiera(t1.linieTestu, "Źródło otoczenia: poza siecią domową"));  // U-05: wariant mieszczący się w kolumnie
+  SPRAWDZ(zawiera(t1.linieTestu, "Pogoda i powietrze: nie w sieci domu"));  // U-05: wariant mieszczący się w kolumnie
   SPRAWDZ(zawiera(t1.diagnostykaTestu, "adres poza siecią domową"));
-  SPRAWDZ(zawiera(t2.linieTestu, "Źródło otoczenia: poza siecią domową") && zawiera(t2.diagnostykaTestu, "adres poza siecią domową"));
+  SPRAWDZ(zawiera(t2.linieTestu, "Pogoda i powietrze: nie w sieci domu") && zawiera(t2.diagnostykaTestu, "adres poza siecią domową"));
 }
 
 // R-NF-27, R-AW-25, T-TEST-204: źródło w sieci lokalnej odpowiada 301 albo 302 → jedno żądanie bez drugiego, odmowa
@@ -1091,7 +1091,7 @@ static void testR_NF_27_przekierowanie() {
     for (auto& u : s.siec.zadania) doZrodla += AtrapaSieci::sciezka(u).compare(0, 10, "/otoczenie") == 0;
     ROWNE_L(doZrodla, 1);
     SPRAWDZ(logMa(s, "HTTP " + std::to_string(kod)));
-    SPRAWDZ(zawiera(t.linieTestu, "Źródło otoczenia: przekierowanie"));
+    SPRAWDZ(zawiera(t.linieTestu, "Pogoda i powietrze: przekierowanie"));
   }
 }
 
@@ -1150,7 +1150,7 @@ static void testT_WYM_54_nowszyPlik() {
   std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 23, 55), odpowiedziDoby);
   SPRAWDZ(v.size() > 10);
   ROWNE(s.p.pliki.tresc("/dane/czynniki.csv"), tresc);
-  SPRAWDZ(!v.empty() && zawiera(v.back().t.linieTestu, "Pamięć panelu: dane z nowszej wersji") &&
+  SPRAWDZ(!v.empty() && zawiera(v.back().t.linieTestu, "Pamięć panelu: dane nowszej wersji") &&
           zawiera(v.back().t.diagnostykaTestu, "dane z nowszej wersji: czynniki.csv"));
   // pierwsze wybudzenie (00:05): czynniki z pliku, przed jakimkolwiek pytaniem tej doby
   SPRAWDZ(!v.empty() && zawiera(v.front().t.diagnostykaTestu, "Czynniki: 5 nocy"));
@@ -1168,7 +1168,7 @@ static void testR_NF_28_nowszyPlikNocy() {
   TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
   SPRAWDZ(zawiera(s.siec.zadania, "day=" + std::to_string(DOBA_A)));  // nowa noc pobrana
   ROWNE(s.p.pliki.tresc("/dane/noce/2026.csv"), tresc);
-  SPRAWDZ(zawiera(t.linieTestu, "Pamięć panelu: dane z nowszej wersji"));
+  SPRAWDZ(zawiera(t.linieTestu, "Pamięć panelu: dane nowszej wersji"));
   SPRAWDZ(zawiera(t.diagnostykaTestu, "historia 3"));  // 30 z pliku (+ nowa noc z pamięci)
   // powrót do firmware znającego wersję 2
   std::vector<FormatPliku> rej;
@@ -2526,20 +2526,28 @@ static void testT_WYM_43_bledyZnacznikaIScalenia() {
 // Klatka 800×480 z atrapy wyświetlacza (bit 1 = czarny).
 static bool czarnyK(const std::vector<uint8_t>& k, int x, int y) { return (k[(size_t)(y * 100 + x / 8)] >> (7 - (x & 7))) & 1; }
 // Kreski i ramka U-05 w pozycjach z kanwy (design/kanwa/U05-test-sprzetu.dc.html); wierszy w lewej i prawej kolumnie
-// (0 = kolumny nie ma: bez nazwy i kresek).
-static bool ukladU05(const std::vector<uint8_t>& k, int lewa, int prawa) {
+// (0 = kolumny nie ma: bez nazwy i kresek); `dol`: wiersz `Noce z plików` na całą szerokość pod kolumnami,
+// wtedy kreska także pod ostatnim wierszem kolumny.
+static bool ukladU05(const std::vector<uint8_t>& k, int lewa, int prawa, bool dol = false) {
   auto linia = [&](int y, int x0, int x1) {
     for (int x = x0; x <= x1; x++) if (!czarnyK(k, x, y)) return false;
     return true;
   };
-  bool ok = linia(48, 0, 799) && linia(49, 0, 799) && linia(436, 0, 799) && linia(437, 0, 799);
-  for (int y : {378, 379, 420, 421}) ok = ok && linia(y, 26, 773);
-  for (int y = 378; y <= 421; y++) ok = ok && czarnyK(k, 26, y) && czarnyK(k, 773, y);
-  for (int x0 : {26, 414}) {
-    int wierszy = x0 == 26 ? lewa : prawa;
-    ok = ok && linia(89, x0, x0 + 359) == (wierszy > 0);
-    for (int i = 0; i < 5; i++) ok = ok && linia(137 + 47 * i, x0, x0 + 359) == (i < wierszy);
+  // układ z makiety 14.11.2026: belka 3 px na 41, pas werdyktu 28…771 × 52…89 (ramka albo negatyw), kolumny 364 px
+  // od 28 i 408 (odstęp 16 px od) z kreską nazwy kolumny 2 px na 118 i kreskami wierszy 1 px co 38 px, ramka okna 28…771 × 356…395,
+  // stopka: kreska 2 px na 434
+  bool ok = linia(41, 0, 799) && linia(42, 0, 799) && linia(43, 0, 799) && linia(434, 0, 799) && linia(435, 0, 799);
+  ok = ok && linia(52, 28, 771) && linia(89, 28, 771);
+  for (int y : {356, 357, 394, 395}) ok = ok && linia(y, 28, 771);
+  for (int y = 356; y <= 395; y++) ok = ok && czarnyK(k, 28, y) && czarnyK(k, 771, y);
+  // bez prawej kolumny (tryb awaryjny) lewa na całą szerokość 744 px
+  for (int x0 : {28, 408}) {
+    if (x0 == 408 && prawa == 0 && lewa > 0) continue;
+    int wierszy = x0 == 28 ? lewa : prawa, w = x0 == 28 && prawa == 0 ? 743 : 363;
+    ok = ok && linia(118, x0, x0 + w) == (wierszy > 0);
+    for (int i = 0; i < 5; i++) ok = ok && linia(120 + 38 * i + 37, x0, x0 + w) == (i < wierszy - (dol ? 0 : 1));
   }
+  if (dol) ok = ok && !linia(120 + 38 * 5 + 37, 28, 771);  // pod wierszem `dol` bez kreski (nad nim ramka okna)
   return ok;
 }
 static void zapiszU05(const std::vector<uint8_t>& k, const char* nazwa) {  // CPAP_U05_PBM = katalog na podgląd
@@ -2559,6 +2567,70 @@ static TekstyWybudzenia naU05(PanelP03& s) {
   return wybudz(s, ep(2026, 11, 4, 10, 0), PowodWybudzenia::PRZYCISK);
 }
 
+// Belka na U-05 (spec 5.4.17, R-EKR-66, R-KONF-41): bateria w belce i wiersz `Bateria` pokazują to samo, zawsze
+// z pomiaru w tym wybudzeniu, nigdy stan z wcześniejszej klatki; bez pomiaru belka `–`, wiersz `brak odczytu`; na
+// kablu belka `kabel`, wiersz `na zasilaniu` (słowa zamiast kreski, decyzja 4 z 14.11.2026).
+// wymaganie: R-EKR-66
+static void testR_EKR_66_bateriaNaU05JakWiersz() {
+  auto pasBelki = [](const std::vector<uint8_t>& k, const BateriaEkranu& b) {  // pas 0…43 równy belce U-05 ze stanem `b`
+    struct Bufor : Plotno {
+      std::vector<uint8_t> px = std::vector<uint8_t>(48000, 0);
+      void piksel(int x, int y, bool c) override {
+        if (x < 0 || y < 0 || x >= 800 || y >= 480) return;
+        uint8_t m = (uint8_t)(0x80 >> (x & 7));
+        if (c) px[(size_t)(y * 100 + x / 8)] |= m;
+        else px[(size_t)(y * 100 + x / 8)] &= (uint8_t)~m;
+      }
+    } w;
+    ustawBaterieEkranu(b);
+    belka(w, Belka{"Test sprzętu", "sprawdzono 04.11 10:00"});  // środek belki od 14.11.2026
+    ustawBaterieEkranu(BateriaEkranu());
+    for (size_t i = 0; i < 44 * 100; i++)
+      if (w.px[i] != k[i]) return false;
+    return true;
+  };
+  BateriaEkranu b70, b40, brak;
+  b70.procent = 70;
+  b40.procent = 40;
+  {  // pomiar 3,95 V: wiersz `Bateria: 70%` i belka `70%`
+    PanelP03 s;
+    zNocami(s, 30);
+    TekstyWybudzenia t = naU05(s);
+    SPRAWDZ(zawiera(t.linieTestu, "Bateria: 70%"));
+    SPRAWDZ(!s.p.ekran.klatki.empty() && pasBelki(s.p.ekran.klatki.back(), b70));
+  }
+  {  // w pamięci RTC klatka z 40% (wcześniejszy ekran): U-05 i tak pokazuje świeże 70% w obu miejscach
+    PanelP03 s;
+    zNocami(s, 30);
+    s.p.start.stan.klatkaBatProc = 40;
+    s.p.start.stan.klatkaBatFlagi = 1;
+    s.p.start.stan.klatkaOd = ep(2026, 11, 4, 9, 30);
+    TekstyWybudzenia t = naU05(s);
+    SPRAWDZ(zawiera(t.linieTestu, "Bateria: 70%"));
+    SPRAWDZ(!s.p.ekran.klatki.empty() && pasBelki(s.p.ekran.klatki.back(), b70) && !pasBelki(s.p.ekran.klatki.back(), b40));
+  }
+  {  // bez pomiaru napięcia w tym wybudzeniu, a w RTC ostatni procent 70: wiersz `brak odczytu` i belka `–`, nie `70%`
+    PanelP03 s;
+    zNocami(s, 30);
+    s.p.czujniki.o.bateriaV = NAN;
+    s.p.start.stan.bateriaProc = 70;
+    s.p.start.stan.bateriaSurowy = 70;
+    TekstyWybudzenia t = naU05(s);
+    SPRAWDZ(zawiera(t.linieTestu, "Bateria: brak odczytu"));
+    SPRAWDZ(!s.p.ekran.klatki.empty() && pasBelki(s.p.ekran.klatki.back(), brak) && !pasBelki(s.p.ekran.klatki.back(), b70));
+  }
+  {  // na kablu (od 14.11.2026): wiersz `na zasilaniu`, belka `kabel` (ta sama informacja w obu miejscach)
+    PanelP03 s;
+    zNocami(s, 30);
+    s.p.czujniki.zas = Zasilanie::ZEWNETRZNE;
+    TekstyWybudzenia t = naU05(s);
+    BateriaEkranu bk = b70;
+    bk.kabel = true;
+    SPRAWDZ(zawiera(t.linieTestu, "Bateria: na zasilaniu · 70%"));  // procent ładowania zostaje
+    SPRAWDZ(!s.p.ekran.klatki.empty() && pasBelki(s.p.ekran.klatki.back(), bk));
+  }
+}
+
 // U-05 z oknem Wi-Fi: 10 wierszy w kolejności kanwy z wartościami z danych firmware (T-WYM-39), ramka z godziną końca
 // okna, numer wydania bez skrótu commitu (skrót tylko w logu), diagnostyka prototypu w logu portu, układ klatki z kanwy.
 static void testU05_wierszeZDanychFirmware() {
@@ -2568,10 +2640,16 @@ static void testU05_wierszeZDanychFirmware() {
   PanelP03 s;
   zNocami(s, 30);
   TekstyWybudzenia t = naU05(s);
-  std::vector<std::string> ocz = {"Oprogramowanie: 1.0.0 (app0)", "Zestaw reguł: wbudowany", "Pamięć panelu: wolne 23 MB",
-                                  "Karta: brak karty", "Źródło otoczenia: wyłączone", "Panel: 192.168.1.50",
-                                  "Wi-Fi: Dom −60 dBm", "AirBridge: 192.168.1.20 · v2.2.1", "Ostatnie pobranie: –",
-                                  "Bateria: 70%", "Noce z plików: włączone (plik)",  // domyślnie `plik`
+  // od 14.11.2026 (według projektu ekranu): kolumna PANEL, kolumna ŁĄCZNOŚĆ, werdykt, ramka; slot (app0) tylko
+  // w logu i w trybie awaryjnym
+  // bez wiersza `Karta` (wróci ze sterownikiem karty); `Noce z plików` pod kolumnami; panel jeszcze
+  // nie pobrał nocy (`–`), więc werdykt nie może brzmieć `Wszystko działa` (ADR-0029 pkt 7)
+  std::vector<std::string> ocz = {"Oprogramowanie: 1.0.0", "Zegar panelu: 04.11 10:00", "Pamięć panelu: wolne 23 MB",
+                                  "Bateria: 70%", "Zestaw reguł: wbudowany",
+                                  "Wi-Fi: Dom · sygnał dobry (−60 dBm)", "Adres panelu: 192.168.1.50",
+                                  "AirBridge: 192.168.1.20 · v2.2.1", "Ostatnie pobranie: –", "Pogoda i powietrze: wyłączone",
+                                  "Noce z plików: włączone (plik)",  // domyślnie `plik`
+                                  "Werdykt: Bez usterek · nie sprawdzono: pobieranie nocy",
                                   "Wgrywanie przez Wi-Fi do 10:10", "hasła i dane terapii nie są pokazywane"};
   SPRAWDZ(t.linieTestu.size() >= ocz.size());
   for (size_t i = 0; i < ocz.size() && i < t.linieTestu.size(); i++) ROWNE(t.linieTestu[i], ocz[i]);
@@ -2581,7 +2659,7 @@ static void testU05_wierszeZDanychFirmware() {
                         "historia 30 nocy", "U-05 · Czynniki: ", "U-05 · Bateria 3,95 V", "U-05 · Otoczenie: wyłączone",
                         "U-05 · Pamięć: min. sterta", "U-05 · Dane: wersja plików 5"})  // noce w wersji 5 (M-15)
     SPRAWDZ(logMa(s, d));
-  SPRAWDZ(!s.p.ekran.klatki.empty() && ukladU05(s.p.ekran.klatki.front(), 5, 5));
+  SPRAWDZ(!s.p.ekran.klatki.empty() && ukladU05(s.p.ekran.klatki.front(), 5, 5, true));
   if (!s.p.ekran.klatki.empty()) zapiszU05(s.p.ekran.klatki.front(), "u05-okno-wifi");
   // bez hasła okna (T-WYM-45): `Wgrywanie przez Wi-Fi: wyłączone`, bez godziny
   PanelP03 b;
@@ -2606,7 +2684,7 @@ static void testU05_wierszeZDanychFirmware() {
   zNocami(nv, 30);
   nv.p.nvs.liczbyU["cpap/" + std::string(NVS_KLUCZ_WERSJA)] = 99;
   TekstyWybudzenia tn = naU05(nv);
-  SPRAWDZ(zawiera(tn.linieTestu, "Pamięć panelu: dane z nowszej wersji") &&
+  SPRAWDZ(zawiera(tn.linieTestu, "Pamięć panelu: dane nowszej wersji") &&
           zawiera(tn.diagnostykaTestu, "dane z nowszej wersji: NVS cpap"));
 }
 
@@ -2621,16 +2699,59 @@ static void testU05_bezWifiOstatniePolaczenie() {
   s.p.przyciski.skrypt = {{0, BIT_PRAWY}, {2300, 0}};  // ▶ 2 s
   s.p.start.stan.ekran = (uint8_t)Ekran::FORMULARZ;  // U-05 z U-03
   TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 12, 0), PowodWybudzenia::PRZYCISK);
-  SPRAWDZ(zawiera(t.linieTestu, "Panel: 192.168.1.50 (10:00)"));
-  SPRAWDZ(zawiera(t.linieTestu, "Wi-Fi: Dom −60 dBm (10:00)"));
+  SPRAWDZ(zawiera(t.linieTestu, "Adres panelu: 192.168.1.50 (10:00)"));
+  SPRAWDZ(zawiera(t.linieTestu, "Wi-Fi: Dom · sygnał dobry (10:00)"));
   SPRAWDZ(zawiera(t.linieTestu, "AirBridge: brak odp. od 04.11 10:00"));
   SPRAWDZ(zawiera(t.linieTestu, "Wgrywanie przez Wi-Fi: brak sieci"));
   PanelP03 n;
   zNocami(n, 30);
   n.siec.siecJest = false;
   TekstyWybudzenia tn = naU05(n);
-  SPRAWDZ(zawiera(tn.linieTestu, "Panel: brak połączenia z Wi-Fi") && zawiera(tn.linieTestu, "Wi-Fi: –"));
+  // przed pierwszym połączeniem: `Wi-Fi: brak połączenia` (usterka), adres `–`
+  SPRAWDZ(zawiera(tn.linieTestu, "Adres panelu: –") && zawiera(tn.linieTestu, "Wi-Fi: brak połączenia"));
+  SPRAWDZ(zawiera(tn.linieTestu, "Werdykt: ") && zawiera(tn.linieTestu, "Wi-Fi"));
   SPRAWDZ(zawiera(tn.linieTestu, "AirBridge: brak odpowiedzi"));
+}
+
+// R-KONF-58 po przeglądzie: `AirBridge` z każdą nieudaną odpowiedzią jako usterka słowem;
+// `Ostatnie pobranie` jako usterka tylko przy starym kontakcie z AirBridge (> POBRANIE_STARE_H) albo nowszej nocy
+// na AirBridge, nie po samych nocach bez terapii.
+// wymaganie: R-KONF-58
+static void testR_KONF_58_airBridgeIPobranie() {
+  auto u05Z = [](PanelP03& s, uint32_t kiedy) {
+    s.p.start.budzace = BIT_PRAWY;
+    s.p.start.stan.ekran = (uint8_t)Ekran::FORMULARZ;  // U-05 z U-03
+    s.p.przyciski.skrypt = {{0, BIT_PRAWY}, {2300, 0}};  // ▶ 2 s
+    return wybudz(s, kiedy, PowodWybudzenia::PRZYCISK);
+  };
+  for (int kod : {500, 404, 418}) {  //
+    PanelP03 v;
+    zNocami(v, 30);
+    blokada(v, 0);
+    v.siec.odpowiedzi.clear();
+    v.siec.dodaj("/api/status", kod, "");
+    TekstyWybudzenia t = u05Z(v, ep(2026, 11, 4, 10, 0));
+    bool ab = false, werdykt = false;
+    for (auto& l : t.linieTestu) {
+      ab = ab || l.rfind("AirBridge: błąd AirBridge", 0) == 0;
+      werdykt = werdykt || (l.rfind("Werdykt: ", 0) == 0 && l.find("AirBridge") != std::string::npos);
+    }
+    if (!ab) printf("  kod %d bez `błąd AirBridge`\n", kod);
+    SPRAWDZ(ab && werdykt);
+  }
+  {  // ostatni kontakt z AirBridge 04.11 10:00; 05.11 09:00 (23 h) bez usterki, 07.11 12:00 (74 h) z usterką
+    PanelP03 s;
+    zNocami(s, 30);
+    s.p.nvs.liczbyU[std::string("cpap/") + NVS_KLUCZ_POBRANIE_NOCY] = ep(2026, 11, 4, 5, 32);
+    naU05(s);
+    s.siec.siecJest = false;
+    TekstyWybudzenia t1 = u05Z(s, ep(2026, 11, 5, 9, 0));
+    for (auto& l : t1.linieTestu) SPRAWDZ(!(l.rfind("Werdykt: ", 0) == 0 && l.find("pobieranie nocy") != std::string::npos));
+    TekstyWybudzenia t2 = u05Z(s, ep(2026, 11, 7, 12, 0));
+    bool jest = false;
+    for (auto& l : t2.linieTestu) jest = jest || (l.rfind("Werdykt: ", 0) == 0 && l.find("pobieranie nocy") != std::string::npos);
+    SPRAWDZ(jest);
+  }
 }
 
 // T-WYM-87, T-WYM-62, 8.9 krok 6: U-05 w oknie przywracania po pierwszym formatowaniu (ramka `Okno przywracania do
@@ -2644,20 +2765,20 @@ static void testU05_oknoPrzywracaniaIPo412() {
   doPortu(s, b + "K" + "O");  // `O` po oknie: U-05 w czuwaniu (okno serwisowe), jak testT_WYM_62_przejscieNaZrzucieZPanelu
   blokada(s, 0);
   TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
-  // każdy U-05 to 13 tekstów (10 wierszy kolumn, `Noce z plików`, ramka)
-  SPRAWDZ(t.linieTestu.size() >= 26);
-  if (t.linieTestu.size() < 26) return;
-  ROWNE(t.linieTestu[11], "Okno przywracania do 07:10");
-  ROWNE(t.linieTestu[12], "hasła i dane terapii nie są pokazywane");
+  // każdy U-05 to 14 tekstów (5 + 5 wierszy kolumn, `Noce z plików`, werdykt, ramka; od)
+  SPRAWDZ(t.linieTestu.size() >= 28);
+  if (t.linieTestu.size() < 28) return;
+  ROWNE(t.linieTestu[12], "Okno przywracania do 07:10");
+  ROWNE(t.linieTestu[13], "hasła i dane terapii nie są pokazywane");
   ROWNE(t.linieTestu[2], "Pamięć panelu: wolne 23 MB");  // świeżo sformatowana partycja
-  ROWNE(t.linieTestu[15], "Pamięć panelu: przywrócono 412/412");  // 2. U-05: po przywróceniu
+  ROWNE(t.linieTestu[16], "Pamięć panelu: przywrócono 412 z 412");  // 2. U-05: po przywróceniu (w kolumnie 364 px pełny)
   SPRAWDZ(zawiera(t.diagnostykaTestu, "historia 412 nocy") && zawiera(t.diagnostykaTestu, "przywrócono 412 z 412"));
   SPRAWDZ(s.p.ekran.klatki.size() >= 2);
   if (s.p.ekran.klatki.size() < 2) return;
-  SPRAWDZ(ukladU05(s.p.ekran.klatki.front(), 5, 5));
+  SPRAWDZ(ukladU05(s.p.ekran.klatki.front(), 5, 5, true));
   zapiszU05(s.p.ekran.klatki.front(), "u05-okno-przywracania");
   for (auto& k : s.p.ekran.klatki)
-    if (ukladU05(k, 5, 5) && &k != &s.p.ekran.klatki.front()) zapiszU05(k, "u05-po-przywroceniu-412");
+    if (ukladU05(k, 5, 5, true) && &k != &s.p.ekran.klatki.front()) zapiszU05(k, "u05-po-przywroceniu-412");
 }
 
 // D52 (integracja): `Ostatnie pobranie` = chwila ostatniego udanego pobrania nocy z AirBridge (T-WYM-39), nie tylko
@@ -2685,18 +2806,19 @@ static void testU05_ostatniePobraniePoPrzywroceniu() {
     doPortu(s, b + "K" + "O");
     blokada(s, 0);
     TekstyWybudzenia t = wybudz(s, ep(2026, 11, 4, 7, 0), PowodWybudzenia::START);
-    SPRAWDZ(t.linieTestu.size() >= 26);
-    if (t.linieTestu.size() < 26) return;
-    ROWNE(t.linieTestu[15], "Pamięć panelu: przywrócono 412/412");
-    ROWNE(t.linieTestu[21], "Ostatnie pobranie: 04.11 05:32");  // przed D52: `–` (noce zrzutu bez `import`)
+    SPRAWDZ(t.linieTestu.size() >= 28);
+    if (t.linieTestu.size() < 28) return;
+    ROWNE(t.linieTestu[16], "Pamięć panelu: przywrócono 412 z 412");
+    ROWNE(t.linieTestu[22], "Ostatnie pobranie: 04.11 05:32");  // przed D52: `–` (noce zrzutu bez `import`)
     SPRAWDZ(s.p.ekran.klatki.size() >= 2);
     for (auto& k : s.p.ekran.klatki)
-      if (ukladU05(k, 5, 5) && &k != &s.p.ekran.klatki.front()) zapiszU05(k, "u05-po-przywroceniu-412-pobranie");
+      if (ukladU05(k, 5, 5, true) && &k != &s.p.ekran.klatki.front()) zapiszU05(k, "u05-po-przywroceniu-412-pobranie");
   }
 }
 
-// T-WYM-83, R-AW-39: U-05 w trybie awaryjnym według układu kanwy: tylko wersja ze slotem i przyczyna (2 wiersze, jedna
-// kolumna), ramka z oknem, stopka `◀ wróć`; pełny identyfikator i liczba startów w logu.
+// T-WYM-83, R-AW-39: U-05 w trybie awaryjnym (makieta 14.11.2026): tylko wersja ze slotem i przyczyna jako usterka
+// (2 wiersze, jedna kolumna na całą szerokość), werdykt, ramka z oknem, stopka `◀ wróć`; pełny identyfikator i liczba
+// startów w logu.
 static void testU05_trybAwaryjny() {
   Panel p;
   p.zegar.epoch = ep(2026, 11, 4, 10, 0);
@@ -2714,10 +2836,11 @@ static void testU05_trybAwaryjny() {
   SPRAWDZ(!p.ekran.klatki.empty() && ukladU05(p.ekran.klatki.front(), 2, 0));
   if (!p.ekran.klatki.empty()) {
     const std::vector<uint8_t>& k = p.ekran.klatki.front();
-    int prawa = 0, stopkaL = 0;
-    for (int y = 52; y < 378; y++) for (int x = 386; x < 800; x++) prawa += czarnyK(k, x, y);
-    for (int y = 440; y < 480; y++) for (int x = 0; x < 400; x++) stopkaL += czarnyK(k, x, y);
-    SPRAWDZ(prawa == 0 && stopkaL == 0);  // bez prawej kolumny, w stopce tylko `◀ wróć` z prawej
+    int nizej = 0, stopkaP = 0;
+    for (int y = 197; y < 348; y++) for (int x = 0; x < 800; x++) nizej += czarnyK(k, x, y);
+    for (int y = 440; y < 480; y++) for (int x = 400; x < 800; x++) stopkaP += czarnyK(k, x, y);
+    // jedna kolumna (2 wiersze, na całą szerokość), w stopce tylko `◀ wróć` od lewej (stopka jak na ekranach danych)
+    SPRAWDZ(nizej == 0 && stopkaP == 0);
     zapiszU05(k, "u05-tryb-awaryjny");
   }
   SPRAWDZ(zawiera(p.port.log, "U-05 · Wersja: 1.0.0+abc1234 · slot app0"));
@@ -2794,7 +2917,9 @@ int main() {
   testT_WYM_62_przejscieNaZrzucieZPanelu();
   // (c) U-05 według kanwy
   testU05_wierszeZDanychFirmware();
+  testR_EKR_66_bateriaNaU05JakWiersz();
   testU05_bezWifiOstatniePolaczenie();
+  testR_KONF_58_airBridgeIPobranie();
   testU05_oknoPrzywracaniaIPo412();
   testU05_ostatniePobraniePoPrzywroceniu();
   testU05_trybAwaryjny();

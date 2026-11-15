@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 
+#include "nawigacja.h"
 #include "reguly_pomoc.h"
 #include "reguly_sygnaly.h"
 #include "reguly_wewn.h"
@@ -427,7 +428,7 @@ std::string tekst(const Zestaw& z, const std::string& idTekstu, const Wynik& w, 
     }
     i = e + 1;
   }
-  return o;
+  return numeryStronWTekscie(o);  // R-KOK-30: `raport 2 / 3` → `raport 2 / 4` przy stronie sypialni
 }
 
 double metryka(const Noc& n, const std::string& m) {

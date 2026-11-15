@@ -7,7 +7,7 @@ tools/kalibracja/syntetyczna.py; PLD z próbkami 2 s, które mogą się różni�
 terapii `day`, poranek = day + 1):
 
   20261101  P1  AutoSet (MPA 15) 23:00–07:00; 5 spłyceń 04:05–04:09 (pik k = 5 na odcinku 04:05), 1 OA 01:30
-                (pik 12,6 px), 2 CA 02:00 i 02:02 (pik do środka k = 2, 10,8 px), RERA 03:40 (bez piku); wyciek
+                (pik 9,45 px), 2 CA 02:00 i 02:02 (pik do środka k = 2, 8,125 px), RERA 03:40 (bez piku); wyciek
                 18 L/min 03:00–03:30 (6 białych odcinków), 6 próbek (12 s) wycieku 18 L/min o 05:41 (P95 odcinka
                 niski, ale 16 s czasu wycieku); ciśnienie 14,6 05:00–05:20 (20 min na maksimum)
   20261102  P2  AutoSet: drzemka 14:00–15:00, sesje 22:30–01:00 i 01:20–06:40 (przerwa 01:00–01:20), EVE tylko

@@ -58,6 +58,7 @@
 #include "aktualizacja.h"        // aktualizacja z wydań GitHub (ADR-0032, ADR-0038)
 #include "serwer_raportu.h"
 #include "sypialnia.h"
+#include "sypialnia_ekran.h"  // strona kokpitu „Sypialnia · 30 nocy” (ADR-0044)
 #include "wspolne.h"
 // silnik reguł podpięty do ekranu dnia. CPAP_SILNIK_REGUL = 0 tylko do diagnozy (bez silnika:
 // ekran dnia, linie i przyciski jak przed BETĄ); testy i symulator mogą podać wyniki przez sprawy::zrodloTestowe.
@@ -245,7 +246,8 @@ class Przebieg {
   Zasilanie zasilanie = Zasilanie::NIEZNANE;
   OdczytZasilania odczytZasilania;  // z surowymi rejestrami ładowarki do logu
   int procentBat = -1;  // M-25: procent baterii po wygładzeniu (src/bateria.h); -1 = brak odczytu napięcia
-  bool bateriaZOdczytu = false;  // M-25 z napięcia zmierzonego w tym wybudzeniu (U-05 `Bateria: –` bez niego, R-KONF-41)
+  bool bateriaZOdczytu = false;  // M-25 z napięcia zmierzonego w tym wybudzeniu (bez niego U-05 `Bateria: brak odczytu`
+                                 // bez kabla, `na zasilaniu` na kablu; R-KONF-41)
   bool wSilniku = false;         // trwa silnikDzis(): E-05 krytyczne jeszcze nie znane (e05KrytyczneTeraz())
   std::string wifiOpis;
   bool odczytUdany = false;
@@ -325,6 +327,45 @@ class Przebieg {
   bool zKolejkiTeraz = false;
   int skrotBudzenia = 0;  // przytrzymanieLubSkrot() przy przycisku budzącym (R-PRZ-21)
   float zaOknemKlatki = NAN;  // temperatura za oknem w stopce rysowanej klatki slotu dziennego (StanRtc::stopkaZaOknem)
+  // Belka (R-EKR-66): true = to rysowanie bierze świeży stan baterii (klatka i tak się zmienia); inaczej stan
+  // z ostatnio wyświetlonej klatki (StanRtc::klatkaBatProc), żeby sama zmiana procentu nie odświeżała e-ink
+  bool bateriaSwieza = false;
+  // bity StanRtc::klatkaBatFlagi
+  static constexpr uint8_t BAT_KLATKA_WAZNA = 1, BAT_KLATKA_KABEL = 2, BAT_KLATKA_NISKA = 4, BAT_NISKA_HISTEREZA = 8,
+                           BAT_KABEL_ZNANY = 16;
+  // Świeży stan baterii do belki i stopki slotu dziennego: M-25 z tego wybudzenia (albo ostatni z RTC), zasilanie
+  // zewnętrzne z odczytu ładowarki (R-DANE-65; nieznane = jak bateria), stan „niska” z histerezą (R-KON-69)
+  BateriaEkranu bateriaTeraz() {
+    BateriaEkranu b;
+    b.procent = procentBat;
+    // stan zasilania „nieznane” i brak pomiaru napięcia to „nie wiem”: zostaje ostatni znany stan kabla i stan
+    // „niska bateria”, żeby migający odczyt nie przełączał stopki i nie odświeżał e-ink
+    bool kabel = (r.klatkaBatFlagi & BAT_KABEL_ZNANY) != 0;
+    if (zasilanie == Zasilanie::ZEWNETRZNE) kabel = true;
+    else if (zasilanie == Zasilanie::BATERIA) kabel = false;
+    b.kabel = kabel;
+    b.niska = bateriaNiska(b.procent, b.kabel, (r.klatkaBatFlagi & BAT_NISKA_HISTEREZA) != 0);
+    r.klatkaBatFlagi = (uint8_t)((r.klatkaBatFlagi & (BAT_KLATKA_WAZNA | BAT_KLATKA_KABEL | BAT_KLATKA_NISKA)) |
+                                 (kabel ? BAT_KABEL_ZNANY : 0) | (b.niska ? BAT_NISKA_HISTEREZA : 0));
+    return b;
+  }
+  // E-05 (linia od 15%, ekran S5 od 5%) aktywne w wynikach silnika z tego wybudzenia: o baterii mówi wtedy linia
+  // uwagi, więc stopka slotu dziennego zostaje z wynikiem nocy (R-KON-69)
+  bool e05AktywneB5() {
+    for (auto& w : b5.wyniki)
+      if (w.id == "E-05" && w.oceniona && w.spelniona && w.stan == reguly::StanReguly::AKTYWNA) return true;
+    return false;
+  }
+  // R-EKR-04, R-KOK-26: godzina importu nocy ubiegłej do belki ekranu dnia, K1 i K2. Chwila importu tej nocy, nie
+  // ostatniego odczytu AirBridge (ten przesuwa się w ciągu dnia: sprawdzenie o 11:00, początek nocy 23:30). Najpierw
+  // pole `import` rekordu nocy, potem chwila importu z tego dnia pracy panelu; "" = nieznana albo brak nocy z dziś.
+  std::string godzinaImportuNocy(const std::string& dzis) {
+    const Noc* nd = dzis.empty() ? nullptr : nocZDnia(hist, dzis);
+    if (!nd) return "";
+    uint32_t ep = nd->import && sekundaDzis(nd->import) >= 0 ? nd->import
+                  : sekundaDzis(r.importNocyEp) >= 0 ? r.importNocyEp : 0;
+    return ep ? godzina(ep) : "";
+  }
   float tempStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaTemp) ? r.stopkaTemp : temp; }
   float wilgStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaWilg) ? r.stopkaWilg : wilg; }
   bool ekranWlaczony = false;  // sterownik ekranu włączony dopiero przed pierwszym rysowaniem (wybudzenie pomiarowe bez)
@@ -1006,12 +1047,52 @@ class Przebieg {
         if (parsujSypialnie(l, n)) sypNoce.push_back(n);
       }
     }
+    sypialniaWKokpicieB44(false);
     log("historia: %d nocy, czynniki: %d, dziennik ekranów: %d", (int)hist.size(), (int)czynniki.size(),
         (int)dziennik.size());
   }
   // stany odchylenia (4.6) i norma z wyłączeniami 4.4 (src/stany.h)
   const Stany& stany(const std::string& dzis) { return stanyZPamieci(histNormyB16(dzis), dzis, wykluczoneB16(dzis)); }  // z nocami okresów infekcji
   Norma norma(const std::string& dzis) { return stany(dzis).norma; }
+
+  // R-KOK-29 (ADR-0044): strona „Sypialnia · 30 nocy” w ciągu kokpitu, gdy w 30 nocach jest odczyt sypialni; jedno
+  // ustawienie w nawigacji (numer strony `n / 4`, numery w tekstach, KontekstNaw::sypialniaDostepna). Wołane po
+  // wczytaniu danych, po zapisie nowej nocy sypialni, przed rysowaniem i przed obsługą naciśnięcia.
+  // ADR-0045 (R-KOK-34): układ kokpitu z telefonu (kolejność stron z numerem, ukrycie sypialni) ustawiany tu razem
+  // z danymi sypialni, więc numer, stopki, numery w tekstach i nawigacja biorą jeden stan.
+  // `zKonfiguracja` = false: tylko dane sypialni (przy wczytaniu danych i zamknięciu nocy, przed linią `cpap-eink …`
+  // wybudzenia; plik konfiguracji czyta się dopiero po niej, żeby jego wpisy w logu należały do tego wybudzenia)
+  void sypialniaWKokpicieB44(bool zKonfiguracja = true) {
+    if (zKonfiguracja) {
+      const UkladKokpitu& uk = ustawieniaB9().ekrany.kokpit;
+      if (!uk.domyslny() && ukladKokpitu().domyslny())
+        log("kokpit: układ z telefonu: %s%s (R-KOK-34)",
+            kolejnoscKokpituTekst(uk).empty() ? "kolejność domyślna" : kolejnoscKokpituTekst(uk).c_str(),
+            uk.sypialnia ? "" : ", sypialnia ukryta");
+      ustawUkladKokpitu(uk);
+    }
+    bool jest = stronaSypialniJest(sypNoce, dzisiaj());
+    bool przed = sypialniaWKokpicie();
+    ustawSypialnieWKokpicie(jest);
+    if (przed != sypialniaWKokpicie())
+      log("kokpit: strona sypialni %s (R-KOK-29)", sypialniaWKokpicie() ? "w ciągu, n / 4" : jest ? "ukryta z telefonu, n / 3" : "poza ciągiem, n / 3");
+  }
+  void rysujSypialnieB44(const std::string& dzis) {  // R-KOK-29…R-KOK-33
+    // przed 06:00 noc z datą poranka `dzis` jeszcze trwa (wiersz dopisuje zamknięcie nocy, sypialniaTeraz()): `noc trwa`
+    // zamiast `brak odczytu` (R-KOK-31)
+    const std::set<std::string> poza = nocePozaDomem(czynniki);  // poza pasmem, jak w normie S2c (4.4)
+    DaneSyp30 d = budujSyp30(sypNoce, dzis, poza, minutaDoby() < 6 * 60);
+    d.sprawy = sprawyWCiaguB5(dzis);  // jak KontekstNaw::sprawyDostepne (◀ prowadzi na ostatnią kartę)
+    d.liczby = profilB18();           // R-KOK-22
+    if (pierwszaZPortretu(Ekran::SYPIALNIA)) d.stopkaWstecz = sk::tekst("S11.stopka_wstecz");  //
+    rysujSyp30(plotno(), d);
+    std::vector<std::string> st = stopkaSyp30(d.sprawy, d.liczby, d.stopkaWstecz);
+    log("sypialnia 30 nocy: stopka %s · %s · %s, noce poza domem %u", st[0].c_str(), st[1].c_str(), st[2].c_str(),
+        (unsigned)poza.size());
+    for (const WykresSyp30& w : d.w)
+      log("sypialnia 30 nocy: %s %s, %s", w.nazwa.c_str(), w.wartosc.c_str(),
+          w.cokolwiek() ? tekstSlowaSyp30(w.slowo) : "brak odczytu w 30 nocach");
+  }
 
   // M-22: odczyt czujnika do bufora nocy; od 06:00 mediana nocy do /sypialnia.csv
   void sypialniaTeraz() {
@@ -1029,6 +1110,7 @@ class Przebieg {
     if (zamknijNoc(r.buforSyp, dzis, minutaDoby(), n) && !sypialniaZDnia(sypNoce, n.data)) {
       sypNoce.push_back(n);
       zapiszSypialnieNoce();
+      sypialniaWKokpicieB44(false);
     }
     dodajOdczyt(r.buforSyp, dzis, minutaDoby(), temp, wilg);
   }
@@ -1527,6 +1609,7 @@ class Przebieg {
     d.bladOd = kiedyOdczyt(data, minuta, dzis);
     d.bladData = data;  // licznik nocy E-01 bez udanego odczytu, jak plan
     d.godzinaDanych = r.ab.ma ? godzina(r.ab.pobrano) : "";
+    d.godzinaImportu = godzinaImportuNocy(dzis);
     d.sypNoc = sypialniaZDnia(sypNoce, dzis);
     d.sypNorma = liczNormeSypialni(sypNoce, dzis, nocePozaDomem(czynniki));
     uint32_t ep = zegar() ? teraz() : 0;
@@ -1917,7 +2000,9 @@ class Przebieg {
   }
   // Ekran z treści: karta albo ekran danych według 5.7.3 (ekranKarty), wpis w dzienniku przy pierwszym
   // pokazaniu dnia (limity 7.4, licznik pokazań S-K-31). false = tylko log (tryb próbny).
-  bool pokazB16(sk::Tresc t, const DaneDnia& dd, const Naglowek& nag, const std::string& dzien) {
+  bool pokazB16(sk::Tresc t, const DaneDnia& dd, const Belka& nag0, const std::string& dzien) {
+    Belka nag = nag0;
+    nag.nazwa = sk::nazwaBelki(t);  // `Wieczór` na ekranach slotu wieczornego i tygodniowego, inaczej `Poranek`
     if (t.doLogu) {
       if (!b16.zalogowane.count(t.id + dzien)) log("tryb próbny: %s w logu (%s, wartość %d)", t.id.c_str(), dzien.c_str(), t.wartosc);
       b16.zalogowane.insert(t.id + dzien);
@@ -1987,7 +2072,7 @@ class Przebieg {
   // Punkt wejścia z rysujDzien. `etap` 0: przed ekranem L-09 z (R4…R5b przed R5c, S-K-31 przed L-09);
   // 1:, przed (tydzień T2, wieczór S-K-05, rano R4…R7 i problem z rana przez cały dzień);
   // 2: po (wieczór S-K-03…S-K-09, W4 z problemem z rana, rano R8 przed slotem dziennym).
-  bool rysujB16(const EkranDnia& e, DaneDnia& d, const Naglowek& n, int etap) {
+  bool rysujB16(const EkranDnia& e, DaneDnia& d, const Belka& n, int etap) {
     std::string dzis = dzisiaj();
     if (dzis.empty() || !zegar() || e.typ == "S5" || e.typ == "S10") return false;
     int m = minutaDoby();
@@ -2050,7 +2135,7 @@ class Przebieg {
     return false;
   }
   // Ekran nocny bez S9 (U1) z wpisem wieczornym ten sam ekran co wieczorem.
-  bool rysujNocB16(const WpisHumoru& wp, DaneDnia& d, const Naglowek& n) {
+  bool rysujNocB16(const WpisHumoru& wp, DaneDnia& d, const Belka& n) {
     if (!sk::typWieczorny(wp.typ)) return false;
     sk::Wejscie w = wejscieB16(wp.data, d);
     w.prosbaDzis = false;
@@ -2287,7 +2372,7 @@ class Przebieg {
           t.t.linia = zapr ? "" : d.linia;
           t.t.liniaA = !zapr && d.liniaA;
           t.t.liniaOstrzezenie = !zapr && d.liniaOstrzezenie;
-          sk::rysuj(plotno(), Naglowek{naglowekDniaLewo(d), naglowekDniaPrawo(d)}, t, "", "");
+          sk::rysuj(plotno(), belkaDnia(d), t, "", "");
           return true;
         }
       return false;
@@ -2357,8 +2442,12 @@ class Przebieg {
       trk.t.liniaA = dd.liniaA;
       trk.t.liniaOstrzezenie = dd.liniaOstrzezenie;
       const char* t = sk02 ? "SK02" : "SK01";
-      Naglowek nag{naglowekSlotu(dzien) + " · wieczór",
-                   w.co2Teraz >= 0 ? "sypialnia " + godzina(r.oto.tsSypialni) + " · CO2 " + std::to_string(w.co2Teraz) : ""};
+      // belka: `Wieczór`, data i to, co niósł prawy róg dawnego nagłówka (odczyt sypialni z godziną)
+      Belka nag{BELKA_WIECZOR, naglowekSlotu(dzien) + (w.co2Teraz >= 0 ? " · sypialnia " + godzina(r.oto.tsSypialni) +
+                                                                            " · CO2 " + std::to_string(w.co2Teraz)
+                                                                      : std::string())};
+      if (w.co2Teraz >= 0)  // ustępuje godzina odczytu sypialni, potem dzień tygodnia; CO2 zostaje
+        nag.ustepuje = {naglowekSlotu(dzien) + " · CO2 " + std::to_string(w.co2Teraz), "CO2 " + std::to_string(w.co2Teraz)};
       const WpisHumoru* wp = nullptr;
       for (auto& x : dziennik)
         if (x.data == dzien && x.typ == t) wp = &x;
@@ -2413,7 +2502,7 @@ class Przebieg {
         if (!wy.sk13 && !wpisDzis("SK13", dzis)) return rysujOdkrycieB15(typ, dd);  // odkrycie (R8) po S-K-13
         if (wy.doLogu) { log("tryb próbny: S-K-13 w logu"); return false; }
         if (!wpisDzis("SK13", dzis)) dopiszDziennik({dzis, "SK13", std::to_string(n.minutPonad), 'D', "", ""});
-        Naglowek nag{naglowekDniaLewo(dd), naglowekDniaPrawo(dd)};
+        Belka nag = belkaDnia(dd);
         TrescKontekstu trk = trescSK13(n);
         trk.t.linia = dd.linia;
         trk.t.liniaA = dd.liniaA;
@@ -2442,6 +2531,7 @@ class Przebieg {
     we.pylki = us.pylki;
     we.sprzet = &us.sprzet;
     we.ostatnieSK35 = a.nvs.tekst("cpap", "b9_sk35", "");
+    we.uklad = us.ekrany.dzien;  // ADR-0045 (R-KON-70, R-KON-71): kolejność D1…D4 i ekrany wyłączone z telefonu
     we.wspolrzedne = miastoB9();
     we.lat = pogodaLatB32();
     we.lon = pogodaLonB32();
@@ -2511,6 +2601,9 @@ class Przebieg {
     if (stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaZaOknem)) zaOknem = r.stopkaZaOknem;
     zaOknemKlatki = zaOknem;
     StopkaDzienna st = stopkaDzienna(noc, ubiegla, we.drzemka.minut, zaOknem, przyStopki);
+    // R-KON-69: w miejscu wyniku nocy ikona baterii i `podłącz kabel`; nie przy aktywnym E-05 (o baterii mówi linia
+    // uwagi) i nie bez procentu w rysowanej klatce
+    st.bateriaNiska = bateriaEkranu().niska && bateriaEkranu().procent >= 0 && !e05AktywneB5();
     if (w.ekran == EkranSlotu::SK38) {
       std::string dane, pw;
       ObrazPbm o;
@@ -2521,7 +2614,7 @@ class Przebieg {
       log("slot dzienny: S-K-38 %s (pula %c)", wo.plik.c_str(), wo.pula);
     } else {
       TekstySlotu t = tekstySlotu(w, we);
-      Naglowek nag{naglowekSlotu(dzis), we.prognoza && w.ekran != EkranSlotu::SK35 && w.ekran != EkranSlotu::SK37
+      NaglowekSlotu nag{naglowekSlotu(dzis), we.prognoza && w.ekran != EkranSlotu::SK35 && w.ekran != EkranSlotu::SK37
                                             ? "prognoza " + pr.godzinaPobrania : ""};
       if (w.ekran == EkranSlotu::SK39 && we.drzemka.od)
         nag.prawo = "drzemka " + godzina(we.drzemka.od) + "–" + godzina(we.drzemka.do_);
@@ -2533,10 +2626,19 @@ class Przebieg {
         b16.sk31 = (uint32_t)w.wymiana.element + 1;
         st.lewo = sprzet::STOPKA_WYMIANY_LEWO;
         st.prawo = sprzet::STOPKA_WYMIANY_PRAWO;
+        st.bateriaNiska = false;  // podpisy przycisków zostają (R-PRZ-04)
         log("slot dzienny: S-K-35 %s, ◀ 2 s zapisuje wymianę (R-MAS-18)", NAZWY_ELEMENTU[w.wymiana.element]);
       }
       rysujSlotDzienny(plotno(), nag, w, t, we, st);
       log("slot dzienny: %s", idEkranuSlotu(w.ekran));
+      // R-KONF-61: jedyne miejsce informacji po aktualizacji samodzielnej (decyzja 12 z 15.11.2026: rano zawsze wynik
+      // nocy, informacja dopiero na ekranie slotu dziennego): ekrany slotu bez sprawy i bez zużycia przy pokazaniu,
+      // bez linii uwagi. Poza listą: S-K-39 (ostrzeżenie, R-KON-72), S-K-33 w wariancie CO2 `Przewietrz teraz.`
+      // (ostrzeżenie „zawsze włączone”, R-KON-72), S-K-35 (zapisuje dobę pokazania) i S-K-38 (dziennik
+      // obrazków); ekrany slotu z linią uwagi (ostrzeżenie, zaproszenie, E-08, awaria) też nie.
+      dzienBezSprawy = we.linia.empty() &&
+                       ((w.ekran == EkranSlotu::SK33 && w.okno.wariant != Wietrzenie::CO2) ||
+                        w.ekran == EkranSlotu::SK34 || w.ekran == EkranSlotu::SK36 || w.ekran == EkranSlotu::SK37);
     }
     dzienOdswiezalny = false;
     r.dzienTryb = 0;
@@ -2560,7 +2662,8 @@ class Przebieg {
       IkonaStopki ik(ikonaAktualizacjiTeraz());
       rysujDzienB15Wewn();
       zapiszSpraweAB(ekranDniaAB);  // pilność ekranu stojącego na panelu do następnego wybudzenia
-      if (ikonaAktualizacjiWlaczona()) {
+      bool inf = informacjaZamiastDnia();  // R-KONF-61: bez ikony (U-07)
+      if (!inf && ikonaAktualizacjiWlaczona()) {
         const uint8_t* b = a.wyswietlacz.bufor();
         bool tloCzarne = b && (b[(size_t)476 * 100 + 795 / 8] & (0x80 >> (795 & 7)));
         ikonaAktualizacji(plotno(), tloCzarne);
@@ -2589,6 +2692,7 @@ class Przebieg {
     // R-EKR-60: przerysowanie co 2 h tylko ekranu dnia ze stopką standardową (R-EKR-10, karta albo ekran danych);
     // kryterium to stopka z trescDnia, nie lista wykluczeń
     dzienOdswiezalny = false;
+    dzienBezSprawy = false;  // R-KONF-61: ustawiają je niżej tylko ekrany bez sprawy
     r.portretStrona = 0;  // ustawiają ją niżej tylko ekrany problemu z Portretem pod ▶ (R-POR-24)
     DecyzjaNocy dn = nocTeraz(true);  // slot nocny 23:30–05:00: ekranem dnia jest „Dobranoc”, gdy powstał tej nocy
     if (dn.nocny) {
@@ -2604,7 +2708,7 @@ class Przebieg {
     if (!dzis.empty() && minutaDoby() >= 5 * 60 && silnikDzis(dzis)) przegladOdkrycB15(dzis);
     if (dzis.empty()) {  // bez zegara: bez historii i bez dziennika ekranów
       DaneDnia d = daneDnia(dzis);
-      Naglowek n{naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+      Belka n = belkaDnia(d);
       TrescEkranu t = trescDnia(brakDanych(we) ? "S5" : "S2A", "", d);
       rysujEkranDanych(plotno(), n, t);
       dzienOdswiezalny = t.stopkaStandardowa;
@@ -2617,7 +2721,7 @@ class Przebieg {
     EkranDnia e = dd.e;
     DaneDnia d = daneDnia(dd.dataEkranu);
     if (e.typ == "S5" && e.klucz == "E-05") tekstyE05B5(d);
-    Naglowek n{naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+    Belka n = belkaDnia(d);
     if (!dd.nowyWybor) {  // slot nocny (U1): ekran z ostatniego wpisu dziennika
       if (dd.wpis && (dd.wpis->typ == "SK01" || dd.wpis->typ == "SK02") && rysujKontekstB9(e.typ, d, true)) return;
       if (dd.wpis && rysujWpisB15(*dd.wpis, d)) return;  // S7, S8, S1 z dziennika
@@ -2711,7 +2815,7 @@ class Przebieg {
       }
     }
     // Portret nocy (S11, pozycja RP tabeli 7.2): pierwszy ekran poranka przed grupami R5e–R9, po R0–R5d (R-POR-02)
-    if (rysujPortretB40(e, d, n, dzis)) return;
+    if (rysujPortretB40(e, d, dzis)) return;
     if (rysujB16(e, d, n, 1)) return;  // tydzień T2 (S-K-18), wieczór S-K-05, rano R4…R7 (7.2)
     if (rysujKontekstB9(e.typ, d)) return;  // slot dzienny, S-K-01/S-K-02, S-K-13 (5.8.12, 5.8.3), z linią z kolejki
     if (rysujB16(e, d, n, 2)) return;  // wieczór S-K-03…S-K-09, W4, rano R8 (S-K-19…S-K-21 w poniedziałek)
@@ -2780,6 +2884,8 @@ class Przebieg {
     if (w.tryb == 'K') rysujKarte(plotno(), n, t, w.scena);
     else rysujEkranDanych(plotno(), n, t);
     dzienOdswiezalny = t.stopkaStandardowa;
+    // R-KONF-61 (decyzja 12 z 15.11.2026): dowód spokoju S2a…S2d, przerywnik, rozruch S6, Portret i drugi
+    // ekran poranka to wynik nocy, więc nigdy nie są „bez sprawy” dla informacji (dzienBezSprawy zostaje false)
     r.dzienTryb = w.tryb == 'K' ? 'K' : 'D';
     r.dzienLinia = linia ? 1 : ld.e08 ? 2 : 0;
     if (zPamieci) log("przerysowanie R-EKR-60: tryb i linia uwagi jak w ostatnim rysowaniu, nowa stopka");
@@ -2923,14 +3029,14 @@ class Przebieg {
   }
   void rysujLiczbyB15(const std::string& dzis) {  // R-KOK-22: strona kokpitu bez numeru po K2 (profil publiczny)
     podsumowanie::DaneLiczb l = podsumowanie::budujLiczby(trybB15(), daneS8B15(dzis).centralne, sprawyWCiaguB5(dzis));
-    Naglowek nag{l.naglowek, numerStronyTekst(Ekran::LICZBY)};  // nazwa strony zamiast daty, bez numeru
+    Belka nag{l.naglowek, ""};  // nazwa strony zamiast daty, bez numeru (R-KOK-22)
     podsumowanie::rysujLiczby(plotno(), nag, l);
   }
   bool rysujS7B15(const std::string& dzis, const DaneDnia& dd) {
     podsumowanie::DaneS7 s = podsumowanie::budujS7(dzis, hist, trybB15(), false);  // AHI w obu profilach
     TrescEkranu t = podsumowanie::trescS7(s);
     linieB15(t, dd);
-    podsumowanie::rysujS7(plotno(), Naglowek{naglowekDniaLewo(dd), naglowekDniaPrawo(dd)}, s, t);
+    podsumowanie::rysujS7(plotno(), belkaDnia(dd), s, t);
     log("ekran dnia: S7 %s, zdanie: %s", s.etykieta.c_str(), s.zdanie.empty() ? "brak (R-EKR-20)" : s.zdanie.c_str());
     dzienOdswiezalny = true;
     r.dzienTryb = 0;
@@ -2940,7 +3046,7 @@ class Przebieg {
     podsumowanie::DaneS8 s = daneS8B15(dzis);
     TrescEkranu t = podsumowanie::trescS8(s);
     linieB15(t, dd);
-    podsumowanie::rysujS8(plotno(), Naglowek{naglowekDniaLewo(dd), naglowekDniaPrawo(dd)}, s, t);
+    podsumowanie::rysujS8(plotno(), belkaDnia(dd), s, t);
     log("ekran dnia: S8 „Twoja norma” (%s)", s.krok.c_str());
     dzienOdswiezalny = true;
     r.dzienTryb = 0;
@@ -3060,7 +3166,7 @@ class Przebieg {
     odkrycia::TrescOdkrycia o = odkrycia::trescOdkrycia(z, *w, trybB15(), u, &hist);
     TrescEkranu t = podsumowanie::trescS1(o);
     linieB15(t, dd);
-    Naglowek nag{naglowekDniaLewo(dd), naglowekDniaPrawo(dd)};
+    Belka nag = belkaDnia(dd);
     std::string kh = odkrycia::kluczHumoru(*w);
     const WpisHumoru* wp = nullptr;
     for (auto& x : dziennik)
@@ -3111,7 +3217,7 @@ class Przebieg {
 
   // pytanie tak/nie albo ekran wzorca L zamiast ekranu dnia; true = narysowane. Pytanie, które minęło bez
   // odpowiedzi (termin, 30 min senności), dostaje zapis „brak odpowiedzi” (R-SKI-17, R-PIE-13).
-  bool rysujDzienB5(DaneDnia& d, const Naglowek& n, const std::string& dzis, const EkranDnia& ed) {
+  bool rysujDzienB5(DaneDnia& d, const Belka& n, const std::string& dzis, const EkranDnia& ed) {
     std::string czeka = a.nvs.tekst("cpap", "pyt_tn", "");
     std::string teraz_ = b5.pytanie.jest ? b5.pytanie.data + ";" + sprawy::nazwaPytania(b5.pytanie.pytanie) : "";
     if (!czeka.empty() && czeka != teraz_) {
@@ -3169,7 +3275,12 @@ class Przebieg {
       }
       // R-EKR-61, karta 2 pkt 6: ekran L z pilnością A albo B bez ikony aktualizacji i bez automatu tego dnia
       ekranDniaAB = e->jestL() && (e->pilnosc == reguly::Pilnosc::A || e->pilnosc == reguly::Pilnosc::B);
-      if (ekranDniaAB) ustawIkoneAktualizacji(false);
+      if (ekranDniaAB) {  // ani w stopce, ani na belce (R-EKR-69)
+        ustawIkoneAktualizacji(false);
+        ZnakiBelki zb = znakiBelki();
+        zb.nowaWersja = false;
+        ustawZnakiBelki(zb);
+      }
       DaneWzorca dw = trescWzorca(*e, dz);
       dw.stopkaDalej = stopkaDalejPortretu();  // R-POR-24: `▶ portret nocy` zamiast `▶ kokpit`
       if (e->ton != sprawy::Ton::PROBLEM && !lp.empty()) {
@@ -3399,17 +3510,18 @@ class Przebieg {
   void rysujRaportB13(const std::string& dzis) {
     DaneDnia d = daneDnia(dzis);
     std::string dz = dataOk(dzis) ? std::string(DNI_KROTKO[dzienTygodnia(dzis)]) + " " + ddmm(dzis) : "";
-    Naglowek n = {dz.empty() ? "raport gotowy" : dz + " · raport gotowy", "Wi-Fi włączone"};
+    Belka n = {"Raport", (dz.empty() ? std::string() : dz + " · ") + "raport gotowy · Wi-Fi włączone"};
+    n.ustepuje = {"raport gotowy · Wi-Fi włączone"};
     if (!rap.otwarty || !rap.blad.empty()) {  // R-LEK-05
       DaneRaportu e;
-      e.naglowek = {naglowekDniaLewo(d), ""};
+      e.naglowek = {"Raport", dataDnia(d)};
       e.temat = rap.otwarty ? rap.temat : "Raport dla lekarza";
       e.kod = rap.otwarty ? rap.blad : raport::KOD_BRAK_DANYCH;
       rysujRaport(plotno(), e);
       return;
     }
     if (rap.bezWifi) {
-      rysujRaportBezWifi(plotno(), {naglowekDniaLewo(d), ""}, rap.temat, "");
+      rysujRaportBezWifi(plotno(), {"Raport", dataDnia(d)}, rap.temat, "");
       return;
     }
     if (rap.sciaga) {
@@ -3511,12 +3623,14 @@ class Przebieg {
         d.stan == aktualizacja::StanU07::SPRAWDZANIE || d.stan == aktualizacja::StanU07::SAMOSPRAWDZENIE))
       d.stan = aktualizacja::nowsza(akt.znana, d.wlasna) ? aktualizacja::StanU07::NOWSZA : aktualizacja::StanU07::AKTUALNA;
     if (d.stan == aktualizacja::StanU07::NOWSZA && d.nowa.empty()) d.nowa = akt.znana;
+    d.coNowego = coNowego(d.nowa);
     return d;
   }
   void rysujU07Teraz() {
     aktualizacja::TresciU07 t = aktualizacja::trescU07(daneU07());
     for (auto& l : t.linie) tk.linieTestu.push_back("U-07 · " + l);
-    rysujAktualizacje(plotno(), t.linie, t.stopka);
+    for (auto& l : t.coNowego) tk.linieTestu.push_back("U-07 · Co nowego: " + l);
+    rysujAktualizacje(plotno(), t);
   }
   void rysujU07Od(aktualizacja::StanU07 st, const std::string& x) {  // ekran pośredni z odświeżeniem e-ink
     ustawU07(st, aktualizacja::Powod::BRAK, x, 0);
@@ -3592,6 +3706,33 @@ class Przebieg {
     else if (dobowe)
       akt.sprawdzonoDnia = dzien;  // najwyżej raz na dobę także po błędzie (R-KONF-46)
     zapiszAkt();
+    if (pw == aktualizacja::Powod::BRAK) zapiszCoNowego(opis);
+  }
+  // „Co nowego” wersji z opisu wydania (R-KONF-56) w NVS `aktual`, jeden klucz `u07_cnv`: wersja i linie rozdzielone
+  // `\n` (`{wersja}\n{linia}\n…`). Jeden zapis jest atomowy: po nieudanym zapisie zostaje poprzednia para
+  // wersja + linie, której wersja nie pasuje do nowej, więc U-07 pomija blok zamiast pokazać nowości innej wersji.
+  // Zapis tylko przy zmianie (zużycie flash).
+  void zapiszCoNowego(const aktualizacja::OpisWydania& opis) {
+    std::string t = opis.wersja;
+    for (auto& l : opis.nowosci) t += "\n" + l;
+    if (a.nvs.tekst(aktualizacja::PRZESTRZEN, "u07_cnv", "") == t) return;
+    if (!a.nvs.ustawTekst(aktualizacja::PRZESTRZEN, "u07_cnv", t))
+      log("aktualizacja: zapis „Co nowego” %s nieudany, blok pominięty", opis.wersja.c_str());
+  }
+  std::vector<std::string> coNowego(const std::string& wersja) {
+    std::vector<std::string> w;
+    std::string t = a.nvs.tekst(aktualizacja::PRZESTRZEN, "u07_cnv", "");
+    size_t kw = t.find('\n');
+    if (wersja.empty() || kw == std::string::npos || t.substr(0, kw) != wersja) return w;
+    size_t a0 = kw + 1;
+    while (a0 < t.size() && w.size() < aktualizacja::NOWOSCI_MAKS) {
+      size_t b = t.find('\n', a0);
+      std::string l = t.substr(a0, b == std::string::npos ? std::string::npos : b - a0);
+      if (!l.empty()) w.push_back(l);
+      if (b == std::string::npos) break;
+      a0 = b + 1;
+    }
+    return w;
   }
 
   // R-KONF-46: raz na dobę w oknie Wi-Fi otwartym z innego powodu (rano po pobraniu nocy), bez dodatkowego wybudzenia.
@@ -3846,6 +3987,8 @@ class Przebieg {
       log("aktualizacja: wersja %s nie potwierdziła startu, panel wrócił do %s (R-NF-35)", akt.odrzucona.c_str(),
           wlasnaWersja().c_str());
       if (reczna) ustawU07(aktualizacja::StanU07::PO_NIEUDANEJ, aktualizacja::Powod::NIE_WSTALA, akt.odrzucona, 1);
+      else uzbrojInformacje(aktualizacja::RodzajInformacji::NIEUDANA, akt.odrzucona);  // R-KONF-61
+      if (reczna) zapiszInformacje(aktualizacja::Informacja());  // wynik ręcznej na U-07: starsza informacja zbędna
     } else {
       akt = kopia;  // inna wersja (np. wgranie kablem): instalacja zapomniana bez wyniku
       zapiszAkt();
@@ -3859,11 +4002,95 @@ class Przebieg {
     bool reczna = !akt.automatyczna;
     aktualizacja::poStarcie(akt, wlasnaWersja());
     zapiszAkt();
+    // R-KONF-61: po automacie informacja czeka na pierwszy ekran slotu dziennego bez sprawy; po ręcznej wynik na U-07
+    if (!reczna) uzbrojInformacje(aktualizacja::RodzajInformacji::UDANA, wlasnaWersja());
+    else zapiszInformacje(aktualizacja::Informacja());
     if (u07Oczekuje && reczna) {  // teraz wolno pokazać `Zainstalowano wersję {X}.`
       ustawU07(aktualizacja::StanU07::PO_UDANEJ, aktualizacja::Powod::BRAK, wlasnaWersja(), 1);
       u07Oczekuje = false;
       u07Przerysuj = true;
     }
+  }
+
+  // ---------- R-KONF-61: informacja po aktualizacji samodzielnej (decyzja 11 z 14.11.2026, „karta”) ----------
+  // Stan w NVS `aktual`/`u07_inf` (aktualizacja::Informacja): zapis tylko przy zmianie (czeka, pierwsze pokazanie,
+  // zamknięcie przyciskiem, skasowanie wpisu innej wersji albo doby), odczyt przy rysowaniu ekranu dnia. Informacja
+  // stoi na miejscu ekranu dnia (Ekran::DZIEN, ten sam rysunek co U-07 „po udanej” albo „po nieudanej”), tylko gdy
+  // ekranem dnia jest ekran slotu dziennego bez sprawy (dzienBezSprawy; decyzja 12 z 15.11.2026: rano zawsze wynik
+  // nocy), poza slotem nocnym i terapią, bez niskiej baterii i bez nieaktualnych danych; w klatce, która i tak się rysuje.
+  bool dzienBezSprawy = false;  // ostatni rysujDzienB15Wewn(): ekran slotu dziennego bez sprawy (rysujKontekstB9())
+  aktualizacja::Informacja informacja() {
+    return aktualizacja::odczytInformacji(a.nvs.tekst(aktualizacja::PRZESTRZEN, aktualizacja::KLUCZ_INFORMACJI, ""));
+  }
+  void zapiszInformacje(const aktualizacja::Informacja& i) {
+    std::string t = aktualizacja::zapisInformacji(i);
+    if (a.nvs.tekst(aktualizacja::PRZESTRZEN, aktualizacja::KLUCZ_INFORMACJI, "") == t) return;
+    if (!a.nvs.ustawTekst(aktualizacja::PRZESTRZEN, aktualizacja::KLUCZ_INFORMACJI, t))
+      log("aktualizacja: zapis informacji po aktualizacji samodzielnej nieudany");
+  }
+  void uzbrojInformacje(aktualizacja::RodzajInformacji rodzaj, const std::string& nowa) {
+    aktualizacja::Informacja i;
+    i.rodzaj = rodzaj;
+    i.wlasna = wlasnaWersja();
+    i.nowa = aktualizacja::bezBudowy(nowa);
+    zapiszInformacje(i);
+    log("aktualizacja: informacja po aktualizacji samodzielnej czeka (%s %s, R-KONF-61)",
+        rodzaj == aktualizacja::RodzajInformacji::UDANA ? "zaktualizowano do" : "nie wstała", i.nowa.c_str());
+  }
+  // Po narysowaniu ekranu dnia bez sprawy: informacja zamiast niego (nadpisuje płótno przed odświeżeniem e-ink).
+  // wpis, który nie może się już pokazać, kasowany przy rysowaniu ekranu dnia (1 zapis, potem odczyt pustego):
+  // inna wersja niż działająca (wgranie kablem, druga instalacja) albo już pokazany w innej dobie niż dziś (koniec
+  // doby pokazania, także doba z przyszłości po złym zegarze). Bez zegara tylko warunek wersji.
+  aktualizacja::Informacja informacjaPoPorzadkach() {
+    aktualizacja::Informacja i = informacja();
+    if (i.rodzaj == aktualizacja::RodzajInformacji::BRAK) return i;
+    const std::string dzis = zegar() ? dzisiaj() : std::string();
+    const bool innaWersja = i.wlasna != wlasnaWersja();
+    const bool innaDoba = !dzis.empty() && !i.dzien.empty() && i.dzien != dzis;
+    if (!innaWersja && !innaDoba) return i;
+    log("aktualizacja: informacja po aktualizacji samodzielnej skasowana (%s, R-KONF-61)",
+        innaWersja ? "inna wersja panelu" : "pokazana w innej dobie");
+    zapiszInformacje(aktualizacja::Informacja());
+    return aktualizacja::Informacja();
+  }
+  bool informacjaZamiastDnia() {
+    r.informacjaNaEkranie = 0;
+    aktualizacja::Informacja i = informacjaPoPorzadkach();
+    if (i.rodzaj == aktualizacja::RodzajInformacji::BRAK) return false;
+    if (!dzienBezSprawy || !zegar() || slotNocny(minutaDoby()) || r.ab.rop == 1) return false;
+    if (bateriaEkranu().niska || znakiBelki().nieaktualne) return false;
+    std::string dzis = dzisiaj();
+    if (!aktualizacja::informacjaAktualna(i, wlasnaWersja(), dzis)) return false;
+    if (i.dzien.empty()) {
+      i.dzien = dzis;
+      zapiszInformacje(i);
+    }
+    aktualizacja::DaneU07 d;
+    d.samodzielnie = true;
+    d.wlasna = wlasnaWersja();
+    d.nowa = i.nowa;
+    d.procentBaterii = procentBat;
+    if (i.rodzaj == aktualizacja::RodzajInformacji::UDANA) {
+      d.stan = aktualizacja::StanU07::PO_UDANEJ;
+      d.coNowego = coNowego(i.nowa);
+    } else {
+      d.stan = aktualizacja::StanU07::PO_NIEUDANEJ;
+      d.powod = aktualizacja::Powod::NIE_WSTALA;
+    }
+    // jak na U-07: ekran sam mówi o wersji, więc belka informacji bez znaku nowej wersji; znaki z przed rysowania
+    // wracają zaraz po nim (reszta wybudzenia, np. strona po przycisku, ma znak jak zwykle)
+    const ZnakiBelki zPrzed = znakiBelki();
+    ZnakiBelki z = zPrzed;
+    z.nowaWersja = false;
+    ustawZnakiBelki(z);
+    aktualizacja::TresciU07 t = aktualizacja::trescU07(d);
+    for (auto& l : t.linie) tk.linieTestu.push_back("U-07 · " + l);
+    for (auto& l : t.coNowego) tk.linieTestu.push_back("U-07 · Co nowego: " + l);
+    rysujAktualizacje(plotno(), t);
+    ustawZnakiBelki(zPrzed);
+    r.informacjaNaEkranie = 1;
+    log("ekran dnia: informacja po aktualizacji samodzielnej (%s, R-KONF-61)", t.linie[0].c_str());
+    return true;
   }
 
   // ---------- U-01 „Ustawienia”, U-03 formularz z kodem QR (5.6.3, 5.6.5, R-KONF-10…R-KONF-18, R-KONF-37…39) ----------
@@ -3923,7 +4150,13 @@ class Przebieg {
     d.co2 = otoUzywalne() ? (co2B17() ? 1 : 0) : -1;
     d.wersja = wersjaWydania(a.uruchomienie.wersja());
     wczytajAkt();  // linia aktualizacji pod listą: stan wersji i droga do U-07 (↻ 2 s)
-    d.aktualizacja = aktualizacja::wierszU01(tokenWydan(), akt.znana, wlasnaWersja());  // R-KONF-43, R-NF-33
+    d.aktualizacja = aktualizacja::wierszU01(tokenWydan(), akt.znana, wlasnaWersja());  // R-KONF-43, R-NF-33 (log)
+    std::string spr = akt.sprawdzonoEp ? chwila(akt.sprawdzonoEp) : "";  // `DD.MM hh:mm` → kafelek `DD.MM`
+    aktualizacja::KafelekOprogramowania kaf =
+        aktualizacja::kafelekU01(tokenWydan(), akt.znana, wlasnaWersja(), spr.substr(0, spr.find(' ')));
+    d.stanOprogramowania = kaf.stan;
+    d.stanOdwrocony = kaf.odwrocony;
+    d.jestAktualizacja = ikonaAktualizacjiTeraz();  // belka: ten sam warunek co ikona w stopce ekranu dnia (R-EKR-61)
     return d;
   }
   std::string konfiguracjaPliku() {
@@ -3973,6 +4206,7 @@ class Przebieg {
     terminyFormularzaB16(pf);
     pf.kluczWydan = tokenWydan();  // tylko „ustawiony”, nigdy wartość (R-NF-36)
     pf.hasloOkna = sekrety::hasloOknaUstawione(a.nvs);
+    pf.wersja = wersjaWydania(a.uruchomienie.wersja());  // R-KONF-59: ta sama wersja co na U-01
     return formularz::strona(pf, frm.sesja.sciezka(), komunikat, frm.bledy);
   }
   // Nowe dane AirBridge w bieżącej sieci: `GET /api/status` z logowaniem przed zapisem (5.6.5 krok 3, R-KONF-37).
@@ -4103,7 +4337,7 @@ class Przebieg {
       serwer::Odpowiedz o;
       o.kod = fo.kod;
       o.typ = fo.typ;
-      o.cialo = fo.cialo;
+      o.cialo = std::move(fo.cialo);  // strona bez kopii (szczyt sterty przy podawaniu formularza)
       return o;
     });
     if (frm.sprawdzSiec) sprawdzSiecP07();
@@ -4216,6 +4450,7 @@ class Przebieg {
   std::string stronaSieciPaneluP07(const std::string& komunikat) {
     formularz::Pola pf = formularz::zPliku(konfiguracjaPliku(), sekretyTeraz(), otoUzywalne(), k.pogodaLat, k.pogodaLon);
     terminyFormularzaB16(pf);
+    pf.wersja = wersjaWydania(a.uruchomienie.wersja());  // R-KONF-59
     return formularz::strona(pf, ap.sesja.sciezka(), komunikat, ap.bledy);
   }
   // Pola pliku konfiguracji z formularza (wspólne z U-03); zwraca dopisek przy błędzie zapisu.
@@ -4325,7 +4560,7 @@ class Przebieg {
       serwer::Odpowiedz o;
       o.kod = fo.kod;
       o.typ = fo.typ;
-      o.cialo = fo.cialo;
+      o.cialo = std::move(fo.cialo);  // strona bez kopii (szczyt sterty przy podawaniu formularza)
       return o;
     });
     odnow();
@@ -4598,26 +4833,26 @@ class Przebieg {
     r.wifiRssi = (int16_t)a.siec.rssi();
     r.wifiEp = zegar() ? teraz() : 0;
   }
-  // `−61 dBm` (minus U+2212 jak na kanwie)
-  static std::string tekstRssi(int v) { return (v < 0 ? "−" + std::to_string(-v) : std::to_string(v)) + " dBm"; }
 
   // Wartość wiersza `Pamięć panelu`: najpierw problem (pierwszy z linii `Dane: …`, ta sama kolejność, w wariancie,
   // który mieści się w kolumnie; pełny tekst w diagnostyce), po przywróceniu wynik, inaczej `wolne {n} MB`.
-  std::string wartoscPamieci() {
+  bool pamiecUsterka = false;  // wynik ostatniego wartoscPamieci(): wiersz `Pamięć panelu` z usterką (R-KONF-58)
+  std::string wartoscPamieci(bool u = false) {  // u: miejsce wiersza z usterką (R-KONF-58)
     const std::string n = "Pamięć panelu";
-    if (staryUklad) return dopasujWartosc(n, {"stary układ: wgraj kablem", "układ: wgraj kablem"});
+    pamiecUsterka = true;  // każdy wczesny powrót niżej to usterka; `przywrócono …` i `wolne {n} MB` nie
+    if (staryUklad) return dopasujWartosc(n, {"stary układ: wgraj kablem", "układ: wgraj kablem", "wgraj kablem"}, TEST_KOLUMNA, u);
     if (!fsOk()) return "nie zamontowana";
     wczytajOdrzucone();
     std::string p = std::to_string(przywrocenie.przywrocone), o = std::to_string(przywrocenie.oczekiwane);
     if (przywrocenie.proba && !przywrocenie.ok)
-      return dopasujWartosc(n, {"niezgodna liczba (" + p + " z " + o + ")", "niezgodna liczba nocy", "niezgodna liczba"});
+      return dopasujWartosc(n, {"niezgodna liczba (" + p + " z " + o + ")", "niezgodna liczba nocy", "niezgodna liczba"}, TEST_KOLUMNA, u);
     // U2 wariant A: pliki zrzutu odrzucone w oknie; pełna lista w `Dane: … przywracanie: odrzucone {pliki}`
     // (log portu), na U-05 liczba plików (nazwy nie mieszczą się w kolumnie), integracja 
     if (odrzuconeWczytane && !odrzucone.empty()) {
       size_t ile = odrzucone.size();
       std::string pl = ile == 1 ? "plik" : (ile % 10 >= 2 && ile % 10 <= 4 && (ile % 100 < 12 || ile % 100 > 14))
                                                 ? "pliki" : "plików";
-      return dopasujWartosc(n, {"odrzucone " + std::to_string(ile) + " " + pl, "odrzucone pliki"});
+      return dopasujWartosc(n, {"odrzucone " + std::to_string(ile) + " " + pl, "odrzucone pliki"}, TEST_KOLUMNA, u);
     }
     auto bezCsv = [](std::string f) {
       if (f.size() > 4 && f.compare(f.size() - 4, 4, ".csv") == 0) f.erase(f.size() - 4);
@@ -4627,18 +4862,21 @@ class Przebieg {
       const std::string& b = bledyMigracji.front();
       size_t k0 = std::string("migracja ").size(), k1 = b.find(": ", k0);
       std::string plik = k1 == std::string::npos ? "" : b.substr(k0, k1 - k0);
-      return dopasujWartosc(n, {b, "migracja " + bezCsv(plik) + ": błąd", "błąd migracji"});
+      return dopasujWartosc(n, {b, "migracja " + bezCsv(plik) + ": błąd", "błąd migracji"}, TEST_KOLUMNA, u);
     }
     std::vector<std::string> nowsze = mag.plikiTylkoDoOdczytu();
     if (!nowsze.empty()) {
       std::string f = nazwaPliku(nowsze.front());
-      return dopasujWartosc(n, {"dane z nowszej wersji: " + f, "dane z nowszej wersji"});  // plik w diagnostyce
+      // krótszy wariant tylko, gdy pełny się nie mieści, i z tym samym sensem (plik w diagnostyce)
+      return dopasujWartosc(n, wariantyNowszychDanychU05(f), TEST_KOLUMNA, u);
     }
     if (!nvsNowsze.empty())
-      return dopasujWartosc(n, {"dane z nowszej wersji: NVS " + nvsNowsze.front(), "dane z nowszej wersji"});
+      return dopasujWartosc(n, wariantyNowszychDanychU05("NVS " + nvsNowsze.front()), TEST_KOLUMNA, u);
+    pamiecUsterka = false;
     if (przywrocenie.ok)
       return dopasujWartosc(n, {"przywrócono " + p + " z " + o, "przywrócono " + p + "/" + o, p + "/" + o + " nocy"});
     long long w = a.pliki.wolneMiejsce();
+    pamiecUsterka = w < 0;
     return w < 0 ? "nie zamontowana" : "wolne " + std::to_string(w / (1024LL * 1024LL)) + " MB";
   }
 
@@ -4663,59 +4901,116 @@ class Przebieg {
   // Chwila ostatniego udanego pobrania nocy (T-WYM-39, D52 karty): najpóźniejsza z chwili zapisanej w NVS przy
   // pobraniu kompletnej nocy z AirBridge i z `import` w rekordach nocy (R1); po przywróceniu zrzutu noce nie mają
   // `import`, a chwila w NVS zostaje. "–" bez obu.
-  std::string ostatniePobranie() {
+  uint32_t ostatniePobranieEp() {
     uint32_t m = a.nvs.liczbaU("cpap", NVS_KLUCZ_POBRANIE_NOCY, 0);
     for (auto& n : hist) m = std::max(m, n.import);
+    return m;
+  }
+  std::string ostatniePobranie() {
+    uint32_t m = ostatniePobranieEp();
     std::string c = m ? chwila(m) : "";
     return c.empty() ? "–" : c;
   }
 
-  // `Oprogramowanie`: wersja i slot, z dopiskiem `· jest wersja {X}` albo `· odrzucona {X}` (aktualizacja, R-NF-35).
+  // `Oprogramowanie`: wersja z dopiskiem `· jest {X}` albo `· odrzucona {X}` (aktualizacja, R-NF-35); slot (app0, app1)
+  // tylko w trybie awaryjnym i w logu (`Wersja: … · slot …`, decyzja 4 z 14.11.2026).
   std::string wartoscOprogramowania() {
     wczytajAkt();
-    std::string w = wersjaWydania(a.uruchomienie.wersja()), sl = " (" + a.uruchomienie.slot() + ")";
-    std::string d = aktualizacja::dopisekU05(akt);
-    if (d.empty()) return w + sl;
-    // kolumna U-05 ma ok. 188 px: krótsze warianty dopisku, pełny tekst w diagnostyce (`Wersja: …`)
-    std::string kr = d;
-    size_t q = kr.find("jest wersja ");
-    if (q != std::string::npos) kr.replace(q, 12, "jest ");
-    q = kr.find("odrzucona ");
-    if (q != std::string::npos) kr.replace(q, 10, "odrz. ");
-    return dopasujWartosc("Oprogramowanie", {w + sl + d, w + d, w + kr, kr.substr(3), w + d});
+    std::string w = wersjaWydania(a.uruchomienie.wersja());
+    return dopasujWartosc("Oprogramowanie", wariantyOprogramowaniaU05(w, aktualizacja::dopisekU05(akt)));
   }
-  // Wiersze U-05 według kanwy (`design/kanwa/U05-test-sprzetu.dc.html`), w tej samej kolejności.
+  // Wiersz `Wi-Fi` (src/ekrany.cpp wierszU05Wifi()): bez połączenia teraz ostatnie z godziną; usterka:
+  // sygnał słaby albo panel jeszcze nigdy nie połączył się z siecią (R-KONF-58).
+  WierszTestu wierszWifi() {
+    bool teraz = a.siec.polaczona();
+    if (!teraz && !r.wifiIp[0]) return wierszU05Wifi("", 0, "");
+    std::string ssid = teraz ? a.siec.nazwaSieci() : std::string(r.wifiSsid);
+    int rssi = teraz ? a.siec.rssi() : r.wifiRssi;
+    std::string kiedy = teraz || !r.wifiEp ? "" : " (" + kiedyChwila(r.wifiEp) + ")";
+    return wierszU05Wifi(ssid.empty() ? "?" : ssid, rssi, kiedy);
+  }
+  // Wiersz `Bateria` (R-KONF-41, src/ekrany.cpp wierszU05Baterii()): na kablu `na zasilaniu · {procent}%`,
+  // bez pomiaru i bez kabla `brak odczytu` (bez oceny, ADR-0029 pkt 7), inaczej procent M-25; usterka poniżej
+  // BATERIA_NISKA bez kabla (R-KONF-58). Ten sam stan co belka (pokaz()).
+  WierszTestu wierszBaterii() {
+    return wierszU05Baterii(bateriaTeraz().kabel, bateriaZOdczytu && procentBat >= 0 ? procentBat : -1, BATERIA_NISKA);
+  }
+  // Wiersz `AirBridge` z usterką przy braku odpowiedzi, przy odrzuconym logowaniu (HTTP 401 słowem) i przy każdej
+  // innej nieudanej odpowiedzi (bladAirBridgeU05()): kod HTTP inny niż 200, odpowiedź urwana, za duża albo
+  // nieczytelna (`błąd AirBridge…`, kod w diagnostyce `AirBridge: … · HTTP {kod}`).
+  WierszTestu wierszAirBridge() {
+    const std::string n = "AirBridge";
+    if (httpKod == 401) return wierszU05(n, {"odrzuca logowanie", "odrzuca hasło"}, true);
+    std::vector<std::string> blad = bladAirBridgeU05(httpKod);
+    if (!blad.empty()) return wierszU05(n, blad, true);
+    std::string v = wartoscAirBridge();
+    bool brak = v.rfind("brak odp", 0) == 0;
+    if (brak) v = dopasujWartosc(n, {v, "brak odp. od " + chwila(r.ab.pobrano), "brak odpowiedzi"}, TEST_KOLUMNA, true);
+    return WierszTestu(n, v, brak);
+  }
+  // Wiersz `Ostatnie pobranie` (R-KONF-58): chwila ostatniego udanego pobrania nocy. Usterka tylko wtedy, gdy
+  // AirBridge ma noc nowszą niż pobrana (doby gotowe do pobrania albo czekające po nieudanej próbie, `r.ab.zalegle`,
+  // `r.ab.czekajace`) albo ostatni kontakt z AirBridge (`r.ab.pobrano`) jest starszy niż POBRANIE_STARE_H [PRÓG];
+  // noce bez terapii przy działającym AirBridge to nie usterka. Bez oceny (ADR-0029 pkt 7): panel nie pobrał jeszcze
+  // żadnej nocy (`–`), nie miał kontaktu z AirBridge albo nie ma zegara, a usterki nie widać.
+  WierszTestu wierszPobrania(bool zeg) {
+    // od 14.11.2026): doby gotowe do pobrania przy świeżym kontakcie to
+    // pobieranie w toku (zaległe noce partiami po ZALEGLE_NA_WYBUDZENIE), `pobieram` bez usterki; usterką zostają
+    // doby czekające po nieudanej próbie i stary kontakt
+    bool nowsza = r.ab.ma && r.ab.czekajace > 0;
+    bool pobieram = r.ab.ma && r.ab.zalegle > 0;
+    bool kontaktStary = zeg && r.ab.ma && r.ab.pobrano && teraz() > r.ab.pobrano &&
+                        teraz() - r.ab.pobrano > (uint32_t)POBRANIE_STARE_H * 3600u;
+    bool bezOceny = !ostatniePobranieEp() || !r.ab.ma || !r.ab.pobrano || !zeg;
+    return wierszU05Pobrania(ostatniePobranie(), nowsza, kontaktStary, bezOceny, pobieram);
+  }
+
+  // Wiersze U-05 według makiety 14.11.2026 (projekt ekranu): kolumny `PANEL` i `ŁĄCZNOŚĆ` po 5 wierszy i pod
+  // nimi `Noce z plików` na całą szerokość, przy każdym, co jest usterką, a czego nie da się ocenić (R-KONF-58, spec
+  // 5.6.3 U-05).
   DaneTestu daneTestu() {
     zapamietajWifi();
     DaneTestu d;
     bool wifi = a.siec.polaczona();
-    std::string czasWifi = r.wifiEp ? kiedyChwila(r.wifiEp) : "";
-    std::string poCzasie = czasWifi.empty() ? "" : " (" + czasWifi + ")";
-    std::string panel = wifi ? a.siec.adresIp() : r.wifiIp[0] ? std::string(r.wifiIp) + poCzasie : "brak połączenia z Wi-Fi";
-    std::string siec = wifi ? a.siec.nazwaSieci() + " " + tekstRssi(a.siec.rssi())
-                       : r.wifiIp[0] ? std::string(r.wifiSsid) + " " + tekstRssi(r.wifiRssi) + poCzasie : "–";
-    std::vector<std::string> oto = wartosciTestuOtoczenia(r.oto, kiedyPobranoOto());
+    // bez połączenia teraz adres z chwilą ostatniego połączenia; godzina nigdy ucięta
+    std::string ipOst = wifi ? a.siec.adresIp() : std::string(r.wifiIp), dzOst = wifi ? "" : dataZ(r.wifiEp);
+    WierszTestu adres = wierszU05Adresu(ipOst, dzOst.empty() ? "" : ddmm(dzOst), dzOst.empty() ? "" : godzina(r.wifiEp),
+                                        !dzOst.empty() && dzOst == dzisiaj());
+    bool zeg = zegar();
+    d.sprawdzono = zeg ? chwila(teraz()) : "";
+    std::string pam = wartoscPamieci();
+    // usterka: każdy stan poza `wolne {n} MB` i udanym przywróceniem (`przywrócono …`, `{p}/{o} nocy`)
+    bool pamUsterka = pamiecUsterka;
+    if (pamUsterka) pam = wartoscPamieci(true);
     d.lewa = {
         {"Oprogramowanie", wartoscOprogramowania()},  // ADR-0032 pkt 2, R-NF-35: dopisek aktualizacji
+        zeg ? WierszTestu("Zegar panelu", chwila(teraz()))
+            : WierszTestu("Zegar panelu", "nie ustawiony", true, "zegar"),
+        {"Pamięć panelu", pam, pamUsterka, "pamięć panelu"},
+        // wiersz `Karta` wróci razem ze sterownikiem karty microSD (R-AW-29):
+        // bez sterownika zawsze mówiłby `brak karty`
+        wierszBaterii(),
         {"Zestaw reguł", "wbudowany"},  // zestawu danych reguł w pamięci panelu jeszcze nie ma
-        {"Pamięć panelu", wartoscPamieci()},
-        {"Karta", "brak karty"},        // sterownik karty microSD: (R-AW-29)
-        {"Źródło otoczenia", dopasujWartosc("Źródło otoczenia", oto)},
     };
+    WierszTestu pobranie = wierszPobrania(zeg);
+    WierszTestu oto = wierszU05("Pogoda i powietrze", wartosciTestuOtoczenia(r.oto, kiedyPobranoOto()),
+                                usterkaOtoczenia(r.oto), "pogoda", bezOcenyOtoczenia(r.oto));
     d.prawa = {
-        {"Panel", dopasujWartosc("Panel", {panel})},
-        {"Wi-Fi", dopasujWartosc("Wi-Fi", {siec})},
-        {"AirBridge", wartoscAirBridge()},
-        {"Ostatnie pobranie", ostatniePobranie()},
-        // M-25 (R-KONF-41), krzywa; bez odczytu napięcia w tym wybudzeniu `–` (E-05 bez zmian)
-        {"Bateria", bateriaZOdczytu && procentBat >= 0 ? std::to_string(procentBat) + "%" : "–"},
+        wierszWifi(),
+        adres,
+        wierszAirBridge(),
+        pobranie,
+        oto,
     };
     // tryb porównawczy (ADR-0036 „Zmiana 2026-11-09”): ostatnie 7 dób z porównaniem nocy z plików z raportem JSON;
-    // przy 7 z 7 zgodnych dopisek „można przełączyć”, przełączenie kluczem `noc_zrodlo=plik` albo usunięciem wiersza
-    // (od 11.11.2026 domyślnie `plik`, ADR-0036 „Zmiana 2026-11-11”); w trybie `plik` wiersz `włączone (plik)`
-    d.dol = {{"Noce z plików", dopasujWartosc("Noce z plików",
-                                              porownanie::wartosciU05(porownanie::policz(wpisyPorownania()), zrodloNocy()),
-                                              TEST_SZEROKOSC)}};
+    // wiersz na całą szerokość pod kolumnami z pełnym tekstem jak do 14.11.2026 (`zgodne 7 z 7, można przełączyć
+    // na pliki`, `rozjazd 1 z 7 (M-05, M-02)`, `brak porównania: AirBridge < 2.3.1`); rozjazd to usterka, brak
+    // porównania wiersz bez oceny
+    porownanie::Licznik lp = porownanie::policz(wpisyPorownania());
+    porownanie::Zrodlo zr = zrodloNocy();
+    WierszTestu noce = wierszU05("Noce z plików", porownanie::wartosciU05(lp, zr), porownanie::usterkaU05(lp, zr),
+                                 "noce z plików", porownanie::bezOcenyU05(lp, zr), TEST_SZEROKOSC);
+    d.dol = {noce};
     d.ramkaLewo = ramkaOkna();
     d.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     return d;
@@ -4758,11 +5053,13 @@ class Przebieg {
     };
   }
 
-  // Wiersze U-05 jako tekst (TekstyWybudzenia::linieTestu): `{nazwa}: {wartość}` i obie części ramki.
+  // Wiersze U-05 jako tekst (TekstyWybudzenia::linieTestu): `{nazwa}: {wartość}`, `Werdykt: {werdykt}` (lista wierszy
+  // z usterką) i obie części ramki.
   static std::vector<std::string> tekstyTestu(const DaneTestu& d) {
     std::vector<std::string> l;
     for (auto* k : {&d.lewa, &d.prawa, &d.dol})
       for (auto& w : *k) l.push_back(w.nazwa + ": " + w.wartosc);
+    l.push_back("Werdykt: " + werdyktTestu(d));
     l.push_back(d.ramkaLewo);
     l.push_back(d.ramkaPrawo);
     return l;
@@ -5069,28 +5366,103 @@ class Przebieg {
     if (przywrocenie.ok) wczytajDane();
   }
 
+  // R-EKR-67: panel poznał w tej chwili stan nocy oczekiwanej (warunki: src/dzien.h stanNocyZnany(),
+  // stanZnanyPrzedNocaWBudowie()). RTC zawsze, NVS tylko przy zmianie nocy oczekiwanej, której stan poznano
+  // (najwyżej raz na dobę, pamięć flash).
+  void poznanoStanNocy(const char* skad) {
+    if (!zegar()) return;
+    std::string d0, d1;
+    int m0 = -1, m1 = -1;
+    uint32_t zNvs = a.nvs.liczbaU("cpap", "ab_znn", 0);
+    if (zegarZnany(zNvs)) dataIMinuta(zNvs, d0, m0);
+    dataIMinuta(teraz(), d1, m1);
+    if (zNvs > teraz() || nocOczekiwana(d0, m0) != nocOczekiwana(d1, m1)) a.nvs.ustawLiczbeU("cpap", "ab_znn", teraz());
+    r.nocZnanaEp = teraz();
+    log("belka: stan nocy %s znany (%s)", nocOczekiwana(d1, m1).c_str(), skad);
+  }
+  // z listy odczytanej w tym wybudzeniu (abListaOk): noc oczekiwana nieobecna albo w budowie, bez zaległych dób
+  void stanNocyZListy(const std::string& dzis, int m, const char* skad) {
+    // r.ab.wBudowie dotyczy nocy z dziś, która jest nocą oczekiwaną dopiero od 11:00
+    if (abListaOk && stanNocyZnany(abLista, hist, dzis, m, r.ab.wBudowie && m >= PLAN_OKNO_DO)) poznanoStanNocy(skad);
+  }
+  // terapia trwa albo moduł przetwarza pliki po 11:00 (lista nieczytana): noc z dziś w budowie, stan znany, gdy znany
+  // był stan nocy z wczoraj
+  void nocWBudowiePo11(const std::string& dzis, int m) {
+    int zm;
+    std::string zd = nocZnanaData(zm);
+    if (r.ab.wBudowie && stanZnanyPrzedNocaWBudowie(hist, dzis, m, zd, zm)) poznanoStanNocy("noc w budowie po 11:00");
+  }
+  std::string nocZnanaData(int& minuta) {
+    std::string d;
+    minuta = -1;
+    if (zegarZnany(r.nocZnanaEp)) dataIMinuta(r.nocZnanaEp, d, minuta);
+    return d;
+  }
+
+  // Znaki belki (spec 5.4.17, R-EKR-67…R-EKR-69) z jednego miejsca dla każdego ekranu z belką.
+  ZnakiBelki znakiBelkiTeraz() {
+    ZnakiBelki z;
+    std::string dzis = dzisiaj(), kd;
+    int km = -1;
+    if (zegarZnany(r.nocZnanaEp)) dataIMinuta(r.nocZnanaEp, kd, km);  // nie StanAB::pobrano
+    z.nieaktualne = daneNieaktualne(hist, dzis, minutaDoby(), kd, km);
+    const Noc* ost = dataOk(dzis) ? ostatniaNoc(hist, dzis) : nullptr;
+    if (ost) z.daneZ = ddmm(ost->data);
+    // R-EKR-68, Decyzja „wariant oszczędny” (14.11.2026, po przeglądzie): klepsydra tylko w klatce,
+    // która i tak się odświeża, i tylko gdy po pobraniu przyjdzie kolejne odświeżenie, które ją zdejmie. Pobranie
+    // po przycisku rano (R-PRZ-22) zaczyna się po narysowaniu klatki, a odświeżenie po nim jest tylko przy nowej
+    // nocy; bez niej klepsydra zostałaby na e-inku („pobieram” bez pobierania) albo kosztowałaby odświeżenie więcej.
+    // Dlatego dyrygent nie ustawia dziś klepsydry w żadnym przebiegu (rysowanie gotowe w belka(), spec 5.4.17).
+    z.pobieram = false;
+    // R-EKR-69: warunek ikony aktualizacji; bez znaku na U-07 (ekran sam mówi o wersji)
+    z.nowaWersja = ekran() != Ekran::AKTUALIZACJA && ikonaAktualizacjiTeraz();
+    if (z.nieaktualne) log("belka: dane nieaktualne (noc oczekiwana %s, %s)", nocOczekiwana(dzis, minutaDoby()).c_str(),
+                           tekstNieaktualnych(z).c_str());
+    return z;
+  }
+
   void pokaz() {
     zaOknemKlatki = NAN;  // ustawia je tylko slot dzienny
+    // R-EKR-66: bateria w belce z ostatnio wyświetlonej klatki, dopóki ta klatka stoi i stan „niska bateria” się nie
+    // zmienił; świeży stan przy zmianie ekranu (klatkaOd = 0), po starcie i gdy klatka zmienia się z innego powodu
+    BateriaEkranu batSwieza = bateriaTeraz();
+    if (ekran() == Ekran::TEST) {
+      // U-05 odświeża się zawsze i ma wiersz `Bateria` (R-KONF-41): belka pokazuje dokładnie to samo co wiersz,
+      // czyli procent z pomiaru w tym wybudzeniu albo `–`
+      // (od 14.11.2026 także kabel: wiersz `na zasilaniu · {x}%`, belka `kabel`)
+      batSwieza.procent = bateriaZOdczytu ? procentBat : -1;
+    }
+    const bool batZKlatki = !bateriaSwieza && r.klatkaOd != 0 && (r.klatkaBatFlagi & BAT_KLATKA_WAZNA) &&
+                            ekran() != Ekran::TEST && ((r.klatkaBatFlagi & BAT_KLATKA_NISKA) != 0) == batSwieza.niska;
+    BateriaEkranu batKlatki = batSwieza;
+    if (batZKlatki) {
+      batKlatki.procent = r.klatkaBatProc;
+      batKlatki.kabel = (r.klatkaBatFlagi & BAT_KLATKA_KABEL) != 0;
+    }
+    ustawBaterieEkranu(batKlatki);
+    ustawZnakiBelki(znakiBelkiTeraz());  // R-EKR-67…R-EKR-69: stan danych, pobieranie, nowa wersja
     zapiszOdlozone();  // R-DANE-04: rekord nocy w plikach przed odświeżeniem (gdy Wi-Fi zostało dla okna serwisowego)
     std::string dzis = dzisiaj();
+    sypialniaWKokpicieB44();  // numer `n / 4` w belkach stron kokpitu (R-KOK-29)
+    // strona sypialni bez danych albo ukryta z telefonu (po restarcie z pamięci RTC, po zmianie daty albo po zapisie
+    // formularza): ekran dnia, jak bajt spoza listy (R-KOK-29, R-KOK-34)
+    if (ekran() == Ekran::SYPIALNIA && !sypialniaWKokpicie()) {
+      log("strona sypialni poza ciągiem (bez danych z 30 nocy albo ukryta z telefonu): ekran dnia (R-KOK-29, R-KOK-34)");
+      ustawEkran(Ekran::DZIEN);
+    }
     switch (ekran()) {
       case Ekran::K1: {
         DaneK1 k1 = budujK1(hist, dzis, norma(dzis), czynniki, &stany(dzis), r.ab.tryb);
         k1.ocena = ocenaNaglowkaK1(stanyOcenyB5(dzis));  // R-KOK-21: stan po ocenie silnika
-        {  // R-KOK-26: chwila importu tej nocy, nie ostatniego odczytu AirBridge (ten przesuwa się w ciągu dnia:
-          // sprawdzenie o 11:00, początek nocy 23:30, i mówiłby „dane 23:30” o nocy pobranej rano). Najpierw pole
-          // `import` rekordu nocy, potem chwila importu z tego wybudzenia; bez żadnej z nich nagłówek bez godziny.
-          const Noc* nd = dzis.empty() ? nullptr : nocZDnia(hist, dzis);
-          uint32_t ep = nd && nd->import && sekundaDzis(nd->import) >= 0 ? nd->import
-                        : sekundaDzis(r.importNocyEp) >= 0 ? r.importNocyEp : 0;
-          k1.godzinaDanych = ep ? godzina(ep) : "";
-          log("K1: godzina danych %s (R-KOK-26)", k1.godzinaDanych.empty() ? "brak" : k1.godzinaDanych.c_str());
-        }
+        k1.godzinaDanych = godzinaImportuNocy(dzis);  // R-KOK-26
+        log("K1: godzina odczytu %s (R-KOK-26)", k1.godzinaDanych.empty() ? "brak" : k1.godzinaDanych.c_str());
         // R-POR-24, R-PRZ-04: K1 otwarte ze strony Portretu: ◀ wraca do Portretu (przejsciePortretu()), więc tak podpisane
-        if (r.k1ZPortretu && r.portretStrona) {
+        if (pierwszaZPortretu(Ekran::K1)) {
           k1.stopkaWstecz = sk::tekst("S11.stopka_wstecz");
           log("stopka K1: %s (R-POR-24)", k1.stopkaWstecz.c_str());
         }
+        k1.sprawyWCiagu = sprawyWCiaguB5(dzis);  // R-KOK-35: stopka K1 z ciągu (jak K2)
+        k1.profilPubliczny = profilB18();
         wczytajK1OdkrycieB15();  // po uśpieniu z NVS
         if (k1OdkrycieB15.dzien == dzis) {  // R-CZY-20: K1 z ekranu dnia O-12 z ukrytym czynnikiem
           k1.odkrycieTytul = k1OdkrycieB15.tytul;
@@ -5101,14 +5473,20 @@ class Przebieg {
       }
       case Ekran::K2: {
         DaneK2 k2 = budujK2(hist, dzis, norma(dzis), czynniki, &stany(dzis), r.ab.tryb);
+        k2.godzinaDanych = godzinaImportuNocy(dzis);  // R-KOK-26: ta sama chwila co w K1
         k2.sprawy = sprawyWCiaguB5(dzis);  // jak KontekstNaw::sprawyDostepne (R-KOK-19)
         k2.liczby = profilB18();          // R-KOK-22
+        if (pierwszaZPortretu(Ekran::K2)) {  // K2 pierwszą stroną ciągu, otwarte z Portretu
+          k2.stopkaWstecz = sk::tekst("S11.stopka_wstecz");
+          log("stopka K2: %s (R-POR-24)", k2.stopkaWstecz.c_str());
+        }
         rysujK2(plotno(), k2);
         break;
       }
       case Ekran::PYTANIE: rysujPytanieTeraz(); break;
       case Ekran::TEST: rysujTestTeraz(); break;
       case Ekran::LICZBY: rysujLiczbyB15(dzis); break;  // „Co znaczą te liczby” (R-KOK-22)
+      case Ekran::SYPIALNIA: rysujSypialnieB44(dzis); break;  // „Sypialnia · 30 nocy” (R-KOK-29)
       case Ekran::OMOWIONE:
       case Ekran::SPRAWY:
       case Ekran::PRZENIESIONE:
@@ -5117,7 +5495,12 @@ class Przebieg {
         break;
       case Ekran::RAPORT: rysujRaportB13(dzis); break;
       case Ekran::SPRZET_ZAPISANO: rysujWymianeZapisanaB16(); break;  // R-MAS-01, R-MAS-18
-      case Ekran::USTAWIENIA: rysujUstawienia(plotno(), daneU01()); break;  // U-01 (R-KONF-55)
+      case Ekran::USTAWIENIA: {  // U-01 (R-KONF-55); stan oprogramowania także w logu
+        DaneUstawien u = daneU01();
+        log("U-01 · %s", u.aktualizacja.c_str());
+        rysujUstawienia(plotno(), u);
+        break;
+      }
       case Ekran::FORMULARZ: rysujFormularzP07(); break;                                    // U-03
       case Ekran::SIEC_PANELU: rysujSiecPaneluP07(); break;                                 // U-02
       case Ekran::AKTUALIZACJA: rysujU07Teraz(); break;                                     // U-07
@@ -5128,6 +5511,8 @@ class Przebieg {
         break;
     }
     odnow();
+    if (klepsydraNarysowana()) log("belka: klepsydra, pobieram zaraz po rysowaniu (R-EKR-68)");
+    if (znakWersjiNarysowany()) log("belka: znak nowej wersji (jest wersja %s, R-EKR-69)", akt.znana.c_str());
     // R-EKR-60: chwila ostatniego narysowania ekranu dnia do planu (0 = bez przerysowań: S5, S10, nocny, bez czasu);
     // także przy klatce bez zmian, bo kolejne 2 h liczą się od tej oceny
     if (ekran() == Ekran::DZIEN) r.dzienRysowanyEp = dzienOdswiezalny && zegar() ? teraz() : 0;
@@ -5141,11 +5526,15 @@ class Przebieg {
       log("ekran %d bez zmian: klatka jak wyświetlona, bez odświeżenia e-ink", (int)r.ekran);
       return;
     }
-    if (stopkaZPamieci) {  // ekran się zmienił, więc odświeżenie e-ink ma już świeży odczyt czujnika
+    // ekran się zmienił, więc odświeżenie e-ink ma już świeży odczyt czujnika i świeży stan baterii (R-EKR-66)
+    const bool batStara = batZKlatki && (batKlatki.procent != batSwieza.procent || batKlatki.kabel != batSwieza.kabel);
+    if (stopkaZPamieci || batStara) {
       stopkaZPamieci = false;
+      bateriaSwieza = true;
       pokaz();
       return;
     }
+    bateriaSwieza = false;
     if (!ekranWlaczony) {
       a.wyswietlacz.wlacz();
       ekranWlaczony = true;
@@ -5155,6 +5544,9 @@ class Przebieg {
     odnow();
     r.klatkaSkrot = skrot;
     r.klatkaOd = zegar() ? teraz() : 0;
+    r.klatkaBatProc = (int8_t)batKlatki.procent;  // bateria tej klatki
+    r.klatkaBatFlagi = (uint8_t)((r.klatkaBatFlagi & (BAT_NISKA_HISTEREZA | BAT_KABEL_ZNANY)) | BAT_KLATKA_WAZNA |
+                                 (batKlatki.kabel ? BAT_KLATKA_KABEL : 0) | (batKlatki.niska ? BAT_KLATKA_NISKA : 0));
     r.stopkaTemp = tempStopki();  // stopka tej klatki
     r.stopkaWilg = wilgStopki();
     r.stopkaZaOknem = zaOknemKlatki;
@@ -5547,7 +5939,7 @@ class Przebieg {
   }
   // R-POR-02, R-POR-04: Portret jako ekran dnia rano (zwycięzca z R5e–R9 po 30 min). false = rysuje dalej zwykły
   // wybór (brak przebiegu, problem poranny, slot dzienny, po 30 min drugi ekran).
-  bool rysujPortretB40(const EkranDnia& e, DaneDnia& d, const Naglowek& n, const std::string& dzis) {
+  bool rysujPortretB40(const EkranDnia& e, DaneDnia& d, const std::string& dzis) {
     if (e.typ == "S5" || e.typ == "S10" || !portretRanoDostepny(dzis)) return false;
     int m = minutaDoby();
     if (m < 5 * 60 || sekundaDzis(r.slotDziennyEp) >= 0) return false;
@@ -5589,6 +5981,7 @@ class Przebieg {
     DanePortretu dp = danePortretu(t, d, dzis);
     t.uklad = Uklad::PORTRET;
     t.portret = &dp;
+    const Belka n = belkaPortretu(d);  // `Portret nocy` · `noc na {dzień} {data}` (R-EKR-64)
     uint32_t t0 = ms();
     rysujEkranDanych(plotno(), n, t);
     uint32_t czas = ms() - t0;
@@ -5602,7 +5995,7 @@ class Przebieg {
       zapiszCzynniki();
     }
     log("ekran dnia S11 (Portret nocy, %s): %s, rysowanie %lu ms (T-WYM-97); nagłówek „%s”", dp.tryb.c_str(),
-        portret::podpisy(dp, !t.linia.empty()).front().c_str(), (unsigned long)czas, n.prawo.c_str());
+        portret::podpisy(dp, !t.linia.empty()).front().c_str(), (unsigned long)czas, n.srodek.c_str());
     return true;
   }
   // R-POR-24: Portret jako strona pod ▶ z ekranu problemu (bez numeru strony); stopka z akcjami ◀ ▶ ↻.
@@ -5613,7 +6006,7 @@ class Przebieg {
       return;
     }
     DaneDnia d = daneDnia(dzis);
-    Naglowek n{naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+    Belka n = belkaPortretu(d);
     TrescEkranu t = trescDnia("S2A", "", d);
     DanePortretu dp = danePortretu(t, d, dzis);
     t.uklad = Uklad::PORTRET;
@@ -5623,12 +6016,23 @@ class Przebieg {
     t.stopkaPrawo.clear();
     rysujEkranDanych(plotno(), n, t);
     plotno().prostokat(0, 434, 800, 46, false);
-    stopkaEkranu(plotno(), {"◀ ekran dnia", "▶ ostatnia noc", "↻ ekran dnia"}, "");
-    log("Portret nocy jako strona pod ▶ (R-POR-24): %s; nagłówek „%s”", portret::podpisy(dp, false).front().c_str(),
-        n.prawo.c_str());
+    // ▶ prowadzi na pierwszą stronę ciągu kokpitu (domyślnie `▶ ostatnia noc`), podpis z nawigacji
+    const KontekstNaw ks = kontekstStopki(false, false, sypialniaWKokpicie());
+    const std::string dalej = "▶ " + podpisCelu(Ekran::PORTRET, true, ks);
+    stopkaEkranu(plotno(), {"◀ " + podpisCelu(Ekran::PORTRET, false, ks), dalej, "↻ ekran dnia"}, "");
+    log("Portret nocy jako strona pod ▶ (R-POR-24): %s; nagłówek „%s”; stopka %s", portret::podpisy(dp, false).front().c_str(),
+        n.srodek.c_str(), dalej.c_str());
   }
-  // R-POR-24: przejścia strony Portretu i K1 otwartego z niej; false = zwykła mapa (src/nawigacja.h).
+  // strona `e` jest pierwszą stroną ciągu kokpitu otwartą ze strony Portretu (◀ z niej wraca na Portret, stopka
+  // `◀ portret nocy`); pierwsza strona z nawigacji (pierwszaStronaKokpitu(), domyślnie K1), jak w przejsciePortretu()
+  bool pierwszaZPortretu(Ekran e) {
+    return r.k1ZPortretu && r.portretStrona && e == pierwszaStronaKokpitu(kontekstStopki(false, false, sypialniaWKokpicie()));
+  }
+  // R-POR-24: przejścia strony Portretu i pierwszej strony ciągu otwartej z niej (domyślnie K1; przy innej kolejności
+  // z telefonu K2 albo sypialnia); false = zwykła mapa (src/nawigacja.h). `r.k1ZPortretu` (nazwa sprzed ADR-0045,
+  // pamięć RTC bez zmian) = pierwsza strona ciągu otwarta z Portretu.
   bool przejsciePortretu(Ekran przed, Przycisk p, bool dlugo, const KontekstNaw& kn, Przejscie& pr) {
+    const Ekran pierwsza = pierwszaStronaKokpitu(kn);
     if (przed == Ekran::DZIEN && r.portretStrona && sekundaDzis(r.slotDziennyEp) < 0 && !kn.nocny && !kn.pytanieTN &&
         !dlugo && p == Przycisk::PRAWY) {
       pr = {Ekran::PORTRET, Akcja::POKAZ};
@@ -5639,17 +6043,18 @@ class Przebieg {
       if (dlugo) return true;
       if (p == Przycisk::PRAWY) {
         r.k1ZPortretu = 1;
-        pr = {Ekran::K1, Akcja::POKAZ};
+        pr = {pierwsza, Akcja::POKAZ};
       } else if (p == Przycisk::LEWY || p == Przycisk::SRODEK) {
         pr = {Ekran::DZIEN, Akcja::POKAZ};
       }
       return true;
     }
-    if (przed == Ekran::K1 && r.k1ZPortretu && !dlugo && p == Przycisk::LEWY && r.portretStrona) {
+    if (przed == pierwsza && r.k1ZPortretu && !dlugo && p == Przycisk::LEWY && r.portretStrona) {
       pr = {Ekran::PORTRET, Akcja::POKAZ};
       return true;
     }
-    if (przed != Ekran::K1 || p != Przycisk::PRAWY) r.k1ZPortretu = 0;  // K1 → K2 i dalej: ◀ z K1 wraca zwykle
+    // pierwsza strona → dalej: ◀ z niej po powrocie wraca zwykle (na ekran dnia)
+    if (przed != pierwsza || p != Przycisk::PRAWY) r.k1ZPortretu = 0;
     return false;
   }
   enum class ZPlikow : uint8_t { NOC, ZAPAS, PRZERWANE };
@@ -6280,6 +6685,7 @@ class Przebieg {
     if (ps == PoStatusie::ZABLOKOWANE) {
       r.ab.wBudowie = wBudowiePrzyBlokadzie(!dzis.empty(), m, nocZDnia(hist, dzis) != nullptr);
       log("AirBridge: terapia trwa albo raporty zablokowane, bez raportów w tym wybudzeniu");
+      nocWBudowiePo11(dzis, m);
       zapiszStanAB();
       return 1;
     }
@@ -6287,6 +6693,7 @@ class Przebieg {
     if (ps == PoStatusie::PRZETWARZA) {
       r.ab.wBudowie = wBudowiePrzyPrzetwarzaniu(!dzis.empty(), nocZDnia(hist, dzis) != nullptr);
       log("AirBridge: przetwarza pliki po terapii (post-processing / storage), bez listy w tym wybudzeniu");
+      nocWBudowiePo11(dzis, m);
       zapiszStanAB();
       return 1;
     }
@@ -6343,6 +6750,7 @@ class Przebieg {
           obsNocy = stan_nocy::Obserwacja::LISTA_BEZ_DNIA;
           r.ab.wBudowie = !nocZDnia(hist, dzis) && m < stan_nocy::GODZINA_11;
           log("AirBridge: lista nocy pusta (dnia ostatniej nocy nie ma na liście)");
+          if (stanNocyZnany(abLista, hist, dzis, m, false)) poznanoStanNocy("lista pusta");
           strZAirBridge(s, dzis);  // ADR-0035: historia ze STR także przy pustej liście
           zapiszStanHist(s);
           zapiszStanAB();
@@ -6375,6 +6783,7 @@ class Przebieg {
         if (httpKod == 200) strZAirBridge(s, dzis);  // ADR-0035: po ostatniej nocy, w tej samej sesji Wi-Fi
         zapiszStanHist(s);
         aktualizujZalegle(s, dzis);
+        stanNocyZListy(dzis, m, "lista nocy");
         if (httpKod != 200) {
           zapiszStanAB();
           return 0;
@@ -6408,6 +6817,7 @@ class Przebieg {
     abPrzerywanie(false);
     zapiszStanHist(s);
     aktualizujZalegle(s, dzis);
+    stanNocyZListy(dzis, minutaDoby(), "zaległe doby pobrane");
     zapiszStanAB();
     log("historia z AirBridge: pobrane %d, gotowe %d, czeka %d, pominięte razem %d", zrobione, r.ab.zalegle,
         r.ab.czekajace, (int)s.pom.size());
@@ -6740,8 +7150,8 @@ class Przebieg {
     r.pyt.ruszone = false;
     const WpisCzynnikow* stary = wpisZDnia(czynniki, data);
     r.pyt.zaznaczone = stary && stary->stan == 'O' ? stary->czynniki : 0;
-    r.pyt.termin = (int16_t)(zLinii ? w->termin : -1);
-    r.pyt.innaNoc = zLinii && w->warstwa == 'O';
+    r.pyt.termin = (int16_t)(zLinii && w ? w->termin : -1);  // zLinii pociąga za sobą w != nullptr (zaproszenieAktywne)
+    r.pyt.innaNoc = zLinii && w && w->warstwa == 'O';
   }
 
   // M-25 (E-05, R-KONF-41): krzywa napięcie → procent, wygładzenie w RTC; brak napięcia: ostatni procent z RTC przez
@@ -6762,6 +7172,10 @@ class Przebieg {
   PoNacisnieciu obsluz(Przycisk p, bool dlugo, bool budzacy) {
     static const char* const N[] = {"-", "◀", "↻", "▶"};
     ostatniPrzycisk = std::string(N[(int)p]) + (dlugo ? " 2 s" : "");
+    // ADR-0045 (R-KOK-34, R-KOK-36): układ kokpitu z konfiguracji i strona sypialni przed silnikiem reguł, żeby
+    // teksty z numerem strony (`Na kontroli: raport 2 / 3.`) liczyły się z bieżącego układu także po zapisie formularza
+    // w tym samym wybudzeniu i przy przycisku w czuwaniu wybudzenia pomiarowego (bez wcześniejszego ustawienia)
+    sypialniaWKokpicieB44();
     DecyzjaNocy dn = nocTeraz(false);
     std::string dzis = dzisiaj();
     KontekstNaw kn = kontekstNawigacji(ekran(), dn, s5Teraz(), s10Teraz(), zaproszenieTeraz(),
@@ -6783,6 +7197,7 @@ class Przebieg {
     kn.pytanieRuszone = r.pyt.ruszone;
     kn.s5Bateria = kn.s5 && s5BateriiTeraz();  // ↻ na S5 baterii mierzy od nowa, bez pobrania
     kn.profilPubliczny = profilB18();  // (R-KOK-22)
+    kn.sypialniaDostepna = sypialniaWKokpicie();  // (R-KOK-29) w chwili naciśnięcia, jak sprawy
     // ◀ 2 s na S-K-31 (R-MAS-01) i S-K-35 (R-MAS-18): element zapisany przy rysowaniu ekranu dnia (`b16_sk31`)
     // S-K-31 narysowany zamiast ekranu L-09 albo zdarzenia E (etap 0): przyciski S-K-31, nie ekranu L
     kn.sk31 = przed == Ekran::DZIEN && !kn.nocny && !kn.pytanieTN && a.nvs.liczbaU("cpap", "b16_sk31", 0) > 0;
@@ -6804,12 +7219,25 @@ class Przebieg {
     // więc slot zaczyna wtedy start z planu albo naciśnięcie na ekranie dnia po powrocie (R-POR-05)
     const bool otwieraPortret = przed == Ekran::DZIEN && r.portretStrona && !dlugo && p == Przycisk::PRAWY &&
                                 sekundaDzis(r.slotDziennyEp) < 0;
-    if (startSlotuPrzyciskiem(wejsciePlanu(0), przed) && !portretWToku(dzis) && !otwieraPortret) {
+    // R-KONF-61: przycisk na informacji po aktualizacji samodzielnej nie uruchamia niczego z ekranu, którego
+    // nie było widać, także startu slotu dziennego (informacja stoi tylko w slocie, ale stan RTC mógł zniknąć)
+    const bool naInformacji = przed == Ekran::DZIEN && r.informacjaNaEkranie;
+    if (!naInformacji && startSlotuPrzyciskiem(wejsciePlanu(0), przed) && !portretWToku(dzis) && !otwieraPortret) {
       r.nacisniecieRanoEp = r.slotDziennyEp = teraz();
       log("slot dzienny: start naciśnięciem (R-KON-41)");
     }
     Przejscie pr;
     if (!przejsciePortretu(przed, p, dlugo, kn, pr)) pr = nacisniecie(przed, p, dlugo, kn);
+    // R-KONF-61: przycisk na informacji po aktualizacji samodzielnej zamyka ją; krótkie ▶ otwiera pierwszą stronę
+    // kokpitu (jak ▶ na ekranie slotu dziennego pod nią), ◀, ↻ i przytrzymania tylko pokazują ekran dnia (bez
+    // akcji ekranu, którego nie było widać)
+    if (naInformacji) {
+      r.informacjaNaEkranie = 0;
+      zapiszInformacje(aktualizacja::Informacja());
+      pr = dlugo || p != Przycisk::PRAWY ? Przejscie{Ekran::DZIEN, Akcja::NIC}
+                                         : Przejscie{pierwszaStronaKokpitu(kn), Akcja::NIC};
+      log("informacja po aktualizacji samodzielnej zamknięta przyciskiem %s (R-KONF-61)", ostatniPrzycisk.c_str());
+    }
     // sieć panelu w nocy (slot nocny albo aparat pracuje, `rop` = 1) bez buzzera
     bool cicho = pr.akcja == Akcja::SIEC_PANELU_START && ((zegar() && slotNocny(minutaDoby())) || r.ab.rop == 1);
     // adapter z piskiem przy naciśnięciu (R-PRZ-20) już zapiszczał raz, także za przycisk budzący (pierwsza czynność
@@ -6891,7 +7319,7 @@ class Przebieg {
       frm.stan.clear();
       otworzFormularzP07();
     }
-    w.zmiana = pr.akcja != Akcja::NIC || pr.ekran != ekran();
+    w.zmiana = pr.akcja != Akcja::NIC || pr.ekran != ekran() || naInformacji;
     ustawEkran(pr.ekran);
     r.ekranOd = teraz();
     return w;
@@ -7059,6 +7487,7 @@ class Przebieg {
         r.ab.zalegle = -1;
         r.ab.magia = MAGIA_AB;
       }
+      r.nocZnanaEp = a.nvs.liczbaU("cpap", "ab_znn", 0);  // R-EKR-67: razem ze stanem AirBridge
     }
     // RTC po starcie innym niż wybudzenie z uśpienia nie ma magii; inny adres źródła: bez starych danych
     if (r.oto.magia != OTO_MAGIA || r.oto.adres != otoAdres()) wyczyscOtoczenie(r.oto, otoSkonfigurowane(), otoAdres());
@@ -7140,6 +7569,9 @@ class Przebieg {
       return;
     }
     a.przyciski.dioda(true);
+    // ADR-0045 (R-KOK-34, R-KOK-36): układ kokpitu z pliku konfiguracji przed pobraniem, silnikiem reguł (teksty
+    // z numerami stron) i obsługą przycisku; po linii `cpap-eink …`, więc wpisy konfiguracji w logu są w tym wybudzeniu
+    sypialniaWKokpicieB44();
 
     if (w == PowodWybudzenia::PRZYCISK) {
       powod = "przycisk";
@@ -7385,7 +7817,8 @@ class Przebieg {
     tr.krok = t.krok;
     tr.ramkaPrzerywana = true;  // ton „brak danych” (5.4.3)
     tr.stopkaLewo = t.stopka;
-    rysujEkranDanych(plotno(), Naglowek{"", ""}, tr);
+    ustawBaterieEkranu(BateriaEkranu());  // tryb awaryjny nie mierzy baterii: belka z `–`
+    rysujEkranDanych(plotno(), Belka{"", ""}, tr);
     odnow();
     a.wyswietlacz.odswiez();
     r.klatkaOd = 0;  // rysowanie poza pokaz: skrót klatki nieważny
@@ -7403,12 +7836,15 @@ class Przebieg {
     d.awaryjny = true;
     d.lewa = {
         {"Oprogramowanie", wersjaWydania(a.uruchomienie.wersja()) + " (" + a.uruchomienie.slot() + ")"},
-        {"Tryb awaryjny", dopasujWartosc("Tryb awaryjny", {nazwaPrzyczyny(z.przyczyna)})},
+        // jedna kolumna na całą szerokość (744 px, src/ekrany.cpp rysujTest())
+        {"Tryb awaryjny", dopasujWartosc("Tryb awaryjny", {nazwaPrzyczyny(z.przyczyna)}, 744, true), true,
+         "tryb awaryjny"},
     };
     d.ramkaLewo = ramkaOkna();
     d.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     log("U-05 · Wersja: %s · slot %s", a.uruchomienie.wersja(), a.uruchomienie.slot().c_str());
     log("U-05 · Tryb awaryjny: %u starty po błędzie (%s)", (unsigned)STARTOW_DO_AWARYJNEGO, nazwaPrzyczyny(z.przyczyna));
+    ustawBaterieEkranu(BateriaEkranu());  // tryb awaryjny nie mierzy baterii: belka z `–`
     rysujTest(plotno(), d);
     odnow();
     a.wyswietlacz.odswiez();
@@ -7504,7 +7940,16 @@ class Przebieg {
 
 void Dyrygent::wybudzenie() {
   teksty_ = TekstyWybudzenia();
-  Przebieg p(a_, k_, teksty_);
-  p.wykonaj();
-  p.tekstyKoncowe();
+  // R-KOK-29: strona sypialni w ciągu liczy się w każdym wybudzeniu od nowa (na panelu i tak: po głębokim śnie stan
+  // zmiennych zaczyna się od zera); po wybudzeniu też false, żeby kolejne wybudzenie albo funkcja bez dyrygenta
+  // (np. teksty w testach) nie dostały stanu z poprzedniego
+  ustawSypialnieWKokpicie(false);
+  ustawUkladKokpitu(UkladKokpitu());  // ADR-0045: układ z konfiguracji ustawia przebieg (sypialniaWKokpicieB44())
+  {
+    Przebieg p(a_, k_, teksty_);
+    p.wykonaj();
+    p.tekstyKoncowe();
+  }
+  ustawSypialnieWKokpicie(false);
+  ustawUkladKokpitu(UkladKokpitu());
 }

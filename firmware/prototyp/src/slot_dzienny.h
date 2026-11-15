@@ -21,6 +21,7 @@
 #include <vector>
 #include "dobranoc.h"  // hhmm(): 1421 → "23:41"
 #include "noc.h"
+#include "uklad_ekranow.h"
 
 // ---------- prognoza godzinowa (M-26, M-27) ----------
 enum Pylek : std::uint8_t { PYL_BRZOZA = 0, PYL_TRAWY = 1, PYL_OLCHA = 2, PYL_BYLICA = 3, PYL_N = 4 };
@@ -262,6 +263,11 @@ struct UstawieniaDnia {
   int nocZrodloSkuteczne() const { return nocZrodlo < 0 ? NOC_ZRODLO_DOMYSLNE : nocZrodlo; }
   std::set<std::string> nocJson;
   bool nocJsonZly = false;  // wiersz `noc_json` z nieznanym ID: przy `plik` cała noc z raportu JSON (bezpieczny kierunek)
+  // ADR-0045 (R-KOK-34, R-KON-70): `kokpit.kolejnosc`, `kokpit.ukryte`, `dzien.kolejnosc`, `dzien.ukryte`
+  // (src/uklad_ekranow.h); bez wierszy układ domyślny. Kokpit stosuje dyrygent (sypialniaWKokpicieB44() na starcie
+  // obsluz() i przed rysowaniem), dzień idzie do slotu dziennego (WejscieSlotu::uklad); wartości złe pominięte
+  // z jednym wpisem na klucz w `bledy`.
+  UkladEkranow ekrany;
   std::vector<std::string> bledy;
   UstawieniaDnia();
 };
@@ -280,6 +286,9 @@ bool wyciekDrzemki(const Drzemka& d);  // R-KON-58: P95 drzemki > próg S-K-10
 // ustępują po kolei: `za oknem {t}° · `, ` · wyciek {w}`, czas nocy. Brak wartości: `–` (R-DANE-07).
 struct StopkaDzienna {
   std::string lewo, prawo;
+  // R-KON-69: bateria poniżej progu: w miejscu `lewo` ikona baterii i `{x}% · podłącz kabel` (src/ekrany.h
+  // tekstNiskiejBaterii()); ustawia dyrygent ze stanu baterii ekranu
+  bool bateriaNiska = false;
 };
 StopkaDzienna stopkaDzienna(const Noc* noc, bool nocUbiegla, int drzemkaMin, float zaOknem, float przyLozku);
 
@@ -317,6 +326,8 @@ struct WejscieSlotu {
   std::string linia;
   bool liniaA = false, liniaOstrzezenie = false;
   Drzemka drzemka;                 // R-KON-58
+  // ADR-0045 (R-KON-70…R-KON-72): kolejność D1…D4 i ekrany dzienne wyłączone z telefonu; domyślnie jak przed nim
+  UkladDnia uklad;
 };
 struct WyborSlotu {
   EkranSlotu ekran = EkranSlotu::BRAK;  // BRAK = ekran z rana zostaje (R-KON-54: bez współrzędnych i obrazka)
@@ -330,6 +341,10 @@ struct WyborSlotu {
 // > D3 S-K-35 > D4 S-K-36 > D5 S-K-37 (zastępstwo S-K-38, R-KON-54). w pierwszym bloku slotu (OBRAZEK_BLOK_MIN)
 // S-K-38 stoi przed D1…D5 (R-KON-50), z wyjątkiem D0a i wariantu CO2 S-K-33 (`Przewietrz teraz.`); z linią uwagi bez bloku.
 // Bez prognozy S-K-33, S-K-34 i S-K-36 milczą (R-KON-53); bez czujnika panelu S-K-33 milczy (5.8.10).
+// ADR-0045: D1…D4 w kolejności w.uklad.kolejnosc (R-KON-70; R-KON-46 dalej stawia S-K-34 przed S-K-33 po 16:00, gdy
+// S-K-33 jest wyżej), ekran wyłączony (w.uklad.pokaz) nie jest kandydatem, a panel bierze następnego (R-KON-71);
+// S-K-39 i `Przewietrz teraz.` (gdy ekrany CO2 włączone) zawsze przed listą i bez przełącznika (R-KON-72); bez S-K-37
+// i S-K-38 zostaje ekran z rana (BRAK, jak bez współrzędnych i obrazków, R-KON-54).
 WyborSlotu wybierzSlot(const WejscieSlotu& w);
 
 // Teksty i układ ekranu slotu dziennego (5.8.4), bez rysowania: etykieta, podpis nad godziną (`wietrz do`), godzina

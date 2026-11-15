@@ -524,11 +524,13 @@ static void testR_EKR_61_ikonaPoNieudanymAutomacie() {
   airbridge(p, d0);
   zegarem(p, ep(2026, 11, 10, 9, 0));
   wybudz(p);
-  bool ik1 = wLogu(p, "ikona aktualizacji");
+  // od 14.11.2026 (R-EKR-69) znak nowej wersji na belce ekranu dnia; ikona w stopce tylko na ekranach bez belki
+  auto znak = [&] { return wLogu(p, "ikona aktualizacji") || wLogu(p, "belka: znak nowej wersji"); };
+  bool ik1 = znak();
   airbridge(p, d0);
   zegarem(p, ep(2026, 11, 10, 9, 30));
   wybudz(p);
-  bool ik2 = wLogu(p, "ikona aktualizacji") || !wLogu(p, "ekran dnia");
+  bool ik2 = znak() || !wLogu(p, "ekran dnia");
   if (!ik1 || !ik2) printf("  ikona po nieudanej próbie 09:00 %d, w wybudzeniu 09:30 %d\n", ik1, ik2);
   SPRAWDZ(ik1, "R-EKR-61");
   SPRAWDZ(ik2, "R-EKR-61");

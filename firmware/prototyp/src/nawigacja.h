@@ -9,9 +9,11 @@
 // - przytrzymanie tylko zapisuje („wiem”, „omówione” z potwierdzeniem, „wymienione dziś” na S-K-31 i S-K-35, cofnięcie,
 //   odpowiedź „Co było inaczej?”) albo uruchamia usługę z Wi-Fi (raport ogólny ▶ 2 s w K2, sieć panelu ◀ 2 s na U-01
 //   i U-05); nigdy nie otwiera strony do przeglądania;
-// - kokpit to ciąg stron (5.5.7, ADR-0041, R-KOK-19): ekran dnia ▶ K1 (1/3) ▶ K2 (2/3) ▶ „Co znaczą te liczby” (bez
+// - kokpit to ciąg stron (5.5.7, ADR-0041, R-KOK-19; kolejność stron z numerem i ukrycie sypialni z telefonu od
+//   ADR-0045, R-KOK-34: ciagKokpitu(); niżej układ domyślny): ekran dnia ▶ K1 (1/3) ▶ K2 (2/3) ▶ „Co znaczą te liczby” (bez
 //   numeru, tylko w profilu publicznym) ▶ Otwarte sprawy (bez numeru, tylko przy co najmniej jednej sprawie)
-//   ▶ Ustawienia U-01 (3/3) ▶ 2 s formularz U-03 ▶ 2 s test U-05; ◀ cofa o jedną stronę, z K1 do ekranu dnia; na
+//   ▶ „Sypialnia · 30 nocy” (3/4, tylko z danymi sypialni, R-KOK-29, ADR-0044; wtedy K1 1/4, K2 2/4)
+//   ▶ Ustawienia U-01 (3/3, z sypialnią 4/4) ▶ 2 s formularz U-03 ▶ 2 s test U-05; ◀ cofa o jedną stronę, z K1 do ekranu dnia; na
 //   „Otwartych sprawach” ▶ i ◀ przesuwają po kartach, a za ich końcem przechodzą na sąsiednią stronę; S8 „Twoja norma”
 //   i „Sprzęt” nie są stronami kokpitu (S8 zostaje kamieniem milowym ekranu dnia, daty wymiany w formularzu U-03);
 // - wyjątek: pytanie „Co było inaczej?” (siatka): ◀ ▶ kursor, ↻ zaznacz, ↻ 2 s zapisz, ◀ 2 s pomiń;
@@ -19,6 +21,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 enum class Ekran : unsigned char { DZIEN = 0, K1 = 1, K2 = 2, PYTANIE = 3, TEST = 4, OMOWIONE = 5, SPRAWY = 6,
                                    PRZENIESIONE = 7, ZAPISANO = 8, RAPORT = 9,
@@ -29,16 +32,18 @@ enum class Ekran : unsigned char { DZIEN = 0, K1 = 1, K2 = 2, PYTANIE = 3, TEST 
                                    USTAWIENIA = 14, FORMULARZ = 15,  // U-01 „Ustawienia”, U-03 formularz z kodem QR
                                    SIEC_PANELU = 16,  // U-02, sieć panelu z formularzem (tylko ręcznie)
                                    AKTUALIZACJA = 17,  // U-07 „Aktualizacja” (R-KONF-43, ↻ 2 s na U-01)
-                                   PORTRET = 18 };  // Portret nocy jako strona pod ▶ z ekranu problemu (R-POR-24);
-                                                    // przejścia w src/dyrygent.cpp przejsciePortretu()
+                                   PORTRET = 18,  // Portret nocy jako strona pod ▶ z ekranu problemu (R-POR-24);
+                                                  // przejścia w src/dyrygent.cpp przejsciePortretu()
+                                   SYPIALNIA = 19 };  // „Sypialnia · 30 nocy” (R-KOK-29, ADR-0044), przed U-01
 // Ekran zapisany w pamięci RTC (StanRtc::ekran) z kontrolą zakresu: bajt spoza listy (zepsuta pamięć RTC,
 // stary obraz z innym wyliczeniem) daje ekran dnia zamiast wartości spoza `Ekran`. Przykład: 9 → RAPORT, 200 → DZIEN.
 // Dawne strony S8 i „Sprzęt” (obraz sprzed ADR-0041) też dają ekran dnia (5.5.7 fail-path R-KOK-19).
 inline Ekran ekranZRtc(unsigned char b) {
   if (b == static_cast<unsigned char>(Ekran::NORMA) || b == static_cast<unsigned char>(Ekran::SPRZET)) return Ekran::DZIEN;
-  return b <= static_cast<unsigned char>(Ekran::PORTRET) ? static_cast<Ekran>(b) : Ekran::DZIEN;
+  return b <= static_cast<unsigned char>(Ekran::SYPIALNIA) ? static_cast<Ekran>(b) : Ekran::DZIEN;
 }
 enum class Przycisk : unsigned char { BRAK = 0, LEWY = 1, SRODEK = 2, PRAWY = 3 };
+struct KontekstNaw;
 
 // Przerwanie długiego pobierania (↻ na S5, partie historii) naciśnięciem przycisku: liczy się tylko naciśnięcie po
 // chwili, w której żaden przycisk nie był wciśnięty, więc przycisk, który uruchomił pobieranie i jest jeszcze
@@ -69,12 +74,74 @@ enum class Akcja : unsigned char {
   AKT_PONOW,            // ▶ na U-07 po nieudanej próbie: ta sama czynność jeszcze raz
 };
 
-// numer strony kokpitu w nagłówku (`n / 3`, R-KOK-19); 0 = ekran bez numeru. „Co znaczą te liczby” i „Otwarte sprawy”
-// są w ciągu stron, ale bez numeru (stronaKokpitu() true, numerStrony() 0).
+// numer strony kokpitu w belce (`n / 3`, R-KOK-19; `n / 4` ze stroną sypialni, R-KOK-29, ADR-0044); 0 = ekran bez
+// numeru. „Co znaczą te liczby” i „Otwarte sprawy” są w ciągu stron, ale bez numeru (stronaKokpitu() true,
+// numerStrony() 0). STRON_KOKPITU = liczba stron bez strony sypialni; liczbę bieżącą podaje stronKokpitu().
 const int STRON_KOKPITU = 3;
+// Jedno miejsce prawdy o stronie „Sypialnia · 30 nocy” w ciągu (R-KOK-29): dyrygent ustawia ją raz z danych sypialni
+// (src/sypialnia_ekran.h stronaSypialniJest()) przed rysowaniem i przed obsługą naciśnięcia; numer strony (K1 1 / 4,
+// K2 2 / 4, sypialnia 3 / 4, U-01 4 / 4), numery stron w tekstach i KontekstNaw::sypialniaDostepna biorą ją stąd.
+// Domyślnie false (kokpit `n / 3`, jak przed ADR-0044). Od ADR-0045 (R-KOK-34) strona jest w ciągu tylko, gdy są dane
+// I właściciel jej nie ukrył (UkladKokpitu::sypialnia): sypialniaWKokpicie() = dane && pokazuj.
+void ustawSypialnieWKokpicie(bool jest);
+bool sypialniaWKokpicie();
+int stronKokpitu();  // 3 albo 4
+
+// (R-KOK-34…R-KOK-36, ADR-0045): układ kokpitu z formularza U-03 (sekcja „Ekrany”, klucze `kokpit.kolejnosc`
+// i `kokpit.ukryte` w /konfiguracja.txt, src/uklad_ekranow.h). Przestawiać wolno trzy strony z numerem: „Ostatnia noc”
+// (K1), „7 nocy” (K2) i „Sypialnia · 30 nocy”; ukryć wolno tylko sypialnię. „Ustawienia” U-01 zawsze ostatnie (droga
+// do formularza), K1 i K2 zawsze w ciągu (K1 niesie `ocena częściowa`, ADR-0041 pkt 4, ADR-0029 pkt 7, i pytanie
+// ↻ 2 s, R-CZY-08; K2 wyniki „tylko raport”, ADR-0029 pkt 3, i raport ogólny ▶ 2 s, R-LEK-02). Strony bez numeru
+// („Co znaczą te liczby” w profilu publicznym, „Otwarte sprawy” przy sprawie) stoją zawsze zaraz po K2, według swoich
+// reguł, bez przełącznika. Domyślnie (bez kluczy) = układ sprzed ADR-0045.
+enum class StronaPrzestawna : unsigned char { OSTATNIA_NOC = 0, SIEDEM_NOCY = 1, SYPIALNIA = 2 };
+const int STRON_PRZESTAWNYCH = 3;
+struct UkladKokpitu {
+  StronaPrzestawna kolejnosc[STRON_PRZESTAWNYCH] = {StronaPrzestawna::OSTATNIA_NOC, StronaPrzestawna::SIEDEM_NOCY,
+                                                    StronaPrzestawna::SYPIALNIA};
+  bool sypialnia = true;  // „pokazuj” strony sypialni (gdy są dane)
+  bool domyslny() const;
+};
+// Kolejność, która nie jest permutacją trzech stron (zepsuta pamięć, test), daje układ domyślny (nigdy pusty kokpit).
+void ustawUkladKokpitu(const UkladKokpitu& u);
+const UkladKokpitu& ukladKokpitu();
+Ekran ekranStrony(StronaPrzestawna s);  // K1, K2, SYPIALNIA
+// Ciąg stron kokpitu w kolejności ▶ (bez ekranu dnia, z U-01 na końcu) w kontekście `k`: strony bez numeru według
+// k.profilPubliczny i k.sprawyDostepne, sypialnia według k.sypialniaDostepna. `wymus` (inny niż DZIEN) jest w ciągu
+// zawsze, na swoim miejscu, także gdy jego warunek nie jest spełniony (ekran otwarty przed zmianą stanu: ▶ i ◀
+// prowadzą wtedy tak, jakby był w ciągu, jak przed ADR-0045).
+std::vector<Ekran> ciagKokpitu(const KontekstNaw& k, Ekran wymus = Ekran::DZIEN);
+// Pierwsza strona ciągu w kontekście `k` (domyślnie K1; przy innej kolejności z telefonu K2 albo sypialnia, R-KOK-34):
+// cel ▶ z ekranu dnia i ze strony Portretu nocy (R-POR-24); ◀ z niej wraca tam, skąd ją otwarto.
+Ekran pierwszaStronaKokpitu(const KontekstNaw& k);
+// Krótka nazwa ekranu w podpisie stopki (5.6.1 pkt 3): `ekran dnia`, `ostatnia noc`, `7 nocy`, `liczby`, `sprawy`,
+// `sypialnia`, `ustawienia`; "" dla ekranu spoza ciągu.
+const char* podpisStrony(Ekran e);
+// Podpis celu ◀ (dalej = false) albo ▶ (dalej = true) strony kokpitu `e` w ciągu z kontekstem `k`, bez znaku przycisku
+// (`7 nocy`, `ekran dnia`); jedno miejsce prawdy dla stopek K1, K2, „Co znaczą te liczby”, „Otwartych spraw”
+// (pierwsza i ostatnia karta), sypialni i U-01: podpis zawsze nazywa stronę, którą otworzy nacisniecie().
+// Także strona Portretu nocy pod ▶ (Ekran::PORTRET, R-POR-24): ▶ = pierwsza strona ciągu (domyślnie
+// `ostatnia noc`), ◀ = `ekran dnia`; jej przejścia robi dyrygent (przejsciePortretu()) według pierwszaStronaKokpitu().
+std::string podpisCelu(Ekran e, bool dalej, const KontekstNaw& k);
+// Kontekst stopki: strony bez numeru i sypialnia jak w chwili rysowania (sprawy, profil publiczny, sypialnia).
+KontekstNaw kontekstStopki(bool sprawy, bool liczby, bool sypialnia);
 int numerStrony(Ekran e);
-std::string numerStronyTekst(Ekran e);  // `n / 3` albo pusty
-bool stronaKokpitu(Ekran e);  // K1, K2, „Co znaczą te liczby”, „Otwarte sprawy”, U-01
+std::string numerStronyTekst(Ekran e);  // `n / 3`, `n / 4` albo pusty
+bool stronaKokpitu(Ekran e);  // K1, K2, „Co znaczą te liczby”, „Otwarte sprawy”, sypialnia, U-01
+// (R-KOK-30): numery stron kokpitu w tekście z zestawu albo z kodu (`raport 2 / 3`, `za stroną 2 / 3`, `strona 3 / 3`,
+// `stronie 1 / 3`) według bieżącego ciągu: numer w tekście z zestawu nazywa stronę (`1 / 3` K1, `2 / 3` K2, `3 / 3`
+// U-01), panel wstawia jej bieżący numer i liczbę stron (R-KOK-30, od ADR-0045 R-KOK-36 dla dowolnej kolejności
+// i dowolnego N): bez sypialni i w kolejności domyślnej tekst bez zmian; ze stroną sypialni `1 / 3` → `1 / 4`,
+// `2 / 3` → `2 / 4`, `3 / 3` → `4 / 4`; przy sypialni na początku `1 / 3` → `2 / 4`. Zamienia tylko `{1|2|3} / 3` zaraz po słowie strony
+// (`strona`, `stronie`, `stroną`, `strony`, `stronę`, `raport`, `raporcie`, `raportu`), z odstępami zwykłymi
+// albo twardymi (U+00A0), bez cyfry i przecinka po `3` (`2 / 3 nocy`, `13 / 30` zostają). Zestaw danych odrzuca
+// `{1|2|3} / 3` poza tymi słowami (tools/zestaw/buduj_zestaw.py).
+// Nie jest idempotentna przy innej kolejności stron (np. K1 i K2 zamienione: `raport 2 / 3` → `raport 1 / 3`, a drugie
+// przeliczenie dałoby znowu `2 / 3`): wołać raz, na tekście z zestawu albo z kodu, nigdy na wyniku.
+std::string numeryStronWTekscie(const std::string& t);
+// Długość końcówki ` Na kontroli: raport {n} / {N}.` (n, N cyfry 1…9) linii C z dowolnym numerem strony (R-KOK-36), żeby
+// karta sprawy i raport zdejmowały ją przy każdej kolejności stron; 0 = linia bez takiej końcówki.
+size_t dlugoscKontroliZNumerem(const std::string& l);
 // Kolejka naciśnięć (spec 5.6.1): naciśnięcie zapamiętane w czasie rysowania wykonuje się bez pokazania ekranu
 // pośredniego, więc tylko czysta nawigacja: krótkie naciśnięcie na ekranie dnia albo na stronie kokpitu.
 // Pytanie, potwierdzenie, ekran poza ciągiem stron albo przytrzymanie (zapis) = false: reszta kolejki przepada.
@@ -101,6 +168,9 @@ struct KontekstNaw {
   // w ciągu; bez spraw (także bez wyników silnika) strona pominięta w obie strony
   bool sprawyDostepne = false;
   bool profilPubliczny = false; // ustawienie „Profil publiczny” (5.6.4): „Co znaczą te liczby” po K2 (R-KOK-22)
+  // (R-KOK-29): strona „Sypialnia · 30 nocy” w ciągu (są dane sypialni z 30 nocy), przed U-01; bez niej pomijana
+  // w obie strony. Dyrygent ustawia z sypialniaWKokpicie().
+  bool sypialniaDostepna = false;
   Ekran zrodlo = Ekran::DZIEN;  // raport (QR) i U-02: ekran, z którego otwarto (◀ tam wraca, ▶ dalej od niego)
   // potwierdzenie „Omówione z lekarzem?” w wariancie blokady (R-LEK-26, `Najpierw nowy raport: ▶ na ekranie L.`):
   // ▶ niczego nie zapisuje i nic nie robi, ◀ wraca, ↻ anuluje (mapa 5.6.2)

@@ -5,6 +5,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "airbridge.h"
 #include "ekrany.h"
 #include "noc.h"
 #include "sprawy.h"
@@ -35,7 +36,10 @@ struct DaneDnia {
   // `→ Podłącz kabel USB-C.`); pusty tytuł = S5 z E-01 albo E-03
   std::string e05Tytul, e05Powod, e05Krok;
   // nagłówek i stopka (5.4.3)
-  std::string godzinaDanych;  // `05:42`: godzina pobrania danych (R-EKR-04); "" = jeszcze nic nie pobrano
+  std::string godzinaDanych;  // `05:42`: godzina ostatniego odczytu AirBridge; "" = jeszcze nic nie pobrano
+  // R-EKR-04, R-KOK-26: godzina importu nocy ubiegłej (`05:42`), ta sama co w belce K1 i K2, stała w ciągu dnia;
+  // "" = nieznana (belka bez słowa `odczyt`). Ustawia dyrygent.
+  std::string godzinaImportu;
   std::string pogoda;         // lewa część stopki (M-26) z lokalnego źródła otoczenia (pogodaTeraz, otoczenie.h, ADR-0019):
                               // `Katowice 8° · deszcz`; "" = brak źródła albo dane nieświeże, bez komunikatu (R-AW-07)
   std::string przyLozku;      // prawa część stopki: odczyt czujnika w obudowie panelu z tego wybudzenia (stopkaCzujnika,
@@ -76,13 +80,42 @@ std::string kiedyOdczyt(const std::string& dataOdczytu, int minuta, const std::s
 // Linia powodu na ekranie pytania (5.11.4): przy odchyleniu do dwóch metryk, np. `AHI 6,8 przy zwykłych 0,8–2,1`;
 // przy grupie kontrolnej i na żądanie `{M-01} · AHI {x}`.
 std::string opisNocyPytania(const Noc& n, const Norma& nm, bool innaNoc);
-// Lewa część nagłówka porannego na każdym ekranie dnia i karcie: tylko `{dzień tyg.} {data poranka}` (5.4.3:
-// liczby nocy stoją na ekranie raz, w bloku liczb albo w faktach karty)
-std::string naglowekDniaLewo(const DaneDnia& d);
-// Prawa część nagłówka porannego (5.4.3): `dane {hh:mm}` (R-EKR-04), gdy ostatnia zapisana noc jest nocą ubiegłą;
-// z dopiskiem `· ocena ograniczona`, gdy ta noc jest niepewna (R-EKR-46); `dane z {data}`, gdy nie jest (R-EKR-39);
-// "" bez żadnej nocy.
-std::string naglowekDniaPrawo(const DaneDnia& d);
+// Data poranka w środku belki: `{dzień tyg.} {data poranka}` (`pt 30.10`); bez zegara `bez zegara`.
+std::string dataDnia(const DaneDnia& d);
+
+// R-EKR-67 (decyzja właściciela 14.11.2026: „brak ostatniej nocy po zamknięciu okna porannego”): czy dane panelu
+// są nieaktualne. Noc oczekiwana: od 11:00 (PLAN_OKNO_DO, koniec okna porannego 05:00–11:00 [PRÓG], R-DANE-19,
+// R-DANE-20) noc z datą poranka dziś, przed 11:00 noc z wczoraj (jej okno zamknęło się wczoraj o 11:00).
+// Nieaktualne ⇔ zegar znany ∧ ostatnia zapisana noc (kompletna albo częściowa, data ≤ dziś) jest starsza niż
+// noc oczekiwana (albo historii brak) ∧ panel nie poznał stanu nocy oczekiwanej po 11:00 jej dnia. `znanyData`,
+// `znanyMinuta`: ostatnia chwila, w której panel poznał stan nocy (StanRtc::nocZnanaEp, ustawia ją dyrygent tylko
+// po odczytanej liście nocy bez zaległych dób, gdy noc oczekiwana jest nieobecna (bez terapii, E-10) albo w budowie,
+// zob. stanNocyZnany(), stanZnanyPrzedNocaWBudowie()); "" = żadnej. Sam kontakt z AirBridge (`/api/status`) nie jest
+// taką chwilą: lista urwana, nieczytelna (E-03), raport nocy nieudany i zaległe doby zostawiają pole.
+// Chwila z przyszłości (po korekcie zegara) liczy się jak brak.
+bool daneNieaktualne(const std::vector<Noc>& hist, const std::string& dzis, int minuta, const std::string& znanyData,
+                     int znanyMinuta);
+// Czy z odczytanej w tym wybudzeniu listy nocy AirBridge (`lista`) panel zna stan nocy oczekiwanej w chwili
+// (dzis, minuta): żadna doba z listy między ostatnią zapisaną nocą a nocą oczekiwaną (włącznie) nie czeka na
+// pobranie; noc oczekiwana nieobecna na liście (bez terapii) albo w budowie (`wBudowie`). Pusta lista: znany.
+bool stanNocyZnany(const std::vector<DzienListy>& lista, const std::vector<Noc>& hist, const std::string& dzis,
+                   int minuta, bool wBudowie);
+// Po 11:00 noc z dziś w budowie (terapia trwa albo moduł przetwarza pliki, lista nieczytana): stan znany, gdy znany
+// był stan nocy z wczoraj (zapisana albo poznana po 11:00 wczoraj); przed 11:00 false.
+bool stanZnanyPrzedNocaWBudowie(const std::vector<Noc>& hist, const std::string& dzis, int minuta,
+                                const std::string& znanyData, int znanyMinuta);
+// Data poranka nocy oczekiwanej (jak wyżej); "" bez zegara.
+std::string nocOczekiwana(const std::string& dzis, int minuta);
+// Środek belki ekranu dnia i karty (5.4.17, R-EKR-64): data poranka; przy nocy ubiegłej ze znaną chwilą importu
+// ` · odczyt {hh:mm}` (R-EKR-04), po nocy niepewnej ` · ocena ograniczona` (R-EKR-46); gdy ostatnia zapisana noc
+// nie jest nocą ubiegłą, ` · dane z {data}` bez godziny (R-EKR-39). Bez liczb nocy.
+std::string srodekDnia(const DaneDnia& d);
+// Belka ekranu dnia: nazwa (domyślnie `Poranek`), srodekDnia() i kolejność ustępowania jak w K1 (ustawSrodekNocy():
+// dzień tygodnia, data, na końcu godzina; `ocena ograniczona` i `dane z {data}` nigdy, ADR-0029 pkt 7).
+Belka belkaDnia(const DaneDnia& d, const std::string& nazwa = BELKA_PORANEK);
+// Belka Portretu nocy S11 (5.4.16): nazwa `Portret nocy`, środek `noc na {dzień tyg.} {data poranka}` z godziną
+// odczytu i dopiskiem jak srodekDnia().
+Belka belkaPortretu(const DaneDnia& d);
 // Tytuł karty K22 dla S2a i S2c (5.4.2, 5.7.2, R-EKR-32, R-NF-23): `W normie.` tylko przy warunku z nocWNormie, inaczej
 // `Noc: {czas} z maską.` (bez oceny), a bez czasu `Noc zapisana.`; czas z tytułu nie powtarza się w faktach.
 // Ekran danych S2a i S2c pokazuje zamiast tytułu blok liczb nocy (wariant B, 5.4.2).

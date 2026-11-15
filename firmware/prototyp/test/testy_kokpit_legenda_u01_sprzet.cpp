@@ -212,32 +212,46 @@ static void testR_KOK_25_dopisek() {
     if (std::string(d.w[i].nazwa) == "Wyciek") ROWNE(d.w[i].dopisek, "");
 }
 
-// ---------- K1, godzina danych w nagłówku (R-KOK-26) ----------
+// ---------- K1, godzina odczytu w belce (R-KOK-26) ----------
 // wymaganie: R-KOK-26
 static void testR_KOK_26_godzinaDanych() {
   std::vector<Noc> h = okno();
   DaneK1 d = budujK1(h, DZIS, normaPelna(), {});
   SPRAWDZ(d.ubiegla);
-  const std::string baza = d.naglowek;
-  ROWNE(naglowekK1Lewo(d), baza);  // godzina nieznana: bez dopisku, bez samego słowa `dane`
+  d.ocena.clear();  // sama noc i godzina; ocenę w środku belki sprawdza testR_KOK_21
+  const std::string baza = d.dzienNocy + " " + d.dataNocy;  // `{dzień} {data}` nocy ubiegłej
+  ROWNE(belkaK1(d).nazwa, "Ostatnia noc 1 / 3");
+  ROWNE(belkaK1(d).srodek, baza);  // godzina nieznana: bez dopisku, bez samego słowa `odczyt`
   d.godzinaDanych = "07:12";
-  ROWNE(naglowekK1Lewo(d), baza + " · dane 07:12");
+  ROWNE(belkaK1(d).srodek, baza + " · odczyt 07:12");
   d.romb = true;
-  ROWNE(naglowekK1Lewo(d), baza + " · dane 07:12 ◆");
-  // ostatnia zapisana noc nie jest ubiegłą (R-KOK-04): `Noc {data}` bez godziny dzisiejszego odczytu
+  ROWNE(belkaK1(d).srodek, baza + " · odczyt 07:12 ◆");
+  // ostatnia zapisana noc nie jest ubiegłą (R-KOK-04): `noc {data}` bez godziny dzisiejszego odczytu
   DaneK1 s = budujK1(h, dodajDni(DZIS, 2), normaPelna(), {});
   SPRAWDZ(!s.ubiegla);
   s.godzinaDanych = "07:12";
-  SPRAWDZ(naglowekK1Lewo(s).find("dane") == std::string::npos);
-  // brak nocy: sam tytuł
+  s.ocena.clear();
+  SPRAWDZ(belkaK1(s).srodek.find("odczyt") == std::string::npos && belkaK1(s).srodek.rfind("noc ", 0) == 0);
+  // brak nocy: sama nazwa strony, środek pusty
   DaneK1 e = budujK1({}, DZIS, normaPelna(), {});
   e.godzinaDanych = "07:12";
-  ROWNE(naglowekK1Lewo(e), "Ostatnia noc");
-  // najdłuższy nagłówek z godziną, rombem i oceną mieści się w 744 px z odstępem 24 px
+  e.ocena.clear();
+  ROWNE(belkaK1(e).nazwa, "Ostatnia noc 1 / 3");
+  ROWNE(belkaK1(e).srodek, "");
+  // K2: ta sama chwila w środku belki za zakresem dat; bez godziny bez słowa `odczyt`
+  DaneK2 k2 = budujK2(h, DZIS, normaPelna(), {});
+  ROWNE(belkaK2(k2).srodek, k2.zakres);
+  k2.godzinaDanych = "07:12";
+  ROWNE(belkaK2(k2).srodek, k2.zakres + " · odczyt 07:12");
+  // najdłuższy środek z godziną i rombem (bez oceny) mieści się przed prawym polem przy `100%`
   // najszerszy z 7 skrótów dni i cyfr (`wt 05.05`, `05:55`), nie tylko przykład ze spec
-  for (const char* n : {"Ostatnia noc · śr 30.12 · dane 07:12 ◆", "Ostatnia noc · wt 05.05 · dane 05:55 ◆",
-                        "Ostatnia noc · cz 28.08 · dane 08:08 ◆", "Ostatnia noc · nd 20.06 · dane 06:00 ◆"})
-    SPRAWDZ(szer(F_P24B, n) + 24 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
+  BateriaEkranu b100;
+  b100.procent = 100;
+  ustawBaterieEkranu(b100);
+  for (const char* n : {"śr 30.12 · odczyt 07:12 ◆", "wt 05.05 · odczyt 05:55 ◆", "cz 28.08 · odczyt 08:08 ◆",
+                        "nd 20.06 · odczyt 06:00 ◆"})
+    SPRAWDZ(szer(F_P22B, n) <= miejsceSrodkaBelki(Belka{"Ostatnia noc 1 / 3", n}));
+  ustawBaterieEkranu(BateriaEkranu());
 }
 
 // ---------- K1, przyczyna oceny ograniczonej przy liczbie wycieku (R-KOK-27) ----------
@@ -325,19 +339,23 @@ static void testR_KOK_28_uklad() {
 // ---------- U-01 jako lista do odczytu (R-KONF-55) ----------
 // wymaganie: R-KONF-55
 static void testR_KONF_55_listaUstawien() {
+  // od 14.11.2026 (decyzja 2): dwie kolumny po 4 wiersze, wersja oprogramowania tylko w kafelku ↻ (raz na ekranie)
   DaneUstawien d;
   std::vector<WierszUstawien> w = wierszeUstawien(d);
-  SPRAWDZ(w.size() == 9);
+  SPRAWDZ(w.size() == 8);
   ROWNE(w[0].nazwa, "Sieć Wi-Fi");
   ROWNE(w[0].wartosc, "nie ustawiona");
   ROWNE(w[1].wartosc, "nie ustawiony");
   ROWNE(w[2].wartosc, "nie wybrano");
-  ROWNE(w[3].wartosc, "prywatny");
-  ROWNE(w[4].wartosc, "normalny");
-  ROWNE(w[5].wartosc, "włączony, cisza 22:00–08:00");
-  ROWNE(w[6].wartosc, "włączona");
-  ROWNE(w[7].wartosc, "brak");
-  ROWNE(w[8].nazwa, "Oprogramowanie");
+  ROWNE(w[3].nazwa, "Czujnik CO2");
+  ROWNE(w[3].wartosc, "brak");
+  ROWNE(w[4].nazwa, "Profil");
+  ROWNE(w[4].wartosc, "prywatny");
+  ROWNE(w[5].wartosc, "normalny");
+  ROWNE(w[6].wartosc, "włączony, cisza 22:00–08:00");
+  ROWNE(w[7].nazwa, "Podpowiedź „co do poprawy”");
+  ROWNE(w[7].wartosc, "włączona");
+  for (auto& x : w) SPRAWDZ(x.nazwa != "Oprogramowanie");
   d.ssid = "Dom";
   d.abAdres = "airbridge.local:8080";
   d.miasto = "Gorzów Wielkopolski";
@@ -351,83 +369,103 @@ static void testR_KONF_55_listaUstawien() {
   ROWNE(w[0].wartosc, "Dom");
   ROWNE(w[1].wartosc, "airbridge.local:8080");
   ROWNE(w[2].wartosc, "Gorzów Wielkopolski");
-  ROWNE(w[3].wartosc, "publiczny");
-  ROWNE(w[4].wartosc, "wyłączony");
+  ROWNE(w[3].wartosc, "jest, ekrany wyłączone");  // w kolumnie 348 px krótszy wariant, ta sama informacja
+  ROWNE(w[4].wartosc, "publiczny");
   ROWNE(w[5].wartosc, "wyłączony");
-  ROWNE(w[6].wartosc, "wyłączona");
-  ROWNE(w[7].wartosc, "jest, ekrany CO2 wyłączone");
-  ROWNE(w[8].wartosc, "1.2.3");
+  ROWNE(w[6].wartosc, "wyłączony");
+  ROWNE(w[7].wartosc, "wyłączona");
   d.co2 = 1;
   d.humor = 1;
   d.dzwiek = true;
   d.ciszaOd = 23 * 60 + 30;
   d.ciszaDo = 7 * 60 + 5;
   w = wierszeUstawien(d);
-  ROWNE(w[4].wartosc, "oszczędny");
-  ROWNE(w[5].wartosc, "włączony, cisza 23:30–07:05");
-  ROWNE(w[7].wartosc, "jest, ekrany CO2 włączone");
-  // najdłuższe wartości: SSID 32 znaki i adres z nazwą .local i portem skrócone `…` do kolumny wartości
+  ROWNE(w[5].wartosc, "oszczędny");
+  ROWNE(w[6].wartosc, "włączony, cisza 23:30–07:05");
+  ROWNE(w[3].wartosc, "jest, ekrany włączone");
+  // najdłuższe wartości: SSID 32 znaki i adres z nazwą .local i portem skrócone `…` do kolumny
   d.ssid = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
   d.abAdres = "bardzo-dluga-nazwa-airbridge-w-sieci.local:65535";
   w = wierszeUstawien(d);
   SPRAWDZ(w[0].wartosc.size() > 3 && w[0].wartosc.substr(w[0].wartosc.size() - 3) == "…");
-  for (auto& x : w) {
-    SPRAWDZ(szer(F_P24B, x.wartosc) <= U01_SZER_WARTOSCI);
-    SPRAWDZ(28 + szer(F_P22B, x.nazwa) + 12 <= U01_X_WARTOSCI);  // nazwa nie wchodzi na wartość
+  for (size_t i = 0; i < w.size(); i++) {
+    int kol = (int)i < U01_WIERSZY_LEWA ? U01_KOLUMNA_L : U01_KOLUMNA_P;
+    SPRAWDZ(szer(F_P20, w[i].nazwa) + TEST_ODSTEP + szer(F_P20B, w[i].wartosc) <= kol);  // nazwa nie wchodzi na wartość
   }
-  // podpowiedź i zdanie granicy w 744 px; zdanie ADR-0002 bez zmian
-  for (const char* t : {U01_PODPOWIEDZ[0], U01_PODPOWIEDZ[1], U01_GRANICA}) SPRAWDZ(szer(F_P22B, t) <= 744);
+  // kafelki i zdanie granicy mieszczą się w swoich polach; zdanie ADR-0002 bez zmian
+  SPRAWDZ(U01_KAFELEK_W[0] + U01_KAFELEK_W[1] + U01_KAFELEK_W[2] + 2 * 10 == 744);
+  for (int i = 0; i < 2; i++) {
+    SPRAWDZ(szer(F_P20B, U01_KAFELEK_TYTUL[i]) <= U01_KAFELEK_W[i] - 20);
+    for (int k = 0; k < 2; k++) SPRAWDZ(szer(F_P20, U01_KAFELEK_OPIS[i][k]) <= U01_KAFELEK_W[i] - 20);
+  }
+  SPRAWDZ(szer(F_P22B, U01_GRANICA) <= 744);
   ROWNE(U01_GRANICA, "Te ustawienia dotyczą tylko panelu, nie aparatu.");
   // żaden wiersz nie jest hasłem ani kontem: nazwy wierszy bez „hasło”, „konto”, „token”
   for (auto& x : w)
     SPRAWDZ(x.nazwa.find("asło") == std::string::npos && x.nazwa.find("onto") == std::string::npos &&
             x.nazwa.find("oken") == std::string::npos);
-  // render: lista od y 64 do 316 ma treść, podpowiedź i granica nad stopką (434)
+  // render: kolumny od y 56 do 222, kafelki 254…349, zdanie granicy nad stopką (434)
   PlotnoTest p;
   rysujUstawienia(p, d);
-  SPRAWDZ(p.czarne(28, 64, 772, 316) > 0);
-  SPRAWDZ(p.czarne(28, 340, 772, 422) > 0);
-  SPRAWDZ(p.czarne(0, 422, 800, 433) == 0);  // nic nie dochodzi do linii stopki
+  SPRAWDZ(p.czarne(28, 56, 772, 222) > 0);
+  SPRAWDZ(p.czarne(28, 254, 772, 350) > 0);
+  SPRAWDZ(p.czarne(28, 370, 772, 400) > 0);
+  SPRAWDZ(p.czarne(0, 405, 800, 433) == 0);  // nic nie dochodzi do linii stopki
 }
 
-// ---------- U-01: lista do odczytu razem z wierszem aktualizacji i stopką z ↻ 2 s ----------
+// ---------- U-01: kafelek ↻ oprogramowania (wersja raz, stan) i stopka tylko z krótkimi naciśnięciami ----------
 // wymaganie: R-KONF-55
-static void testR_KONF_55_wierszAktualizacjiPodLista() {
-  // wszystkie warianty wiersza stanu oprogramowania mieszczą się w 744 px krojem linii pod listą (P22B)
-  for (const std::string& t :
-       {aktualizacja::wierszU01(true, "", "1.0.0-beta.1"), aktualizacja::wierszU01(false, "", "1.0.0"),
-        aktualizacja::wierszU01(true, "1.0.1", "1.0.0"), aktualizacja::wierszU01(true, "1.12.3-rc.12", "1.0.0")}) {
-    if (szer(F_P22B, t) > 744) printf("  U-01 wiersz aktualizacji %d px: %s\n", szer(F_P22B, t), t.c_str());
-    SPRAWDZ(szer(F_P22B, t) <= 744);
-  }
-  // stopka z mapy 5.6.2 (↻ 2 s aktualizacja) w kolejności ◀ ▶ ↻
+static void testR_KONF_55_kafelekOprogramowania() {
+  // stany kafelka (decyzja 2 z 14.11.2026)
+  aktualizacja::KafelekOprogramowania k = aktualizacja::kafelekU01(true, "", "1.0.0", "14.11");
+  ROWNE(k.wersja, "1.0.0");
+  ROWNE(k.stan, "aktualne · sprawdzono 14.11");
+  SPRAWDZ(!k.odwrocony);
+  k = aktualizacja::kafelekU01(true, "1.1.0", "1.0.0", "14.11");
+  ROWNE(k.stan, "jest 1.1.0 · zainstaluj");
+  SPRAWDZ(k.odwrocony);
+  k = aktualizacja::kafelekU01(false, "1.1.0", "1.0.0", "14.11");  // bez tokenu: wyłączone, bez znanej wersji
+  ROWNE(k.stan, "wyłączone: włącz na telefonie");  // wskazówka, gdzie je włączyć, zostaje
+  SPRAWDZ(!k.odwrocony);
+  k = aktualizacja::kafelekU01(true, "", "1.0.0", "");
+  ROWNE(k.stan, "sprawdź aktualizację");
+  k = aktualizacja::kafelekU01(true, "0.9.0", "1.0.0", "");  // znana niższa: nie nowsza
+  SPRAWDZ(!k.odwrocony);
+  // linie kafelka mieszczą się w nim przy każdej długości wersji
+  for (const char* wl : {"1.0.0", "1.0.0-beta.12", "12.12.12-rc.12"})
+    for (const char* zn : {"", "12.12.13-rc.12"}) {
+      DaneUstawien d;
+      d.wersja = wl;
+      k = aktualizacja::kafelekU01(true, zn, wl, "30.12");
+      d.stanOprogramowania = k.stan;
+      d.stanOdwrocony = k.odwrocony;
+      std::string tytul;
+      std::vector<std::string> l = linieKafelkaOprogramowania(d, tytul);
+      SPRAWDZ(szer(F_P20B, tytul) <= U01_KAFELEK_W[2] - 20);
+      SPRAWDZ(!l.empty() && l.size() <= 2);
+      // krój jak przy rysowaniu: wersja w drugiej linii P20B, stan P20 (w odwróconym polu 8 px więcej)
+      bool dluga = tytul == "↻ Oprogramowanie";
+      for (size_t i = 0; i < l.size(); i++)
+        SPRAWDZ(dluga && i == 0 ? szer(F_P20B, l[i]) <= U01_KAFELEK_W[2] - 20
+                                : szer(F_P20, l[i]) + (d.stanOdwrocony ? 8 : 0) <= U01_KAFELEK_W[2] - 20);
+      // przy znanej nowszej czynność nie znika (`· zainstaluj` albo przy długiej wersji `· instaluj`)
+      if (*zn) SPRAWDZ(l.back().find("instaluj") != std::string::npos);
+      // wersja stoi raz: w tytule albo w drugiej linii, nigdy w obu
+      int ile = (tytul.find(wl) != std::string::npos ? 1 : 0);
+      for (auto& x : l) ile += x.find(wl) != std::string::npos && x.rfind("jest ", 0) != 0 ? 1 : 0;
+      SPRAWDZ(ile == 1);
+    }
+  // stopka z mapy 5.6.2 tylko z krótkimi naciśnięciami (przytrzymania w kafelkach) w kolejności ◀ ▶ ↻
   std::vector<std::string> st = stopkaU01();
-  SPRAWDZ(st.size() == 3 && st[2] == "↻ ekran dnia · 2 s aktualizacja");
+  SPRAWDZ(st.size() == 2 && st[0] == "◀ 7 nocy" && st[1] == "↻ ekran dnia");
   std::vector<std::string> u = st;
   uporzadkujPrzyciski(u);
   SPRAWDZ(u == st);
-  // najdłuższe wartości listy i wiersz aktualizacji: lista, cztery linie pod nią i stopka bez nakładania
-  DaneUstawien d;
-  d.ssid = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
-  d.abAdres = "bardzo-dluga-nazwa-airbridge-w-sieci.local:65535";
-  d.miasto = MIASTO_ZE_WSPOLRZEDNYCH;
-  d.co2 = 0;
-  d.wersja = "1.12.3-rc.12";
-  d.aktualizacja = aktualizacja::wierszU01(false, "", "1.12.3-rc.12");
-  PlotnoTest p, q;
-  rysujUstawienia(p, d);
-  SPRAWDZ(p.czarne(28, 316, 772, 320) == 0);   // odstęp między listą (ostatni wiersz 308) a linią aktualizacji
-  SPRAWDZ(p.czarne(28, 320, 772, 344) > 0);    // linia aktualizacji (338)
-  SPRAWDZ(p.czarne(0, 422, 800, 433) == 0);    // nic nie dochodzi do linii stopki
-  SPRAWDZ(p.czarne(28, 440, 772, 475) > 0);    // stopka
-  d.aktualizacja.clear();
-  rysujUstawienia(q, d);
-  SPRAWDZ(q.czarne(28, 320, 772, 344) == 0);   // bez wiersza aktualizacji pusto, reszta na swoich miejscach
-  SPRAWDZ(q.czarne(28, 346, 772, 420) > 0);
-  // żadna linia pod listą nie zawiera tokenu ani hasła (R-KONF-38)
+  for (auto& g : st) SPRAWDZ(g.find("2 s") == std::string::npos);
+  // żaden tekst stanu nie zawiera tokenu ani hasła (R-KONF-38)
   for (bool tok : {true, false})
     for (const std::string& z : {std::string(""), std::string("1.0.1")}) {
-      std::string t = aktualizacja::wierszU01(tok, z, "1.0.0");
+      std::string t = aktualizacja::kafelekU01(tok, z, "1.0.0", "").stan + aktualizacja::wierszU01(tok, z, "1.0.0");
       SPRAWDZ(t.find("ghp_") == std::string::npos && t.find("asło") == std::string::npos);
     }
 }
@@ -593,19 +631,37 @@ static void testR_KOK_21_ocenaWNaglowkuK1() {
   SPRAWDZ(sb.ocenaNiepelna);
   DaneK1 d = budujK1(h, DZIS, normaPelna(), {}, &sb);
   ROWNE(d.ocena, sb.ostatniaNiepewna ? "ocena ograniczona" : "ocena częściowa");
-  ROWNE(naglowekK1Prawo(d), d.ocena + " · 1 / 3");
+  // belka: ocena na końcu środka, numer strony przy nazwie (R-EKR-64)
+  const std::string ocena = d.ocena;
+  const std::string sr = belkaK1(d).srodek;
+  SPRAWDZ(sr.size() > ocena.size() && sr.compare(sr.size() - ocena.size(), ocena.size(), ocena) == 0);
+  ROWNE(belkaK1(d).nazwa, "Ostatnia noc 1 / 3");
   d.ocena.clear();
-  ROWNE(naglowekK1Prawo(d), "1 / 3");
-  // najdłuższy nagłówek mieści się w 744 px z odstępem
-  SPRAWDZ(szer(F_P24B, "Ostatnia noc · śr 30.12 · dane 07:12 ◆") + 16 + szer(F_P22B, "ocena ograniczona · 1 / 3") <= 744);
-  // render: prawa część nagłówka zaczyna się dalej w lewo przy dopisku (piksele w x 500…640 tylko z dopiskiem)
+  SPRAWDZ(belkaK1(d).srodek.find("ocena") == std::string::npos);
+  // ocena nie ustępuje nigdy (R-EKR-65, ADR-0029 pkt 7): każdy tekst z kolejności ustępowania ją zawiera, a tekst
+  // wybrany przy najdłuższym środku (godzina, romb, `100%`) kończy się oceną
   d.ocena = "ocena ograniczona";
+  d.godzinaDanych = "07:12";
+  d.romb = true;
+  BateriaEkranu b100;
+  b100.procent = 100;
+  ustawBaterieEkranu(b100);
+  const Belka bk = belkaK1(d);
+  for (const std::string& u : bk.ustepuje) SPRAWDZ(u.find("ocena ograniczona") != std::string::npos);
+  const std::string wybrany = srodekBelki(bk);
+  SPRAWDZ(wybrany.find("ocena ograniczona") != std::string::npos && szer(F_P22B, wybrany) <= miejsceSrodkaBelki(bk));
+  // render: tekst oceny stoi w środku belki (piksele na jego miejscu tylko z dopiskiem)
   PlotnoTest a, b;
   rysujK1(a, d);
+  const int x1 = xSrodkaBelki(bk) + szer(F_P22B, wybrany), x0 = x1 - szer(F_P22B, "ograniczona");
+  SPRAWDZ(a.czarne(x0, 10, x1, 40) > 0);
+  // bez oceny środek kończy się wcześniej: między jego końcem a prawym polem pusto
   d.ocena.clear();
+  const Belka bb = belkaK1(d);
   rysujK1(b, d);
-  int x0 = 772 - szer(F_P22B, "ocena ograniczona · 1 / 3");
-  SPRAWDZ(a.czarne(x0, 14, x0 + 60, 44) > 0 && b.czarne(x0, 14, x0 + 60, 44) == 0);
+  const int xb = xSrodkaBelki(bb) + szer(F_P22B, srodekBelki(bb));
+  SPRAWDZ(xb + 2 < x1 && a.czarne(xb + 2, 10, x1, 40) > 0 && b.czarne(xb + 2, 10, xPrawegoPolaBelki(bb) - 2, 40) == 0);
+  ustawBaterieEkranu(BateriaEkranu());
 }
 
 // ---------- S-K-01 bez trzykrotnej liczby CO2 (5.8.4) ----------
@@ -640,7 +696,7 @@ int main() {
   testR_KOK_27_duzyWyciek();
   testR_KOK_28_uklad();
   testR_KONF_55_listaUstawien();
-  testR_KONF_55_wierszAktualizacjiPodLista();
+  testR_KONF_55_kafelekOprogramowania();
   testR_MAS_17_terminWFormularzu();
   testR_MAS_16_nowyModelWFormularzu();
   testR_KOK_21_ocenaWNaglowkuK1();

@@ -461,7 +461,7 @@ struct PlotnoTestu : Plotno {
 static void testEkrany() {
   PlotnoTestu p;
   DaneEkranuRaportu d;
-  d.naglowek = {"śr 04.11 · raport gotowy", "Wi-Fi włączone"};
+  d.naglowek = {"Raport", "śr 04.11 · raport gotowy · Wi-Fi włączone"};  // belka (R-EKR-64)
   d.temat = "Bezdechy centralne utrwalone";
   d.okres = "Okres: 07.08–04.11 · 1 strona A4";
   d.adresQr = "http://192.168.100.200/r/0123456789abcdefghjkmnpqrs/";

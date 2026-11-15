@@ -2,6 +2,7 @@
 // Testy „Moduły SPRZĘT i INFEKCJA, pozostałe ekrany kontekstowe S-K” (spec 5.8.3, 5.8.4, 5.9, 5.10, 7.2–7.4). Dane wyłącznie syntetyczne. Uruchomienie: tools/prototyp/testy.sh.
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <string>
 #include <vector>
 #include "ekrany.h"
@@ -713,7 +714,7 @@ static void testRysowanie() {
   SPRAWDZ(t != nullptr);
   if (t) {
     PlotnoTest p;
-    sk::rysuj(p, Naglowek{"pt 30.09", "dane 05:44"}, *t, "", "");
+    sk::rysuj(p, Belka{"Poranek", "pt 30.09"}, *t, "", "");
     SPRAWDZ(p.czarne > 800 * 480 / 2);  // negatyw
   }
   // R-EKR-62: S-K-10 w negatywie; zaproszenie (informacja) w białej ramce bez białego paska, ostrzeżenie na białym
@@ -723,25 +724,29 @@ static void testRysowanie() {
     ti.t.linia = "Co było inaczej? ↻ 2 s";
     ti.t.liniaOstrzezenie = false;
     PlotnoPiksele pi;
-    sk::rysuj(pi, Naglowek{"pt 30.09", "dane 05:44"}, ti, "", "");
+    sk::rysuj(pi, Belka{"Poranek", "pt 30.09"}, ti, "", "");
     SPRAWDZ(pi.cz(780, 70) && !pi.cz(787, 70));
     ti.t.liniaOstrzezenie = true;
     ti.t.linia = "Noce mało czytelne: bezdechów nie oceniam.";
     PlotnoPiksele po;
-    sk::rysuj(po, Naglowek{"pt 30.09", "dane 05:44"}, ti, "", "");
+    sk::rysuj(po, Belka{"Poranek", "pt 30.09"}, ti, "", "");
     SPRAWDZ(!po.cz(780, 70) && !po.cz(787, 70));
-    // R-EKR-61: przy ikonie aktualizacji stopka S-K kończy się przed ikoną (pełne słowa), pas ikony bez tekstu
+    // R-EKR-61 do 14.11.2026: przy ikonie aktualizacji stopka S-K kończyła się przed ikoną. Od 14.11.2026 (R-EKR-69)
+    // ekran S-K z belką ma znak nowej wersji na belce, a stopka sięga do prawego marginesu (jedno miejsce znaku)
     PlotnoPiksele pk;
+    bool wStopce = true;
     {
       IkonaStopki ik(true);
-      sk::rysuj(pk, Naglowek{"pt 30.09", "dane 05:44"}, ti, "Katowice −12° · śnieg po 15:00", "przy łóżku 35° · 99%");
+      sk::rysuj(pk, Belka{"Poranek", "pt 30.09"}, ti, "Katowice −12° · śnieg po 15:00", "przy łóżku 35° · 99%");
+      wStopce = ikonaAktualizacjiWlaczona();
     }
+    SPRAWDZ(!wStopce);
     int jasne = 0, jasnePrzed = 0;
     for (int y = 440; y < 476; y++) {
       for (int x = 772 - BOK_IKONY_AKTUALIZACJI - ODSTEP_IKONY_AKTUALIZACJI + 1; x < 800; x++) jasne += !pk.cz(x, y);
       for (int x = 28; x < 700; x++) jasnePrzed += !pk.cz(x, y);
     }
-    SPRAWDZ(jasne == 0);       // negatyw: tekst biały; pas ikony pusty
+    SPRAWDZ(jasne > 0);        // negatyw: tekst biały sięga do 772 (dawny pas ikony)
     SPRAWDZ(jasnePrzed > 0);   // stopka jest
   }
 }
@@ -1312,7 +1317,64 @@ static void testSK30Wentylacja() {
   SPRAWDZ(parsujNocV5(wierszNocyV5(h[31]), z) && std::fabs(z.m15 - 12) < 1e-3 && std::fabs(z.m14 - 512.5f) < 1e-3);
 }
 
+// Belka informacyjna (spec 5.4.17): każdy ekran slotu wieczornego i tygodniowego ma w lewym polu `Wieczór`, także
+// gdy wraca w slocie nocnym z wpisu dziennika (ta sama treść); ekrany poranne `Poranek`.
+// wymaganie: R-EKR-64
+static void testR_EKR_64_nazwaBelkiWieczoru() {
+  // każdy typ wieczorny, niezależnie od grupy
+  for (const char* typ : {"SK03", "SK04", "SK05", "SK06", "SK07", "SK08", "SK09"}) {
+    sk::Tresc t;
+    t.typ = typ;
+    SPRAWDZ(sk::typWieczorny(typ) && std::string(sk::nazwaBelki(t)) == "Wieczór");
+  }
+  for (const char* grupa : {"W1", "W2", "W3", "W4", "T1", "T2"}) {  // grupy wieczoru i tygodnia tabeli 7.2
+    sk::Tresc t;
+    t.typ = "SK18";
+    t.grupa = grupa;
+    SPRAWDZ(std::string(sk::nazwaBelki(t)) == "Wieczór");
+  }
+  for (const char* grupa : {"R4", "R5a", "R5c", "R5e", "R6", "R8", "R9", ""}) {
+    sk::Tresc t;
+    t.typ = "SK10";
+    t.grupa = grupa;
+    SPRAWDZ(std::string(sk::nazwaBelki(t)) == "Poranek");
+  }
+  // treści z prawdziwych wejść: wszystko, co zwraca wieczor(), ma `Wieczór`; wszystko z rano() `Poranek`
+  std::vector<Noc> h = historia(30);
+  Norma n = norma();
+  std::vector<WpisHumoru> dz;
+  std::set<std::string> wieczorne, poranne;
+  for (float temp : {15.0f, 21.0f, 27.0f})
+    for (float wilg : {30.0f, 45.0f, 70.0f})
+      for (bool ab : {true, false})
+        for (int dzien : {29, 30, 31}) {
+          sk::Wejscie w = wejscie(h, n, dzien);
+          w.dziennik = &dz;
+          w.tempTeraz = temp;
+          w.wilgTeraz = wilg;
+          w.airbridge = ab;
+          for (auto& t : sk::wieczor(w)) {
+            SPRAWDZ(std::string(sk::nazwaBelki(t)) == "Wieczór");
+            wieczorne.insert(t.id);
+          }
+          sk::Tresc tt;
+          if (sk::tydzien(w, tt)) {
+            SPRAWDZ(std::string(sk::nazwaBelki(tt)) == "Wieczór");
+            wieczorne.insert(tt.id);
+          }
+          for (auto& t : sk::rano(w)) {
+            SPRAWDZ(std::string(sk::nazwaBelki(t)) == "Poranek");
+            poranne.insert(t.id);
+          }
+        }
+  std::string lista;
+  for (auto& id : wieczorne) lista += id + " ";
+  printf("  belka `Wieczór`: %s(%zu ekranów z wejść), `Poranek`: %zu ekranów\n", lista.c_str(), wieczorne.size(), poranne.size());
+  SPRAWDZ(wieczorne.size() >= 3);
+}
+
 int main() {
+  testR_EKR_64_nazwaBelkiWieczoru();
   testTeksty();
   testSk10Opisowy();
   testWieczor();

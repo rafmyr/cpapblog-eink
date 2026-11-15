@@ -2,6 +2,7 @@
 #include "aktualizacja.h"
 
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -443,9 +444,84 @@ bool ukladZTekstu(const std::string& s, uint32_t& v) {
 }
 }  // namespace
 
+namespace {
+// Pomija w tekście obiektu JSON najwyższego poziomu pole `"nowosci": …`: skaner tolerancyjny, bez rekurencji
+// (tekst w cudzysłowie z `\` jak w JSON, ale bez sprawdzania zawartości, nawiasy liczone poza tekstem), więc pole
+// z błędem, którego parsujJson() nie przyjmuje (samotny surogat, surowy znak sterujący, zagnieżdżenie ponad
+// JSON_MAKS_GLEBOKOSC), da się wyciąć. Zwraca "" bez takiego pola albo przy tekście, którego skaner nie rozumie.
+size_t koniecTekstuJson(const std::string& t, size_t i) {  // i na `"`; zwraca indeks za zamykającym `"` albo npos
+  for (i++; i < t.size(); i++) {
+    if (t[i] == '\\') i++;
+    else if (t[i] == '"') return i + 1;
+  }
+  return std::string::npos;
+}
+size_t koniecWartosciJson(const std::string& t, size_t i) {  // i na początku wartości; zwraca indeks za wartością
+  if (i >= t.size()) return std::string::npos;
+  if (t[i] == '"') return koniecTekstuJson(t, i);
+  if (t[i] == '[' || t[i] == '{') {
+    size_t gl = 0;
+    while (i < t.size()) {
+      char c = t[i];
+      if (c == '"') {
+        i = koniecTekstuJson(t, i);
+        if (i == std::string::npos) return i;
+        continue;
+      }
+      if (c == '[' || c == '{') gl++;
+      if (c == ']' || c == '}') {
+        if (gl == 0) return std::string::npos;
+        if (--gl == 0) return i + 1;
+      }
+      i++;
+    }
+    return std::string::npos;
+  }
+  while (i < t.size() && t[i] != ',' && t[i] != '}') i++;  // liczba, true, false, null
+  return i;
+}
+size_t bezBialych(const std::string& t, size_t i) {
+  while (i < t.size() && (t[i] == ' ' || t[i] == '\n' || t[i] == '\r' || t[i] == '\t')) i++;
+  return i;
+}
+std::string bezPolaNowosci(const std::string& t) {
+  size_t i = bezBialych(t, 0);
+  if (i >= t.size() || t[i] != '{') return "";
+  i++;
+  while (true) {
+    i = bezBialych(t, i);
+    if (i >= t.size() || t[i] != '"') return "";
+    size_t kluczOd = i, kluczDo = koniecTekstuJson(t, i);
+    if (kluczDo == std::string::npos) return "";
+    i = bezBialych(t, kluczDo);
+    if (i >= t.size() || t[i] != ':') return "";
+    size_t koniec = koniecWartosciJson(t, bezBialych(t, i + 1));
+    if (koniec == std::string::npos) return "";
+    size_t po = bezBialych(t, koniec);
+    if (po >= t.size()) return "";
+    if (t.compare(kluczOd, kluczDo - kluczOd, "\"nowosci\"") == 0) {
+      if (t[po] == ',') return t.substr(0, kluczOd) + t.substr(po + 1);  // pole w środku albo na początku
+      // ostatnie pole: wytnij też przecinek przed nim
+      size_t przed = kluczOd;
+      while (przed > 0 && t[przed - 1] != ',' && t[przed - 1] != '{') przed--;
+      if (przed > 0 && t[przed - 1] == ',') przed--;
+      return t.substr(0, przed) + t.substr(po);
+    }
+    if (t[po] == '}') return "";
+    if (t[po] != ',') return "";
+    i = po + 1;
+  }
+}
+}  // namespace
+
 bool parsujOpis(const std::string& json, OpisWydania& o) {
   Json j;
-  if (json.size() > MAKS_OPISU || !parsujJson(json, j) || j.typ != Json::Typ::OBIEKT) return false;
+  if (json.size() > MAKS_OPISU) return false;
+  if (!parsujJson(json, j)) {  // błędne pole `nowosci` nie blokuje instalacji, gdy reszta opisu jest dobra
+    std::string bez = bezPolaNowosci(json);
+    if (bez.empty() || !parsujJson(bez, j)) return false;
+  }
+  if (j.typ != Json::Typ::OBIEKT) return false;
   OpisWydania n;
   std::string uk;
   if (!tekstPola(j, "wersja", n.wersja, 64) || !tekstPola(j, "plytka", n.plytka, 64) ||
@@ -455,8 +531,72 @@ bool parsujOpis(const std::string& json, OpisWydania& o) {
   if (!parsujWersje(n.wersja, w) || !hex64(n.sha256) || !ukladZTekstu(uk, n.uklad) || n.uklad == 0) return false;
   if (!liczbaZJson(j.pole("rozmiar"), 64ull * 1024 * 1024, n.rozmiar) || n.rozmiar == 0) return false;
   n.wersja = bezBudowy(n.wersja);
+  n.nowosci = nowosciZJson(j.pole("nowosci"));
   o = n;
   return true;
+}
+
+namespace {
+// długość bajtowa początku `t` z `n` punktami kodowymi UTF-8 (bajty kontynuacji 10xxxxxx nie liczą się)
+size_t bajtyZnakow(const std::string& t, size_t n) {
+  size_t k = 0, z = 0;
+  while (k < t.size()) {
+    if (((unsigned char)t[k] & 0xC0) != 0x80) {
+      if (z == n) break;
+      z++;
+    }
+    k++;
+  }
+  return k;
+}
+size_t liczbaZnakow(const std::string& t) {
+  size_t z = 0;
+  for (char c : t)
+    if (((unsigned char)c & 0xC0) != 0x80) z++;
+  return z;
+}
+std::string tekstJson(const std::string& t) {  // jak json.dumps(…, ensure_ascii=False)
+  std::string w = "\"";
+  for (char c : t) {
+    unsigned char u = (unsigned char)c;
+    switch (c) {
+      case '"': w += "\\\""; break;
+      case '\\': w += "\\\\"; break;
+      case '\n': w += "\\n"; break;
+      case '\r': w += "\\r"; break;
+      case '\t': w += "\\t"; break;
+      case '\b': w += "\\b"; break;
+      case '\f': w += "\\f"; break;
+      default:
+        if (u < 0x20) {
+          char b[8];
+          snprintf(b, sizeof b, "\\u%04x", (unsigned)u);
+          w += b;
+        } else {
+          w += c;
+        }
+    }
+  }
+  return w + "\"";
+}
+}  // namespace
+
+std::vector<std::string> nowosciZJson(const Json* pole) {
+  std::vector<std::string> w;
+  if (!pole || pole->typ != Json::Typ::TABLICA) return w;
+  for (auto& e : pole->elementy) {
+    if (w.size() >= NOWOSCI_MAKS) break;
+    if (e.typ != Json::Typ::TEKST) continue;
+    std::string t;
+    for (char c : e.tekst)
+      if ((unsigned char)c >= 0x20 && c != 0x7F) t += c;  // bez znaków sterujących (nowa linia, tabulator)
+    size_t a = t.find_first_not_of(' '), b = t.find_last_not_of(' ');
+    if (a == std::string::npos) continue;
+    t = t.substr(a, b - a + 1);
+    if (liczbaZnakow(t) > NOWOSC_MAKS_ZNAKOW) t = t.substr(0, bajtyZnakow(t, NOWOSC_MAKS_ZNAKOW - 1)) + "…";
+    w.push_back(t);
+  }
+  return w;
 }
 
 std::string zapiszOpis(const OpisWydania& o) {
@@ -466,9 +606,15 @@ std::string zapiszOpis(const OpisWydania& o) {
   uk[1] = 'x';
   for (int k = 0; k < 8; k++) uk[2 + k] = H[(o.uklad >> (28 - 4 * k)) & 0xF];
   uk[10] = 0;
-  return "{\"wersja\":\"" + o.wersja + "\",\"plytka\":\"" + o.plytka + "\",\"uklad\":\"" + uk +
-         "\",\"rozmiar\":" + std::to_string(o.rozmiar) + ",\"sha256\":\"" + o.sha256 + "\",\"plik\":\"" + o.plik +
-         "\"}\n";
+  std::string t = "{\"wersja\":\"" + o.wersja + "\",\"plytka\":\"" + o.plytka + "\",\"uklad\":\"" + uk +
+                  "\",\"rozmiar\":" + std::to_string(o.rozmiar) + ",\"sha256\":\"" + o.sha256 + "\",\"plik\":\"" +
+                  o.plik + "\"";
+  if (!o.nowosci.empty()) {
+    t += ",\"nowosci\":[";
+    for (size_t i = 0; i < o.nowosci.size(); i++) t += (i ? "," : "") + tekstJson(o.nowosci[i]);
+    t += "]";
+  }
+  return t + "}\n";
 }
 
 // ---------- SHA-256 ----------
@@ -765,6 +911,34 @@ void poSprawdzeniu(Stan& s, const std::string& najnowsza, const std::string& wla
 }
 
 // ---------- teksty ----------
+const char* const NAZWY_KROKOW_U07[KROKI_U07] = {"Pobranie", "Sprawdzenie", "Instalacja", "Ponowny start"};
+
+int krokNieudany(Powod p) {
+  switch (p) {
+    case Powod::BRAK:
+    case Powod::NIE_NOWSZA: return -1;
+    case Powod::USZKODZONY: return 1;   // skrót, rozmiar albo zapis slotu: krok „Sprawdzenie”
+    case Powod::NIE_WSTALA: return 3;   // nowa wersja nie potwierdziła startu: „Ponowny start”
+    case Powod::BRAK_SIECI:
+    case Powod::BRAK_TOKENU:
+    case Powod::TOKEN_ODRZUCONY:
+    case Powod::BATERIA:
+    case Powod::INNY_PANEL:
+    case Powod::NOC:
+    case Powod::BRAK_WYDAN: return 0;   // do pobrania nie doszło albo się przerwało
+  }
+  return -1;
+}
+
+namespace {
+// kroki 0…k−1 zrobione, k w stanie `st`, dalsze czekają
+void ustawKroki(TresciU07& t, int k, KrokU07 st) {
+  t.kroki = true;
+  for (int i = 0; i < KROKI_U07; i++) t.krok[i] = i < k ? KrokU07::ZROBIONY : i == k ? st : KrokU07::CZEKA;
+}
+const char* const NIE_ODLACZAJ = "Nie odłączaj zasilania.";
+}  // namespace
+
 TresciU07 trescU07(const DaneU07& d) {
   TresciU07 t;
   const std::string w = d.wlasna, x = d.nowa;
@@ -772,52 +946,171 @@ TresciU07 trescU07(const DaneU07& d) {
     case StanU07::SPRAWDZANIE:
       t.linie = {"Sprawdzam, czy jest nowa wersja…"};
       t.stopka = {"↻ ekran dnia"};
+      t.stanBelki = "sprawdzam";
+      t.obrazek = ObrazekU07::PANEL;
+      t.glowne = t.linie[0];
       break;
     case StanU07::AKTUALNA:
       t.linie = {"Masz aktualną wersję " + w + "."};
       if (!d.sprawdzono.empty()) t.linie.push_back("Sprawdzono " + d.sprawdzono + ".");
       t.stopka = {"◀ ustawienia", "↻ ekran dnia"};
+      t.stanBelki = "aktualna wersja";
+      t.obrazek = ObrazekU07::UDANA;
+      t.glowne = t.linie[0];
+      t.opis.assign(t.linie.begin() + 1, t.linie.end());
       break;
     case StanU07::NOWSZA:
       t.linie = {"Jest wersja " + x + ". Masz " + w + ".", "Zainstalować teraz? Potrwa około 3 minut.",
                  "Nie odłączaj zasilania. Dane z nocy zostają."};
       t.stopka = {"◀ nie teraz", "▶ tak, instaluj", "↻ ekran dnia"};
+      t.stanBelki = "jest nowa wersja";
+      t.obrazek = ObrazekU07::NOWA;
+      t.wersjaZ = w;
+      t.wersjaNa = x;
+      t.coNowego = d.coNowego;
+      t.opis = {t.linie[1]};
+      t.pas = t.linie[2];
       break;
     case StanU07::POBIERANIE:
-      t.linie = {"Pobieram wersję " + x + "…", "Nie odłączaj zasilania."};
+      t.linie = {"Pobieram wersję " + x + "…", NIE_ODLACZAJ};
+      t.stanBelki = "krok 1 z 4";
+      t.obrazek = ObrazekU07::W_TOKU;
+      t.wersjaZ = w;
+      t.wersjaNa = x;
+      t.opis = {t.linie[0]};
+      ustawKroki(t, 0, KrokU07::TERAZ);
+      t.pas = NIE_ODLACZAJ;
       break;
     case StanU07::INSTALACJA:
-      t.linie = {"Instaluję. Panel zaraz uruchomi się ponownie."};
+      t.linie = {"Instaluję. Panel zaraz uruchomi się ponownie.", NIE_ODLACZAJ};
+      t.stanBelki = "krok 3 z 4";
+      t.obrazek = ObrazekU07::W_TOKU;
+      t.wersjaZ = w;
+      t.wersjaNa = x;
+      t.opis = {t.linie[0]};
+      ustawKroki(t, 2, KrokU07::TERAZ);
+      t.pas = NIE_ODLACZAJ;
       break;
     case StanU07::SAMOSPRAWDZENIE:  // restart już był; tekst do potwierdzenia przez właściciela projektu
-      t.linie = {"Sprawdzam nową wersję…"};
+      t.linie = {"Sprawdzam nową wersję…", NIE_ODLACZAJ};
+      t.stanBelki = "krok 4 z 4";
+      t.obrazek = ObrazekU07::W_TOKU;
+      t.glowne = t.linie[0];
+      ustawKroki(t, 3, KrokU07::TERAZ);
+      t.pas = NIE_ODLACZAJ;
       break;
     case StanU07::PO_UDANEJ:
-      t.linie = {"Zainstalowano wersję " + x + "."};
-      t.stopka = {"◀ ustawienia", "↻ ekran dnia"};
+      if (d.samodzielnie) {  // R-KONF-61: informacja zamiast ekranu dnia po automacie
+        t.linie = {"Zaktualizowano do " + x + ".", "Panel zaktualizował się sam."};
+        t.stopka = {"▶ dalej", "↻ ekran dnia"};
+        t.opis = {t.linie[1]};
+      } else {
+        t.linie = {"Zainstalowano wersję " + x + "."};
+        t.stopka = {"◀ ustawienia", "↻ ekran dnia"};
+      }
+      t.stanBelki = "gotowe";
+      t.obrazek = ObrazekU07::UDANA;
+      t.glowne = t.linie[0];
+      t.coNowego = d.coNowego;
+      ustawKroki(t, KROKI_U07, KrokU07::ZROBIONY);
       break;
-    case StanU07::PO_NIEUDANEJ:
+    case StanU07::PO_NIEUDANEJ: {
       t.linie = {"Aktualizacja się nie udała. Zostaje wersja " + w + "."};
+      // R-KONF-61, decyzja 12 (zgoda właściciela projektu 15.11.2026 00:28): po automacie zdanie, że panel próbował sam
+      if (d.samodzielnie) t.linie.push_back(PROBOWAL_SAM);
       if (d.powod != Powod::BRAK && d.powod != Powod::NIE_NOWSZA)
         t.linie.push_back(tekstPowodu(d.powod, d.procentBaterii, w));
-      t.stopka = {"◀ ustawienia", "▶ spróbuj ponownie", "↻ ekran dnia"};
+      t.stopka = d.samodzielnie ? std::vector<std::string>{"▶ dalej", "↻ ekran dnia"}  // R-KONF-61
+                                : std::vector<std::string>{"◀ ustawienia", "▶ spróbuj ponownie", "↻ ekran dnia"};
+      t.stanBelki = "nie udało się";
+      t.obrazek = ObrazekU07::NIEUDANA;
+      t.glowne = t.linie[0];
+      t.opis.assign(t.linie.begin() + 1, t.linie.end());
+      int k = krokNieudany(d.powod);
+      if (k >= 0) ustawKroki(t, k, KrokU07::NIEUDANY);
       break;
+    }
     case StanU07::WYLACZONE:
       t.linie = {tekstPowodu(Powod::BRAK_TOKENU, -1, w)};
       t.stopka = {"◀ ustawienia", "↻ ekran dnia"};
+      t.stanBelki = "wyłączone";
+      t.obrazek = ObrazekU07::PANEL;
+      t.glowne = t.linie[0];
       break;
     case StanU07::SPRAWDZENIE_NIEUDANE:  // bez „Aktualizacja się nie udała” (nic nie instalowano)
       t.linie = {tekstPowodu(powodSprawdzenia(d.powod) ? d.powod : Powod::BRAK_SIECI, d.procentBaterii, w)};
       t.stopka = {"◀ ustawienia", "▶ spróbuj ponownie", "↻ ekran dnia"};
+      t.stanBelki = "nie udało się sprawdzić";
+      t.obrazek = ObrazekU07::NIEUDANA;
+      t.glowne = t.linie[0];
       break;
   }
   return t;
+}
+
+namespace {
+bool wersjaInformacji(const std::string& w) { return !w.empty() && w.size() <= 32 && w.find('\n') == std::string::npos; }
+bool dobaInformacji(const std::string& d) {
+  if (d.size() != 10 || d[4] != '-' || d[7] != '-') return false;
+  for (size_t i = 0; i < d.size(); i++)
+    if (i != 4 && i != 7 && (d[i] < '0' || d[i] > '9')) return false;
+  return true;
+}
+}  // namespace
+
+std::string zapisInformacji(const Informacja& i) {
+  if (i.rodzaj == RodzajInformacji::BRAK || !wersjaInformacji(i.wlasna) || !wersjaInformacji(i.nowa) ||
+      (!i.dzien.empty() && !dobaInformacji(i.dzien)))
+    return "";
+  return std::string(i.rodzaj == RodzajInformacji::UDANA ? "U" : "N") + "\n" + i.wlasna + "\n" + i.nowa + "\n" + i.dzien;
+}
+
+Informacja odczytInformacji(const std::string& z) {
+  std::vector<std::string> p;
+  size_t a = 0;
+  for (;;) {
+    size_t b = z.find('\n', a);
+    p.push_back(z.substr(a, b == std::string::npos ? std::string::npos : b - a));
+    if (b == std::string::npos) break;
+    a = b + 1;
+  }
+  Informacja i;
+  if (p.size() != 4 || (p[0] != "U" && p[0] != "N") || !wersjaInformacji(p[1]) || !wersjaInformacji(p[2]) ||
+      (!p[3].empty() && !dobaInformacji(p[3])))
+    return i;
+  i.rodzaj = p[0] == "U" ? RodzajInformacji::UDANA : RodzajInformacji::NIEUDANA;
+  i.wlasna = p[1];
+  i.nowa = p[2];
+  i.dzien = p[3];
+  return i;
+}
+
+bool informacjaAktualna(const Informacja& i, const std::string& wlasna, const std::string& dzis) {
+  if (i.rodzaj == RodzajInformacji::BRAK || i.wlasna != wlasna) return false;
+  return i.dzien.empty() || i.dzien == dzis;
 }
 
 std::string wierszU01(bool token, const std::string& znana, const std::string& wlasna) {
   if (!token) return tekstPowodu(Powod::BRAK_TOKENU, -1, wlasna);
   if (nowsza(znana, wlasna)) return "Jest wersja " + bezBudowy(znana) + " · ↻ 2 s Aktualizacja";
   return "Oprogramowanie " + bezBudowy(wlasna) + " · ↻ 2 s Sprawdź aktualizację";
+}
+
+KafelekOprogramowania kafelekU01(bool token, const std::string& znana, const std::string& wlasna,
+                                 const std::string& sprawdzonoDnia) {
+  KafelekOprogramowania k;
+  k.wersja = bezBudowy(wlasna);
+  if (!token) {
+    k.stan = "wyłączone: włącz na telefonie";  // wskazówka, gdzie je włączyć, zostaje
+  } else if (nowsza(znana, wlasna)) {
+    k.stan = "jest " + bezBudowy(znana) + " · zainstaluj";
+    k.odwrocony = true;
+  } else if (!sprawdzonoDnia.empty()) {
+    k.stan = "aktualne · sprawdzono " + sprawdzonoDnia;
+  } else {
+    k.stan = "sprawdź aktualizację";
+  }
+  return k;
 }
 
 std::string dopisekU05(const Stan& s) {

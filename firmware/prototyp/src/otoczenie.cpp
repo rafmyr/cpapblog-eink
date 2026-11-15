@@ -303,19 +303,43 @@ std::string liniaTestuOtoczenia(const Otoczenie& o, uint32_t teraz, const std::s
 std::vector<std::string> wartosciTestuOtoczenia(const Otoczenie& o, const std::string& kiedy) {
   switch ((StanOto)o.stan) {
     case StanOto::WYLACZONE: return {"wyłączone"};
-    case StanOto::NIE_BYLO: return {"jeszcze bez odczytu"};
+    case StanOto::NIE_BYLO: return {"jeszcze bez odczytu", "bez odczytu"};
     case StanOto::OK: return {"OK " + kiedy};
-    case StanOto::BRAK_ODPOWIEDZI: return {"brak odpowiedzi"};
-    case StanOto::ODMOWA:
-    case StanOto::HTTP: return {"HTTP " + std::to_string(o.kod)};
+    case StanOto::BRAK_ODPOWIEDZI: return {"brak odpowiedzi", "milczy"};
+    // słowa zamiast kodów (decyzja 4 z 14.11.2026); kod HTTP zostaje w logu (liniaTestuOtoczenia())
+    case StanOto::ODMOWA: return {"odrzucony klucz", "zły klucz"};
+    case StanOto::HTTP:
+      if (o.kod == 404) return {"zły adres"};
+      if (o.kod >= 500) return {"błąd serwera"};
+      return {"odmowa serwera"};
     case StanOto::PRZEKIEROWANIE: return {"przekierowanie"};
-    case StanOto::POZA_SIECIA: return {"adres poza siecią domową", "poza siecią domową"};
+    // krótszy wariant tylko, gdy pełny się nie mieści (wiersz z usterką), z tym samym sensem
+    case StanOto::POZA_SIECIA: return {"adres poza siecią domową", "poza siecią domową", "nie w sieci domu"};
     case StanOto::ZLA_WERSJA:
       return {o.wersja < 0 ? std::string("brak wersji kontraktu") : "wersja kontraktu " + std::to_string(o.wersja)};
     case StanOto::NIECZYTELNE: return {"odpowiedź nieczytelna", "nieczytelna"};
-    case StanOto::ZA_DUZE: return {"odpowiedź za duża"};
+    case StanOto::ZA_DUZE: return {"odpowiedź za duża", "za duża"};
   }
   return {"–"};
+}
+
+bool bezOcenyOtoczenia(const Otoczenie& o) { return (StanOto)o.stan == StanOto::NIE_BYLO; }
+
+bool usterkaOtoczenia(const Otoczenie& o) {
+  switch ((StanOto)o.stan) {
+    case StanOto::WYLACZONE:
+    case StanOto::NIE_BYLO:
+    case StanOto::OK: return false;
+    case StanOto::BRAK_ODPOWIEDZI:
+    case StanOto::ODMOWA:
+    case StanOto::HTTP:
+    case StanOto::ZLA_WERSJA:
+    case StanOto::NIECZYTELNE:
+    case StanOto::ZA_DUZE:
+    case StanOto::PRZEKIEROWANIE:
+    case StanOto::POZA_SIECIA: return true;
+  }
+  return false;
 }
 
 bool pokazE08(bool aktywne, bool bezOstrzezenia, uint32_t od, const std::string& dzis, StanE08& s, bool& zmiana) {

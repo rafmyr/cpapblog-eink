@@ -210,8 +210,9 @@ static std::string zlaczPionowa(const std::vector<std::string>& v) {
 // Tolerancja porównania z wzorcem (T-TEST-415): w strefie treści najwyżej 0,5%
 // pikseli czarnych wzorca i najwyżej TOLERANCJA_PX pikseli różnych od obrazka panelu, bez bloku 3×3 samych różnic
 // (różnice to pojedyncze piksele krawędzi, nie przesunięty kształt), żadna różnica w kolumnie tekstu.
-// Różnice biorą się tylko z krawędzi kształtów: wzorzec liczy kąt i pierwiastek w liczbach zmiennoprzecinkowych,
-// panel tablicą kątów i pierwiastkiem całkowitym (T-WYM-97).
+// Różnice biorą się tylko z krawędzi kształtów: wzorzec liczy kąt (atan2) i promień pierścienia (pierwiastek)
+// w liczbach zmiennoprzecinkowych, panel kąt z tablicy, a promień z kwadratu odległości w liczbach całkowitych; od
+// 14.11.2026 wysokość piku w obu z tej samej tablicy exp, arytmetyką całkowitą (T-WYM-97, R-POR-11).
 static const double TOLERANCJA_PROC = 0.5;
 static const long TOLERANCJA_PX = 60;
 
@@ -936,7 +937,7 @@ static void testR_POR_23_liniaPytania() {
 // wymaganie: R-POR-14
 // wymaganie: R-POR-19
 // Rysunek ze znaną odpowiedzią: dziura 03:05–03:20 z kropką śladu, biały odcinek bez kropek z obrysem, piki ASV
-// (16,2 i 36 px), sąsiednie piki bez szczeliny przy pierścieniu, teksty bez wartości ustawień, tarcza przy linii
+// (12,15 i 27 px od 14.11.2026), sąsiednie piki bez szczeliny przy pierścieniu, kształt „dzwon”, teksty bez wartości ustawień, tarcza przy linii
 // uwagi w strefie 102–434.
 static bool czarny(const Bufor& b, int x, int y) { return b.px[(size_t)y * 800 + (size_t)x] != 0; }
 static void punktTarczy(int s, double r, int cy, int& x, int& y) {
@@ -986,16 +987,26 @@ static void testRysunekZnaneOdpowiedzi() {
   SPRAWDZ(bialeCale);
   punktTarczy(970 * 60, 119, 244, x, y);
   SPRAWDZ(czarny(b, x, y));
-  // R-POR-10: piki ASV 16,2 px (PS 7,0) i 36 px (PS 11,0) na środku odcinków 02:00 i 02:05
-  punktTarczy(842 * 60 + 30, 134 + 15, 244, x, y);
+  // R-POR-10: piki ASV 12,15 px (PS 7,0) i 27 px (PS 11,0) na środku odcinków 02:00 i 02:05 (od 14.11.2026 0,75
+  // dawnej skali); na środku 02:00 obwiednia to garb sąsiedniego piku 27 px w odległości 300 s (ok. 20,9 px, maksimum
+  // garbów, nie suma 12,15 + 20,9)
+  punktTarczy(842 * 60 + 30, 134 + 11, 244, x, y);
   SPRAWDZ(czarny(b, x, y));
-  punktTarczy(847 * 60 + 30, 134 + 35, 244, x, y);
+  punktTarczy(842 * 60 + 30, 134 + 23, 244, x, y);
+  SPRAWDZ(!czarny(b, x, y));
+  punktTarczy(847 * 60 + 30, 134 + 25, 244, x, y);
   SPRAWDZ(czarny(b, x, y));
-  punktTarczy(847 * 60 + 30, 134 + 38, 244, x, y);
+  punktTarczy(847 * 60 + 30, 134 + 29, 244, x, y);
   SPRAWDZ(!czarny(b, x, y));
   // R-POR-11: dwa sąsiednie piki bez szczeliny przy pierścieniu (granica odcinków 02:05)
   punktTarczy(845 * 60, 134 + 3, 244, x, y);
   SPRAWDZ(czarny(b, x, y));
+  // R-POR-11 (zmiana 2026-11-14, „dzwon”): garb opada łagodnie, 15 min od czubka 27 px jeszcze ok. 2,7 px (ogon
+  // krzywej Gaussa, σ = 420 s), a 19 min od czubka (poniżej 0,75 px) nic
+  punktTarczy(847 * 60 + 30 + 900, 135, 244, x, y);
+  SPRAWDZ(czarny(b, x, y));
+  punktTarczy(847 * 60 + 30 + 1140, 136, 244, x, y);
+  SPRAWDZ(!czarny(b, x, y));
   // R-POR-14: podpisy, legenda i liczby bez wartości w cmH2O
   for (auto& s : podpisy(d, false)) SPRAWDZ(s.find("cmH2O") == std::string::npos);
   for (auto& s : legenda(d)) SPRAWDZ(std::string(opisLegendy(s)).find("cmH2O") == std::string::npos);
@@ -1344,7 +1355,182 @@ static void testR_POR_06_szerokoscKreski() {
   }
 }
 
+// wymaganie: R-POR-09
+// wymaganie: R-POR-10
+// wymaganie: R-POR-11
+// Kształt piku „dzwon” (zmiana 2026-11-14, decyzja właściciela projektu 14.11.2026, wariant B): garb h·exp(−d²/(2σ²)), σ = 420 s,
+// zasięg ±3σ, obwiednia = maksimum garbów, poniżej 0,75 px nic; wysokości 0,75 dawnej skali. Wartości liczbowe są te
+// same co w tools/portret/test_portret.py (test_dzwon_jak_w_panelu), więc panel i wzorzec liczą piki identycznie.
+static void testR_POR_11_dzwon() {
+  // czubek dokładnie równy wysokości odcinka (bez zaokrąglenia), garb symetryczny, 0 od 3σ
+  for (int h = 1; h <= 432; h++) SPRAWDZ(garb16(h, 0) == h);
+  bool blisko = true, sym = true, malejacy = true;
+  for (int h : {144, 151, 194, 240, 367, 432})
+    for (long d = 0; d < 1260; d++) {
+      double wz = h * std::exp(-(double)d * (double)d / (2.0 * 420.0 * 420.0));
+      blisko = blisko && std::fabs(garb16(h, d) - wz) <= 1.0;  // najwyżej 1/16 px od krzywej Gaussa
+      sym = sym && garb16(h, d) == garb16(h, -d);
+      malejacy = malejacy && (d == 0 || garb16(h, d) <= garb16(h, d - 1));
+    }
+  SPRAWDZ(blisko);
+  SPRAWDZ(sym);
+  SPRAWDZ(malejacy);
+  SPRAWDZ(garb16(432, 1260) == 0 && garb16(432, -1260) == 0 && garb16(432, 5000) == 0 && garb16(0, 0) == 0);
+  // te same liczby co we wzorcu w Pythonie
+  SPRAWDZ(garb16(432, 300) == 335 && garb16(432, 150) == 405 && garb16(432, 630) == 140);
+  SPRAWDZ(garb16(144, 1000) == 8 && garb16(432, 1259) == 5 && garb16(240, 777) == 43);
+  // obwiednia: odcinek 10 (środek 3150 s) z czubkiem 432 (27 px)
+  std::vector<int> h(ODCINKI_DOBY, 0);
+  h[10] = 432;
+  SPRAWDZ(obwiednia16(h, 3150) == 432);
+  SPRAWDZ(obwiednia16(h, 3150 + 1000) == 25 && obwiednia16(h, 3150 + 1131) == 12);
+  SPRAWDZ(obwiednia16(h, 3150 + 1134) == 0 && obwiednia16(h, 3150 - 1134) == 0);  // poniżej 0,75 px nie rysowany
+  // maksimum, nie suma: dwa sąsiednie czubki 432 → w połowie drogi garb jednego (405), nie 810; czubki zostają 432
+  h[11] = 432;
+  SPRAWDZ(obwiednia16(h, 3300) == 405);
+  SPRAWDZ(obwiednia16(h, 3150) == 432 && obwiednia16(h, 3450) == 432);
+  // niższy czubek obok wyższego: czubek niższego zakryty garbem wyższego (335 > 194), nigdy wyżej niż najwyższy
+  h[11] = 0;
+  h[9] = 194;
+  SPRAWDZ(obwiednia16(h, 2850) == 335);
+  int mx = 0;
+  for (long u = 0; u < 6000; u++) mx = std::max(mx, obwiednia16(h, u));
+  SPRAWDZ(mx == 432);
+  // brzegi tablicy odcinków
+  std::vector<int> e(ODCINKI_DOBY, 0);
+  e[0] = 432;
+  e[ODCINKI_DOBY - 1] = 432;
+  SPRAWDZ(obwiednia16(e, 150) == 432 && obwiednia16(e, -200) > 0 && obwiednia16(e, (long)ODCINKI_DOBY * 300 + 200) > 0);
+  // wysokości (R-POR-09, R-POR-10): 0,75 dawnej skali, na zewnątrz co najmniej 9 px
+  Przebieg p;
+  p.data = "2026-11-14";
+  p.sesje = {{700, 1100}};
+  DanePortretu c = dane(p, "AutoSet", 707), a = dane(p, "ASVAuto", 707);
+  a.normaPs10 = 50;
+  Odcinek o;
+  o.od = 800;
+  o.minuty = 5;
+  auto zew = [&](int k) { o.zew = k; return pikZewn16(c, o); };
+  auto wew = [&](int k) { o.centr = k; return pikWewn16(c, o); };
+  SPRAWDZ(zew(1) == 151 && zew(1) >= 9 * 16);  // 9,44 px
+  SPRAWDZ(zew(7) == 432 && zew(12) == 432);    // 27 px
+  SPRAWDZ(wew(2) == 130 && wew(7) == 240);     // 8,125 px i 15 px
+  o.zew = 1;
+  SPRAWDZ(pikZewn16(c, o, SKALA_LINII) >= 9 * 16 * SKALA_LINII / 100);
+  o.ps = 70;
+  SPRAWDZ(pikZewn16(a, o) == 194);  // 12,15 px
+  o.ps = 110;
+  SPRAWDZ(pikZewn16(a, o) == 432 && pikZewn16(a, o, SKALA_LINII) == 367);
+  o.ps = 69;
+  SPRAWDZ(pikZewn16(a, o) == 0);
+}
+
+// wymaganie: R-POR-11
+// pik nie wychodzi poza sesję. Scenariusze przegląd (AutoSet, okno 22:00):
+// `pik-przy-przerwie-20-min` (sesje 23:00–02:00 i 02:20–06:20, 7 zdarzeń w 01:55 i 02:20), `pik-koniec-sesji` (sesja
+// 23:00–03:00, 7 zdarzeń w 02:55), `pik-w-krotkiej-przerwie-10-min` (przerwa 02:00–02:10, 1 zdarzenie w 01:55), także
+// z centralnymi i w skali 0,85. Każdy czarny piksel w pasie pików (promienie 96–172 poza torem pierścienia) ma kąt
+// tarczy w sesji (0 s poza sesją; kąt z katTarczy(), tą samą funkcją co rysunek), poza okolicą znacznika startu
+// (±20 min od startu okna); żaden czarny piksel w pasie pików nie jest odosobniony (bez sąsiada w 8 kierunkach).
+static void testR_POR_11_pikTylkoWSesji() {
+  struct Sc {
+    std::vector<Sesja> ses;
+    std::vector<int> piki;
+    int zew;
+  };
+  const Sc sc[] = {{{{660, 840}, {860, 1100}}, {835, 860}, 7},
+                   {{{660, 900}}, {895}, 7},
+                   {{{660, 840}, {850, 1100}}, {835}, 1},
+                   {{{660, 840}, {860, 1100}}, {830, 835, 860, 865}, 12}};
+  int sprawdzonych = 0, wPasie = 0, pozaRazem = 0;
+  for (bool linia : {false, true})
+    for (auto& s : sc) {
+      const int gora = linia ? 102 : 54, cy = (gora + 434) / 2, skala = linia ? 85 : 100;
+      const long rIn = skalowany(118, skala), rOut = skalowany(134, skala), rMin = skalowany(96, skala),
+                 rMax = skalowany(172, skala);
+      Przebieg p = nocZnacznika(s.ses);
+      for (auto& o : p.odcinki)
+        for (int m : s.piki)
+          if (o.od == m) o.zew = s.zew, o.centr = s.zew;
+      DanePortretu d = dane(p, "AutoSet", 720);
+      const int w = okno(d);
+      SPRAWDZ(w == 600);
+      Bufor b;
+      rysujCialoPortretu(b, d, gora, linia);
+      int poza = 0, samotne = 0;
+      for (int y = cy - (int)rMax; y <= cy + (int)rMax; y++)
+        for (int x = 200 - (int)rMax; x <= 200 + (int)rMax; x++) {
+          const long dx = x - 200, dy = y - cy, r2 = dx * dx + dy * dy;
+          if (r2 < rMin * rMin || r2 >= rMax * rMax || (r2 >= rIn * rIn && r2 < rOut * rOut) || !czarny(b, x, y)) continue;
+          const long q = katTarczy((int)dx, (int)dy);
+          const long odStartu = ((q - (long)w * 60) % 43200 + 43200) % 43200;
+          if (odStartu < 1200 || odStartu > 43200 - 1200) continue;  // znacznik startu okna
+          wPasie++;
+          const long u = (long)w * 60 + odStartu;
+          bool ses = false;
+          for (auto& z : p.sesje) ses = ses || ((long)z.od * 60 <= u && u < (long)z.do_ * 60);
+          poza += !ses;
+          int sasiedzi = 0;
+          for (int ey = -1; ey <= 1; ey++)
+            for (int ex = -1; ex <= 1; ex++) sasiedzi += (ex || ey) && czarny(b, x + ex, y + ey);
+          samotne += sasiedzi == 0;
+        }
+      if (poza || samotne) printf("    linia %d, pik %d: pikseli poza sesją %d, odosobnionych %d\n", linia, s.piki[0], poza, samotne);
+      SPRAWDZ(poza == 0);
+      SPRAWDZ(samotne == 0);
+      pozaRazem += poza;
+      sprawdzonych++;
+    }
+  printf(" pik tylko w sesji: %d rysunków, %d czarnych pikseli w pasie pików, poza sesją %d\n", sprawdzonych, wPasie, pozaRazem);
+  SPRAWDZ(wPasie > 2000);  // piki są na rysunku
+}
+
+// wymaganie: R-POR-06
+// wymaganie: R-POR-11
+// znacznik startu okna czytelny na tle piku. Pik na zewnątrz (7 zdarzeń) i do środka
+// (7 centralnych) w pierwszym albo w ostatnim odcinku okna, sesja przez cały brzeg okna, 144 kąty startu okna × skala
+// 1,0 i 0,85: niezmienniki znacznika (kreska przez tor, przerwa, grot zgodnie ze wskazówkami, czubek) i biała obwódka:
+// po stronie przeciwnej grotowi kreska nad pierścieniem i obie strony kreski pod pierścieniem oddzielone od piku białym
+// pikselem (t = ±3,5 px), za czubkiem grota i przy obu bokach grota (1 px poza bokiem) biało.
+static void testR_POR_06_znacznikNaPiku() {
+  int sprawdzonych = 0, zle = 0;
+  for (bool linia : {false, true}) {
+    const int gora = linia ? 102 : 54, cy = (gora + 434) / 2, skala = linia ? 85 : 100;
+    const double r1 = skalowany(110, skala), rIn = skalowany(118, skala), rOut = skalowany(134, skala),
+                 r2 = skalowany(150, skala), A = r2 - 7.5;
+    for (int w = 0; w < 720; w += 5)
+      for (bool ostatni : {false, true}) {
+        Przebieg p = nocZnacznika({{std::max(0, w - 30), w + 30}, {w + 200, w + 715}});
+        if (ostatni) p = nocZnacznika({{w + 200, w + 720}});
+        const int m = ostatni ? w + 715 : w;
+        for (auto& o : p.odcinki)
+          if (o.od == m) o.zew = 7, o.centr = 7;
+        DanePortretu d = dane(p, "AutoSet", w + 120);
+        if (okno(d) != w) continue;
+        Bufor b;
+        rysujCialoPortretu(b, d, gora, linia);
+        int z = sprawdzZnacznikZawsze(b, w, cy, skala);
+        for (double a = rOut + 3; a <= r2 - 2; a += 1) z += czarnyZn(b, w, a, -3.5, cy);
+        for (double a = r1 + 1; a <= rIn - 2; a += 1) z += czarnyZn(b, w, a, -3.5, cy) + czarnyZn(b, w, a, 3.5, cy);
+        z += czarnyZn(b, w, A, 16.2, cy);
+        for (double t : {6.0, 9.0}) {
+          const double pol = (15.0 - t) * 28.0 / 51.0 + 1.1;
+          z += czarnyZn(b, w, A + pol, t, cy) + czarnyZn(b, w, A - pol, t, cy);
+        }
+        if (z) printf("    okno %d, linia %d, ostatni %d: %d niespełnionych punktów\n", w, linia, ostatni, z);
+        zle += z != 0;
+        sprawdzonych++;
+      }
+  }
+  printf(" znacznik na piku: %d rysunków, z błędem %d\n", sprawdzonych, zle);
+  SPRAWDZ(sprawdzonych >= 500);
+  SPRAWDZ(zle == 0);
+}
+
 void testyEkranuPortretu(const std::string& k) {
+  testR_POR_11_dzwon();
+  testR_POR_11_pikTylkoWSesji();
+  testR_POR_06_znacznikNaPiku();
   testR_POR_17_odcinekDwochPlikow();
   testR_POR_21_zakresyZapisuIOdczytu();
   testR_POR_09_centralnePonad500();

@@ -7,6 +7,7 @@
 ## Zasady (szczegóły: specyfikacja, 5.4.3 i 5.7.2)
 
 - Dwa tryby: **ekran danych** (szablon A) i **karta z budzikiem**, bez mieszania ([ADR-0007](../decisions/0007-dwa-tryby-ekranu.md)).
+- Od 14.11.2026 oba tryby, pytania, kokpit i ekrany serwisowe mają u góry tę samą **belkę informacyjną** (44 px: nazwa ekranu, czego dotyczą dane, bateria panelu; spec 5.4.17, [ADR-0043](../decisions/0043-belka-informacyjna.md)); nagłówki na kanwie i w `design/png/` pokazują stan sprzed belki. Slot dzienny i S9 bez belki.
 - Karta: tytuł na całą szerokość, budzik 240×205 po prawej, odbity lustrzanie, nigdy na czarnym tle ([ADR-0009](../decisions/0009-anatomia-karty.md)).
 - Typografia: Source Serif 4 (tytuły, liczby), Public Sans (tekst); od 30.10.2026 skala B czytelności (spec 5.4.3), bez IBM Plex i bez kursywy; część ekranów źródłowych jest jeszcze w starej typografii, do przerysowania: [czytelnosc-b-przerysowanie.md](czytelnosc-b-przerysowanie.md).
 - Tylko czerń i biel (1-bit), tekst min. 18 px; na ekranach dnia, w kokpicie, pytaniu, S9 i kartach min. 22 px.

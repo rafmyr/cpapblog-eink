@@ -40,3 +40,7 @@ Sieć i AirBridge są w NVS panelu (przestrzeń `sekrety`, `firmware/prototyp/sr
 
 
 **Zmiana 2026-11-11 (ADR-0041; bez zmiany decyzji):** strona „Sprzęt” wychodzi z kokpitu; formularz U-03 dostaje pole `Nowy model maski od dziś` (R-MAS-16) i termin następnej wymiany przy datach (R-MAS-17).
+
+**Zmiana 2026-11-14 (R-KONF-59, decyzja właściciela projektu 5 z 14.11.2026, bez zmiany decyzji):** strona formularza z pkt 2 ma układ z makiety „Formularz na telefonie”: grupy jako sekcje zwijane z bieżącą wartością w nagłówku (bez haseł i kluczy), przyklejony przycisk `Zapisz na panelu` z licznikiem niezapisanych zmian (mały skrypt w stronie, bez niego formularz działa jak dawniej) i wersja oprogramowania obok tytułu. Zakres ustawień, walidacja i zapis bez zmian. Po przeglądu (14.11.2026) numer wymagania R-KONF-59 (wcześniej R-KONF-56, zajęty przez równoległą część zmiany), nagłówek grupy dat wymiany skrócony do `Sprzęt` jak w makiecie.
+
+**Zmiana 2026-11-14 ([ADR-0045](0045-kolejnosc-i-widocznosc-ekranow-z-telefonu.md), R-KONF-60, decyzja właściciela projektu 8 z 14.11.2026):** formularz z pkt 2 ma sekcję „Ekrany” (po „Panel”): kolejność stron kokpitu z numerem i ekranów dziennych D1…D4 (pole „miejsce”, ze skryptem strzałki ▲ ▼), pole „pokazuj” przy stronie sypialni i ekranach dziennych, opis ekranów zawsze włączonych bez przełącznika; klucze `kokpit.kolejnosc`, `kokpit.ukryte`, `dzien.kolejnosc`, `dzien.ukryte` w pliku konfiguracji (wartość domyślna usuwa wiersz). Przyciski U-01 bez zmian.

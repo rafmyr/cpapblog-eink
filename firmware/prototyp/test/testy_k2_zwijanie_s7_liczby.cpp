@@ -196,12 +196,12 @@ static void testS7ILiczby() {
     // nazwa strony w nagłówku, bez numeru (R-KOK-22; P24B z lewej od 28)
     SPRAWDZ(28 + szer(F_P24B, l.naglowek) <= 772);
     PlotnoTest p, q;
-    podsumowanie::rysujLiczby(p, Naglowek{l.naglowek, ""}, l);
+    podsumowanie::rysujLiczby(p, Belka{l.naglowek, ""}, l);
     SPRAWDZ(p.czarne(0, 0, 800, 50) > 0);
     // pas etykiety (pod nagłówkiem, nad pierwszym wierszem na 133) pusty
     SPRAWDZ(p.czarne(0, 60, 800, 104) == 0);
     l.etykieta = "Co znaczą te liczby";
-    podsumowanie::rysujLiczby(q, Naglowek{l.naglowek, ""}, l);
+    podsumowanie::rysujLiczby(q, Belka{l.naglowek, ""}, l);
     SPRAWDZ(q.czarne(0, 60, 800, 104) > 0);
   }
 }
@@ -226,7 +226,8 @@ static void testStopkaKartyIU01() {
   d.miasto = MIASTO_ZE_WSPOLRZEDNYCH;
   std::vector<WierszUstawien> w = wierszeUstawien(d);
   bool jest = false;
-  for (auto& x : w) jest = jest || (x.nazwa == "Miasto pogody" && x.wartosc == "współrzędne z wgrania");
+  // od 14.11.2026 w kolumnie `POŁĄCZENIA` (344 px) krótszy wariant tej samej informacji
+  for (auto& x : w) jest = jest || (x.nazwa == "Miasto pogody" && x.wartosc == "współrzędne");
   SPRAWDZ(jest);
 }
 

@@ -361,6 +361,33 @@ static void testDobaTesteraS_K_08() {
   SPRAWDZ(bez == std::vector<int>({21 * 60, 21 * 60 + 30, 22 * 60, 22 * 60 + 30, 23 * 60}));
   ROWNE_L(sk08, 21 * 60);  // S-K-08 o 21:00 bez naciśnięcia (dopiero po naciśnięciu)
   ROWNE_L(odswiezen, 1);   // jedno odświeżenie e-ink (21:00), potem klatka bez zmian
+  {
+    // belka (spec 5.4.17, R-EKR-64): ekran wieczorny S-K-08 ma w lewym polu `Wieczór`, nie `Poranek`; lewe pole
+    // klatki piksel w piksel jak belka z tą nazwą, a pas 41…43 jest linią belki
+    struct Bufor : Plotno {
+      std::vector<uint8_t> px = std::vector<uint8_t>(48000, 0);
+      void piksel(int x, int y, bool c) override {
+        if (x < 0 || y < 0 || x >= 800 || y >= 480) return;
+        uint8_t m = (uint8_t)(0x80 >> (x & 7));
+        if (c) px[(size_t)(y * 100 + x / 8)] |= m;
+        else px[(size_t)(y * 100 + x / 8)] &= (uint8_t)~m;
+      }
+    } wiecz, rano;
+    belka(wiecz, Belka{BELKA_WIECZOR, ""});
+    belka(rano, Belka{BELKA_PORANEK, ""});
+    const uint8_t* k = s.ekran.bufor();
+    const int x1 = 28 + szer(F_P24B, BELKA_PORANEK) + 20;  // dłuższa z dwóch nazw z zapasem (przed środkiem)
+    bool jakWieczor = true, jakRano = true, linia = true;
+    for (int y = 0; y < 41; y++)
+      for (int x = 0; x < x1; x++) {
+        const size_t i = (size_t)(y * 100 + x / 8);
+        const uint8_t m = (uint8_t)(0x80 >> (x & 7));
+        jakWieczor = jakWieczor && (k[i] & m) == (wiecz.px[i] & m);
+        jakRano = jakRano && (k[i] & m) == (rano.px[i] & m);
+      }
+    for (int x = 0; x < 800; x++) linia = linia && (k[(size_t)(42 * 100 + x / 8)] & (0x80 >> (x & 7)));
+    SPRAWDZ(jakWieczor && !jakRano && linia);
+  }
   if (sk08 != 21 * 60 || odswiezen != 1)
     for (auto& w : v)
       if (w.minuta >= 20 * 60)

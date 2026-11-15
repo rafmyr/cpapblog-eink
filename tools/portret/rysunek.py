@@ -3,7 +3,9 @@
 
 Geometria liczona w liczbach zmiennoprzecinkowych (math.atan2, math.sqrt) jako niezależny wzorzec; panel
 (firmware/prototyp/src/portret_ekran.cpp) liczy ją arytmetyką całkowitą z tablicą kątów, a obrazki porównuje test
-w tolerancji pikseli (T-TEST-415). Tekst krojami panelu z fonty.h (kroje.py), więc litery wychodzą piksel w piksel.
+w tolerancji pikseli (T-TEST-415). Wyjątek od 14.11.2026 (kształt piku „dzwon”, R-POR-11): wysokości pików
+(pik_zewn16(), pik_wewn16()) i obwiednia garbów (obwiednia16()) liczone tak jak w panelu, liczbami całkowitymi
+z tą samą tablicą exp (EXP_GARBU), więc dla tej samej chwili tarczy wysokość piku jest ta sama co do 1/16 px. Tekst krojami panelu z fonty.h (kroje.py), więc litery wychodzą piksel w piksel.
 
 Wejście `Dane` (słownik):
   przebieg      wynik przebieg.przebieg_doby() albo przebieg.czytaj_plik()
@@ -46,13 +48,32 @@ R_ZNACZNIK = (110, 150)   # znacznik startu okna: kreska od 8 px pod pierścieni
 ZN_POL_SZER = 2.25        # połowa szerokości kreski (kreska 4–5 px)
 ZN_PRZERWA = 4.25         # biała przerwa w pierścieniu do 4,25 px od osi kreski (2 px po każdej stronie)
 GROT_CZUBEK = 15.0        # czubek grota 15 px od osi kreski w kierunku ruchu wskazówek zegara, podstawa 14 px
+# biała obwódka znacznika na tle pików 2 px [PRÓG]; GROT_OBWODKA_B: odsunięcie boków grota
+# w warunku 102·|a − (r2 − 7,5)| ≤ 56·(15 − t) + B, B = 2·ZN_OBWODKA·√(51² + 28²) ≈ 233 (ta sama liczba co w panelu)
+ZN_OBWODKA = 2
+GROT_OBWODKA_B = 233
 R_ZEWN = 172              # zasięg testu biegunowego (T-WYM-97: od 96 do 172)
 R_WEWN = 96
 KOL_X, KOL_W = 390, 382
-PIK_ZEWN_PX, PIK_ZEWN_MIN_PX, PIK_WEWN_PX = 36.0, 12.0, 20.0
+# wysokości pików od 14.11.2026: 0,75 dawnej skali (36, 12, 20 px) [PRÓG]
+PIK_ZEWN_PX, PIK_ZEWN_MIN_PX, PIK_WEWN_PX = 27, 9, 15
 OGRANICZENIE_K = 7
 PROG_WSPARCIA10 = 20      # +2 cmH2O [PRÓG]
-POL_PODSTAWY_S = 300      # podstawa garbu 10 min (±5 min) [PRÓG]
+# Kształt piku „dzwon” (zmiana 2026-11-14, decyzja właściciela projektu, wariant B): garb h·exp(−d²/(2σ²)) wokół środka odcinka,
+# σ = 420 s [PRÓG], zasięg do ±3σ, obwiednia = maksimum garbów (nie suma), poniżej 0,75 px (12/16) nie rysowana
+SIGMA_S = 420
+ZASIEG_S = 3 * SIGMA_S
+KROKI_NA_SIGMA = 21       # tablica exp: 21 kroków na σ, 63 do 3σ (nie zależy od σ)
+PROG_GARBU16 = 12
+# exp(−x²/2) · 65536 dla x = i / KROKI_NA_SIGMA, i = 0…63; round(math.exp(−(i/21)² / 2) · 65536); nie zależy od σ
+# (przy σ = 420 s krok 20 s); ta sama tabela co EXP_GARBU w firmware/prototyp/src/portret_ekran.cpp
+# (test test_tabela_exp_jak_w_panelu)
+EXP_GARBU = (
+    65536, 65462, 65239, 64871, 64358, 63704, 62915, 61994, 60949, 59785, 58511, 57135, 55664, 54108, 52477, 50780,
+    49026, 47226, 45388, 43524, 41641, 39750, 37858, 35975, 34108, 32265, 30452, 28676, 26943, 25257, 23622, 22044,
+    20524, 19066, 17671, 16342, 15078, 13880, 12748, 11683, 10682, 9745, 8869, 8054, 7298, 6597, 5951, 5355, 4808,
+    4308, 3850, 3434, 3055, 2712, 2402, 2123, 1872, 1647, 1446, 1266, 1106, 964, 839, 728,
+)
 OKNO_H_MIN = 720
 PRZED_STARTEM_MIN = 120
 NAJGESCIEJ_MIN, NAJGESCIEJ_PIKOW = 60, 3
@@ -232,6 +253,61 @@ def wysokosc_zewn(dane, x):
     return max(PIK_ZEWN_MIN_PX, PIK_ZEWN_PX * (0.35 + 0.65 * (min(k, OGRANICZENIE_K) - 1) / 6.0))
 
 
+def pik_zewn16(dane, x, skala=100):
+    """Wysokość piku na zewnątrz w 1/16 px przy skali w setnych, liczbami całkowitymi jak pikZewn16() panelu."""
+    if dane["tryb"] in ASV:
+        if dane["norma_ps10"] is None or x["ps"] is None or "P" in dane["przebieg"]["braki"]:
+            return 0
+        d10 = x["ps"] - dane["norma_ps10"]
+        if d10 < PROG_WSPARCIA10:
+            return 0
+        f = min(4000, 1800 + 55 * (d10 - PROG_WSPARCIA10))
+        return 16 * PIK_ZEWN_PX * f * skala // (4000 * 100)
+    k = x["zew"] or 0
+    if k <= 0:
+        return 0
+    k = min(k, OGRANICZENIE_K)
+    return max(16 * PIK_ZEWN_PX * (210 + 65 * (k - 1)) * skala // (600 * 100), 16 * PIK_ZEWN_MIN_PX * skala // 100)
+
+
+def pik_wewn16(dane, x, skala=100):
+    """Wysokość piku do środka w 1/16 px, liczbami całkowitymi jak pikWewn16() panelu."""
+    if dane["tryb"] in ASV:
+        return 0
+    k = x["centr"] or 0
+    if k <= 0:
+        return 0
+    k = min(k, OGRANICZENIE_K)
+    return 16 * PIK_WEWN_PX * (270 + 55 * (k - 1)) * skala // (600 * 100)
+
+
+def garb16(h16, d):
+    """Garb „dzwon” w 1/16 px w odległości d s od środka odcinka (garb16() panelu: tablica exp, interpolacja)."""
+    if h16 <= 0:
+        return 0
+    d = abs(d)
+    if d >= ZASIEG_S:
+        return 0
+    n = d * KROKI_NA_SIGMA
+    i, f = n // SIGMA_S, n % SIGMA_S
+    e = EXP_GARBU[i] - ((EXP_GARBU[i] - EXP_GARBU[i + 1]) * f + SIGMA_S // 2) // SIGMA_S
+    return (h16 * e + 32768) // 65536
+
+
+def obwiednia16(h16, u):
+    """Obwiednia pików w chwili u (całe sekundy od 12:00) w 1/16 px: maksimum garbów, poniżej 0,75 px → 0.
+
+    h16: słownik indeks odcinka → wysokość w 1/16 px (obwiednia16() panelu, ta sama arytmetyka)."""
+    k0 = int(u / 300)  # jak dzielenie całkowite w C++ (w stronę zera)
+    zasieg = ZASIEG_S // 300 + 1
+    m = 0
+    for k in range(k0 - zasieg, k0 + zasieg + 1):
+        if k < 0:
+            continue
+        m = max(m, garb16(h16.get(k, 0), u - (k * 300 + 150)))
+    return m if m >= PROG_GARBU16 else 0
+
+
 def wysokosc_wewn(dane, x):
     if dane["tryb"] in ASV:
         return 0.0
@@ -362,21 +438,9 @@ def rysuj_tarcze(o, dane, cy, skala):
     r_min, r_max = _r(R_WEWN, skala), _r(R_ZEWN, skala)
     cx = X_TARCZY
     odc = pr["odcinki"]
-    h_zewn = {k: wysokosc_zewn(dane, x) * s for k, x in odc.items() if _w_oknie(k, w)}
-    h_wewn = {k: wysokosc_wewn(dane, x) * s for k, x in odc.items() if _w_oknie(k, w)}
+    h_zewn = {k: pik_zewn16(dane, x, skala) for k, x in odc.items() if _w_oknie(k, w)}
+    h_wewn = {k: pik_wewn16(dane, x, skala) for k, x in odc.items() if _w_oknie(k, w)}
     biale = {k for k, x in odc.items() if bialy_odcinek(x)}
-
-    def obwiednia(h, u):
-        k0 = int(u // 300)
-        m = 0.0
-        for k in (k0 - 1, k0, k0 + 1):
-            hk = h.get(k, 0.0)
-            if hk <= 0:
-                continue
-            d = abs(u - (k * 300 + 150))
-            if d < POL_PODSTAWY_S:
-                m = max(m, hk * math.sqrt(1.0 - (d / POL_PODSTAWY_S) ** 2))
-        return m
 
     # 1. ślad tarczy: kropki 2×2 co 2°
     rs = R_SLAD * s
@@ -395,15 +459,22 @@ def rysuj_tarcze(o, dane, cy, skala):
             q = (math.atan2(dx, -dy) % (2 * math.pi)) / (2 * math.pi) * 43200.0
             baza = w * 60
             u = baza + ((q - baza) % 43200.0)
-            sesja = _w_sesji(pr, u)
-            if r_in <= r < r_out and sesja:
+            # pierścień i piki tylko w chwilach z maską (0 s poza sesją), jak panel
+            if not _w_sesji(pr, u):
+                continue
+            if r_in <= r < r_out:
                 o.piksel(x, y, True)
                 if b_in <= r < b_out and int(u // 300) in biale:
                     o.piksel(x, y, False)
-            if r >= r_out and r < r_out + obwiednia(h_zewn, u):
-                o.piksel(x, y, True)
-            if r < r_in and r >= r_in - obwiednia(h_wewn, u):
-                o.piksel(x, y, True)
+            # piki: obwiednia całkowita jak w panelu (chwila w pełnych sekundach), test r < r_out + g/16 bez pierwiastka
+            if r2 >= r_out * r_out:
+                g = obwiednia16(h_zewn, math.floor(u))
+                if g > 0 and r2 * 256 < (r_out * 16 + g) ** 2:
+                    o.piksel(x, y, True)
+            if r2 < r_in * r_in:
+                g = obwiednia16(h_wewn, math.floor(u))
+                if g > 0 and r_in * 16 - g > 0 and r2 * 256 >= (r_in * 16 - g) ** 2:
+                    o.piksel(x, y, True)
     # 6. znacznik startu okna (nad pierścieniem i pikami, pod kropkami ASV i cyframi)
     # wyciek w pierwszym albo ostatnim odcinku okna → znacznik omija tor pierścienia (przerwa < 5 min łuku)
     przy_starcie = any(k in odc and bialy_na_rysunku(pr, k, odc[k], w) for k in (w // 5, (w + OKNO_H_MIN - 5) // 5))
@@ -445,13 +516,14 @@ def rysuj_znacznik(o, w, cy, skala, bez_toru=False):
     pierścienia z białą przerwą po obu stronach (czytelna na czarnym łuku maski), i grot na zewnątrz pierścienia
     wskazujący kierunek ruchu wskazówek zegara. Bez liczb i bez napisu. Granice w ćwiartkach i połówkach piksela,
     żeby piksel nie leżał dokładnie na granicy (panel liczy to samo tablicą sinusów). `bez_toru` (wyciek w pierwszym
-    albo ostatnim odcinku okna): kreska i przerwa nie wchodzą w tor pierścienia, biały odcinek z obrysem zostaje nietknięty."""
+    albo ostatnim odcinku okna): kreska i przerwa nie wchodzą w tor pierścienia, biały odcinek z obrysem zostaje nietknięty.
+    poza torem pierścienia biała obwódka 2 px wokół kreski i grota (czytelna na tle piku)."""
     cx = X_TARCZY
     k = kat_znacznika(w)
     sn, cs = math.sin(k), math.cos(k)
     r1, r2 = _r(R_ZNACZNIK[0], skala), _r(R_ZNACZNIK[1], skala)
     r_in, r_out = _r(R_PIERSCIEN[0], skala), _r(R_PIERSCIEN[1], skala)
-    z = r2 + int(GROT_CZUBEK) + 2
+    z = r2 + int(GROT_CZUBEK) + ZN_OBWODKA + 2
     for y in range(cy - z, cy + z + 1):
         for x in range(cx - z, cx + z + 1):
             X, Y = x - cx, cy - y
@@ -467,8 +539,19 @@ def rysuj_znacznik(o, w, cy, skala, bez_toru=False):
                 if abs(t) < ZN_PRZERWA and tor:
                     o.piksel(x, y, False)
                     continue
-            if ZN_POL_SZER <= t < GROT_CZUBEK and abs(a - (r2 - 7.5)) <= (GROT_CZUBEK - t) * 28.0 / 51.0:
+            da = abs(a - (r2 - 7.5))
+            if ZN_POL_SZER <= t < GROT_CZUBEK and da <= (GROT_CZUBEK - t) * 28.0 / 51.0:
                 o.piksel(x, y, True)
+                continue
+            # biała obwódka ZN_OBWODKA px wokół kreski i grota poza torem pierścienia (czytelność na tle piku);
+            # boki grota odsunięte o ZN_OBWODKA px wzdłuż normalnej (stała GROT_OBWODKA_B ta sama co w panelu)
+            if r_in * r_in <= X * X + Y * Y < r_out * r_out:
+                continue
+            obw_kreski = abs(t) < ZN_POL_SZER + ZN_OBWODKA and r1 - 0.5 - ZN_OBWODKA <= a < r2 - 0.5 + ZN_OBWODKA
+            obw_grota = (ZN_POL_SZER - ZN_OBWODKA <= t < GROT_CZUBEK + ZN_OBWODKA
+                         and 102.0 * da <= 56.0 * (GROT_CZUBEK - t) + GROT_OBWODKA_B)
+            if obw_kreski or obw_grota:
+                o.piksel(x, y, False)
 
 
 def znak_legendy(o, klucz, x, y):

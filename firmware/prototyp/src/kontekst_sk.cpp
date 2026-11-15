@@ -1092,6 +1092,10 @@ int rangaTypu(const std::string& typ) {
 }
 
 bool typWieczorny(const std::string& t) { return t.size() == 4 && t.compare(0, 3, "SK0") == 0 && t[3] >= '3' && t[3] <= '9'; }
+const char* nazwaBelki(const Tresc& t) {
+  const bool grupaWieczoru = !t.grupa.empty() && (t.grupa[0] == 'W' || t.grupa[0] == 'T');
+  return typWieczorny(t.typ) || grupaWieczoru ? BELKA_WIECZOR : BELKA_PORANEK;
+}
 bool typB16(const std::string& t) {
   static const char* const T[] = {"SK03", "SK04", "SK05", "SK06", "SK07", "SK08", "SK09", "SK10", "SK10W", "SK12", "SK14",
                                   "SK15", "SK16", "SK17", "SK18", "SK19", "SK20", "SK21", "SK27", "SK29", "SK30",
@@ -1205,13 +1209,11 @@ void wizualizacja(Plotno& p, const Tresc& t, bool cz) {
 }
 }  // namespace
 
-void rysuj(Plotno& p, const Naglowek& n, const Tresc& t, const std::string& sl, const std::string& sp) {
+void rysuj(Plotno& p, const Belka& n, const Tresc& t, const std::string& sl, const std::string& sp) {
   bool neg = t.problem;
   p.prostokat(0, 0, 800, 480, neg);
   bool cz = !neg;
-  tekst(p, F_P24B, X, 35, n.lewo, cz);
-  if (!n.prawo.empty()) tekstPrawo(p, F_P24B, XP, 35, n.prawo, cz);
-  p.prostokat(0, 52, 800, 2, cz);
+  belka(p, n);  // jasna także nad negatywem tonu „problem” (ADR-0043)
   // linia uwagi (5.4.5) jak na każdym ekranie danych (liniaUwagiEkranu(), R-EKR-52, R-EKR-62): w negatywie tonu
   // „problem” ostrzeżenie na białym pasku z `!`, informacja albo prośba w białej ramce 2 px bez `!`
   int dy = liniaUwagiEkranu(p, t.t.linia, t.t.liniaA, t.t.liniaOstrzezenie, neg);

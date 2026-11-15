@@ -120,6 +120,7 @@ EKRANY_NAZWANE = OrderedDict([
     ("potwierdzenie „Zapisano”", r"Zapisano: (?:tak|nie)|„Zapisano”"),
     ("pytanie o przerwę", r"Przerwa była planowana|przerw[aęy] planowan"),
     ("„Co znaczą te liczby”", r"Co znaczą te liczby"),
+    ("„Sypialnia · 30 nocy”", r"Sypialnia · 30 nocy"),  # strona kokpitu (5.5.8, ADR-0044)
 ])
 
 # Limity długości (5.4.4) i najdłuższe wartości zmiennych (R-EKR-07).

@@ -6,7 +6,8 @@
 #   tools/wydanie/wydaj.sh            # następny numer po ostatnim wydaniu (np. 1.0.0-beta.2 → 1.0.0-beta.3)
 #   tools/wydanie/wydaj.sh 1.0.1      # numer podany ręcznie
 #
-# Po kolei: repo na aktualnym `main` bez niezapisanych zmian, CI na tym commicie zielone, numer wersji, pytanie
+# Po kolei: repo na aktualnym `main` bez niezapisanych zmian, CI na tym commicie zielone, numer wersji, linie „Co nowego”
+# (od 14.11.2026, opcjonalne), pytanie
 # „tak”, budowa obrazu bez sekretów i jego kontrola (wydaj.py), publikacja w repozytorium wydań przez `gh`
 # i sprawdzenie, że najnowsze wydanie na GitHubie ma obraz i wydanie.json. Każda odmowa kończy bez publikacji.
 # Wymaga: PlatformIO (~/.platformio), `gh` zalogowane na konto z prawem zapisu do repozytorium wydań.
@@ -63,6 +64,19 @@ if gh api "repos/$REPO_WYDAN/releases/tags/v$WERSJA" >/dev/null 2>&1; then
   blad "wydanie v$WERSJA już jest w $REPO_WYDAN"
 fi
 
+# 3a. „Co nowego” na ekranie aktualizacji panelu (R-KONF-56): do 3 linii po najwyżej 40 znaków, o panelu, nie
+# o ustawieniach aparatu (ADR-0002); pusta linia kończy, bez linii wydanie bez pola (panel pomija blok)
+echo
+echo "Co nowego w tej wersji (na ekranie aktualizacji panelu; do 3 linii, po najwyżej 40 znaków; Enter kończy):"
+NOWOSCI=()
+for i in 1 2 3; do
+  printf '  %s. ' "$i"
+  read -r LINIA || LINIA=""
+  [ -n "$LINIA" ] || break
+  NOWOSCI+=(--nowosc "$LINIA")
+done
+python3 tools/wydanie/wydaj.py --sprawdz-nowosci ${NOWOSCI[@]+"${NOWOSCI[@]}"} || blad "popraw linie „Co nowego” i uruchom ponownie"
+
 echo
 echo "Wydanie:   $WERSJA"
 echo "Z commitu: $KROTKI $(git log -1 --format=%s)"
@@ -73,5 +87,5 @@ read -r ODP
 [ "$ODP" = "tak" ] || blad "przerwane, nic nie opublikowano"
 
 # 4. Budowa, kontrola obrazu, publikacja i sprawdzenie na GitHubie (wydaj.py)
-python3 tools/wydanie/wydaj.py "$WERSJA" --repo "$REPO_WYDAN" --publikuj \
+python3 tools/wydanie/wydaj.py "$WERSJA" --repo "$REPO_WYDAN" --publikuj ${NOWOSCI[@]+"${NOWOSCI[@]}"} \
   --nota "Zbudowane z main @ $KROTKI ($(git log -1 --format=%s)). Obraz bez sekretów."

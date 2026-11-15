@@ -720,6 +720,38 @@ static void testDyrygentEinkOtoczenie() {
   konfTeraz = &KONF;
 }
 
+// Belka informacyjna (spec 5.4.17): procent baterii w belce nie może sam odświeżać e-ink. Doba 04:00–04:00 z nocą
+// pobraną rano, stała temperatura; napięcie baterii stałe, spadające cały dzień powyżej progu 20% (70% → 40%) albo
+// przechodzące przez próg (24% → 16%). Liczba odświeżeń e-ink w dobie ma być ta sama przy stałym i spadającym
+// napięciu; przejście przez próg „niska bateria” może dodać najwyżej jedno (stopka slotu dziennego, R-KON-69).
+// wymaganie: R-EKR-66
+static void testR_EKR_66_bateriaBezOdswiezen() {
+  const uint32_t od = start4(), doT = ep(2026, 11, 5, 4, 0);
+  const ScenariuszAB sc{ep(2026, 11, 4, 7, 0), ep(2026, 11, 4, 7, 2)};
+  struct Wariant { const char* nazwa; float v0, v1; } warianty[] = {
+      {"stałe 70%", 3.950f, 3.950f}, {"spadek 70% → 40%", 3.950f, 3.800f}, {"spadek 24% → 16%", 3.746f, 3.714f}};
+  int eink[3] = {0, 0, 0}, wybudzen[3] = {0, 0, 0}, i = 0;
+  for (const Wariant& w : warianty) {
+    PanelP s(5);
+    s.p.czujniki.zas = Zasilanie::BATERIA;
+    std::vector<WybP> v = symuluj(s, sc, od, doT, [&](uint32_t t) {
+      s.p.czujniki.o.bateriaV = w.v0 + (w.v1 - w.v0) * (float)(t - od) / (float)(doT - od);
+    });
+    for (auto& x : v) eink[i] += x.odswiezen;
+    wybudzen[i] = (int)v.size();
+    SPRAWDZ(chwilaNocy(v) != 0);
+    i++;
+  }
+  printf("  e-ink w dobie 04:00–04:00 (noc o 07:02): %s %d odświeżeń w %d wybudzeniach, %s %d w %d, %s %d w %d\n",
+         warianty[0].nazwa, eink[0], wybudzen[0], warianty[1].nazwa, eink[1], wybudzen[1], warianty[2].nazwa, eink[2],
+         wybudzen[2]);
+  SPRAWDZ(eink[0] > 0 && wybudzen[0] > 20);
+  ROWNE_L(wybudzen[1], wybudzen[0]);  // bez dodatkowych wybudzeń
+  ROWNE_L(eink[1], eink[0]);          // spadek procentu bez przejścia progu: ani jednego odświeżenia więcej
+  ROWNE_L(wybudzen[2], wybudzen[0]);
+  SPRAWDZ(eink[2] >= eink[0] && eink[2] <= eink[0] + 1);  // przejście progu 20%: najwyżej jedno więcej
+}
+
 int main() {
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
@@ -740,6 +772,7 @@ int main() {
   testDyrygentNocKompletna();
   testDyrygentEink();
   testDyrygentEinkOtoczenie();
+  testR_EKR_66_bateriaBezOdswiezen();
   printf("testy_zasilanie_rytm: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

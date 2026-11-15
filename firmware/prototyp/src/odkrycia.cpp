@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Odkrycia O-03…O-12; opis w src/odkrycia.h.
+#include "nawigacja.h"
 #include "odkrycia.h"
 
 #include <algorithm>
@@ -693,7 +694,7 @@ TrescOdkrycia trescOdkrycia(const reguly::Zestaw& z, const Wynik& w0, reguly::Tr
                : u.tylkoBrakDanych     ? "→ Część ocen jeszcze nie działa: za mało nocy."  //
                : u.bezKartSpraw        ? (u.bezSilnika ? "→ Część reguł nie działa: zobacz Test sprzętu."
                                                        : "→ Obserwuj kolejne noce.")  // R-EKR-32, R-KOK-19
-                                       : "→ Otwarte sprawy: za stroną 2 / 3.";
+                                       : numeryStronWTekscie("→ Otwarte sprawy: za stroną 2 / 3.");  // R-KOK-30
     t.linia = true;
     t.podpisOsi = "ostatnie 30 nocy";
     if (hist) {

@@ -1302,6 +1302,84 @@ static void testDyrygentL03() {
   SPRAWDZ(pam.find("L-03;ge10;") != std::string::npos && pam.find("aktywny,B,") != std::string::npos);
 }
 
+// Belka informacyjna (spec 5.4.17, R-EKR-66): gdy klatka zmienia się z innego powodu, a stan baterii jest inny niż
+// w wyświetlonej klatce, dyrygent rysuje ekran drugi raz ze świeżym stanem. Drugie rysowanie nie może dwa razy
+// liczyć pokazań ekranu L ani dopisywać dzienników: dwie doby z ekranem L-03 (start 3.11, nowa noc 4.11 rano
+// z wybudzenia zegarem) dają te same pliki i NVS przy napięciu stałym i przy spadającym. Poza porównaniem pliki,
+// które zapisują samo napięcie.
+struct PrzebiegL {
+  std::map<std::string, std::string> pliki, nvsTeksty;
+  std::map<std::string, uint32_t> nvsLiczbyU;
+  int rysowanL = 0, odswiezen = 0, wybudzen = 0;
+};
+static PrzebiegL przebiegL(bool spada) {
+  sprawy::zrodloTestowe = sprawy::ZrodloWynikow();
+  Panel p;
+  const int NOCY = 15;
+  const long d3 = nrDnia("2026-11-03") - 1, d4 = d3 + 1;
+  auto odpowiedzi = [&](uint32_t t) {
+    const long ost = t >= ep(2026, 11, 4, 6, 30) ? d4 : d3;
+    std::string l = "{\"source\":\"edf\",\"days\":[";
+    for (long x = d3 - NOCY + 1; x <= ost; x++)
+      l += std::string(x > d3 - NOCY + 1 ? "," : "") + "{\"day\":" + std::to_string(x) + ",\"session_count\":1,\"stale\":false}";
+    l += "]}";
+    p.siec.odpowiedzi.clear();
+    p.siec.dodaj("/api/status", 200, STATUS);
+    p.siec.dodaj(sciezkaListy(), 200, l);
+    for (long x = d3 - NOCY + 1; x <= ost; x++) p.siec.dodaj(sciezkaNocy(x), 200, raportNocy(x, "12.0"));
+  };
+  PrzebiegL w;
+  zerujPrzedSnem(p.start.l, identyfikatorWersji(p.start.napisWersji));
+  const uint32_t od = ep(2026, 11, 3, 7, 0), doT = ep(2026, 11, 4, 12, 0);
+  uint32_t t = od;
+  PowodWybudzenia pw = PowodWybudzenia::START;
+  for (int i = 0; i < 400 && t < doT; i++) {
+    odpowiedzi(t);
+    p.czujniki.o.bateriaV = spada ? 3.950f - 0.150f * (float)(t - od) / (float)(doT - od) : 3.950f;
+    p.czujniki.zas = Zasilanie::BATERIA;
+    p.port.log.clear();
+    p.d.z.clear();
+    p.zegar.epoch = t;
+    p.zegar.msTeraz = 0;
+    p.siec.polaczonaTeraz = false;
+    p.start.przyczynaStartu = pw == PowodWybudzenia::START ? PrzyczynaStartu::ZASILANIE : PrzyczynaStartu::USPIENIE;
+    p.start.powodWybudzenia = pw;
+    const int snow = p.sen.snow;
+    Dyrygent(p.adaptery(), KONF).wybudzenie();
+    w.wybudzen++;
+    for (auto& x : p.port.log) w.rysowanL += x.find("ekran dnia: wzorzec L-03") != std::string::npos;
+    for (auto& z : p.d.z) w.odswiezen += z == "ekran.odswiez";
+    if (p.sen.snow != snow + 1) break;
+    uint32_t snu = p.sen.plan.budzZegarem ? p.sen.plan.sekund : OKRES_SNU_S;
+    t += p.zegar.msTeraz / 1000 + (snu ? snu : 1);
+    pw = PowodWybudzenia::ZEGAR;
+  }
+  w.pliki = p.pliki.pliki;
+  w.pliki.erase("/log/wybudzenia.csv");
+  w.pliki.erase("/bateria.csv");
+  w.nvsTeksty = p.nvs.teksty;
+  w.nvsLiczbyU = p.nvs.liczbyU;
+  return w;
+}
+// wymaganie: R-EKR-66
+static void testR_EKR_66_ekranLBezPodwojnegoLiczenia() {
+  PrzebiegL stale = przebiegL(false), spada = przebiegL(true);
+  int rozne = 0;
+  for (auto& x : stale.pliki)
+    if (!spada.pliki.count(x.first) || spada.pliki[x.first] != x.second) { rozne++; printf("  różny plik: %s\n", x.first.c_str()); }
+  for (auto& x : spada.pliki)
+    if (!stale.pliki.count(x.first)) { rozne++; printf("  plik tylko przy spadku: %s\n", x.first.c_str()); }
+  printf("  ekran L-03 przez dwie doby: rysowań ekranu L przy napięciu stałym %d, przy spadającym %d; e-ink %d i %d "
+         "w %d wybudzeniach; plików porównanych %zu, różnych %d\n", stale.rysowanL, spada.rysowanL, stale.odswiezen,
+         spada.odswiezen, stale.wybudzen, stale.pliki.size(), rozne);
+  SPRAWDZ(stale.rysowanL > 0 && spada.rysowanL > stale.rysowanL);  // scenariusz naprawdę rysuje ekran L drugi raz
+  SPRAWDZ(rozne == 0);
+  SPRAWDZ(stale.nvsTeksty == spada.nvsTeksty && stale.nvsLiczbyU == spada.nvsLiczbyU);
+  SPRAWDZ(spada.odswiezen == stale.odswiezen);
+  SPRAWDZ(spada.wybudzen == stale.wybudzen);
+  SPRAWDZ(stale.pliki.count("/dane/reguly.csv") == 1);
+}
+
 int main(int argc, char** argv) {
   if (argc > 1) REPO = argv[1];
   testKatalog();
@@ -1311,6 +1389,7 @@ int main(int argc, char** argv) {
   reguly::zarejestrujRodzajeE();
   testSilnik();
   testDyrygentL03();
+  testR_EKR_66_ekranLBezPodwojnegoLiczenia();
   printf("testy_wzorce_l_hipotezy_h: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

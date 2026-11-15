@@ -36,9 +36,19 @@ int minutyTerapii(const Przebieg& p);
 int okno(const DanePortretu& d);
 std::string hhmmOdPoludnia(int minutyOdPoludnia);     // `hh:mm` czasu zegarowego z minut od 12:00 dnia `day`
 bool asv(const std::string& tryb);
-// Wysokość piku odcinka w 1/16 px przy skali `skala` (setne): na zewnątrz (R-POR-09, R-POR-10) i do środka.
+// Wysokość piku odcinka w 1/16 px przy skali `skala` (setne): na zewnątrz (R-POR-09, R-POR-10; do 27 px, CPAP i AutoSet
+// co najmniej 9 px) i do środka (do 15 px); od 14.11.2026 0,75 dawnej skali.
 int pikZewn16(const DanePortretu& d, const Odcinek& o, int skala = 100);
 int pikWewn16(const DanePortretu& d, const Odcinek& o, int skala = 100);
+// Garb piku „dzwon” (R-POR-11, zmiana 2026-11-14): wysokość w 1/16 px w odległości `d` sekund od środka odcinka dla
+// czubka `h16` (1/16 px): h·exp(−d²/(2σ²)), σ = 420 s, z tablicy stałoprzecinkowej z interpolacją liniową, arytmetyka
+// całkowita; 0 dla |d| ≥ 3σ albo h16 ≤ 0. Dla d = 0 zwraca dokładnie h16.
+int garb16(int h16, long d);
+// Obwiednia pików w chwili `u` (sekundy od 12:00 dnia `day`) w 1/16 px: maksimum (nie suma) garbów odcinków
+// `h16[k]` (odcinek k od k·300 s, środek k·300 + 150), więc obwiednia nigdy nie przekracza najwyższego odcinka, a na
+// środku odcinka jest co najmniej jego wysokością (równa, gdy żaden sąsiedni garb nie jest tam wyższy); wynik poniżej
+// 12 (0,75 px) daje 0 (garb nie jest rysowany). Indeksy spoza `h16` pomija.
+int obwiednia16(const std::vector<int>& h16, long u);
 // Pierwszy podpis: `pierwszy` (zdanie o normie), po nocy niepewnej opis tej nocy (R-POR-25).
 std::string pierwszyPodpis(const DanePortretu& d);
 // Podpisy o brakującym pomiarze („B”, R-POR-12) w kolejności tabeli „Podpisy”: (pełny podpis, krótka nazwa).

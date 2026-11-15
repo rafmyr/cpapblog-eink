@@ -714,7 +714,7 @@ struct PlotnoT : Plotno {
   void piksel(int x, int y, bool c) override { if (c && x >= 0 && x < 800 && y >= 0 && y < 480) czarnych++; }
 };
 static void testRysowanie() {
-  Naglowek n{"wt 01.12", "dane 05:49"};
+  Belka n{"Poranek", "wt 01.12"};
   std::vector<Noc> h;
   std::string d = "2026-10-01";
   for (int i = 0; i < 61; i++, d = dodajDni(d, 1)) h.push_back(noc(d, 1.0));

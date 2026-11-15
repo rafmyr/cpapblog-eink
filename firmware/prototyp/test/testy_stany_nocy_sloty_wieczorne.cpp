@@ -712,8 +712,8 @@ static void testLiniaE10NaEkranie() {
   TrescEkranu z = trescDnia("S6", "", d);
   SPRAWDZ(z.linia == "Noc 04.11 bez terapii." && bez.linia.empty());
   PlotnoPamiec a, b;
-  rysujEkranDanych(a, {"śr 04.11", ""}, bez);
-  rysujEkranDanych(b, {"śr 04.11", ""}, z);
+  rysujEkranDanych(a, {"Poranek", "śr 04.11"}, bez);
+  rysujEkranDanych(b, {"Poranek", "śr 04.11"}, z);
   int rozne = 0;
   for (int y = 0; y < 480; y++)
     for (int x = 0; x < 800; x++) rozne += a.b[(size_t)(y * 800 + x)] != b.b[(size_t)(y * 800 + x)];

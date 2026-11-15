@@ -76,15 +76,29 @@ bool parsujWydanie(const std::string& json, Wydanie& w);
 
 // ---------- opis wydania `wydanie.json` (ADR-0032) ----------
 // {"wersja":"1.0.1","plytka":"reterminal_e1001","uklad":"0x1a2b3c4d","rozmiar":1700000,
-//  "sha256":"…64 znaki szesnastkowe…","plik":"cpap-eink-1.0.1.bin"}
+//  "sha256":"…64 znaki szesnastkowe…","plik":"cpap-eink-1.0.1.bin"[,"nowosci":["…","…"]]}
+// `nowosci` (od 14.11.2026, R-KONF-56): lista „Co nowego” na U-07, podawana przy wydaniu (tools/wydanie/wydaj.py
+// --nowosc). Pole opcjonalne: wydania bez niego i panele bez jego obsługi działają jak dotąd.
+const size_t NOWOSCI_MAKS = 3;           // [PRÓG] linii „Co nowego” na U-07
+const size_t NOWOSC_MAKS_ZNAKOW = 40;    // [PRÓG] znaków (punktów kodowych) w linii
 struct OpisWydania {
   std::string wersja, plytka, sha256, plik;
   uint32_t uklad = 0;
   uint64_t rozmiar = 0;
+  std::vector<std::string> nowosci;  // po nowosciZJson(); pusta = blok „Co nowego” pominięty
 };
 // false przy braku pola, złej wersji, skrócie innym niż 64 znaki [0-9a-f], rozmiarze 0 albo > 64 MB, układzie 0.
+// `nowosci` nie decyduje o poprawności opisu, gdy reszta opisu jest poprawna: zły typ pola albo elementu = lista
+// pusta; pole, którego parsujJson() nie przyjmuje (samotny surogat, surowy znak sterujący, zagnieżdżenie ponad
+// JSON_MAKS_GLEBOKOSC), jest wycinane i opis czytany bez niego. Opis dłuższy niż MAKS_OPISU (także przez
+// długie `nowosci`) albo z błędem składni poza tym polem jest odrzucany w całości.
 bool parsujOpis(const std::string& json, OpisWydania& o);
+// Linie „Co nowego” z pola `nowosci` (R-KONF-56): tylko elementy tekstowe, bez znaków sterujących (< 0x20 i 0x7F),
+// spacje na brzegach obcięte, puste pominięte, najwyżej NOWOSCI_MAKS pierwszych; linia dłuższa niż
+// NOWOSC_MAKS_ZNAKOW skrócona do NOWOSC_MAKS_ZNAKOW − 1 znaków i `…`. Pole brak albo nie tablica: lista pusta.
+std::vector<std::string> nowosciZJson(const Json* pole);
 // Treść `wydanie.json` (narzędzie wydania tools/wydanie/ pisze ten sam układ pól; test zgodności w pytest).
+// `nowosci` tylko, gdy lista niepusta, jako ostatnie pole; teksty z ucieczką jak json.dumps(ensure_ascii=False).
 std::string zapiszOpis(const OpisWydania& o);
 
 // ---------- adresy i token (R-NF-32, R-NF-36) ----------
@@ -260,20 +274,87 @@ struct DaneU07 {
   std::string sprawdzono;    // `DD.MM hh:mm`
   Powod powod = Powod::BRAK;
   int procentBaterii = -1;
+  std::vector<std::string> coNowego;  // OpisWydania::nowosci wersji `nowa` (R-KONF-56); pusta = bez bloku
+  // R-KONF-61: informacja po instalacji z automatu (R-KONF-45) na miejscu ekranu dnia; tylko PO_UDANEJ
+  // (`Zaktualizowano do {X}.`, `Panel zaktualizował się sam.`) i PO_NIEUDANEJ (teksty R-NF-35 z `PROBOWAL_SAM`
+  // przed powodem, decyzja 12); stopka
+  // `▶ dalej` `↻ ekran dnia` (przyciski jak na ekranie dnia)
+  bool samodzielnie = false;
 };
+// R-KONF-61, decyzja 12 z 15.11.2026: druga linia wariantu „nie udało się” po automacie (przed powodem R-NF-35)
+const char* const PROBOWAL_SAM = "Panel próbował zaktualizować się sam.";
+// Rysunek panelu 1 bit po lewej stronie U-07 (decyzja 3 z 14.11.2026, według projektu ekranu).
+enum class ObrazekU07 : unsigned char {
+  PANEL = 0,  // sam panel: sprawdzanie, aktualizacje wyłączone
+  NOWA,       // strzałka w dół nad panelem: jest nowa wersja
+  W_TOKU,     // strzałka wchodząca w ekran panelu, bez skali (nie udaje postępu): pobieranie, instalacja,
+              // samosprawdzenie; który krok trwa, mówią kroki i `krok n z 4` w belce
+  UDANA,      // odhaczenie: zainstalowano, wersja aktualna
+  NIEUDANA,   // krzyżyk: nieudana aktualizacja albo nieudane sprawdzenie
+};
+// Stan jednego z czterech kroków (Pobranie, Sprawdzenie, Instalacja, Ponowny start).
+enum class KrokU07 : unsigned char { CZEKA = 0, TERAZ, ZROBIONY, NIEUDANY };
+const int KROKI_U07 = 4;
+extern const char* const NAZWY_KROKOW_U07[KROKI_U07];  // `Pobranie`, `Sprawdzenie`, `Instalacja`, `Ponowny start`
 struct TresciU07 {
-  std::vector<std::string> linie;   // zdania pod nagłówkiem `Aktualizacja`
+  std::vector<std::string> linie;   // wszystkie zdania stanu (log `U-07 · …`, teksty przyjęte 09.11.2026)
   std::vector<std::string> stopka;  // grupy przycisków ◀ ▶ ↻ (pusta = bez stopki)
+  // układ ekranu (R-KONF-57): belka `Aktualizacja` ze stanem w środku, rysunek, po prawej wersje albo zdanie
+  // główne, zdania opisu, „Co nowego”, kroki; pas w negatywie nad stopką
+  std::string stanBelki;            // `jest nowa wersja`, `krok 1 z 4`, `gotowe`, `nie udało się`, …
+  ObrazekU07 obrazek = ObrazekU07::PANEL;
+  std::string wersjaZ, wersjaNa;    // obie niepuste: dużym krojem `{wersjaZ} → {wersjaNa}` zamiast zdania głównego
+  std::string glowne;               // zdanie główne (P28B), gdy bez wersji
+  std::vector<std::string> opis;    // zdania pod spodem (P24S)
+  std::vector<std::string> coNowego;
+  bool kroki = false;
+  KrokU07 krok[KROKI_U07] = {KrokU07::CZEKA, KrokU07::CZEKA, KrokU07::CZEKA, KrokU07::CZEKA};
+  std::string pas;                  // pas w negatywie nad stopką (`Nie odłączaj zasilania.`); "" = bez pasa
 };
 TresciU07 trescU07(const DaneU07& d);
+// Krok, na którym zatrzymała się nieudana próba (indeks 0…3) z powodu: brak sieci, brak albo odrzucony klucz, brak
+// wydań, bateria, noc i inny panel (opis wydania dla innej płytki, innego układu partycji albo obraz większy niż slot,
+// odrzucony przed pobraniem obrazu) = 0 (do pobrania nie doszło albo się przerwało), plik uszkodzony = 1
+// (sprawdzenie: skrót, rozmiar albo zapis slotu), nowa wersja nie wstała = 3 (ponowny start); BRAK i NIE_NOWSZA = −1
+// (bez kroków).
+int krokNieudany(Powod p);
 // Wiersz U-01 (karta 1.1): bez tokenu `Aktualizacje wyłączone…`, ze znaną nowszą `Jest wersja {X} · ↻ 2 s Aktualizacja`,
-// inaczej `Oprogramowanie {wersja} · ↻ 2 s Sprawdź aktualizację`.
+// inaczej `Oprogramowanie {wersja} · ↻ 2 s Sprawdź aktualizację`. Od 14.11.2026 tylko do logu (na ekranie kafelek).
 std::string wierszU01(bool token, const std::string& znana, const std::string& wlasna);
+// Kafelek ↻ na U-01 (R-KONF-55, decyzja 2 z 14.11.2026): `Oprogramowanie`, wersja własna (jedyne miejsce wersji na
+// U-01) i stan: bez tokenu `wyłączone: włącz na telefonie`; znana nowsza `jest {X} · zainstaluj` (w odwróconym polu);
+// po udanym sprawdzeniu `aktualne · sprawdzono {DD.MM}`; bez sprawdzenia `sprawdź aktualizację`.
+struct KafelekOprogramowania {
+  std::string wersja, stan;
+  bool odwrocony = false;
+};
+KafelekOprogramowania kafelekU01(bool token, const std::string& znana, const std::string& wlasna,
+                                 const std::string& sprawdzonoDnia);
 // Dopisek U-05 przy wersji (ADR-0032 pkt 2): ` · jest wersja {X}` albo ` · odrzucona {X}` (R-NF-35); "" bez.
 std::string dopisekU05(const Stan& s);
 // Czy ekran dnia ma ikonę aktualizacji (R-EKR-61): znana wersja wyższa od własnej; przy automacie, który w tym
 // jeden warunek, ikona stoi zawsze, gdy znana jest nowsza wersja niezainstalowana (także przy automacie).
 bool ikonaAktualizacji(const Stan& s, const std::string& wlasna, bool token = true);  // bez tokenu bez ikony
+
+// ---------- informacja po aktualizacji samodzielnej (R-KONF-61, decyzja 11 z 14.11.2026) ----------
+// Jeden klucz NVS `u07_inf` w przestrzeni `aktual`: `{U|N}\n{wersja panelu}\n{X}\n{doba pokazania}` ("" = brak).
+// Zapis tylko przy zmianie stanu: po potwierdzeniu wersji albo powrocie (czeka), przy pierwszym pokazaniu (doba)
+// i po przycisku na informacji (""); koniec doby pokazania rozpoznaje odczyt, bez zapisu.
+const char* const KLUCZ_INFORMACJI = "u07_inf";
+enum class RodzajInformacji : unsigned char { BRAK = 0, UDANA, NIEUDANA };
+struct Informacja {
+  RodzajInformacji rodzaj = RodzajInformacji::BRAK;
+  std::string wlasna;  // wersja panelu, dla której informacja jest prawdziwa (bez `+budowy`)
+  std::string nowa;    // {X}: wersja zainstalowana (UDANA) albo odrzucona (NIEUDANA)
+  std::string dzien;   // RRRR-MM-DD pierwszego pokazania; "" = czeka na pierwszy ekran slotu dziennego bez sprawy
+};
+// Zapis do NVS; BRAK = "". Wersje dłuższe niż 32 znaki albo z `\n` dają "" (nic do pokazania).
+std::string zapisInformacji(const Informacja& i);
+// Odczyt z NVS; zapis uszkodzony (zły rodzaj, pusta albo za długa wersja, zła doba, inna liczba pól) = BRAK.
+Informacja odczytInformacji(const std::string& z);
+// Czy informację wolno pokazać teraz: jest, dotyczy wersji `wlasna` (inna wersja, np. wgranie kablem: nie) i czeka
+// albo stanęła w dobie `dzis` (z końcem doby pokazania znika).
+bool informacjaAktualna(const Informacja& i, const std::string& wlasna, const std::string& dzis);
 
 // Czas na wybór na U-07 w stanie „jest nowsza” (R-KONF-44): 5 min [PRÓG], potem U-01 bez instalacji.
 const long U07_CZAS_S = 300;

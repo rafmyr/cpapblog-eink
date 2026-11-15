@@ -7,11 +7,14 @@
 #include <string>
 #include <vector>
 
+#include "aktualizacja.h"
 #include "ekrany.h"
 
-// U-01 (5.6.3, R-KONF-55): lista do odczytu bieżących ustawień panelu, bez kursora i bez przełączników. Hasła
-// (sieci domowej, AirBridge, okna serwisowego), konto AirBridge i token źródła otoczenia nigdy nie stoją na ekranie
-// (R-KONF-38); struktura ich nie ma. Wartości ustawień aparatu też nie (ADR-0002).
+// U-01 (5.6.3, R-KONF-55; układ z makiety 14.11.2026 projekt ekranu, decyzja 2): bieżące ustawienia panelu do
+// odczytu w dwóch kolumnach (`POŁĄCZENIA`, `PANEL`), bez kursora i bez przełączników; pod nimi trzy kafelki
+// `PRZYTRZYMAJ 2 S` (◀ sieć panelu, ▶ więcej na telefonie, ↻ oprogramowanie ze stanem) i zdanie granicy ADR-0002.
+// Hasła (sieci domowej, AirBridge, okna serwisowego), konto AirBridge i token źródła otoczenia nigdy nie stoją na
+// ekranie (R-KONF-38); struktura ich nie ma. Wartości ustawień aparatu też nie (ADR-0002).
 // U-01, wiersz „Miasto pogody” bez miasta z listy, gdy pogoda idzie ze współrzędnych wgranych z panelem (secrets.h)
 extern const char* const MIASTO_ZE_WSPOLRZEDNYCH;  // `współrzędne z wgrania`
 
@@ -25,28 +28,42 @@ struct DaneUstawien {
   int ciszaOd = 22 * 60, ciszaDo = 8 * 60;  // cisza nocna, minuty doby
   bool podpowiedz = true;           // podpowiedź „co do poprawy”
   int co2 = -1;                     // -1 panel bez czujnika (źródła otoczenia), 0 ekrany CO2 wyłączone, 1 włączone
-  std::string wersja;               // wersja oprogramowania (jak U-05 `Oprogramowanie`, bez slotu)
-  std::string aktualizacja;         // linia pod listą: aktualizacja::wierszU01() (stan wersji i droga do U-07); "" = bez
+  std::string wersja;               // wersja oprogramowania (jak U-05 `Oprogramowanie`, bez slotu); kafelek ↻
+  bool jestAktualizacja = false;    // panel zna wersję nowszą od własnej (do 14.11.2026 `jest aktualizacja ·` w belce;
+                                    // od 14.11.2026 znak nowej wersji z znakiBelki(), R-EKR-69); do logu i testów
+  std::string aktualizacja;         // aktualizacja::wierszU01() do logu (stan wersji i droga do U-07); na ekranie kafelek
+  std::string stanOprogramowania;   // aktualizacja::kafelekU01().stan; "" = `sprawdź aktualizację`
+  bool stanOdwrocony = false;       // kafelekU01().odwrocony: `jest {X} · zainstaluj` w odwróconym polu
   bool sprawy = false;              // przed U-01 „Otwarte sprawy” (co najmniej jedna sprawa, R-KOK-20): `◀ sprawy`
 };
 struct WierszUstawien {
   std::string nazwa, wartosc;
 };
-// Wiersze U-01 w kolejności z 5.6.3: `Sieć Wi-Fi`, `AirBridge`, `Miasto pogody`, `Profil`, `Humor`, `Dźwięk`,
-// `Podpowiedź „co do poprawy”`, `Czujnik CO2`, `Oprogramowanie`. Wartość dłuższa niż kolumna wartości
-// (U01_SZER_WARTOSCI px w P24B) skrócona jawnie znakiem `…`.
+// Wiersze U-01 w kolejności z 5.6.3: kolumna `POŁĄCZENIA` (U01_WIERSZY_LEWA pierwszych: `Sieć Wi-Fi`, `AirBridge`,
+// `Miasto pogody`, `Czujnik CO2`), potem kolumna `PANEL` (`Profil`, `Humor`, `Dźwięk`, `Podpowiedź „co do poprawy”`).
+// Wersja oprogramowania stoi tylko w kafelku ↻ (raz na ekranie). Wartość w pierwszym wariancie, który mieści się obok
+// nazwy (P20 / P20B, src/ekrany.h dopasujWartosc()), inaczej skrócona jawnie znakiem `…`.
 std::vector<WierszUstawien> wierszeUstawien(const DaneUstawien& d);
-const int U01_X_WARTOSCI = 350;                       // kolumna wartości od x 350 do 772
-const int U01_SZER_WARTOSCI = 772 - U01_X_WARTOSCI;
-// Pod listą: linia aktualizacji (DaneUstawien::aktualizacja), podpowiedź (dwie linie P22B) i zdanie stałe granicy
-// ADR-0002. Stopka z stopkaU01().
-extern const char* const U01_PODPOWIEDZ[2];
+const int U01_WIERSZY_LEWA = 4;
+const int U01_KOLUMNA_L = 348, U01_KOLUMNA_P = 384;   // szerokości kolumn (744 = 348 + 12 + 384)
+// Pionowa kreska 2 px na środku 12 px odstępu między kolumnami (odstęp 24 px się nie mieści, `Gorzów
+// Wielkopolski` potrzebuje 347 px, `Podpowiedź „co do poprawy” wyłączona` 382 px).
+const int U01_KRESKA_X = 28 + U01_KOLUMNA_L + 5, U01_KRESKA_W = 2;
+// Kafelki `PRZYTRZYMAJ 2 S` (szerokości 204, 244, 276, odstęp 10 px; ramka 2 px, wcięcie 8 px): tytuł P20B z ikoną
+// przycisku, pod nim do dwóch linii P20.
+const int U01_KAFELEK_W[3] = {204, 244, 276};
+extern const char* const U01_KAFELEK_TYTUL[2];        // `◀ Sieć panelu`, `▶ Więcej na telefonie`
+extern const char* const U01_KAFELEK_OPIS[2][2];      // linie pod tytułem ◀ i ▶
 extern const char* const U01_GRANICA;                 // `Te ustawienia dotyczą tylko panelu, nie aparatu.`
+// Linie kafelka ↻: `↻ Oprogramowanie {wersja}` (gdy się nie mieści: `↻ Oprogramowanie` i wersja w drugiej linii) i stan
+// (do dwóch linii, w odwróconym polu przy `stanOdwrocony`). Zwraca linie bez tytułu (do testów szerokości).
+std::vector<std::string> linieKafelkaOprogramowania(const DaneUstawien& d, std::string& tytul);
 void rysujUstawienia(Plotno& p, const DaneUstawien& d);
-// Stopka U-01 (mapa 5.6.2, 5.5.7 „Stopki stron”): ◀ podpisany stroną przed U-01: `◀ sprawy · 2 s sieć` przy
-// sprawach, w profilu publicznym bez spraw `◀ liczby · 2 s sieć`, inaczej `◀ 7 nocy · 2 s sieć`; dalej `▶ 2 s telefon`,
-// `↻ ekran dnia · 2 s aktualizacja`.
-std::vector<std::string> stopkaU01(bool sprawy = false, bool liczby = false);
+// Stopka U-01 (mapa 5.6.2, 5.5.7 „Stopki stron”, od 14.11.2026 tylko krótkie naciśnięcia; przytrzymania w kafelkach):
+// ◀ podpisany stroną przed U-01: `◀ sypialnia` przy stronie „Sypialnia · 30 nocy” w ciągu (R-KOK-29, ADR-0044),
+// inaczej `◀ sprawy` przy sprawach, w profilu publicznym bez spraw `◀ liczby`, inaczej `◀ 7 nocy`; dalej
+// `↻ ekran dnia` (krótkie ▶ na U-01 nic nie robi, R31-04).
+std::vector<std::string> stopkaU01(bool sprawy = false, bool liczby = false, bool sypialnia = sypialniaWKokpicie());  // ◀ sypialnia (R-KOK-29)
 
 struct DaneFormularzaQr {
   std::string adresQr, adresReczny;  // "" = serwer nie działa (bez kodu)
@@ -75,7 +92,19 @@ std::string kodWifi(const std::string& ssid, const std::string& haslo);
 // U-02. Zwraca false, gdy któregoś kodu nie da się zakodować.
 bool rysujSiecPanelu(Plotno& p, const DaneSieciPanelu& d);
 
-// U-07 „Aktualizacja” (R-KONF-43, R-KONF-44): ekran danych bez budzika, nagłówek
-// `Aktualizacja`, zdania z aktualizacja::trescU07() (pierwsze P28B, kolejne P24, zawijane do 744 px), stopka z grup
-// przycisków (pusta = bez stopki: pobieranie i instalacja). Bez danych terapii, ustawień aparatu i tokenu.
-void rysujAktualizacje(Plotno& p, const std::vector<std::string>& linie, const std::vector<std::string>& stopka);
+// U-07 „Aktualizacja” (R-KONF-43, R-KONF-44, R-KONF-57; makieta 14.11.2026, decyzja 3): ekran
+// danych bez budzika. Belka `Aktualizacja` ze stanem w środku (TresciU07::stanBelki); po lewej rysunek panelu 1 bit
+// (rysujObrazekU07()); po prawej `{własna} → {nowa}` dużym krojem (P34B, gdy się nie mieści P28B, P24B, w końcu dwie
+// linie) albo zdanie główne (P28B), pod nim zdania opisu (P24S), „Co nowego” (P16 wersalikami, linie P22B z kwadratem)
+// i cztery kroki (koła 36 px, podpisy P20); pas w negatywie nad stopką (`Nie odłączaj zasilania.`), stopka z grup
+// przycisków (pusta = bez stopki: pobieranie, instalacja, samosprawdzenie). Bez danych terapii, ustawień aparatu
+// i tokenu. Teksty `Co nowego` z wydania: znaki spoza krojów panelu pominięte (znakJestWKroju()), linia dłuższa niż
+// miejsce skrócona do pełnych słów z `…`.
+void rysujAktualizacje(Plotno& p, const aktualizacja::TresciU07& t);
+const int U07_OBRAZEK_X = 28, U07_OBRAZEK_W = 180, U07_OBRAZEK_H = 190;
+const int U07_X = 236;                 // lewa krawędź prawej kolumny (do 772)
+const int U07_PAS_Y = 392, U07_PAS_H = 40;
+// Rysunek w polu U07_OBRAZEK_W × U07_OBRAZEK_H od (x, y).
+void rysujObrazekU07(Plotno& p, int x, int y, aktualizacja::ObrazekU07 o);
+// Linia „Co nowego” gotowa do rysowania: bez znaków spoza krojów, najwyżej `maxW` px w P22B (pełne słowa i `…`).
+std::string liniaCoNowego(const std::string& t, int maxW);

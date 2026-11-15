@@ -115,11 +115,18 @@ bool co2MilczyTeraz(const Otoczenie& o, uint32_t teraz);       // ostrzeżenie z
 // Linia ekranu testu: `Otoczenie: OK 21:30 · 8° · PM2.5 12 · CO2 967`, `Otoczenie: HTTP 401 (zły OTO_TOKEN) · zostają
 // dane z 05:16`… `kiedyPobrano` = chwila ostatniej udanej odpowiedzi (`05:16` dziś, `30.10 05:16` innego dnia; "" bez).
 std::string liniaTestuOtoczenia(const Otoczenie& o, uint32_t teraz, const std::string& kiedyPobrano);
-// Wartość wiersza `Źródło otoczenia` na U-05 (kanwa) w wariantach od najpełniejszego (wybiera ten, który
-// mieści się w kolumnie, src/ekrany.h dopasujWartosc()): `OK {kiedy}`, `wyłączone`, `jeszcze bez odczytu`,
-// `brak odpowiedzi`, `HTTP {kod}` (R-AW-25), `przekierowanie`, `adres poza siecią domową` (R-NF-27), `wersja kontraktu
-// {n}`, `odpowiedź nieczytelna`, `odpowiedź za duża`. Pełny opis z liniaTestuOtoczenia() idzie do logu.
+// Wartość wiersza `Pogoda i powietrze` (do 14.11.2026 `Źródło otoczenia`) na U-05 w wariantach od najpełniejszego
+// (wybiera ten, który mieści się w kolumnie, src/ekrany.h dopasujWartosc()): `OK {kiedy}`, `wyłączone`, `jeszcze bez
+// odczytu`, `brak odpowiedzi`, słowa zamiast kodu HTTP (R-AW-25; decyzja 4 z 14.11.2026): 401 i 403 `odrzucony
+// klucz`, 404 `zły adres`, 5xx `błąd serwera`, inny `odmowa serwera`; `przekierowanie`, `adres poza siecią domową`
+// (R-NF-27), `wersja kontraktu {n}`, `odpowiedź nieczytelna`, `odpowiedź za duża`. Pełny opis z kodem
+// z liniaTestuOtoczenia() idzie do logu.
 std::vector<std::string> wartosciTestuOtoczenia(const Otoczenie& o, const std::string& kiedyPobrano);
+// Usterka wiersza `Pogoda i powietrze` na U-05 (R-KONF-58): ostatnia próba skończyła się błędem (każdy stan poza
+// `wyłączone`, `jeszcze bez odczytu` i `OK`).
+bool usterkaOtoczenia(const Otoczenie& o);
+// Wiersz U-05 `Pogoda i powietrze` bez oceny (ADR-0029 pkt 7): włączone źródło jeszcze bez odczytu.
+bool bezOcenyOtoczenia(const Otoczenie& o);
 
 // R-NF-27: czy adres źródła otoczenia wskazuje sieć lokalną. Przyjmuje pełny URL; przyjęty tylko
 // schemat `http://` z hostem będącym adresem IPv4 prywatnym (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16),

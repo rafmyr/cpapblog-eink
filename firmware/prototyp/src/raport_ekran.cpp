@@ -8,11 +8,7 @@ namespace {
 const int X = 28, XP = 772;
 
 void kreska(Plotno& p, int y, int g = 2, int x0 = 0, int x1 = 800) { p.prostokat(x0, y, x1 - x0, g, true); }
-void naglowek(Plotno& p, const Naglowek& n) {  // jak naglowekDanych() w src/ekrany.cpp (SPEC-B 3)
-  tekst(p, F_P24B, X, 35, n.lewo);
-  if (!n.prawo.empty()) tekstPrawo(p, F_P24B, XP, 35, n.prawo);
-  kreska(p, 52);
-}
+void naglowek(Plotno& p, const Belka& n) { belka(p, n); }
 void stopka(Plotno& p, const std::string& lewo, std::vector<std::string> akcje) {  // jak stopkaAkcji()
   uporzadkujPrzyciski(akcje);
   kreska(p, 434);
@@ -111,7 +107,7 @@ bool rysujSciage(Plotno& p, const DaneSciagi& d) {
   return d.adresQr.empty() || m > 0;
 }
 
-void rysujRaportBezWifi(Plotno& p, const Naglowek& n, const std::string& temat, const std::string& sciezkaKarty) {
+void rysujRaportBezWifi(Plotno& p, const Belka& n, const std::string& temat, const std::string& sciezkaKarty) {
   p.prostokat(0, 0, 800, 480, false);
   naglowek(p, n);
   tekst(p, F_P22B, X, 92, wersaliki("Raport dla lekarza"), true, 2);

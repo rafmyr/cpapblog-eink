@@ -122,6 +122,11 @@ enum class Zrodlo : uint8_t { POROWNANIE, PLIK, JSON };
 // się mieści): `zgodne 7 z 7, można przełączyć na pliki`, `rozjazd 1 z 7 (M-05)`, `brak porównania: AirBridge < 2.3.1`,
 // `jeszcze bez porównania`, `wyłączone (json)`, `włączone (plik)`.
 std::vector<std::string> wartosciU05(const Licznik& l, Zrodlo z);
+// Wiersz U-05 `Noce z plików` (R-KONF-58): usterka przy rozjeździe w ostatnich porównaniach (tryb porównawczy);
+// bez oceny w trybie porównawczym bez żadnego porównania (`jeszcze bez porównania`, `brak porównania: …`, ADR-0029
+// pkt 7). Tryby `plik` i `json` to ustawienie, nie ocena: ani usterka, ani brak oceny.
+bool usterkaU05(const Licznik& l, Zrodlo z);
+bool bezOcenyU05(const Licznik& l, Zrodlo z);
 // Linia diagnostyki U-05 w logu portu: tryb, licznik, ostatni rozjazd z wartościami, ostatnia przyczyna braku.
 std::string liniaDiagnostyki(const std::vector<Wpis>& wpisy, Zrodlo z);
 

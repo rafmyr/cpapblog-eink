@@ -5,6 +5,7 @@
 // zamienia je na PNG.
 #include <cstdio>
 #include <regex>
+#include <set>
 #include <string>
 #include <vector>
 #include "czynniki.h"
@@ -18,6 +19,7 @@
 #include "stany.h"
 #include "sypialnia.h"
 #include "otoczenie.h"
+#include "porownanie.h"
 #include "ekrany_kontekst.h"
 #include "kontekst.h"
 #include "obrazki.h"
@@ -34,6 +36,7 @@
 #include "zdarzenia_ekrany_e.h"
 #include "portret.h"
 #include "portret_ekran.h"
+#include "sypialnia_ekran.h"
 
 struct PlotnoPamiec : Plotno {
   std::vector<uint8_t> px = std::vector<uint8_t>(800 * 480, 0);
@@ -146,7 +149,7 @@ static void makiety(PlotnoPamiec& p) {
                                           kol("wyciek l/min", "112", "↑", "wyżej niż zwykle", true)};
   const std::vector<Kolumna> ODCH = {kol("czas z maską", "6:52"), kol("AHI", "3,4", "↑", "wyżej niż zwykle", true),
                                      kol("EPAP", "7,9"), kol("wyciek l/min", "4", "↓", "lepiej niż zwykle")};
-  auto rysuj = [&](const std::string& nazwa, const Naglowek& n, TrescEkranu t) {
+  auto rysuj = [&](const std::string& nazwa, const Belka& n, TrescEkranu t) {
     t.powod = twarde(t.powod);
     t.krok = twarde(t.krok);
     t.tytul = twarde(t.tytul);
@@ -168,7 +171,7 @@ static void makiety(PlotnoPamiec& p) {
     return t;
   };
   TrescEkranu t;
-  rysuj("s2a-zwykly", {"pt 30.10", "dane 05:42"}, tydz("9 h 09", "0,1", SPOKOJ, "Tydzień jak zwykle.", STOPKA));
+  rysuj("s2a-zwykly", {"Poranek", "pt 30.10 · odczyt 05:42"}, tydz("9 h 09", "0,1", SPOKOJ, "Tydzień jak zwykle.", STOPKA));
   rysuj("s2a-najgorsze-wartosci", {N_MAX, P_MAX}, tydz("12 h 59", "12,4", NAJGORSZE, ROZNICE, STOPKA_MAX));
   {  // ikona aktualizacji w stopce ekranu dnia (R-EKR-61): najdłuższa stopka skrócona do pełnych słów przed ikoną
     IkonaStopki ik(true);
@@ -177,29 +180,29 @@ static void makiety(PlotnoPamiec& p) {
     ikonaAktualizacji(p, false);
     zapisz(p, "mak-s2a-ikona-aktualizacji");
   }
-  rysuj("s2a-odchylenie", {"wt 27.10", "dane 05:38"}, tydz("6 h 38", "4,1", ODCH, ROZNICE, STOPKA));
+  rysuj("s2a-odchylenie", {"Poranek", "wt 27.10 · odczyt 05:42"}, tydz("6 h 38", "4,1", ODCH, ROZNICE, STOPKA));
   t = tydz("6 h 38", "", SPOKOJ, "Tydzień jak zwykle.", STOPKA);
   t.ahiNiepewne = true;
-  rysuj("s2a-niepewna", {"śr 28.10", "dane 07:12 · ocena ograniczona"}, t);
+  rysuj("s2a-niepewna", {"Poranek", "śr 28.10 · odczyt 05:42 · ocena ograniczona"}, t);
   t.linia = "Wczoraj duży wyciek: 999 min. Bezdechy mniej pewne.";  // E-20, grupa 6: informacja (biały pasek)
-  rysuj("s2a-niepewna-linia", {"śr 28.10", "dane 07:12 · ocena ograniczona"}, t);
-  rysuj("s2a-bez-czasu", {"cz 29.10", "dane 06:05"},
+  rysuj("s2a-niepewna-linia", {"Poranek", "śr 28.10 · odczyt 05:42 · ocena ograniczona"}, t);
+  rysuj("s2a-bez-czasu", {"Poranek", "cz 29.10 · odczyt 05:42"},
         tydz("–", "1,1", {kol("czas z maską", "–", ""), kol("AHI", "1,1"), kol("EPAP", "7,8", "", "uczę się"),
                           kol("wyciek l/min", "9")}, "Tydzień jak zwykle.", STOPKA));
-  rysuj("s2a-w-normie", {"pt 30.10", "dane 05:42"}, tydz("9 h 09", "0,1", SPOKOJ, "Noc w normie. Tydzień jak zwykle.", STOPKA));
-  rysuj("s2a-w-normie-najgorsze", {N_MAX, "dane 23:59"},
+  rysuj("s2a-w-normie", {"Poranek", "pt 30.10 · odczyt 05:42"}, tydz("9 h 09", "0,1", SPOKOJ, "Noc w normie. Tydzień jak zwykle.", STOPKA));
+  rysuj("s2a-w-normie-najgorsze", {"Poranek", N_MAX + " · odczyt 23:59"},
         tydz("12 h 59", "12,4", {NAJGORSZE[0], kol("AHI", "12,4", "↓", "lepiej niż zwykle"), kol("EPAP", "14,5"),
                                  kol("wyciek l/min", "112", "↓", "lepiej niż zwykle")}, "Noc w normie. " + ROZNICE, STOPKA_MAX));
   t = tydz("9 h 09", "0,1", SPOKOJ, "Tydzień jak zwykle.", STOPKA);
   t.podpisNocy = "Noc 29.10";
-  rysuj("s2a-dane-z", {"pt 30.10", "dane z 29.10"}, t);
+  rysuj("s2a-dane-z", {"Poranek", "pt 30.10 · dane z 29.10"}, t);
   t = tydz("12 h 59", "12,4", NAJGORSZE, ROZNICE, STOPKA_MAX);
   t.linia = "Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.";  // R-INF-10, grupa „zdrowie”
   t.liniaOstrzezenie = true;
   rysuj("s2a-linia-najdluzsza", {N_MAX, P_MAX}, t);
   t = tydz("6 h 38", "4,1", ODCH, ROZNICE, STOPKA);
   t.linia = "Co było inaczej? ↻ 2 s";
-  rysuj("s2a-linia-zaproszenia", {"wt 27.10", "dane 05:38"}, t);
+  rysuj("s2a-linia-zaproszenia", {"Poranek", "wt 27.10 · odczyt 05:42"}, t);
   t = tydz("12 h 59", "12,4", NAJGORSZE, ROZNICE, STOPKA_MAX);
   t.linia = "Wciąż: Ciśnienie przy górnej granicy. Omówione 30.11.";
   t.liniaA = true;
@@ -208,11 +211,11 @@ static void makiety(PlotnoPamiec& p) {
                                kol("CO2 ppm", "2400", "↑", "zwykle 820", true), kol("PM2.5", "999", "↔")},
            "Przy łóżku: różnice niżej.", STOPKA_MAX);
   t.tytulPaska = "Przy łóżku · ostatnia noc";
-  rysuj("s2c-sypialnia", {N_MAX, "dane 23:59"}, t);
+  rysuj("s2c-sypialnia", {"Poranek", N_MAX + " · odczyt 23:59"}, t);
   t = tydz("7 h 02", "0,6", {kol("temperatura", "20,5°"), kol("wilgotność", "48%")}, "Dobre warunki do snu.",
            {"Katowice 9° · pogodnie", ""});
   t.tytulPaska = "Przy łóżku · ostatnia noc";
-  rysuj("s2c-bez-qingping", {"sb 31.10", "dane 05:40"}, t);
+  rysuj("s2c-bez-qingping", {"Poranek", "sb 31.10 · odczyt 05:42"}, t);
   // S2b
   t = TrescEkranu();
   t.uklad = Uklad::SERIA;
@@ -227,7 +230,7 @@ static void makiety(PlotnoPamiec& p) {
   t.linia = "Noc 30.11 zapisana częściowo, liczby mogą być niepełne.";
   t.stopkaLewo = STOPKA[0];
   t.stopkaPrawo = STOPKA[1];
-  rysuj("s2b-seria-linia", {"pn 26.10", "dane 05:38"}, t);
+  rysuj("s2b-seria-linia", {"Poranek", "pn 26.10 · odczyt 05:42"}, t);
   // S6
   auto s6 = [&](const std::string& powod, int n, const std::string& l, const std::string& pr, const std::vector<std::string>& st) {
     TrescEkranu r;
@@ -242,11 +245,11 @@ static void makiety(PlotnoPamiec& p) {
     r.stopkaPrawo = st[1];
     return r;
   };
-  rysuj("s6-rozruch-dzien1", {"pn 2.11", "dane 05:40"},
+  rysuj("s6-rozruch-dzien1", {"Poranek", "pn 2.11 · odczyt 05:42"},
         s6("Do tego czasu pokazuję tylko sprawy, które nie wymagają normy.", 1, "noc 1 z 14", "pełna norma od ok. 15.11", STOPKA));
   rysuj("s6-rozruch-najdluzszy", {N_MAX, P_MAX},
         s6("Ostatnia noc: 12 h 59 z maską, oddechy na minutę: 99,9.", 13, "noc 13 z 14", "pełna norma od ok. 30.11", STOPKA_MAX));
-  rysuj("s6-brak-nowych", {"pn 16.11", "dane z 2.11"},
+  rysuj("s6-brak-nowych", {"Poranek", "pn 16.11 · dane z 2.11"},
         s6("Do tego czasu pokazuję tylko sprawy, które nie wymagają normy.", 0, "brak nowych nocy", "norma po 14 nocach", STOPKA));
   // kamień milowy jako ekran danych (dzień z linią, R-HUM-17) i rocznica
   t = TrescEkranu();
@@ -265,7 +268,7 @@ static void makiety(PlotnoPamiec& p) {
   t.powod = "Rok temu pierwsza noc. Od tej pory 999 nocy.";
   t.stopkaLewo = STOPKA[0];
   t.stopkaPrawo = STOPKA[1];
-  rysuj("kamien-rocznica", {"sb 31.10", "dane 05:40"}, t);
+  rysuj("kamien-rocznica", {"Poranek", "sb 31.10 · odczyt 05:42"}, t);
   // S5
   auto s5 = [&](const std::string& tyt, const std::string& pow, const std::string& fakt, const std::string& krok) {
     TrescEkranu r;
@@ -278,13 +281,13 @@ static void makiety(PlotnoPamiec& p) {
     r.stopkaPrawo = "↻ ponów";
     return r;
   };
-  rysuj("s5-e01", {"cz 30.11", "dane z 29.11"},
+  rysuj("s5-e01", {"Poranek", "cz 30.11 · dane z 29.11"},
         s5("Brak danych z nocy 30.11", "AirBridge nie odpowiada od 29.11 23:59. Ponawiam co\xC2\xA0" "30 min.", "",
            "→ Sprawdź zasilanie AirBridge."));  // jedna godzina: w powodzie
-  rysuj("s5-e01-3noc", {"cz 30.11", "dane z 27.11"},
+  rysuj("s5-e01-3noc", {"Poranek", "cz 30.11 · dane z 27.11"},
         s5("Brak danych od 999 nocy", "AirBridge nie odpowiada od 30.11. Ponawiam co\xC2\xA0" "30 min.", "",
            "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3."));
-  rysuj("s5-e03", {"cz 30.11", "dane z 29.11"},
+  rysuj("s5-e03", {"Poranek", "cz 30.11 · dane z 29.11"},
         s5("Nie rozumiem danych AirBridge", "Format raportu zmienił się (AirBridge v1.12.10).", "ostatnie dane: 29.11 23:59",
            "→ Daj znać osobie, która instalowała panel."));
 
@@ -301,10 +304,11 @@ static void makiety(PlotnoPamiec& p) {
     return l;
   };
   DaneK1 k1;
-  k1.naglowek = "Ostatnia noc · cz 12.11";
+  k1.dzienNocy = "cz";
+  k1.dataNocy = "12.11";
   k1.romb = true;
   k1.jestNoc = true;
-  k1.ubiegla = true;  // R-KOK-26: godzina danych w nagłówku
+  k1.ubiegla = true;  // R-KOK-26: godzina odczytu w belce
   k1.godzinaDanych = "07:12";
   k1.ocena = "ocena ograniczona";  // najdłuższy nagłówek: data, godzina, romb, ocena i numer strony
   const char* liczby[4] = {"10:59", "12,4", "14,5", "112"};
@@ -342,7 +346,8 @@ static void makiety(PlotnoPamiec& p) {
   }
 
   DaneK2 k2;
-  k2.zakres = "6–12 listopada";
+  k2.zakres = "6–12.11";
+  k2.godzinaDanych = "05:46";  // R-KOK-26: ta sama chwila co w K1
   k2.zdanie = "Tydzień w normie, poza maską z trzech ostatnich nocy.";  // tylko makieta; w panelu `{n} z 7 nocy…`
   const char* noce[7] = {"pt 6", "sb 7", "nd 8", "pn 9", "wt 10", "śr 11", "cz 12"};
   for (int i = 0; i < 7; i++) k2.kol[i] = noce[i];
@@ -373,6 +378,31 @@ static void makiety(PlotnoPamiec& p) {
   }
   rysujK2(p, k2);
   zapisz(p, "mak-k2");
+  {  // ADR-0045 (R-KOK-34, R-KOK-35): kolejność z telefonu „sypialnia, 7 nocy, ostatnia noc” ze sprawą: numery stron
+     // i stopki z nawigacji; potem sypialnia ukryta (dane są): K2 `2 / 3` ze sprawami, bez sypialni w stopkach
+    UkladKokpitu u;
+    u.kolejnosc[0] = StronaPrzestawna::SYPIALNIA;
+    u.kolejnosc[1] = StronaPrzestawna::SIEDEM_NOCY;
+    u.kolejnosc[2] = StronaPrzestawna::OSTATNIA_NOC;
+    ustawUkladKokpitu(u);
+    ustawSypialnieWKokpicie(true);
+    DaneK1 kk1 = k1;
+    kk1.sprawyWCiagu = true;
+    rysujK1(p, kk1);
+    zapisz(p, "kolejnosc-k1-przestawiona");
+    DaneK2 kk2 = k2;
+    kk2.sprawy = true;
+    rysujK2(p, kk2);
+    zapisz(p, "kolejnosc-k2-przestawiona");
+    u = UkladKokpitu();
+    u.sypialnia = false;
+    ustawUkladKokpitu(u);
+    kk2.sprawy = false;
+    rysujK2(p, kk2);
+    zapisz(p, "kolejnosc-k2-sypialnia-ukryta");
+    ustawUkladKokpitu(UkladKokpitu());
+    ustawSypialnieWKokpicie(false);
+  }
   {  // CPAP i AutoSet: 9 wierszy, `Ciśnienie P95` (M-05p) zamiast `EPAP P95` i `Wsparcie PS`
     DaneK2 kc = k2;
     kc.wierszy = 9;
@@ -427,13 +457,23 @@ static void makiety(PlotnoPamiec& p) {
   rysujDobranoc(p, dn);
   zapisz(p, "mak-noc-a3-bez-godziny");
 
-  {  // U-05 z wartościami kanwy (design/kanwa/U05-test-sprzetu.dc.html), do porównania z design/png/U05-test-sprzetu.png
+  {  // U-05 z wartościami makiety 14.11.2026 (projekt ekranu): dwie usterki w kolumnie ŁĄCZNOŚĆ; wiersze
+     // składane tymi samymi funkcjami co dyrygent
     DaneTestu u;
-    u.lewa = {{"Oprogramowanie", "1.0.1 (app1)"}, {"Zestaw reguł", "2026-12-01"}, {"Pamięć panelu", "wolne 18 MB"},
-              {"Karta", "kopia 03.11 05:40"}, {"Źródło otoczenia", "OK 05:31"}};
-    u.prawa = {{"Panel", "192.168.30.51"}, {"Wi-Fi", "Dom −61 dBm"}, {"AirBridge", "192.168.20.205 · v2.3.0"},
-               {"Ostatnie pobranie", "03.11 05:32"}, {"Bateria", "64%"}};
-    u.ramkaLewo = "Wgrywanie przez Wi-Fi do 10:14";
+    u.sprawdzono = "14.11 14:06";
+    Otoczenie o;
+    wyczyscOtoczenie(o, true);
+    nieudanaOtoczenia(o, 401, 1793395800u);
+    u.lewa = {wierszU05("Oprogramowanie", wariantyOprogramowaniaU05("1.0.0", " · jest wersja 1.1.0")),
+              wierszU05("Zegar panelu", {"14.11 14:06"}), wierszU05("Pamięć panelu", {"wolne 23 MB"}),
+              wierszU05Baterii(true, 70, BATERIA_NISKA), wierszU05("Zestaw reguł", {"wbudowany"})};
+    u.prawa = {wierszU05Wifi("Dom", -60, ""), wierszU05Adresu("192.168.0.10", "", "", false),
+               wierszU05("AirBridge", {"brak odpowiedzi od 13.11 23:40", "brak odp. od 13.11 23:40"}, true),
+               wierszU05Pobrania("12.11 05:32", false, false, false),
+               wierszU05("Pogoda i powietrze", wartosciTestuOtoczenia(o, "05:16"), usterkaOtoczenia(o), "pogoda")};
+    u.dol = {wierszU05("Noce z plików", {"zgodne 7 z 7, można przełączyć na pliki"}, false, "noce z plików", false,
+                       TEST_SZEROKOSC)};
+    u.ramkaLewo = "Wgrywanie przez Wi-Fi do 23:59";
     u.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     rysujTest(p, u);
     zapisz(p, "mak-test");
@@ -446,11 +486,11 @@ static void makiety(PlotnoPamiec& p) {
   k.powod = "Tydzień: inaczej niż zwykle.";
   k.fakty = {{"12,4", "AHI"}, {"112", "wyciek l/min"}};
   k.stopkaPrawo = "przy łóżku 21° · 46%";
-  rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22);
+  rysujKarte(p, {"Poranek", "cz 12.11 · odczyt 05:42"}, k, scenaK22);
   zapisz(p, "mak-karta-k22");
   {  // ta sama karta z ikoną aktualizacji w stopce (R-EKR-61)
     IkonaStopki ik(true);
-    rysujKarte(p, {"cz 12.11", "dane 05:46"}, k, scenaK22);
+    rysujKarte(p, {"Poranek", "cz 12.11 · odczyt 05:42"}, k, scenaK22);
     ikonaAktualizacji(p, false);
     zapisz(p, "mak-karta-k22-ikona-aktualizacji");
   }
@@ -460,7 +500,7 @@ static void makiety(PlotnoPamiec& p) {
   k.powod = "AirBridge nie odpowiada od 11.11 05:42. Ponawiam co\xC2\xA0" "30\xC2\xA0" "min.";
   k.krok = "→ Sprawdź zasilanie AirBridge.";
   k.stopkaPrawo = "↻ ponów";
-  rysujKarte(p, {"cz 12.11", "dane z 11.11"}, k, scenaS5);
+  rysujKarte(p, {"Poranek", "cz 12.11 · dane z 11.11"}, k, scenaS5);
   zapisz(p, "mak-karta-s5");
 }
 
@@ -477,7 +517,7 @@ static void slotB9(PlotnoPamiec& p, const char* plik, const WejscieSlotu& we, co
                    int drzemka = 0) {
   WyborSlotu w = wybierzSlot(we);
   TekstySlotu t = tekstySlotu(w, we);
-  Naglowek n{naglowekSlotu(we.dzis), we.prognoza && w.ekran != EkranSlotu::SK35 && w.ekran != EkranSlotu::SK37
+  NaglowekSlotu n{naglowekSlotu(we.dzis), we.prognoza && w.ekran != EkranSlotu::SK35 && w.ekran != EkranSlotu::SK37
                                          ? "prognoza " + we.prognoza->godzinaPobrania : ""};
   if (w.ekran == EkranSlotu::SK39) n.prawo = "drzemka 15:10–16:20";
   StopkaDzienna s = stopkaDzienna(&noc, true, drzemka, zaOknem, we.przyLozku);
@@ -512,7 +552,7 @@ static NormaMetryki nmB16(double med, double p10, double p90) {
   return x;
 }
 static void skB16(PlotnoPamiec& p, const std::vector<sk::Tresc>& v, const char* id, const char* plik,
-                  const Naglowek& n, const std::string& stL, const std::string& stP) {
+                  const Belka& n, const std::string& stL, const std::string& stP) {
   for (auto& t : v)
     if (t.id == id) {
       sk::rysuj(p, n, t, stL, stP);
@@ -539,7 +579,7 @@ static void podgladB16(PlotnoPamiec& p) {
   w.norma = &nm;
   w.trybProbny = false;
   w.dziennik = &dz;
-  Naglowek wiecz{"wt 03.11 · wieczór", "sypialnia 21:30"};
+  Belka wiecz{"Wieczór", "śr 04.11 · odczyt 05:44"};  // ekrany wieczorne: nazwa `Wieczór` (sk::nazwaBelki())
   w.tempTeraz = 15;
   skB16(p, sk::wieczor(w), "S-K-03", "b16-sk03-chlod", wiecz, "Katowice 2° · bezchmurnie", stopkaCzujnika(15, 52));
   w.tempTeraz = 21;
@@ -549,7 +589,15 @@ static void podgladB16(PlotnoPamiec& p) {
   w.tempTeraz = 27;
   skB16(p, sk::wieczor(w), "S-K-05", "b16-sk05-upal", wiecz, "Katowice 24° · bezchmurnie", stopkaCzujnika(27, 45));
   w.tempTeraz = 21;
-  Naglowek rano{"śr 04.11", "dane 05:44"};
+  {  // S-K-08: noc bez maski, ekran wieczorny z belką `Wieczór`
+    std::vector<Noc> h8 = h;
+    h8.back().m01 = 20;
+    sk::Wejscie w8 = w;
+    w8.hist = &h8;
+    skB16(p, sk::wieczor(w8), "S-K-08", "b16-sk08-bez-maski", Belka{"Wieczór", "śr 04.11"}, "Katowice 7° · pochmurno",
+          stopkaCzujnika(21, 45));
+  }
+  Belka rano{"Poranek", "śr 04.11 · odczyt 05:42"};
   {  // S-K-10: wyciek ostatniej nocy ponad próg (ton „problem”)
     h.back().wp95 = 26;
     skB16(p, sk::rano(w), "S-K-10", "b16-sk10-przeciek", rano, "Katowice 3° · mgła", stopkaCzujnika(21, 44));
@@ -632,7 +680,7 @@ static void podgladB16(PlotnoPamiec& p) {
     wt.uspokojenie = true;
     sk::Tresc t;
     if (sk::tydzien(wt, t)) {
-      sk::rysuj(p, Naglowek{"nd 01.11 · tydzień", "dane 17:05"}, t, "", "");
+      sk::rysuj(p, Belka{"Poranek", "nd 01.11 · odczyt 05:42"}, t, "", "");
       zapisz(p, "b16-sk18-tydzien");
     } else {
       printf("podglad: brak S-K-18\n");
@@ -649,7 +697,7 @@ static void podgladB16(PlotnoPamiec& p) {
     sk::Wejscie w3 = w;
     w3.dzis = "2026-11-02";
     w3.hist = &h3;
-    skB16(p, sk::rano(w3), "S-K-21", "b16-sk21-weekend", Naglowek{"pn 02.11", "dane 05:44"}, "", "");
+    skB16(p, sk::rano(w3), "S-K-21", "b16-sk21-weekend", Belka{"Poranek", "pn 02.11 · odczyt 05:42"}, "", "");
   }
   {  // pytanie `Wymieniona poduszka?` (R-MAS-12, artboard Q-poduszka)
     DaneDnia dd;
@@ -761,6 +809,18 @@ static void podgladB9(PlotnoPamiec& p) {
     StopkaDzienna s = stopkaDzienna(&noc, true, 0, 6, 21);
     rysujObrazekDnia(p, o, s);
     zapisz(p, "sk38-obrazek");
+    {  // R-KON-69: bateria poniżej 20%: w miejscu wyniku nocy ikona baterii i `18% · podłącz kabel`
+      const BateriaEkranu bylo = bateriaEkranu();
+      BateriaEkranu niska;
+      niska.procent = 18;  // pasmo ostrzeżenia w stopce: poniżej 20%, powyżej progu linii E-05 (15%)
+      niska.niska = true;
+      ustawBaterieEkranu(niska);
+      StopkaDzienna sn = s;
+      sn.bateriaNiska = true;
+      rysujObrazekDnia(p, o, sn);
+      zapisz(p, "sk38-obrazek-niska-bateria");
+      ustawBaterieEkranu(bylo);
+    }
   }
   {  // S-K-39 po drzemce
     Prognoza c = prognozaB9(d, 10, 14);
@@ -783,7 +843,7 @@ static void podgladB9(PlotnoPamiec& p) {
   ww.dziennik = &dz;
   WynikWieczoru rw = ocenWieczor(ww);
   TrescKontekstu k = trescSK01(ww, rw);
-  Naglowek nw{naglowekSlotu(ww.dzis) + " · wieczór", "sypialnia 21:30 · CO2 1240"};
+  Belka nw{"Wieczór", naglowekSlotu(ww.dzis) + " · sypialnia 21:30 · CO2 1240"};
   rysujEkranKontekstu(p, nw, k, "Katowice 7° · zachmurzenie", stopkaCzujnika(21, 44, 1240));
   zapisz(p, "sk01-przewietrz");
   {
@@ -791,7 +851,7 @@ static void podgladB9(PlotnoPamiec& p) {
     t.tytul += ".";  // na karcie tytuł z kropką (5.7.2), etykieta wersalikami (K05)
     t.etykieta = wersaliki(t.etykieta);
     t.stopkaPrawo = stopkaCzujnika(21, 44);
-    Naglowek nk{naglowekSlotu(ww.dzis) + " · wieczór", "sypialnia 21:40"};
+    Belka nk{"Wieczór", naglowekSlotu(ww.dzis) + " · sypialnia 21:40"};
     rysujKarte(p, nk, t, "W01");
     zapisz(p, "sk01-przewietrz-karta");
   }
@@ -814,7 +874,7 @@ static void podgladB9(PlotnoPamiec& p) {
     const int c13[14] = {700, 850, 1050, 1250, 1420, 1580, 1720, 1850, 1950, 2030, 2080, 2100, 2090, 2060};
     for (int i = 0; i < 14; i++) r13.push_back({1793660000u + (uint32_t)i * 1800u, c13[i]});
     Co2Nocy n13 = statystykaCo2(r13);
-    Naglowek nr{"nd 15.11", "dane 05:55"};
+    Belka nr{"Poranek", "nd 15.11 · odczyt 05:42"};
     rysujEkranKontekstu(p, nr, trescSK13(n13), "Katowice 2° · mgła", stopkaCzujnika(22, 45));
     zapisz(p, "sk13-zaduch");
   }
@@ -824,7 +884,7 @@ static void podgladB9(PlotnoPamiec& p) {
 // ---------- S7, S8, „Co znaczą te liczby”, odkrycia S1, pytanie o wyjazd (dane syntetyczne) ----------
 static void podgladB15(PlotnoPamiec& p) {
   odkrycia::zarejestrujRodzajeO();
-  Naglowek nag{"wt 01.12", "dane 05:49"};
+  Belka nag{"Poranek", "wt 01.12 · odczyt 05:42"};
   std::vector<Noc> h;
   std::string d = "2026-10-01";
   for (int i = 0; i < 61; i++, d = dodajDni(d, 1)) {
@@ -850,7 +910,7 @@ static void podgladB15(PlotnoPamiec& p) {
   podsumowanie::WejscieS8 w;
   w.norma = &n;
   w.tryb = reguly::Tryb::ASVAUTO;
-  Naglowek n8{"wt 03.11", "dane 05:44"};  // S8 tylko jako ekran dnia (kamień milowy R7, ADR-0041)
+  Belka n8{"Poranek", "wt 03.11 · odczyt 05:42"};  // S8 tylko jako ekran dnia (kamień milowy R7, ADR-0041)
   podsumowanie::DaneS8 s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-norma");
@@ -859,7 +919,7 @@ static void podgladB15(PlotnoPamiec& p) {
   t = podsumowanie::trescS8(s8);
   t.stopkaLewo = "Katowice 4° · pochmurno";
   t.stopkaPrawo = "przy łóżku 21° · 45%";
-  podsumowanie::rysujS8(p, Naglowek{"wt 03.11", "dane 05:44"}, s8, t);  // S8 jako ekran dnia: data i tytuł
+  podsumowanie::rysujS8(p, Belka{"Poranek", "wt 03.11 · odczyt 05:42"}, s8, t);  // S8 jako ekran dnia: data i tytuł
   zapisz(p, "b15-s8-informacja");
   n.ahi.n = 0;
   n.ca.n = 0;
@@ -867,9 +927,9 @@ static void podgladB15(PlotnoPamiec& p) {
   s8 = podsumowanie::budujS8(w);
   podsumowanie::rysujS8(p, n8, s8, podsumowanie::trescS8(s8));
   zapisz(p, "b15-s8-publiczny-uczesie");
-  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true, true));
+  podsumowanie::rysujLiczby(p, Belka{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true, true));
   zapisz(p, "b15-co-znacza-liczby");
-  podsumowanie::rysujLiczby(p, Naglowek{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
+  podsumowanie::rysujLiczby(p, Belka{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
   zapisz(p, "b15-co-znacza-liczby-asv");
   // odkrycia: O-12 (alkohol) z archiwum z wagami R-CZY-24, O-08 (weekend), O-03 (linia 30 nocy)
   std::vector<Noc> ho;
@@ -909,7 +969,7 @@ static void podgladB15(PlotnoPamiec& p) {
   c.tryb = odkrycia::TrybOceny::REWALIDACJA;
   c.czynniki = &cz;
   std::vector<reguly::Wynik> wy = odkrycia::ocenOdkrycia(reguly::zestawWbudowany(), k, c);
-  Naglowek no{"pn 15.02", "dane 05:51"};
+  Belka no{"Poranek", "pn 15.02 · odczyt 05:42"};
   for (auto& x : wy) {
     if (odkrycia::klucz(x) != "O-12/A.M-02" || !x.spelniona) continue;
     odkrycia::UstawieniaTekstow u;
@@ -999,7 +1059,7 @@ static void podgladB15(PlotnoPamiec& p) {
   oznaczPozaDomem(v, {"2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"}, "2026-10-21", 360, "2026-10-25", 840);
   TekstyWyjazdu tw = tekstyWyjazdu(okresyWyjazdu(v)[0], 11 * 60);
   DanePytaniaTN q;
-  q.naglowek = {"pn 26.10", "dane 05:42"};
+  q.naglowek = {"Poranek", "pn 26.10 · odczyt 05:42"};
   q.etykieta = tw.etykieta;
   q.tytul = tw.tytul;
   q.opis = tw.opis;
@@ -1059,7 +1119,7 @@ static portret::Przebieg przebiegS11(bool asv, bool wyciek, bool zdarzenia) {
   return pr;
 }
 static void portretS11(PlotnoPamiec& p, const char* plik, const DanePortretu& d, const std::string& linia,
-                       const std::string& prawo = "dane 07:12") {
+                       const std::string& srodek = "noc na cz 12.11 · odczyt 07:12") {
   TrescEkranu t;
   t.uklad = Uklad::PORTRET;
   t.portret = &d;
@@ -1067,7 +1127,17 @@ static void portretS11(PlotnoPamiec& p, const char* plik, const DanePortretu& d,
   t.stopkaStandardowa = true;
   t.stopkaLewo = "Katowice 8° · pochmurno";
   t.stopkaPrawo = "przy łóżku 21° · 45%";
-  rysujEkranDanych(p, Naglowek{"cz 12.11", prawo}, t);
+  {  // belka jak w src/dzien.cpp belkaPortretu(): ta sama kolejność ustępowania (dzień tygodnia, data, godzina)
+    Belka bp("Portret nocy", "");
+    SrodekNocy sn;
+    sn.przed = "noc na ";
+    sn.dzien = "cz";
+    sn.data = "12.11";
+    sn.odczyt = "07:12";
+    if (srodek.find("ocena ograniczona") != std::string::npos) sn.dopisek = "ocena ograniczona";
+    ustawSrodekNocy(bp, sn);
+    rysujEkranDanych(p, bp, t);
+  }
   zapisz(p, plik);
 }
 static void podgladPortretu(PlotnoPamiec& p) {
@@ -1090,7 +1160,7 @@ static void podgladPortretu(PlotnoPamiec& p) {
   portretS11(p, "s11-asvauto-kropki-wsparcie", a, "");
   DanePortretu n = d;  // noc niepewna: sam czas z maską, jeden komunikat, nagłówek `· ocena ograniczona`
   n.niepewna = true;
-  portretS11(p, "s11-noc-niepewna", n, "", "dane 07:12 · ocena ograniczona");
+  portretS11(p, "s11-noc-niepewna", n, "", "noc na cz 12.11 · odczyt 07:12 · ocena ograniczona");
   portret::Przebieg spok = przebiegS11(false, false, false);
   spok.sesje = {{670, 1135}};
   spok.odcinki.clear();
@@ -1134,16 +1204,128 @@ static void podgladPortretu(PlotnoPamiec& p) {
     DanePortretu f = e;
     f.przebieg = &wyc;
     portretS11(p, "s11-start-okna-wyciek", f, "");
+    // pik na zewnątrz (7 zdarzeń) i do środka (3 centralne) w pierwszym odcinku okna
+    // (21:30–21:35): znacznik z białą obwódką 2 px czytelny na tle piku, grot wskazuje kierunek ruchu wskazówek
+    portret::Przebieg pik1 = wcz;
+    for (auto& o : pik1.odcinki)
+      if (o.od == 570) o.zew = 7, o.centr = 3;
+    DanePortretu g = e;
+    g.przebieg = &pik1;
+    portretS11(p, "s11-start-okna-pik-pierwszy-odcinek", g, "");
+    // to samo w ostatnim odcinku okna (09:25–09:30): ostatnia sesja przedłużona do końca okna 09:30 (okno bez zmian)
+    portret::Przebieg pikN = wcz;
+    pikN.sesje.back().do_ = 1290;
+    for (int m = 1135; m < 1290; m += 5) pikN.odcinki.push_back(odcinekS11(m));
+    for (auto& o : pikN.odcinki)
+      if (o.od == 1285) o.zew = 7, o.centr = 3;
+    DanePortretu h = e;
+    h.przebieg = &pikN;
+    h.czas = "10 h 45";
+    portretS11(p, "s11-start-okna-pik-ostatni-odcinek", h, "");
+    // oba brzegi okna przy linii uwagi (tarcza w skali 0,85)
+    portret::Przebieg pikOba = pikN;
+    for (auto& o : pikOba.odcinki)
+      if (o.od == 570) o.zew = 7, o.centr = 3;
+    DanePortretu k = h;
+    k.przebieg = &pikOba;
+    portretS11(p, "s11-start-okna-pik-linia-uwagi", k, "Co było inaczej? ↻ 2 s");
   }
   {  // strona pod ▶ (R-POR-24): bez linii, stopka z akcjami jak w src/dyrygent.cpp rysujPortretStrony()
     TrescEkranu t;
     t.uklad = Uklad::PORTRET;
     t.portret = &d;
-    rysujEkranDanych(p, Naglowek{"cz 12.11", "dane 07:12"}, t);
+    rysujEkranDanych(p, Belka{"Portret nocy", "noc na cz 12.11 · odczyt 07:12"}, t);
     p.prostokat(0, 434, 800, 46, false);
-    stopkaEkranu(p, {"◀ ekran dnia", "▶ ostatnia noc", "↻ ekran dnia"}, "");
+    const KontekstNaw ks = kontekstStopki(false, false, false);
+    stopkaEkranu(p, {"◀ " + podpisCelu(Ekran::PORTRET, false, ks), "▶ " + podpisCelu(Ekran::PORTRET, true, ks), "↻ ekran dnia"}, "");
     zapisz(p, "s11-strona-pod-prawym");
+    // „7 nocy” pierwsza z telefonu → ▶ z Portretu otwiera K2, stopka `▶ 7 nocy`
+    UkladKokpitu u;
+    u.kolejnosc[0] = StronaPrzestawna::SIEDEM_NOCY;
+    u.kolejnosc[1] = StronaPrzestawna::OSTATNIA_NOC;
+    ustawUkladKokpitu(u);
+    rysujEkranDanych(p, Belka{"Portret nocy", "noc na cz 12.11 · odczyt 07:12"}, t);
+    p.prostokat(0, 434, 800, 46, false);
+    stopkaEkranu(p, {"◀ " + podpisCelu(Ekran::PORTRET, false, ks), "▶ " + podpisCelu(Ekran::PORTRET, true, ks), "↻ ekran dnia"}, "");
+    zapisz(p, "s11-strona-pod-prawym-przestawiona");
+    ustawUkladKokpitu(UkladKokpitu());
   }
+}
+
+// Strona kokpitu „Sypialnia · 30 nocy” (R-KOK-29…R-KOK-33, ADR-0044): dane syntetyczne, 30 nocy do `dzis`.
+static std::vector<NocSypialni> noceSypialni(const std::string& dzis, int ile, bool co2, std::set<int> luki = {}) {
+  std::vector<NocSypialni> v;
+  uint32_t z = 12345;
+  for (int i = 0; i < ile; i++) {
+    z = z * 1103515245u + 12345u;
+    if (luki.count(i)) continue;
+    float a = (float)((z >> 8) % 100) / 100.0f, b = (float)((z >> 16) % 100) / 100.0f;
+    v.push_back(NocSypialni{dodajDni(dzis, i - (ile - 1)), 19.0f + 1.6f * a, 40.0f + 9.0f * b, co2 ? 650.0f + 300.0f * a * b : NAN});
+  }
+  return v;
+}
+static void podgladSypialni(PlotnoPamiec& p, const std::string& dzis) {
+  ustawSypialnieWKokpicie(true);
+  std::set<std::string> bez;
+  {  // pełne dane: temperatura jak zwykle, wilgotność niżej, CO2 wyżej (jak makieta)
+    std::vector<NocSypialni> v = noceSypialni(dzis, 30, true);
+    v.back().w = 33.0f;
+    v.back().co2 = 1240.0f;
+    rysujSyp30(p, budujSyp30(v, dzis, bez));
+    zapisz(p, "sypialnia-30-pelne");
+  }
+  {  // brak CO2 (bez lokalnego źródła otoczenia): wykres z napisem `brak odczytu`
+    DaneSyp30 d = budujSyp30(noceSypialni(dzis, 30, false), dzis, bez);
+    d.sprawy = true;
+    rysujSyp30(p, d);
+    zapisz(p, "sypialnia-30-brak-co2");
+  }
+  {  // 9 nocy: bez pasma, `uczę się`
+    rysujSyp30(p, budujSyp30(noceSypialni(dzis, 9, true), dzis, bez));
+    zapisz(p, "sypialnia-30-ucze-sie");
+  }
+  {  // luki: przerwy w linii, noc pojedyncza między lukami, brak ostatniej nocy CO2
+    std::vector<NocSypialni> v = noceSypialni(dzis, 30, true, {3, 4, 5, 11, 13, 20, 21});
+    v.back().co2 = NAN;
+    DaneSyp30 d = budujSyp30(v, dzis, bez);
+    d.liczby = true;
+    rysujSyp30(p, d);
+    zapisz(p, "sypialnia-30-luki");
+  }
+  {  // najdłuższe wartości: temperatura ujemna z przecinkiem, wilgotność 100, CO2 4 cyfry, słowo `wyżej niż zwykle`
+    std::vector<NocSypialni> v = noceSypialni(dzis, 30, true);
+    v.back().t = -10.5f;
+    v.back().w = 100.0f;
+    v.back().co2 = 9999.0f;
+    rysujSyp30(p, budujSyp30(v, dzis, bez));
+    zapisz(p, "sypialnia-30-najdluzsze");
+  }
+  {  // noc odstająca daleko poza zwykłym pasmem: kropka przy krawędzi pola ze strzałką „poza skalą” (decyzja 9a);
+     // w środku okna noc z bardzo wysokim CO2: średnia z 7 nocy też poza skalą, strzałka przy górnej krawędzi
+    std::vector<NocSypialni> v = noceSypialni(dzis, 30, true);
+    v.back().t = 27.5f;
+    v.back().w = 12.0f;
+    v[15].co2 = 4000.0f;
+    rysujSyp30(p, budujSyp30(v, dzis, bez));
+    zapisz(p, "sypialnia-30-poza-skala");
+  }
+  {  // przed 06:00: noc z datą poranka dziś jeszcze trwa (`noc trwa`, bez kropki; R-KOK-31)
+    std::vector<NocSypialni> v = noceSypialni(dzis, 30, true);
+    v.pop_back();
+    rysujSyp30(p, budujSyp30(v, dzis, bez, true));
+    zapisz(p, "sypialnia-30-noc-trwa");
+  }
+  {  // ADR-0045: sypialnia jako pierwsza strona kokpitu (`1 / 4`, stopka `◀ ekran dnia`, `▶ 7 nocy`)
+    UkladKokpitu u;
+    u.kolejnosc[0] = StronaPrzestawna::SYPIALNIA;
+    u.kolejnosc[1] = StronaPrzestawna::SIEDEM_NOCY;
+    u.kolejnosc[2] = StronaPrzestawna::OSTATNIA_NOC;
+    ustawUkladKokpitu(u);
+    rysujSyp30(p, budujSyp30(noceSypialni(dzis, 30, true), dzis, bez));
+    zapisz(p, "kolejnosc-sypialnia-pierwsza");
+    ustawUkladKokpitu(UkladKokpitu());
+  }
+  ustawSypialnieWKokpicie(false);
 }
 
 int main(int argc, char** argv) {
@@ -1156,6 +1338,11 @@ int main(int argc, char** argv) {
         stn = liczStany(hn, dzis, wykluczoneZNormy(cz));
   const Norma& nm = st.norma;
   PlotnoPamiec p;
+  {  // belka: bateria 78% na wszystkich podglądach (stany baterii osobno: belka-*.png)
+    BateriaEkranu b78;
+    b78.procent = 78;
+    ustawBaterieEkranu(b78);
+  }
 
   rysujK1(p, budujK1(h, dzis, nm, cz, &st));
   zapisz(p, "k1");
@@ -1256,10 +1443,11 @@ int main(int argc, char** argv) {
   d.stany = &st;
   d.norma = nm;
   d.godzinaDanych = "05:46";
+  d.godzinaImportu = "05:46";  // belka: `odczyt 05:46` (R-EKR-04)
   d.sypNoc = sypialniaZDnia(syp, dzis);
   d.sypNorma = liczNormeSypialni(syp, dzis, {});
   d.przyLozku = stopkaCzujnika(21.4f, 45.6f);  // odczyt czujnika panelu w tym wybudzeniu
-  Naglowek n{naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+  Belka n = belkaDnia(d);
   KontekstHumoru kh;
   kh.dzis = dzis;
   kh.sceny = sceny();
@@ -1353,12 +1541,12 @@ int main(int argc, char** argv) {
     w.hist = &hw;
     w.stany = &stw;
     w.norma = stw.norma;
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w), naglowekDniaPrawo(w)}, trescDnia("S2A", "3", w));
+    rysujEkranDanych(p, belkaDnia(w), trescDnia("S2A", "3", w));
     zapisz(p, "dane-s2a-odchylenie");
     w.linia = "Co było inaczej? ↻ 2 s";
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w), naglowekDniaPrawo(w)}, trescDnia("S2A", "4", w));
+    rysujEkranDanych(p, belkaDnia(w), trescDnia("S2A", "4", w));
     zapisz(p, "dane-s2a-linia-zaproszenia");
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w), naglowekDniaPrawo(w)}, trescDnia("S2B", "", w));
+    rysujEkranDanych(p, belkaDnia(w), trescDnia("S2B", "", w));
     zapisz(p, "dane-s2b-linia");
   }
   {  // noc niepewna (4.9): `Noc: {czas}.` i `· ocena ograniczona` (R-EKR-46)
@@ -1366,7 +1554,7 @@ int main(int argc, char** argv) {
     w.hist = &hn;
     w.stany = &stn;
     w.norma = stn.norma;
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w), naglowekDniaPrawo(w)}, trescDnia("S2A", "3", w));
+    rysujEkranDanych(p, belkaDnia(w), trescDnia("S2A", "3", w));
     zapisz(p, "dane-s2a-niepewna");
   }
   {  // raport bez `used_seconds` (R-DANE-07, R-AW-22): czas `–`, tytuł bez czasu, nigdy `0 h 00`
@@ -1378,7 +1566,7 @@ int main(int argc, char** argv) {
     w.hist = &hb;
     w.stany = &sb;
     w.norma = sb.norma;
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w), naglowekDniaPrawo(w)}, trescDnia("S2A", "3", w));
+    rysujEkranDanych(p, belkaDnia(w), trescDnia("S2A", "3", w));
     zapisz(p, "dane-s2a-bez-czasu");
   }
   {  // S5 po odrzuconym logowaniu (401) bez wcześniejszego odczytu: tekst E-01 bez kodu, `od` = pierwsza nieudana próba
@@ -1390,7 +1578,7 @@ int main(int argc, char** argv) {
     b.norma = sb.norma;
     b.httpKod = 401;
     b.bladOd = "05:30";
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(b), naglowekDniaPrawo(b)}, trescDnia("S5", "1", b));
+    rysujEkranDanych(p, belkaDnia(b), trescDnia("S5", "1", b));
     zapisz(p, "dane-s5-401");
   }
   {  // brak danych: ostatnia noc z 11.11, odczyt z wczoraj
@@ -1403,7 +1591,7 @@ int main(int argc, char** argv) {
     b.godzinaDanych = "05:42";
     b.ostatnieDane = kiedyOdczyt("2026-11-11", 5 * 60 + 42, dzis);  // odczyt z wczoraj: z datą (U7)
     b.httpKod = -1;
-    Naglowek n5{naglowekDniaLewo(b), naglowekDniaPrawo(b)};
+    Belka n5 = belkaDnia(b);
     TrescEkranu t = trescDnia("S5", "1", b);
     EkranDnia e{"S5", "1", true, false};
     Wybor w = wybierzTryb(e, kartaMiesci(t), {}, kh);
@@ -1421,7 +1609,7 @@ int main(int argc, char** argv) {
     b.stany = &sb;
     b.norma = sb.norma;
     b.godzinaDanych = "";
-    Naglowek n10{naglowekDniaLewo(b), naglowekDniaPrawo(b)};
+    Belka n10 = belkaDnia(b);
     TrescEkranu t = trescDnia("S10", "", b);
     rysujKarte(p, n10, t, "B05");
     zapisz(p, "karta-s10");
@@ -1451,44 +1639,86 @@ int main(int argc, char** argv) {
     Stany sr = liczStany(krotka, dzis, {});
     r.stany = &sr;
     r.norma = sr.norma;
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(r), naglowekDniaPrawo(r)}, trescDnia("S6", "", r));
+    rysujEkranDanych(p, belkaDnia(r), trescDnia("S6", "", r));
     zapisz(p, "dane-s6-rozruch");
   }
-  {  // U-05 według kanwy z wartościami, które firmware ma dziś: zestaw wbudowany, bez karty, bez % baterii
+  {  // U-05 (makieta 14.11.2026, poprawki): wszystko działa, nie sprawdzono, rozjazd nocy z plików,
+     // najdłuższe wartości, tryb awaryjny; wiersze składane tymi samymi funkcjami co dyrygent
+    using namespace porownanie;
+    auto noce = [](const std::vector<Werdykt>& w, Zrodlo z) {
+      std::vector<Wpis> v;
+      for (size_t i = 0; i < w.size(); i++) {
+        Wpis e;
+        char dz[11];
+        snprintf(dz, sizeof dz, "2026-11-%02d", (int)(1 + i));
+        e.data = dz;
+        e.werdykt = w[i];
+        if (w[i] == Werdykt::ROZJAZD) e.rozjazd = "m05=1~2|m02=1~2";
+        v.push_back(w[i] == Werdykt::BRAK ? wpisBraku(dz, Przyczyna::STARY_AIRBRIDGE) : e);
+      }
+      Licznik l = policz(v);
+      return wierszU05("Noce z plików", wartosciU05(l, z), usterkaU05(l, z), "noce z plików", bezOcenyU05(l, z),
+                       TEST_SZEROKOSC);
+    };
+    const Werdykt Z = Werdykt::ZGODNA, R = Werdykt::ROZJAZD, B = Werdykt::BRAK;
     DaneTestu u;
-    u.lewa = {{"Oprogramowanie", "1.0.0 (app0)"}, {"Zestaw reguł", "wbudowany"}, {"Pamięć panelu", "wolne 23 MB"},
-              {"Karta", "brak karty"}, {"Źródło otoczenia", "OK 05:46"}};
-    u.prawa = {{"Panel", "192.168.0.10"}, {"Wi-Fi", "Dom −60 dBm"}, {"AirBridge", "192.168.0.20 · v2.3.0"},
-               {"Ostatnie pobranie", "12.11 05:32"}, {"Bateria", "–"}};
-    // wiersz trybu porównawczego (ADR-0036 „Zmiana 2026-11-09”) pod kolumnami: 7 z 7 zgodnych
-    u.dol = {{"Noce z plików", "zgodne 7 z 7, można przełączyć na pliki"}};
+    u.sprawdzono = "12.11 05:40";
+    Otoczenie o;
+    wyczyscOtoczenie(o, true);
+    o.stan = (int8_t)StanOto::OK;
+    u.lewa = {wierszU05("Oprogramowanie", wariantyOprogramowaniaU05("1.0.0", "")), wierszU05("Zegar panelu", {"12.11 05:40"}),
+              wierszU05("Pamięć panelu", {"wolne 23 MB"}), wierszU05Baterii(false, 64, BATERIA_NISKA),
+              wierszU05("Zestaw reguł", {"wbudowany"})};
+    u.prawa = {wierszU05Wifi("Dom", -60, ""), wierszU05Adresu("192.168.0.10", "", "", false),
+               wierszU05("AirBridge", {"192.168.0.20 · v2.3.0"}), wierszU05Pobrania("12.11 05:32", false, false, false),
+               wierszU05("Pogoda i powietrze", wartosciTestuOtoczenia(o, "05:31"), usterkaOtoczenia(o), "pogoda",
+                         bezOcenyOtoczenia(o))};
+    u.dol = {noce({Z, Z, Z, Z, Z, Z, Z}, Zrodlo::POROWNANIE)};
     u.ramkaLewo = "Wgrywanie przez Wi-Fi do 23:59";
     u.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     rysujTest(p, u);
-    zapisz(p, "test");
-    u.dol = {{"Noce z plików", "rozjazd 1 z 7 (M-05, M-02)"}};
+    zapisz(p, "test");  // zdrowy panel: `Wszystko działa`
+    // bez usterek, ale bez odczytu baterii i bez pobranej nocy: `Bez usterek · nie sprawdzono: …`
+    DaneTestu ns = u;
+    ns.lewa[3] = wierszU05Baterii(false, -1, BATERIA_NISKA);
+    ns.prawa[3] = wierszU05Pobrania("–", false, false, true);
+    ns.dol = {noce({B}, Zrodlo::POROWNANIE)};
+    rysujTest(p, ns);
+    zapisz(p, "test-nie-sprawdzono");
+    u.dol = {noce({Z, Z, Z, R, Z, Z, Z}, Zrodlo::POROWNANIE)};
     rysujTest(p, u);
     zapisz(p, "test-porownanie-rozjazd");
-    // najdłuższe wartości: warianty skrócone (dopasujWartosc) i bez połączenia z Wi-Fi (ostatnie z godziną)
-    Otoczenie o;
-    wyczyscOtoczenie(o, true);
+    // najdłuższe wartości: każdy wiersz, który może być usterką, z usterką; warianty z funkcji wierszy
     nieudanaOtoczenia(o, 401, 1793395800u);
-    u.lewa[2].wartosc = dopasujWartosc("Pamięć panelu", {"dane z nowszej wersji: wybudzenia.csv", "dane z nowszej wersji"});
-    u.lewa[4].wartosc = dopasujWartosc("Źródło otoczenia", wartosciTestuOtoczenia(o, "05:16"));
-    u.prawa[0].wartosc = "192.168.100.200 (11.11 23:59)";
-    u.prawa[1].wartosc = dopasujWartosc("Wi-Fi", {"Bardzo-Dluga-Nazwa-Sieci-Domowej −90 dBm (11.11 23:59)"});
-    u.prawa[2].wartosc = dopasujWartosc("AirBridge", {"brak odpowiedzi od 11.11 23:40", "brak odp. od 11.11 23:40"});
-    u.dol = {{"Noce z plików", "brak porównania: AirBridge < 2.3.1"}};
+    u.sprawdzono = "";
+    u.lewa[0] = wierszU05("Oprogramowanie", wariantyOprogramowaniaU05("12.12.12-rc.12", " · odrzucona 12.12.13-rc.12"));
+    u.lewa[1] = wierszU05("Zegar panelu", {"nie ustawiony"}, true, "zegar");
+    u.lewa[2] = wierszU05("Pamięć panelu", wariantyNowszychDanychU05("wybudzenia.csv"), true, "pamięć panelu");
+    u.lewa[3] = wierszU05Baterii(false, 7, BATERIA_NISKA);
+    u.prawa[0] = wierszU05Wifi("Bardzo-Dluga-Nazwa-Sieci-Domowej", -90, " (11.11 23:59)");
+    u.prawa[1] = wierszU05Adresu("192.168.100.200", "11.11", "23:59", false);
+    u.prawa[2] = wierszU05("AirBridge", bladAirBridgeU05(503), true);
+    u.prawa[3] = wierszU05Pobrania("09.11 05:32", true, true, false);
+    u.prawa[4] = wierszU05("Pogoda i powietrze", wartosciTestuOtoczenia(o, "05:16"), usterkaOtoczenia(o), "pogoda");
+    u.dol = {noce({R, R, R, R, R, R, R}, Zrodlo::POROWNANIE)};
     u.ramkaLewo = "Wgrywanie przez Wi-Fi: wyłączone";
     rysujTest(p, u);
     zapisz(p, "test-najdluzsze");
+    u.dol = {noce({B}, Zrodlo::POROWNANIE)};  // pełna przyczyna braku porównania na całą szerokość
+    rysujTest(p, u);
+    zapisz(p, "test-najdluzsze-brak-porownania");
     // tryb awaryjny (R-AW-39, T-WYM-83): tylko wersja ze slotem, przyczyna i okno; stopka `◀ wróć`
     DaneTestu aw;
     aw.awaryjny = true;
-    aw.lewa = {{"Oprogramowanie", "1.0.0 (app1)"}, {"Tryb awaryjny", "błąd programu"}};
+    aw.lewa = {{"Oprogramowanie", "1.0.0 (app1)"}, {"Tryb awaryjny", "błąd programu", true, "tryb awaryjny"}};
     aw.ramkaLewo = "Wgrywanie przez Wi-Fi do 23:59";
     aw.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
-    rysujTest(p, aw);
+    {
+      const BateriaEkranu bylo = bateriaEkranu();
+      ustawBaterieEkranu(BateriaEkranu());  // tryb awaryjny nie mierzy baterii: belka z `–`
+      rysujTest(p, aw);
+      ustawBaterieEkranu(bylo);
+    }
     zapisz(p, "test-awaryjny");
   }
 
@@ -1577,7 +1807,7 @@ int main(int argc, char** argv) {
       if (k.ekranDnia) {
         rysujWzorzec(p, trescWzorca(*k.ekranDnia, w2));
       } else {
-        rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w2), naglowekDniaPrawo(w2)}, trescDnia("S2A", "3", w2));
+        rysujEkranDanych(p, belkaDnia(w2), trescDnia("S2A", "3", w2));
       }
       zapisz(p, plik);
     };
@@ -1606,14 +1836,14 @@ int main(int argc, char** argv) {
       DaneDnia w2 = d;
       w2.dzis = dzis;
       kolejka::ustawLinie(w2, kolejka::kolejkaLinii(k));
-      rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w2), naglowekDniaPrawo(w2)}, trescDnia("S2A", "3", w2));
+      rysujEkranDanych(p, belkaDnia(w2), trescDnia("S2A", "3", w2));
       zapisz(p, "bateria-e05-linia");
       DaneDnia w5 = d;
       w5.dzis = dzis;
       w5.e05Tytul = "Naładuj ekran";
       w5.e05Powod = "Bateria 4%.";
       w5.e05Krok = "→ Podłącz kabel USB-C.";
-      rysujEkranDanych(p, Naglowek{naglowekDniaLewo(w5), naglowekDniaPrawo(w5)}, trescDnia("S5", "E-05", w5));
+      rysujEkranDanych(p, belkaDnia(w5), trescDnia("S5", "E-05", w5));
       zapisz(p, "bateria-e05-s5");
       std::vector<sprawy::SprawaL> spA = sprawy::sprawyOtwarte(z, {wyn("L-06", "b", true)}, reguly::Pamiec(), f);
       const sprawy::SprawaL* a = sprawy::sprawaEkranuDnia(spA, dzis);
@@ -1668,7 +1898,7 @@ int main(int argc, char** argv) {
       kp.tytul = "Maska przecieka.";
       kp.powod = "Trzecią noc z rzędu ponad próg 24.";
       kp.tonProblem = true;
-      rysujKarte(p, {"pn 09.11", "dane 05:44"}, kp, scenaJest("B04") ? "B04" : "");
+      rysujKarte(p, {"Poranek", "pn 09.11 · odczyt 05:42"}, kp, scenaJest("B04") ? "B04" : "");
       zapisz(p, "b5-karta-problem");
     }
     DaneDnia nd = d;
@@ -1685,7 +1915,7 @@ int main(int argc, char** argv) {
   }
   {  // ekran „Raport dla lekarza” z kodem QR (R-raport-qr), po pobraniu, po ↻ 2 s, ściąga (R-sciaga), bez Wi-Fi
     DaneEkranuRaportu e;
-    e.naglowek = {"śr 04.11 · raport gotowy", "Wi-Fi włączone"};
+    e.naglowek = {"Raport", "śr 04.11 · raport gotowy · Wi-Fi włączone"};
     e.temat = "Bezdechy centralne utrwalone";
     e.okres = "Okres: 07.08–04.11 · 1 strona A4";
     e.adresQr = "http://192.168.1.47/r/f1b384krart14y2p6g97gnhm28/";
@@ -1702,7 +1932,7 @@ int main(int argc, char** argv) {
     rysujRaportQr(p, e);
     zapisz(p, "b13-raport-ogolny-starsze");
     // U-01 „Ustawienia” i U-03 formularz z kodem QR (stany: kod, zapisano, wynik sprawdzenia, bez Wi-Fi)
-    // U-01 jako strona 3 / 3, bez kursora: lista bieżących ustawień do odczytu (R-KONF-55)
+    // U-01 jako strona 3 / 3 (makieta 14.11.2026): dwie kolumny do odczytu i kafelki `PRZYTRZYMAJ 2 S` (R-KONF-55)
     {
       DaneUstawien u;
       u.ssid = "Dom-2.4GHz";
@@ -1710,29 +1940,132 @@ int main(int argc, char** argv) {
       u.miasto = "Katowice";
       u.co2 = 1;
       u.wersja = "1.0.0";
-      u.aktualizacja = aktualizacja::wierszU01(true, "", "1.0.0");
+      aktualizacja::KafelekOprogramowania k = aktualizacja::kafelekU01(true, "", "1.0.0", "14.11");
+      u.stanOprogramowania = k.stan;
       rysujUstawienia(p, u);
       zapisz(p, "p07-u01-ustawienia");
-      // najdłuższe wartości i znana nowsza wersja: wiersz `Jest wersja … · ↻ 2 s Aktualizacja` pod listą
+      // ze stroną „Sypialnia · 30 nocy” w ciągu (R-KOK-29): belka `Ustawienia 4 / 4`, stopka `◀ sypialnia`
+      ustawSypialnieWKokpicie(true);
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia-sypialnia");
+      ustawSypialnieWKokpicie(false);
+      // najdłuższe wartości i znana nowsza wersja: kafelek ↻ `jest {X} · zainstaluj` w odwróconym polu
       u.ssid = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
       u.abAdres = "bardzo-dluga-nazwa-airbridge-w-sieci.local:65535";
       u.miasto = MIASTO_ZE_WSPOLRZEDNYCH;
-      u.aktualizacja = aktualizacja::wierszU01(true, "1.12.3-rc.12", "1.0.0");
+      u.co2 = 0;
+      u.podpowiedz = false;
+      u.humor = 1;
+      u.sprawy = true;
+      k = aktualizacja::kafelekU01(true, "1.12.3-rc.12", "1.0.0", "14.11");
+      u.stanOprogramowania = k.stan;
+      u.stanOdwrocony = k.odwrocony;
+      u.jestAktualizacja = true;  // belka: `jest aktualizacja ·` przed baterią
       rysujUstawienia(p, u);
       zapisz(p, "p07-u01-ustawienia-nowa-wersja");
-      u.aktualizacja = aktualizacja::wierszU01(false, "", "1.0.0");
+      // obie wersje najdłuższe: wersja w drugiej linii kafelka
+      u.wersja = "12.12.12-rc.12";
+      k = aktualizacja::kafelekU01(true, "12.12.13-rc.12", "12.12.12-rc.12", "14.11");
+      u.stanOprogramowania = k.stan;
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia-najdluzsze");
+      u.wersja = "1.0.0";
+      u.jestAktualizacja = false;
+      u.dzwiek = false;
+      u.co2 = -1;
+      u.profilPubliczny = true;
+      u.sprawy = false;
+      k = aktualizacja::kafelekU01(false, "", "1.0.0", "");
+      u.stanOprogramowania = k.stan;
+      u.stanOdwrocony = k.odwrocony;
       rysujUstawienia(p, u);
       zapisz(p, "p07-u01-ustawienia-bez-klucza");
+      k = aktualizacja::kafelekU01(true, "", "1.0.0", "");
+      u.stanOprogramowania = k.stan;
+      rysujUstawienia(p, u);
+      zapisz(p, "p07-u01-ustawienia-niesprawdzone");
     }
-    {  // U-07 „Aktualizacja”: jest nowsza wersja
+    {  // U-07 „Aktualizacja” (makieta 14.11.2026): każdy stan StanU07; nieudane z każdym powodem z krokami
+      using aktualizacja::StanU07;
+      using aktualizacja::Powod;
       aktualizacja::DaneU07 d7;
-      d7.stan = aktualizacja::StanU07::NOWSZA;
       d7.wlasna = "1.0.0";
       d7.nowa = "1.1.0";
-      d7.sprawdzono = "10.11 09:12";
-      aktualizacja::TresciU07 t7 = aktualizacja::trescU07(d7);
-      rysujAktualizacje(p, t7.linie, t7.stopka);
-      zapisz(p, "akt-u07-jest-nowsza");
+      d7.sprawdzono = "14.11 09:12";
+      d7.procentBaterii = 31;
+      d7.coNowego = {"Portret nocy: łagodniejsze piki", "Znak na belce, gdy dane są nieaktualne",
+                     "Ustawienia w nowym układzie"};
+      struct S {
+        StanU07 st;
+        Powod pw;
+        const char* nazwa;
+      };
+      for (const S& c : {S{StanU07::SPRAWDZANIE, Powod::BRAK, "sprawdzanie"}, S{StanU07::AKTUALNA, Powod::BRAK, "aktualna"},
+                         S{StanU07::NOWSZA, Powod::BRAK, "jest-nowsza"}, S{StanU07::POBIERANIE, Powod::BRAK, "pobieranie"},
+                         S{StanU07::INSTALACJA, Powod::BRAK, "instalacja"},
+                         S{StanU07::SAMOSPRAWDZENIE, Powod::BRAK, "samosprawdzenie"},
+                         S{StanU07::PO_UDANEJ, Powod::BRAK, "po-udanej"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::USZKODZONY, "nieudana-uszkodzony"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::BATERIA, "nieudana-bateria"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::NIE_WSTALA, "nieudana-nie-wstala"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::INNY_PANEL, "nieudana-inny-panel"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::NOC, "nieudana-noc"},
+                         S{StanU07::PO_NIEUDANEJ, Powod::TOKEN_ODRZUCONY, "nieudana-klucz"},
+                         S{StanU07::WYLACZONE, Powod::BRAK_TOKENU, "wylaczone"},
+                         S{StanU07::SPRAWDZENIE_NIEUDANE, Powod::BRAK_SIECI, "sprawdzenie-brak-sieci"},
+                         S{StanU07::SPRAWDZENIE_NIEUDANE, Powod::BRAK_WYDAN, "sprawdzenie-brak-wydan"}}) {
+        d7.stan = c.st;
+        d7.powod = c.pw;
+        if (c.st == StanU07::PO_UDANEJ) d7.nowa = "1.1.0";
+        rysujAktualizacje(p, aktualizacja::trescU07(d7));
+        zapisz(p, (std::string("akt-u07-") + c.nazwa).c_str());
+      }
+      d7.stan = StanU07::NOWSZA;  // bez pola `nowosci` w wydaniu (stare wydania): blok pominięty
+      d7.coNowego.clear();
+      rysujAktualizacje(p, aktualizacja::trescU07(d7));
+      zapisz(p, "akt-u07-jest-nowsza-bez-co-nowego");
+      // najdłuższe: wersje kandydujące, 3 linie po 40 znaków najszerszymi literami (skrócone z `…`)
+      d7.wlasna = "12.12.12-rc.12";
+      d7.nowa = "12.12.13-rc.12";
+      d7.coNowego = {std::string(40, 'W'), "Ąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąą…",
+                     "Zapis bez znaków ◀ ▶ ↻ ◆ i emoji 😀 w środku"};
+      rysujAktualizacje(p, aktualizacja::trescU07(d7));
+      zapisz(p, "akt-u07-jest-nowsza-najdluzsze");
+      d7.stan = StanU07::POBIERANIE;
+      rysujAktualizacje(p, aktualizacja::trescU07(d7));
+      zapisz(p, "akt-u07-pobieranie-najdluzsze");
+      d7.stan = StanU07::PO_NIEUDANEJ;
+      d7.powod = Powod::NIE_WSTALA;
+      rysujAktualizacje(p, aktualizacja::trescU07(d7));
+      zapisz(p, "akt-u07-nieudana-najdluzsze");
+      // R-KONF-61: informacja po aktualizacji samodzielnej (na miejscu ekranu dnia; stopka ▶ dalej, ↻ ekran dnia)
+      aktualizacja::DaneU07 di;
+      di.samodzielnie = true;
+      di.procentBaterii = 76;
+      di.stan = StanU07::PO_UDANEJ;
+      di.wlasna = di.nowa = "1.1.0";
+      di.coNowego = {"Portret nocy: łagodniejsze piki", "Znak na belce, gdy dane są nieaktualne",
+                     "Ustawienia w nowym układzie"};
+      rysujAktualizacje(p, aktualizacja::trescU07(di));
+      zapisz(p, "akt-u07-samodzielnie-udana");
+      di.coNowego.clear();
+      rysujAktualizacje(p, aktualizacja::trescU07(di));
+      zapisz(p, "akt-u07-samodzielnie-bez-co-nowego");
+      di.stan = StanU07::PO_NIEUDANEJ;
+      di.powod = Powod::NIE_WSTALA;
+      di.wlasna = "1.0.0";
+      di.nowa = "1.1.0";
+      rysujAktualizacje(p, aktualizacja::trescU07(di));
+      zapisz(p, "akt-u07-samodzielnie-nieudana");
+      di.stan = StanU07::PO_UDANEJ;
+      di.wlasna = di.nowa = "12.12.13-rc.12";
+      di.coNowego = {std::string(40, 'W'), "Ąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąą…", std::string(40, 'M')};
+      rysujAktualizacje(p, aktualizacja::trescU07(di));
+      zapisz(p, "akt-u07-samodzielnie-najdluzsze");
+      di.stan = StanU07::PO_NIEUDANEJ;
+      di.wlasna = "12.12.12-rc.12";
+      rysujAktualizacje(p, aktualizacja::trescU07(di));
+      zapisz(p, "akt-u07-samodzielnie-nieudana-najdluzsze");
     }
     DaneFormularzaQr f;
     f.adresQr = "http://192.168.1.47/u/f1b384krart14y2p6g97gnhm28/";
@@ -1799,7 +2132,7 @@ int main(int argc, char** argv) {
     s.adresQr = "http://192.168.1.47/r/f1b384krart14y2p6g97gnhm28/edf";
     rysujSciage(p, s);
     zapisz(p, "b13-sciaga");
-    rysujRaportBezWifi(p, {"śr 04.11", ""}, "Bezdechy centralne utrwalone", "");
+    rysujRaportBezWifi(p, {"Raport", "śr 04.11"}, "Bezdechy centralne utrwalone", "");
     zapisz(p, "b13-raport-bez-wifi");
   }
   podgladB16(p);
@@ -1839,15 +2172,191 @@ int main(int argc, char** argv) {
     k.dzis = dzis;
     k.linieE = &le;
     kolejka::ustawLinie(e, kolejka::kolejkaLinii(k));
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(e), naglowekDniaPrawo(e)}, trescDnia("S2A", "3", e));
+    rysujEkranDanych(p, belkaDnia(e), trescDnia("S2A", "3", e));
     zapisz(p, "b14-s2a-linia-E-04");
     le.erase(le.begin());
     kolejka::ustawLinie(e, kolejka::kolejkaLinii(k));
-    rysujEkranDanych(p, Naglowek{naglowekDniaLewo(e), naglowekDniaPrawo(e)}, trescDnia("S2A", "3", e));
+    rysujEkranDanych(p, belkaDnia(e), trescDnia("S2A", "3", e));
     zapisz(p, "b14-s2a-linia-E-10");
   }
   makiety(p);
   podgladB15(p);
   podgladPortretu(p);
+  podgladSypialni(p, dzis);
+  {  // belka informacyjna (5.4.17): warianty środka K1 i stany baterii; reszta ekranów ma belkę z baterią 78%
+    DaneK1 kb = budujK1(h, dzis, nm, cz, &st);
+    kb.godzinaDanych = "07:05";
+    kb.ocena.clear();
+    kb.romb = false;
+    rysujK1(p, kb);
+    zapisz(p, "belka-k1-ocena-pelna");  // `cz 12.11 · odczyt 07:05`
+    kb.ocena = "ocena ograniczona";
+    rysujK1(p, kb);
+    zapisz(p, "belka-k1-ocena-ograniczona");  // ustępuje dzień tygodnia
+    kb.romb = true;
+    rysujK1(p, kb);
+    zapisz(p, "belka-k1-ocena-ograniczona-romb");  // ustępuje także `odczyt`
+    kb.ocena = "ocena częściowa";
+    kb.romb = false;
+    rysujK1(p, kb);
+    zapisz(p, "belka-k1-ocena-czesciowa");
+    DaneK1 kn = budujK1(h, dodajDni(dzis, 2), nm, cz, &st);  // R-KOK-04: ostatnia zapisana noc nie jest ubiegłą
+    kn.godzinaDanych = "07:05";
+    rysujK1(p, kn);
+    zapisz(p, "belka-k1-noc-nieubiegla");
+    rysujK1(p, budujK1({}, dzis, Norma(), cz));
+    zapisz(p, "belka-k1-brak-nocy");
+    BateriaEkranu b;
+    b.kabel = true;
+    b.procent = 100;
+    ustawBaterieEkranu(b);
+    rysujK1(p, kb);
+    zapisz(p, "belka-bateria-kabel");
+    {  // najciaśniejszy przypadek: ocena ograniczona z rombem przy `kabel`: data ustępuje, godzina zostaje
+      DaneK1 kk = kb;
+      kk.ocena = "ocena ograniczona";
+      kk.romb = true;
+      rysujK1(p, kk);
+      zapisz(p, "belka-k1-ocena-ograniczona-romb-kabel");
+    }
+    ustawBaterieEkranu(BateriaEkranu());
+    rysujK1(p, kb);
+    zapisz(p, "belka-bateria-nieznana");
+    // stopnie ikony: 5 belek jedna pod drugą (100, 70, 40, 15, 5%), tylko do oglądu pól wypełnienia
+    p.prostokat(0, 0, 800, 480, false);
+    int i = 0;
+    for (int proc : {100, 70, 40, 15, 5}) {
+      b = BateriaEkranu();
+      b.procent = proc;
+      rysujBaterie(p, 28 + 150 * i, 100, b, tekstBaterii(b));
+      i++;
+    }
+    b = BateriaEkranu();
+    b.kabel = true;
+    rysujBaterie(p, 28, 160, b, tekstBaterii(b));
+    b = BateriaEkranu();
+    rysujBaterie(p, 178, 160, b, tekstBaterii(b));
+    zapisz(p, "belka-bateria-stopnie");
+    b = BateriaEkranu();
+    b.procent = 78;
+    ustawBaterieEkranu(b);
+  }
+  {  // znaki stanu danych na belce (R-EKR-67…R-EKR-69): każdy stan na ekranie
+     // dnia, Portrecie, K1, ekranie w negatywie (S3) i karcie, plus najciaśniejsze teksty; pliki `belka-znak-*`
+    BateriaEkranu b78;
+    b78.procent = 78;
+    ustawBaterieEkranu(b78);
+    const std::string dz = "2026-11-14";  // sobota; ostatnia noc 13.11
+    std::vector<Noc> hz = historia(dodajDni(dz, -1), 0), hd = historia(dz, 0);
+    Stany sz = liczStany(hz, dz, {}), sd = liczStany(hd, dz, {});
+    DaneDnia stary, swiezy;
+    stary.dzis = swiezy.dzis = dz;
+    stary.hist = &hz;
+    stary.stany = &sz;
+    stary.norma = sz.norma;
+    swiezy.hist = &hd;
+    swiezy.stany = &sd;
+    swiezy.norma = sd.norma;
+    swiezy.godzinaImportu = "07:12";
+    for (DaneDnia* x : {&stary, &swiezy}) {
+      x->pogoda = "Katowice 8° · pochmurno";
+      x->przyLozku = "przy łóżku 21° · 45%";
+    }
+    portret::Przebieg pr = przebiegS11(false, true, true);
+    DanePortretu dp;
+    dp.tryb = "AutoSet";
+    dp.zwykla = 11 * 60 + 30;
+    dp.czas = "7 h 30";
+    dp.ahi = "3,4";
+    dp.przebieg = &pr;
+    struct Stan_ {
+      const char* nazwa;
+      bool nieakt, pob, wer;
+    };
+    const Stan_ stany[] = {{"swieze", false, false, false},   {"nieaktualne", true, false, false},
+                           {"pobieram", false, true, false},  {"nowa-wersja", false, false, true},
+                           {"wszystkie", true, true, true}};
+    for (const Stan_& z : stany) {
+      ZnakiBelki zb;
+      zb.nieaktualne = z.nieakt;
+      zb.daneZ = "13.11";
+      zb.pobieram = z.pob;
+      zb.nowaWersja = z.wer;
+      ustawZnakiBelki(zb);
+      DaneDnia& dz_ = z.nieakt ? stary : swiezy;
+      const std::string nz = z.nazwa;
+      rysujEkranDanych(p, belkaDnia(dz_), trescDnia("S2A", "3", dz_));
+      zapisz(p, ("belka-znak-" + nz + "-ekran-dnia").c_str());
+      {
+        TrescEkranu t;
+        t.uklad = Uklad::PORTRET;
+        t.portret = &dp;
+        t.stopkaStandardowa = true;
+        t.stopkaLewo = dz_.pogoda;
+        t.stopkaPrawo = dz_.przyLozku;
+        rysujEkranDanych(p, belkaPortretu(dz_), t);
+        zapisz(p, ("belka-znak-" + nz + "-portret").c_str());
+      }
+      DaneK1 k = budujK1(z.nieakt ? hz : hd, dz, (z.nieakt ? sz : sd).norma, cz, z.nieakt ? &sz : &sd);
+      k.godzinaDanych = z.nieakt ? "" : "07:12";
+      rysujK1(p, k);
+      zapisz(p, ("belka-znak-" + nz + "-k1").c_str());
+      rysujWzorzec(p, zdarzenia::trescZdarzenia(b14::sprawaE("E-23"), dz_));  // S3 w negatywie, belka z belkaDnia()
+      zapisz(p, ("belka-znak-" + nz + "-negatyw-s3").c_str());
+      TrescEkranu tk = trescDnia("S5", "1", dz_);
+      rysujKarte(p, belkaDnia(dz_), tk, "B04");
+      zapisz(p, ("belka-znak-" + nz + "-karta").c_str());
+      // K2 (pole przy nieaktualnych), U-01 i „Sypialnia · 30 nocy” (bez pola; znak wersji tak)
+      DaneK2 k2z = budujK2(z.nieakt ? hz : hd, dz, (z.nieakt ? sz : sd).norma, cz, z.nieakt ? &sz : &sd);
+      k2z.godzinaDanych = z.nieakt ? "" : "07:12";
+      ustawSypialnieWKokpicie(true);
+      rysujK2(p, k2z);
+      zapisz(p, ("belka-znak-" + nz + "-k2").c_str());
+      {
+        DaneUstawien u;
+        u.ssid = "Dom-2.4GHz";
+        u.abAdres = "192.168.1.40";
+        u.miasto = "Katowice";
+        u.co2 = 1;
+        u.wersja = "1.0.0";
+        u.stanOprogramowania = aktualizacja::kafelekU01(true, z.wer ? "1.1.0" : "", "1.0.0", "14.11").stan;
+        rysujUstawienia(p, u);
+        zapisz(p, ("belka-znak-" + nz + "-u01").c_str());
+      }
+      rysujSyp30(p, budujSyp30(noceSypialni(dz, 30, true), dz, {}));
+      zapisz(p, ("belka-znak-" + nz + "-sypialnia").c_str());
+      ustawSypialnieWKokpicie(false);
+    }
+    {  // najciaśniej: K1 z nocą nieubiegłą, rombem i oceną ograniczoną, kabel, wszystkie znaki (znaki ustępują)
+      ZnakiBelki zb;
+      zb.nieaktualne = zb.pobieram = zb.nowaWersja = true;
+      zb.daneZ = "28.08";
+      ustawZnakiBelki(zb);
+      BateriaEkranu bk;
+      bk.kabel = true;
+      bk.procent = 100;
+      ustawBaterieEkranu(bk);
+      DaneK1 k = budujK1(hz, dz, sz.norma, cz, &sz);
+      k.dataNocy = "28.08";
+      k.romb = true;
+      k.ocena = "ocena ograniczona";
+      rysujK1(p, k);
+      zapisz(p, "belka-znak-najdluzsze-k1-kabel");
+      zb.nieaktualne = false;
+      ustawZnakiBelki(zb);
+      DaneK1 kp = budujK1(hd, dz, sd.norma, cz, &sd);
+      kp.godzinaDanych = "08:08";
+      kp.romb = true;
+      kp.ocena = "ocena ograniczona";
+      rysujK1(p, kp);
+      zapisz(p, "belka-znak-najdluzsze-k1-pobieram-wersja");
+      zb.nieaktualne = true;
+      ustawZnakiBelki(zb);
+      rysujEkranDanych(p, belkaPortretu(stary), trescDnia("S2A", "3", stary));
+      zapisz(p, "belka-znak-najdluzsze-portret-kabel");
+    }
+    ustawZnakiBelki(ZnakiBelki());
+    ustawBaterieEkranu(b78);
+  }
   return 0;
 }

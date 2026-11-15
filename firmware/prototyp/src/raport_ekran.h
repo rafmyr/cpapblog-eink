@@ -8,7 +8,7 @@
 #include "ekrany.h"
 
 struct DaneEkranuRaportu {
-  Naglowek naglowek;      // `{dzień tyg.} {data} · raport gotowy` / `Wi-Fi włączone`
+  Belka naglowek;      // `{dzień tyg.} {data} · raport gotowy` / `Wi-Fi włączone`
   std::string temat;      // tytuł wzorca L albo `Raport ogólny, 90 nocy`
   std::string okres;      // `Okres: {od}–{do} · 1 strona A4`
   std::string adresQr;    // treść kodu QR (adres z tokenem)
@@ -24,7 +24,7 @@ struct DaneEkranuRaportu {
 bool rysujRaportQr(Plotno& p, const DaneEkranuRaportu& d);
 
 struct DaneSciagi {
-  Naglowek naglowek;
+  Belka naglowek;
   std::string temat, pytanie;
   std::string liczby[3];  // 30 nocy przed · od początku wzorca · ostatnie 7
   std::string etykiety[3];
@@ -39,4 +39,4 @@ int rysujKodQr(Plotno& p, int x, int y, int bok, const std::string& tresc);
 
 // R-LEK-22: `Nie mogę włączyć Wi-Fi` (raport w pamięci panelu); ścieżka pliku na karcie tylko, gdy jest karta (panel
 // w wersji beta nie obsługuje karty microSD, więc `sciezkaKarty` pusta). Stopka `◀ wróć` · `▶ dalej` · `↻ ekran dnia`.
-void rysujRaportBezWifi(Plotno& p, const Naglowek& n, const std::string& temat, const std::string& sciezkaKarty);
+void rysujRaportBezWifi(Plotno& p, const Belka& n, const std::string& temat, const std::string& sciezkaKarty);

@@ -256,10 +256,13 @@ int rangaTypu(const std::string& typEkranuDnia);
 const WpisHumoru* wpisDzis(const std::vector<WpisHumoru>& d, const std::string& dzis, bool wieczorny);
 bool typB16(const std::string& typ);         // SK03…SK12, SK14…SK21, SK27, SK29, SK30, SK31, SK32
 bool typWieczorny(const std::string& typ);   // SK03…SK09
+// Nazwa ekranu w lewym polu belki (5.4.17): `Wieczór` dla ekranów slotu wieczornego i tygodniowego (typ wieczorny
+// albo grupa `W…`, `T…` tabeli 7.2, także gdy ten sam ekran wraca w slocie nocnym z wpisu dziennika), inaczej `Poranek`.
+const char* nazwaBelki(const Tresc& t);
 
 // Rysowanie (szablon A, kanwa „interfejs docelowy v1” artboardy SKnn, skala B): nagłówek, linia uwagi, etykieta,
 // tytuł SB44, powód P28B (2 linie), wizualizacja, krok, stopka. Ton „problem” w negatywie (S3, R-EKR-52).
-void rysuj(Plotno& p, const Naglowek& n, const Tresc& t, const std::string& stopkaLewo, const std::string& stopkaPrawo);
+void rysuj(Plotno& p, const Belka& n, const Tresc& t, const std::string& stopkaLewo, const std::string& stopkaPrawo);
 
 // Tekst z zestawu (teksty.csv) z podstawionymi zmiennymi; "" gdy brak.
 std::string tekst(const std::string& idTekstu, const std::map<std::string, std::string>& zmienne = {});

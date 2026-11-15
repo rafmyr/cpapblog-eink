@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// U-01 po połączeniu listy ustawień do odczytu (R-KONF-55) z wierszem stanu oprogramowania (R-KONF-43, R-KONF-46,
-// R-NF-33): dyrygent na atrapach rysuje na U-01 właściwy wiersz aktualizacji we wszystkich trzech stanach (token
-// i nowsza wersja, token bez nowszej, bez tokenu), wiersz mieści się w 744 px także przy długiej własnej wersji,
-// a tekst wiersza nie odsyła do elementu, którego na U-01 nie ma. Dane syntetyczne.
+// U-01 po połączeniu listy ustawień do odczytu (R-KONF-55) ze stanem oprogramowania (R-KONF-43, R-KONF-46, R-NF-33):
+// dyrygent na atrapach rysuje na U-01 właściwy kafelek ↻ we wszystkich trzech stanach (token i nowsza wersja, token
+// bez nowszej, bez tokenu; od 14.11.2026 kafelek zamiast wiersza pod listą), a tekst U-07 bez tokenu nie odsyła do
+// elementu, którego na U-01 nie ma. Szerokości kafelka: test/testy_kokpit_legenda_u01_sprzet.cpp. Dane syntetyczne.
 // Uruchomienie: tools/prototyp/testy.sh (program testy_scalenie_u01_stopka).
 #include <cstdio>
 #include <cstdlib>
@@ -56,17 +56,18 @@ static void naU01(Panel& p) {
   d.wybudzenie();
 }
 
-// pas pikseli y0…y1 bufora 1 bit (100 bajtów na wiersz)
-static bool pasRowny(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b, int y0, int y1) {
+// prostokąt bajtów bx0…bx1 (po 8 px) i y0…y1 bufora 1 bit (100 bajtów na wiersz)
+static bool polaRowne(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b, int bx0, int bx1, int y0, int y1) {
   for (int y = y0; y < y1; y++)
-    for (int x = 0; x < 100; x++)
+    for (int x = bx0; x < bx1; x++)
       if (a[(size_t)(y * 100 + x)] != b[(size_t)(y * 100 + x)]) return false;
   return true;
 }
 
-// ---------- dyrygent: wiersz aktualizacji pod listą U-01 we wszystkich trzech stanach ----------
+// ---------- dyrygent: kafelek ↻ oprogramowania na U-01 we wszystkich trzech stanach ----------
+// (od 14.11.2026 kafelek zamiast wiersza pod listą, decyzja 2; wiersz zostaje w logu `U-01 · …`)
 // wymaganie: R-KONF-55, R-KONF-43, R-NF-33
-static void testDyrygentWierszAktualizacjiU01() {
+static void testDyrygentKafelekU01() {
   struct Przypadek {
     bool token;
     std::string znana;
@@ -83,34 +84,28 @@ static void testDyrygentWierszAktualizacjiU01() {
     if (p.ekran.klatki.empty()) continue;
     const std::vector<uint8_t>& klatka = p.ekran.klatki.back();
     std::string wlasna = aktualizacja::bezBudowy(wersjaWydania(p.start.napisWersji));
-    std::string oczek = aktualizacja::wierszU01(c.token, c.znana, wlasna);
-    // wzorzec: sam wiersz w miejscu z rysujUstawienia() (P22B, x 28, linia bazowa 338) na białym tle
+    aktualizacja::KafelekOprogramowania k = aktualizacja::kafelekU01(c.token, c.znana, wlasna, "");
+    // wzorzec: U-01 z tą samą wersją i stanem; porównany sam kafelek ↻ (x 496…772, y 254…350)
+    DaneUstawien d;
+    d.wersja = wlasna;
+    d.stanOprogramowania = k.stan;
+    d.stanOdwrocony = k.odwrocony;
     PlotnoAtrapy wz;
-    tekst(wz, F_P22B, 28, 338, oczek);
-    bool rowny = pasRowny(klatka, wz.b, 318, 345);
-    if (!rowny) printf("  U-01 z dyrygenta: pas wiersza aktualizacji różny od `%s`\n", oczek.c_str());
+    rysujUstawienia(wz, d);
+    bool rowny = polaRowne(klatka, wz.b, 496 / 8, 776 / 8, 254, 351);
+    if (!rowny) printf("  U-01 z dyrygenta: kafelek ↻ różny od `%s`\n", k.stan.c_str());
     SPRAWDZ(rowny);
-    // token nigdy w klatce jako tekst: wiersz ze wzorca nie zawiera znacznika tokenu
-    SPRAWDZ(oczek.find("ZNACZNIKTOKENU") == std::string::npos && oczek.find("github_pat") == std::string::npos);
+    SPRAWDZ(k.odwrocony == (c.token && !c.znana.empty()));
+    // token nigdy w klatce jako tekst: stan kafelka i wiersz logu bez znacznika tokenu
+    std::string w = aktualizacja::wierszU01(c.token, c.znana, wlasna) + k.stan;
+    SPRAWDZ(w.find("ZNACZNIKTOKENU") == std::string::npos && w.find("github_pat") == std::string::npos);
   }
 }
 
-// ---------- szerokość wiersza aktualizacji przy długich wersjach (P22B, 744 px) ----------
-// wymaganie: R-KONF-55
-static void testSzerokoscWierszaPrzyDlugiejWersji() {
-  // własna wersja długa (wydanie kandydujące), bez nowszej: `Oprogramowanie {wersja} · ↻ 2 s Sprawdź aktualizację`
-  std::string t = aktualizacja::wierszU01(true, "", "1.12.3-rc.12");
-  if (szer(F_P22B, t) > 744) printf("  %d px: %s\n", szer(F_P22B, t), t.c_str());
-  SPRAWDZ(szer(F_P22B, t) <= 744);
-  // obie wersje długie: `Jest wersja {X} · ↻ 2 s Aktualizacja`
-  t = aktualizacja::wierszU01(true, "12.12.12-rc.12", "1.12.3-rc.12");
-  SPRAWDZ(szer(F_P22B, t) <= 744);
-}
-
-// ---------- tekst wiersza nie odsyła do pozycji, której na U-01 nie ma ----------
+// ---------- tekst stanu nie odsyła do pozycji, której na U-01 nie ma ----------
 // wymaganie: R-KONF-55, R-NF-33
 static void testOdeslanieDoIstniejacegoElementu() {
-  // bez tokenu wiersz mówi `Ustaw je w „Więcej na telefonie”.`; ta nazwa musi stać na U-01 (podpowiedź pod listą),
+  // bez tokenu U-07 mówi `Ustaw je w „Więcej na telefonie”.`; ta nazwa musi stać na U-01 (kafelek ▶),
   // inaczej tekst odsyła do elementu, którego na ekranie nie ma
   std::string t = aktualizacja::wierszU01(false, "", "1.0.0");
   const std::string cel = "Więcej na telefonie";
@@ -121,15 +116,15 @@ static void testOdeslanieDoIstniejacegoElementu() {
   bool jest = false;
   DaneUstawien d;
   for (auto& w : wierszeUstawien(d)) jest = jest || w.nazwa.find(cel) != std::string::npos;
-  for (const char* x : {U01_PODPOWIEDZ[0], U01_PODPOWIEDZ[1], U01_GRANICA}) jest = jest || std::string(x).find(cel) != std::string::npos;
+  for (const char* x : {U01_KAFELEK_TYTUL[0], U01_KAFELEK_TYTUL[1], U01_GRANICA})
+    jest = jest || std::string(x).find(cel) != std::string::npos;
   for (auto& s : stopkaU01()) jest = jest || s.find(cel) != std::string::npos;
   if (!jest) printf("  U-01: `%s` odsyła do „%s”, którego na U-01 ani na formularzu już nie ma\n", t.c_str(), cel.c_str());
   SPRAWDZ(jest);
 }
 
 int main() {
-  testDyrygentWierszAktualizacjiU01();
-  testSzerokoscWierszaPrzyDlugiejWersji();
+  testDyrygentKafelekU01();
   testOdeslanieDoIstniejacegoElementu();
   printf("testy_scalenie_u01_stopka: %d dobrze, %d źle\n", ok, zle);
   return zle ? 1 : 0;

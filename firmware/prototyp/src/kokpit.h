@@ -72,19 +72,23 @@ std::string dopisekTrenduK1(const std::string& nazwaWiersza, const std::string& 
 extern const char* const OPIS_DUZY_WYCIEK;
 
 struct DaneK1 {
-  std::string naglowek;  // `Ostatnia noc · czw 12.11` albo `Noc 18.10` (R-KOK-04)
-  // R-KOK-21: prawa część nagłówka przed numerem strony: `ocena częściowa` albo `ocena ograniczona`; "" = ocena pełna
-  // (sam numer `1 / 3`). Ustawia budujK1() ze stanów (ocenaNaglowkaK1), dyrygent nadpisuje stanem po ocenie silnika.
+  // Noc w środku belki (src/ekrany.h belkaK1()): data ostatniej zapisanej nocy (`12.11`, "" = brak nocy) i skrót
+  // dnia tygodnia (`cz`) przy nocy ubiegłej; przy nocy nieubiegłej środek zaczyna się od `noc 18.10` (R-KOK-04)
+  std::string dataNocy, dzienNocy;
+  // R-KOK-21: w środku belki `ocena częściowa` albo `ocena ograniczona`; "" = ocena pełna. Ustawia budujK1() ze
+  // stanów (ocenaNaglowkaK1), dyrygent nadpisuje stanem po ocenie silnika.
   std::string ocena;
-  // R-KOK-26: godzina pobrania danych (`07:12`, jak w nagłówku porannym, R-EKR-04) dopisywana w nagłówku po dacie
-  // jako ` · dane 07:12`, tylko gdy ostatnia noc jest nocą ubiegłą (`ubiegla`); "" = nieznana, bez dopisku. Ustawia
-  // dyrygent.
+  // R-KOK-26: godzina importu nocy (`07:12`) dopisywana w środku belki po dacie jako ` · odczyt 07:12`, tylko gdy
+  // ostatnia noc jest nocą ubiegłą (`ubiegla`); "" = nieznana, bez dopisku. Ustawia dyrygent.
   std::string godzinaDanych;
-  bool ubiegla = false;  // ostatnia zapisana noc jest nocą ubiegłą (nagłówek `Ostatnia noc · …`, nie `Noc {data}`)
+  bool ubiegla = false;  // ostatnia zapisana noc jest nocą ubiegłą (środek `pt 13.11 …`, nie `noc {data}`)
   bool romb = false;     // R-KOK-14
   bool jestNoc = false;  // jest noc, o którą można zapytać (↻ 2 s, R-CZY-08)
-  // podpis ◀ w stopce, gdy ◀ nie prowadzi do ekranu dnia: K1 otwarte ze strony Portretu (R-POR-24) → `◀ portret nocy`
-  // (tekst `S11.stopka_wstecz`); "" = `◀ ekran dnia`
+  // stan ciągu do stopki (R-KOK-35): przy innej kolejności stron (R-KOK-34) sąsiadem K1 bywa K2 z „Co znaczą te
+  // liczby” i „Otwartymi sprawami”; ustawia dyrygent jak w K2 (domyślna kolejność: bez wpływu na stopkę)
+  bool sprawyWCiagu = false, profilPubliczny = false;
+  // podpis ◀ w stopce, gdy ◀ nie prowadzi do strony przed K1: K1 pierwszą stroną ciągu otwartą ze strony Portretu
+  // (R-POR-24) → `◀ portret nocy` (tekst `S11.stopka_wstecz`); "" = strona przed K1 (domyślnie `◀ ekran dnia`)
   std::string stopkaWstecz;
   // (5.5.2 „Odkrycie o czynniku”, R-CZY-20): K1 otwarty z ekranu dnia O-12 z ukrytym czynnikiem: pod nagłówkiem
   // pełny tytuł i powód O-12 zamiast 4 liczb (brak kanwy tego wariantu: do decyzji); "" = zwykły K1
@@ -118,7 +122,8 @@ struct WierszK2 {
 };
 
 struct DaneK2 {
-  std::string zakres;  // `3–9 listopada` albo `28.10–3.11` (T4: małymi literami); nagłówek `Ostatnie 7 nocy · {zakres}`
+  std::string zakres;  // `3–9.11` albo `28.10–3.11`: zakres dat w środku belki (src/ekrany.h belkaK2())
+  std::string godzinaDanych;  // R-KOK-26: ta sama chwila co w K1 (` · odczyt 05:46`); "" = bez dopisku; ustawia dyrygent
   std::string zdanie;
   std::string kol[7];
   bool romb[7] = {};
@@ -127,6 +132,9 @@ struct DaneK2 {
   WierszK2 w[WIERSZE];
   bool sprawy = true;   // za K2 „Otwarte sprawy” (co najmniej jedna sprawa, R-KOK-19): stopka `▶ sprawy`
   bool liczby = false;  // profil publiczny: za K2 „Co znaczą te liczby” (`▶ liczby`, R-KOK-22); bez obu `▶ ustawienia`
+  // podpis ◀, gdy K2 jest pierwszą stroną ciągu otwartą ze strony Portretu (R-POR-24): `◀ portret nocy`
+  // (tekst `S11.stopka_wstecz`); "" = strona przed K2 w ciągu
+  std::string stopkaWstecz;
   // R-KOK-24: `→ Pasmo AHI wysokie. Obserwuj kolejne noce.` pod legendą przy P90 normy AHI ≥ R-EKR-36.p90_ahi, tylko
   // CPAP i AutoSet (w ASV i ASVAuto brak miejsca); "" = bez linii
   std::string krokPasma;

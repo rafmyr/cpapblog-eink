@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Treść raportu A4 (spec 5.13.3, 5.13.4). Składanie PDF: src/raport_pdf.cpp.
+#include "nawigacja.h"
 #include "raport.h"
 
 #include <algorithm>
@@ -31,7 +32,9 @@ std::string bezKropki(std::string s) {
 }
 std::string bezKontroli(const std::string& l) {  // linia C bez `Na kontroli: raport 2 / 3.` (5.13.2)
   // starsze postacie z zestawu danych z karty (ADR-0023): numer sprzed ADR-0041 i nazwa robocza sprzed 10.11.2026
-  static const char* const K[] = {" Na kontroli: raport 2 / 3.", " Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+  // każdy numer strony `{n} / {N}` (R-KOK-30, R-KOK-36: przy innej kolejności stron K2 bywa `1 / 3`, `3 / 4`, …)
+  if (size_t n = dlugoscKontroliZNumerem(l)) return l.substr(0, l.size() - n);
+  static const char* const K[] = {" Na kontroli: raport z K2."};
   for (const char* k : K) {
     const std::string s(k);
     if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());

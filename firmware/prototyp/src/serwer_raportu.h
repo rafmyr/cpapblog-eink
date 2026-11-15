@@ -18,6 +18,14 @@ const uint32_t CZAS_MS = 15u * 60u * 1000u;  // 15 min [PRÓG] (R-LEK-04)
 const int ZLE_MAKS = 5;                      // [PRÓG] żądań bez ważnego tokenu (R-LEK-03b)
 const int DNI_LISTY = 90;                    // [PRÓG] raporty na liście (R-LEK-32)
 const int BAJTY_TOKENU = 16;                 // 128 bitów (T-NF-27)
+// Najwięcej bajtów ciała POST formularza (adapter przestaje składać ciało po tej liczbie, rdzeń odrzuca dłuższe z 413).
+// 8 KB [PRÓG] od 14.11.2026 (po przeglądzie ADR-0045; wcześniej 4 KB): realny najgorszy przypadek
+// strony z sekcją „Ekrany” (pola z `maxlength` do końca znakami wymagającymi `%XX`, SSID 32 B UTF-8, pola bez
+// `maxlength` po 30 znaków dwubajtowych) ma 3 984 B, czyli przy 4 KB zapasu prawie nie było (test
+// testy_kolejnosc_ekranow.cpp); teoretyczny (pola z `maxlength` znakami dwubajtowymi) 5 706 B, w rachunku przegląd
+// (także listy i daty dwubajtowo) 7 202 B. Koszt: do 8 KB ciała i tyle argumentów WebServer na stercie w chwili
+// zapisu (strona odpowiedzi powstaje później).
+const size_t MAKS_CIALA_POST = size_t{8} * 1024;
 
 // Token z 16 bajtów: 26 znaków [0-9a-hjkmnp-tv-z].
 std::string token(const uint8_t bajty[BAJTY_TOKENU]);

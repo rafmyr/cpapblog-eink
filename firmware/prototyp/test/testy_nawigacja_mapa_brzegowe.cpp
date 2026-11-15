@@ -329,7 +329,7 @@ static void testStopek() {
   TRZYMA(stopkaSpraw(1, 3) == std::vector<std::string>({"◀ 7 nocy", "▶ następna", "↻ ekran dnia"}));
   TRZYMA(stopkaSpraw(3, 3)[1] == "▶ ustawienia" && stopkaSpraw(2, 3)[0] == "◀ poprzednia");
   TRZYMA(stopkaSpraw(1, 0)[0] == "◀ 7 nocy" && stopkaSpraw(1, 0)[1] == "▶ ustawienia");
-  TRZYMA(stopkaU01()[0] == "◀ 7 nocy · 2 s sieć" && stopkaU01(true)[0] == "◀ sprawy · 2 s sieć");
+  TRZYMA(stopkaU01()[0] == "◀ 7 nocy" && stopkaU01(true)[0] == "◀ sprawy");  // przytrzymania w kafelkach (14.11.2026)
   TRZYMA(stopkaWzorca(true) == std::vector<std::string>({"◀ 2 s omówione", "▶ kokpit · 2 s raport", "↻ 2 s wiem"}));
   TRZYMA(stopkaWzorca(false) == std::vector<std::string>({"▶ kokpit", "↻ 2 s wiem"}));
   TRZYMA(stopkaPytania() == std::vector<std::string>({"◀ wstecz · 2 s pomiń", "▶ dalej", "↻ zaznacz · 2 s zapisz"}));

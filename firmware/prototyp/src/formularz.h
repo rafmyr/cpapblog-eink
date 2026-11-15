@@ -18,6 +18,7 @@
 
 #include "sekrety.h"
 #include "serwer_raportu.h"
+#include "uklad_ekranow.h"
 
 namespace formularz {
 
@@ -54,8 +55,15 @@ struct Pola {
   std::string aktualizacjaAuto = "nie";  // `tak` | `nie`
   bool kluczWydan = false;               // token wydań zapisany w pamięci panelu (wołający ustawia z NVS)
   bool hasloOkna = false;                // hasło okna serwisowego w pamięci panelu (wołający ustawia z NVS)
+  // R-KONF-59: numer wydania oprogramowania w nagłówku strony (`wersja {X}`); ustawia wołający (dyrygent, ten sam
+  // napis co U-01), "" = bez wersji w nagłówku
+  std::string wersja;
+  // sekcja „Ekrany” (ADR-0045, R-KONF-60): układ kokpitu i ekranów dziennych z pliku (parsujUstawieniaDnia)
+  UkladEkranow ekrany;
 };
 // Pola z `/konfiguracja.txt` i sekretów (stan przed formularzem). `zrodloOto` = panel ma lokalne źródło otoczenia.
+// `wymiana.filtr` w innej postaci niż RRRR-MM-DD = pole puste; `okres.*` dłuższe niż MAKS_OKRESU_Z_PLIKU bajtów
+// przycięte (taka wartość i tak jest zła: poprawna ma najwyżej 3 cyfry).
 // `szerSecrets` i `dlSecrets` = `POGODA_LAT` i `POGODA_LON` z secrets.h (NAN = brak): bez `miasto=` w pliku formularz
 // zaznacza miasto z listy, jeśli te współrzędne leżą w granicy 0,05° od niego, inaczej „nie wybrano”.
 Pola zPliku(const std::string& konfiguracja, const sekrety::Dane& s, bool zrodloOto = false, double szerSecrets = NAN,
@@ -64,8 +72,8 @@ Pola zPliku(const std::string& konfiguracja, const sekrety::Dane& s, bool zrodlo
 // Ucieczka znaków HTML (treść i wartości atrybutów): < > & " ' (XSS przez nazwę sieci, R-KONF-38).
 std::string html(const std::string& s);
 // Ciało `application/x-www-form-urlencoded` → pary (dekodowanie `+` i `%XX`; zły `%` zostaje dosłownie). Ostatni
-// wygrywa. Najwyżej MAKS_CIALA bajtów (więcej = puste).
-const size_t MAKS_CIALA = 4096;
+// wygrywa. Najwyżej MAKS_CIALA bajtów (więcej = puste); ta sama granica co w adapterze (serwer::MAKS_CIALA_POST).
+const size_t MAKS_CIALA = serwer::MAKS_CIALA_POST;
 std::map<std::string, std::string> parsujCialo(const std::string& cialo);
 // Kodowanie odwrotne (adapter ESP32 składa ciało z argumentów WebServer, testy).
 std::string koduj(const std::string& s);
@@ -91,6 +99,10 @@ struct Wynik {
 };
 // `dzis` RRRR-MM-DD: daty wymiany z przyszłości odrzucone (R-KONF-34). `obecne` = sekrety przed formularzem.
 Wynik waliduj(const std::map<std::string, std::string>& pola, const sekrety::Dane& obecne, const std::string& dzis);
+// Sekcja „Ekrany” (ADR-0045, R-KONF-60; woła ją waliduj()): pola `ekrany_start`, `kk_start`, `dk_start`, `kk_{id}`,
+// `dk_{id}`, `pokaz_{id}` → w.plik[`kokpit.kolejnosc`, `kokpit.ukryte`, `dzien.kolejnosc`, `dzien.ukryte`] ("" = domyślne,
+// wiersz usuwany). Bez `ekrany_start` nic; zła wartość miejsca → błąd przy polu, układ bez zmian (R-KONF-18).
+void walidujEkrany(const std::map<std::string, std::string>& pola, Wynik& w);
 // Adres AirBridge: IPv4 z sieci prywatnej albo nazwa `.local`, opcjonalnie `:{port}` 1–65535 (5.6.4, R-KONF-40).
 bool adresAirBridgeOk(const std::string& a);
 
@@ -100,6 +112,15 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 
 // Strona formularza. `akcja` = ścieżka POST (`/u/{token}/`); `komunikat` nad formularzem (np. `Zapisano o 21:14.`,
 // wynik sprawdzenia AirBridge); `bledy` przy polach. Bez zewnętrznych zasobów (bez http/https w atrybutach).
+// Układ z 14.11.2026 (R-KONF-59): sekcje zwijane `<details>` z bieżącą wartością w nagłówku (nigdy hasło ani klucz),
+// sekcja z błędem otwarta (także „Dźwięk i humor” przy wyłączonym dźwięku), przycisk `Zapisz na panelu` przyklejony
+// do dołu, licznik niezapisanych zmian z małego skryptu w stronie (bez skryptu ukryty; po odesłaniu z błędami ukryty do
+// pierwszej zmiany pola; nazwy pól, walidacja i zapis bez zmian), wersja w nagłówku. Składana w jednym `std::string`
+// z rezerwacją REZERWACJA_STRONY bajtów: najgorszy realny przypadek (najdłuższe sekrety z samych znaków ucieczki,
+// prawdziwe błędy wszystkich pól, najdłuższy komunikat dyrygenta) mieści się w niej bez realokacji.
+const size_t REZERWACJA_STRONY = size_t{20} * 1024;  // od ADR-0045 (sekcja „Ekrany”) 20 KB, wcześniej 16 KB
+// Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
+const size_t MAKS_OKRESU_Z_PLIKU = 8;
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,
                    const std::map<std::string, std::string>& bledy);
 
@@ -124,9 +145,10 @@ class Sesja {
   std::string sciezka() const { return "/u/" + token_ + "/"; }
   std::string adresQr() const { return "http://" + adres_ + sciezka(); }
   std::string adresReczny() const { return adres_ + "/u/" + token_; }
-  // `metoda` "GET" albo "POST"; `strona` = bieżąca strona formularza (GET).
+  // `metoda` "GET" albo "POST"; `strona` = bieżąca strona formularza (GET), przenoszona do odpowiedzi bez kopii
+  // (strona ma do 20 KB rezerwacji, druga kopia podwajała szczyt sterty przy podawaniu strony).
   Odpowiedz obsluz(const std::string& metoda, const std::string& sciezka, const std::string& cialo, uint32_t ms,
-                   const std::string& strona);
+                   std::string strona);
   int zleZadania() const { return zle_; }
 
  private:

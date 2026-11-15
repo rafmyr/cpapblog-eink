@@ -403,6 +403,7 @@ std::string nazwaCelu(Ekran e) {
     case Ekran::SPRAWY: return "sprawy";
     case Ekran::NORMA: return "norma";
     case Ekran::LICZBY: return "liczby";
+    case Ekran::SYPIALNIA: return "sypialnia";
     case Ekran::SPRZET: return "sprzet";
     case Ekran::USTAWIENIA: return "ustawienia";
     case Ekran::FORMULARZ: return "formularz";
@@ -424,7 +425,8 @@ std::string nazwaEkranu(const Klatka& k, const std::vector<std::string>& log, Pl
     case Ekran::RAPORT: return "raport";
     case Ekran::LICZBY: return "liczby";           // „Co znaczą te liczby”, bez numeru (R-KOK-22)
     case Ekran::SPRZET_ZAPISANO: return "sprzet-zapisano";  // `Wymiana zapisana.` (R-MAS-01, R-MAS-18)
-    case Ekran::USTAWIENIA: return "ustawienia";   // strona 3 / 3
+    case Ekran::SYPIALNIA: return "sypialnia";     // „Sypialnia · 30 nocy”, strona 3 / 4 (R-KOK-29)
+    case Ekran::USTAWIENIA: return "ustawienia";   // strona 3 / 3, ze stroną sypialni 4 / 4
     case Ekran::FORMULARZ: return "formularz";     // U-03
     case Ekran::SIEC_PANELU: return "siec-panelu"; // U-02
     default: break;

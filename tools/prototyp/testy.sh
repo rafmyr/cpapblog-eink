@@ -122,6 +122,10 @@ echo "testy rytmu na zasilaniu zewnętrznym (test/testy_zasilanie_rytm.cpp: R-DA
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zasilanie_rytm.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zasilanie_rytm"
 "$BUD/testy_zasilanie_rytm"
 
+echo "testy belki informacyjnej (test/testy_belka.cpp: R-EKR-63…R-EKR-66 pola, ustępowanie środka, ikona baterii, ekrany bez belki; R-KON-69 niska bateria w stopce dnia)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_belka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka"
+"$BUD/testy_belka"
+
 echo "testy magazynu danych (test/testy_magazyn_danych.cpp: magazyn danych, migracje, układ pamięci 32 MB, przywracanie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_magazyn_danych.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_magazyn_danych"
 "$BUD/testy_magazyn_danych"
@@ -169,10 +173,10 @@ printf '2026-11-04T07:15 prawy\n2026-11-04T07:17 srodkowy\n2026-11-04T13:00 praw
 "$BUD/symulator" --dane "$SYM/zrzut" --od 2026-11-04T05:00 --do 2026-11-04T23:59 --przyciski "$SYM/przyciski.txt" \
   --wyjscie "$SYM/wynik"
 ls "$SYM/wynik" | grep -q -- '-0715-K1\.pbm$' || { echo "BŁĄD: symulator bez K1 po ▶ o 07:15"; exit 1; }
-GD_RANO="$(sed -n 's/^2026-11-04 07:15:00  K1: godzina danych \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
-GD_POL="$(sed -n 's/^2026-11-04 13:00:00  K1: godzina danych \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
+GD_RANO="$(sed -n 's/^2026-11-04 07:15:00  K1: godzina odczytu \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
+GD_POL="$(sed -n 's/^2026-11-04 13:00:00  K1: godzina odczytu \([0-9:]*\) (R-KOK-26)$/\1/p' "$SYM/wynik/log-panelu.txt" | head -1)"
 if [ -z "$GD_RANO" ] || [ "$GD_RANO" != "$GD_POL" ]; then
-  echo "BŁĄD: godzina danych K1 rano „$GD_RANO”, o 13:00 „$GD_POL” (R-KOK-26: ma być ta sama chwila importu nocy)"; exit 1
+  echo "BŁĄD: godzina odczytu K1 rano „$GD_RANO”, o 13:00 „$GD_POL” (R-KOK-26: ma być ta sama chwila importu nocy)"; exit 1
 fi
 ls "$SYM/wynik" | grep -q -- '-Dobranoc\.pbm$' || { echo "BŁĄD: symulator bez ekranu Dobranoc"; exit 1; }
 echo "  symulator: ok ($SYM/wynik)"
@@ -406,6 +410,17 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_nawigacja.cpp" "${O
 echo "testy przypadków brzegowych: mapa nawigacji 5.6.2 tabelarycznie (test/testy_nawigacja_mapa_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_nawigacja_mapa_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_nawigacja_mapa_brzegowe"
 "$BUD/testy_nawigacja_mapa_brzegowe"
+echo "testy strony kokpitu „Sypialnia · 30 nocy” (test/testy_sypialnia_30.cpp: R-KOK-29…R-KOK-33, ciąg n / 4, ADR-0044)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_sypialnia_30.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_sypialnia_30"
+echo "testy kolejności i widoczności ekranów z telefonu (test/testy_kolejnosc_ekranow.cpp: R-KOK-34…R-KOK-36, R-KON-70…R-KON-72, R-KONF-60, ADR-0045)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_kolejnosc_ekranow.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_ekranow"
+"$BUD/testy_kolejnosc_ekranow"
+echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
+"$BUD/testy_kolejnosc_portret"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_slot_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_slot_dyrygent"
+"$BUD/testy_kolejnosc_slot_dyrygent"
+"$BUD/testy_sypialnia_30"
 
 echo "testy (test/testy_formularz_u03.cpp: formularz U-03 uzupełniony: miasto, CO2, humor, dźwięk, cisza, podpowiedź, czynniki)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_formularz_u03.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_formularz_u03"
@@ -427,10 +442,30 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja.cpp" "
 "$BUD/testy_aktualizacja"
 echo "scenariusze aktualizacji z dyrygentem na atrapach (test/testy_aktualizacja_dyrygent.cpp: R-NF-32…36, R-KONF-43…46, R-EKR-61)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja_dyrygent"
+echo "informacja po aktualizacji samodzielnej (test/testy_karta_po_aktualizacji.cpp: R-KONF-61)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_po_aktualizacji.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_po_aktualizacji"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_po_aktualizacji_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_po_aktualizacji_portret"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_po_aktualizacji_pytanie.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_po_aktualizacji_pytanie"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_po_aktualizacji_slot.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_po_aktualizacji_slot"
+# testy brzegowe informacji po aktualizacji, od 15.11.2026 blokujące
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_po_aktualizacji_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_po_aktualizacji_brzegowe"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_slot_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_karta_slot_brzegowe"
+"$BUD/testy_karta_po_aktualizacji_portret"
+"$BUD/testy_karta_po_aktualizacji"
+"$BUD/testy_karta_po_aktualizacji_pytanie"
+"$BUD/testy_karta_po_aktualizacji_slot"
+"$BUD/testy_karta_po_aktualizacji_brzegowe"
+"$BUD/testy_karta_slot_brzegowe"
 "$BUD/testy_aktualizacja_dyrygent"
 echo "testy przypadków brzegowych aktualizacji (test/testy_aktualizacja_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja_brzegowe"
 "$BUD/testy_aktualizacja_brzegowe"
-echo "testy U-01 z aktualizacją (test/testy_scalenie_u01_stopka.cpp: wiersz aktualizacji z dyrygenta, szerokość, odesłanie do istniejącego elementu)"
+echo "testy U-01 z aktualizacją (test/testy_scalenie_u01_stopka.cpp: kafelek ↻ z dyrygenta, odesłanie do istniejącego elementu)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_scalenie_u01_stopka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_scalenie_u01_stopka"
 "$BUD/testy_scalenie_u01_stopka"
+echo "testy brzegowe ekranów serwisowych (test/testy_ekrany_serwisowe_brzegowe.cpp: U-05 werdykt i wiersze, U-07, „Co nowego”, U-01 kafelek; 0 usterek)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_ekrany_serwisowe_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ekrany_serwisowe_brzegowe"
+(cd "$FW" && "$BUD/testy_ekrany_serwisowe_brzegowe")  # czyta src/dyrygent.cpp (przypadek [i]); blokuje przy usterce
+echo "testy brzegowe znaków belki (test/testy_belka_znaki_brzegowe.cpp: dane nieaktualne, klepsydra, znak wersji, U-05 pobieram; 0 błędów)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_belka_znaki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka_znaki_brzegowe"
+"$BUD/testy_belka_znaki_brzegowe"  # blokuje przy błędzie

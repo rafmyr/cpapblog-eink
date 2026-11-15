@@ -32,7 +32,7 @@ struct DaneS7 {
 DaneS7 budujS7(const std::string& dzis, const std::vector<Noc>& hist, reguly::Tryb tryb, bool profilPubliczny,
                int minNocy = 20);
 TrescEkranu trescS7(const DaneS7& d);  // etykieta i stopka; liczby i zdanie dorysowuje rysujS7()
-void rysujS7(Plotno& p, const Naglowek& n, const DaneS7& d, const TrescEkranu& t);
+void rysujS7(Plotno& p, const Belka& n, const DaneS7& d, const TrescEkranu& t);
 
 // ---------- S8 (5.4.8, R-EKR-33…R-EKR-36) ----------
 struct WejscieS8 {
@@ -53,7 +53,7 @@ DaneS8 budujS8(const WejscieS8& w);
 // Kandydat R7 jednorazowo (R-EKR-33): panel ma pierwszy raz 30 nocy ważnych w oknie normy i S8 nie było pokazane.
 bool kandydatS8(const Norma& n, bool pokazane);
 TrescEkranu trescS8(const DaneS8& d);
-void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t);
+void rysujS8(Plotno& p, const Belka& n, const DaneS8& d, const TrescEkranu& t);
 
 // ---------- „Co znaczą te liczby” (5.4.14, R-EKR-51) ----------
 struct WierszLiczb { std::string nazwa, opis; };  // `Czas z maską:` + ` ile godzin aparat pracował.`
@@ -66,11 +66,12 @@ struct DaneLiczb {
   std::string stopkaLewo = "◀ 7 nocy   ▶ ustawienia   ↻ ekran dnia";  // 5.5.7 „Stopki stron”
 };
 // `sprawy`: za tą stroną stoją „Otwarte sprawy” (▶ sprawy), inaczej U-01 (▶ ustawienia), R-KOK-22.
-DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy = false);
-void rysujLiczby(Plotno& p, const Naglowek& n, const DaneLiczb& d);
+// `sypialnia`: bez spraw ▶ prowadzi do strony „Sypialnia · 30 nocy” (R-KOK-29)
+DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy = false, bool sypialnia = sypialniaWKokpicie());
+void rysujLiczby(Plotno& p, const Belka& n, const DaneLiczb& d);
 
 // ---------- S1: odkrycie jako ekran danych (6.5, R-HUM-13) ----------
 TrescEkranu trescS1(const odkrycia::TrescOdkrycia& o);  // tytuł, powód, krok, fakty karty (2 słupki)
-void rysujOdkrycie(Plotno& p, const Naglowek& n, const odkrycia::TrescOdkrycia& o, const TrescEkranu& t);
+void rysujOdkrycie(Plotno& p, const Belka& n, const odkrycia::TrescOdkrycia& o, const TrescEkranu& t);
 
 }  // namespace podsumowanie

@@ -4,7 +4,7 @@ Podstawa: [ADR-0032](../../docs/decisions/0032-aktualizacja-firmware-z-github.md
 
 | Plik | Co robi |
 |---|---|
-| `wydaj.py` | buduje obraz bez sekretów (`pio run -e e1001_wydanie`, flaga `BEZ_SEKRETOW`), sprawdza, że w obrazie nie ma wartości z lokalnego `include/secrets.h`, że mieści się w slocie 4 MB i ma nagłówek obrazu ESP32, liczy SHA-256, pisze `cpap-eink-{wersja}.bin`, `wydanie.json` i `nota.md` w `build/wydanie-{wersja}/`; z `--publikuj` tworzy wydanie `v{wersja}` (`gh release create`) |
+| `wydaj.py` | (od 14.11.2026 z `--nowosc`: linie „Co nowego” na ekranie aktualizacji panelu, `--sprawdz-nowosci`: sama kontrola linii) buduje obraz bez sekretów (`pio run -e e1001_wydanie`, flaga `BEZ_SEKRETOW`), sprawdza, że w obrazie nie ma wartości z lokalnego `include/secrets.h`, że mieści się w slocie 4 MB i ma nagłówek obrazu ESP32, liczy SHA-256, pisze `cpap-eink-{wersja}.bin`, `wydanie.json` i `nota.md` w `build/wydanie-{wersja}/`; z `--publikuj` tworzy wydanie `v{wersja}` (`gh release create`) |
 | `wydaj.sh` | wydanie jednym poleceniem na Macu: bramki (main, CI), numer, pytanie „tak”, `wydaj.py --publikuj`, sprawdzenie na GitHubie |
 | `certyfikaty.py` | z pakietu certyfikatów Mozilli (certifi) pisze `firmware/prototyp/src/certyfikaty_github.h`: certyfikaty główne serwerów GitHuba wkompilowane w firmware (od 10.11.2026 także ISRG Root X1 i X2, bo serwer plików wydań ma certyfikat Let's Encrypt; HTTPS z weryfikacją) |
 
@@ -30,6 +30,7 @@ Co robi, po kolei, i kiedy odmawia (bez publikacji):
 |---|---|
 | repo na gałęzi `main`, bez niezapisanych zmian, równo z GitHubem (sam dociąga nowsze commity) | inna gałąź, zmiany lokalne, lokalne commity spoza GitHuba |
 | CI na tym commicie: wszystkie sprawdzenia zakończone sukcesem | CI w toku albo czerwone |
+| linie „Co nowego” (od 14.11.2026, R-KONF-56): do 3, po najwyżej 40 znaków, Enter kończy; bez linii wydanie bez pola | linia za długa, ze znakami, których panel nie wyświetli (emoji, `◀ ▶ ↻`), albo o ustawieniach aparatu (np. `Obniż EPR o 1`, `OBNIZ EPR`, `7 cmH2O`, `Ustaw tryb CPAP`; ADR-0002, reguły niżej) |
 | numer wersji: następny po najwyższym wydaniu (`1.0.0-beta.2` → `1.0.0-beta.3`, `1.0.1` → `1.0.2`); ręcznie: `tools/wydanie/wydaj.sh 1.0.1` | wydanie o tym numerze już jest |
 | podsumowanie (wersja, commit, repo) i pytanie | odpowiedź inna niż `tak` |
 | budowa obrazu bez sekretów, kontrola obrazu, `wydanie.json`, publikacja (`wydaj.py --publikuj`) | błąd budowy albo kontroli |
@@ -54,6 +55,15 @@ Numer wersji: `MAJOR.MINOR.PATCH[-pre]`, wyższy od wersji na panelach (panel in
 ```
 {"wersja":"1.0.1","plytka":"reterminal_e1001","uklad":"0x1a2b3c4d","rozmiar":1700000,"sha256":"…","plik":"cpap-eink-1.0.1.bin"}
 ```
+
+Od 14.11.2026 opcjonalnie na końcu `"nowosci":["Portret nocy: łagodniejsze piki","…"]` (`--nowosc`, do 3 linii po 40 znaków): panel pokazuje je na ekranie aktualizacji U-07 pod `CO NOWEGO`; od 14.11.2026 (R-KONF-61) zobaczy je też użytkownik z instalacją samodzielną (automat): po aktualizacji panel raz pokazuje `Zaktualizowano do {X}.` z tą listą na miejscu ekranu slotu dziennego (od 15.11.2026 nigdy rano, decyzja 12). Panele sprzed tej zmiany pole pomijają, panele po zmianie bez pola pomijają blok; pole nie wpływa na instalację (zły typ pola daje pustą listę, pole z błędem JSON panel wycina; opis ponad 4096 B jest odrzucany w całości). Teksty mówią o panelu, nie o aparacie (ADR-0002). Filtr `wydaj.narusza_adr0002()` działa na tekście bez wielkich liter i ogonków, z indeksami `₂` jako cyframi (od przeglądu 14.11.2026) i odrzuca linię, gdy:
+
+- ma jednostkę ciśnienia albo liczbę z `cm` (`7 cm`, `cmH2O`, `cm H₂O`, `hPa`, `mbar`);
+- liczba stoi obok słowa o ustawieniu aparatu lub terapii (EPR, EPAP, IPAP, PS, ciśnienie, rampa, nawilżanie, temperatura rury lub nawilżacza, minimum, maksimum, CPAP, APAP, AutoSet, ASV), także przez `na`, `do`, `o`, `od`, `=`, `:` (`EPR na 2`, `Min. ciśnienie 7`, `EPR3`);
+- czasownik o ustawieniu w dowolnej odmianie (ustaw, obniż, zwiększ, zmniejsz, podnieś, włącz, wyłącz, przestaw, zmień, przełącz) stoi w linii ze słowem o aparacie albo nazwą trybu (`Wyłącz rampę`, `Ustaw tryb CPAP`); rzeczownik `ustawienia` się nie liczy;
+- tryb jest celem ustawienia (`tryb CPAP`, `na APAP`).
+
+Przechodzą zwykłe opisy panelu: `Portret nocy: łagodniejsze piki`, `Ustawienia w nowym układzie`, `Nowy wykres ciśnienia w kokpicie`, `Ekran sypialni: wykres CO2 z 30 nocy`, `Sypialnia: temperatura 22° na belce`. Przypadki w testach: `tools/test_wydanie.py`, `tools/test_nowosci_brzegowe.py` (12 obejść z recenzji i podobne, fałszywe odrzucenia).
 
 `uklad` to identyfikator tablicy partycji (`firmware/prototyp/uklad_partycji.py`, ten sam algorytm co firmware). Panel instaluje tylko przy zgodnej płytce i układzie, rozmiarze do slotu i skrócie równym skrótowi pobranego pliku (`src/aktualizacja.cpp` `parsujOpis()`, `decyzjaInstalacji()`).
 

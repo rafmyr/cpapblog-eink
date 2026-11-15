@@ -228,10 +228,9 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   DaneK1 d;
   const Noc* ost = ostatniaNoc(hist, dzis);
   std::string koniec = ost ? ost->data : dzis;
-  if (!ost) d.naglowek = "Ostatnia noc";
-  else if (ost->data == dzis) d.naglowek = std::string("Ostatnia noc · ") + DNI_KROTKO[dzienTygodnia(dzis)] + " " + ddmm(dzis);
-  else d.naglowek = "Noc " + ddmm(ost->data);  // R-KOK-04
   d.ubiegla = ost && ost->data == dzis;
+  if (ost) d.dataNocy = ddmm(ost->data);  // przy nocy nieubiegłej belka mówi `noc 18.10` (R-KOK-04)
+  if (d.ubiegla) d.dzienNocy = DNI_KROTKO[dzienTygodnia(dzis)];
   d.romb = ost && romb(wpisZDnia(cz, ost->data));
   d.jestNoc = ost != nullptr;
   d.ocena = ocenaNaglowkaK1(st);  // R-KOK-21
@@ -320,11 +319,11 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
   if (!ost) trybZeStatusu(tr, trybStatusu);
   bool asv = tr.asv();
   std::string od = dodajDni(koniec, -6);
-  if (od.substr(5, 2) == koniec.substr(5, 2))
-    d.zakres = std::to_string(liczba(od.substr(8, 2))) + "–" + std::to_string(liczba(koniec.substr(8, 2))) + " " +
-               MIESIACE_D[liczba(koniec.substr(5, 2)) - 1];
-  else
-    d.zakres = ddmm(od) + "–" + ddmm(koniec);
+  // zakres dat w środku belki K2: `3–9.11`, na przełomie miesięcy `28.10–3.11`
+  d.zakres = od.substr(5, 2) == koniec.substr(5, 2)
+                 ? std::to_string(liczba(od.substr(8, 2))) + "–" + std::to_string(liczba(koniec.substr(8, 2))) + "." +
+                       koniec.substr(5, 2)
+                 : ddmm(od) + "–" + ddmm(koniec);
   const Noc* noce[7];
   int ponad4 = 0, zapisane = 0;
   for (int i = 0; i < 7; i++) {

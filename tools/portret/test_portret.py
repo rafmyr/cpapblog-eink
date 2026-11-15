@@ -59,14 +59,20 @@ def test_pik_w_znanej_godzinie(karta):
     d = _noc(karta, "2026-11-02")
     x = d["przebieg"]["odcinki"][_u(4, 5) // 5]
     assert x["zew"] == 5
-    assert rysunek.wysokosc_zewn(d, x) == pytest.approx(36 * (0.35 + 0.65 * 4 / 6))  # 28,2 px
+    # od 14.11.2026 0,75 dawnej skali: 27 · (0,35 + 0,65 · 4/6) = 21,15 px; w 1/16 px jak w panelu 338 (21,125 px)
+    assert rysunek.wysokosc_zewn(d, x) == pytest.approx(27 * (0.35 + 0.65 * 4 / 6))
+    assert rysunek.pik_zewn16(d, x) == 338
     o = rysunek.rysuj(d)
     srodek = _u(4, 7) * 60 + 30
-    assert o.czarny(*_punkt(srodek, 134 + 25))
-    assert not o.czarny(*_punkt(srodek, 134 + 31))
-    # 1 OA o 01:30 → pik 12,6 px (≥ 12 px)
+    assert o.czarny(*_punkt(srodek, 134 + 19))
+    assert not o.czarny(*_punkt(srodek, 134 + 23))
+    # „dzwon” (R-POR-11): 10 min od czubka jeszcze garb (21,125 · exp(−600²/(2·420²)) ≈ 7,6 px), 20 min od czubka nic
+    assert o.czarny(*_punkt(srodek + 600, 134 + 5))
+    assert not o.czarny(*_punkt(srodek + 1200, 134 + 2))
+    # 1 OA o 01:30 → pik 9,45 px (≥ 9 px)
     x = d["przebieg"]["odcinki"][_u(1, 30) // 5]
-    assert x["zew"] == 1 and rysunek.wysokosc_zewn(d, x) == pytest.approx(12.6)
+    assert x["zew"] == 1 and rysunek.wysokosc_zewn(d, x) == pytest.approx(9.45)
+    assert rysunek.pik_zewn16(d, x) == 151
     # RERA o 03:40 bez piku
     assert d["przebieg"]["odcinki"][_u(3, 40) // 5]["zew"] == 0
 
@@ -74,14 +80,15 @@ def test_pik_w_znanej_godzinie(karta):
 def test_pik_do_srodka_nie_schodzi_ponizej_98(karta):
     d = _noc(karta, "2026-11-02")
     x = d["przebieg"]["odcinki"][_u(2, 0) // 5]
-    assert x["centr"] == 2 and rysunek.wysokosc_wewn(d, x) == pytest.approx(10.8333, abs=1e-3)
-    # skrajny przypadek: 12 centralnych → 20 px, najniżej promień 98
+    assert x["centr"] == 2 and rysunek.wysokosc_wewn(d, x) == pytest.approx(8.125)
+    # skrajny przypadek: 12 centralnych → 15 px (od 14.11.2026), najniżej promień 103 (spec: ≥ 98)
     x["centr"] = 12
-    assert rysunek.wysokosc_wewn(d, x) == pytest.approx(20.0)
+    assert rysunek.wysokosc_wewn(d, x) == pytest.approx(15.0)
+    assert rysunek.pik_wewn16(d, x) == 240
     o = rysunek.rysuj(d)
     srodek = _u(2, 2) * 60 + 30
-    assert o.czarny(*_punkt(srodek, 99))
-    for r in (95, 96, 97):
+    assert o.czarny(*_punkt(srodek, 104))
+    for r in (95, 96, 97, 98, 101):
         assert not o.czarny(*_punkt(srodek, r))
 
 
@@ -169,8 +176,10 @@ def test_asv_piki_wsparcia_i_kropki(karta):
     d = _noc(karta, "2026-11-04", norma_ps=5.0)
     odc = d["przebieg"]["odcinki"]
     assert odc[_u(2, 0) // 5]["ps"] == 70 and odc[_u(3, 0) // 5]["ps"] == 110 and odc[_u(4, 0) // 5]["ps"] == 69
-    assert rysunek.wysokosc_zewn(d, odc[_u(2, 0) // 5]) == pytest.approx(16.2)
-    assert rysunek.wysokosc_zewn(d, odc[_u(3, 0) // 5]) == pytest.approx(36.0)
+    assert rysunek.wysokosc_zewn(d, odc[_u(2, 0) // 5]) == pytest.approx(12.15)
+    assert rysunek.wysokosc_zewn(d, odc[_u(3, 0) // 5]) == pytest.approx(27.0)
+    assert rysunek.pik_zewn16(d, odc[_u(2, 0) // 5]) == 194 and rysunek.pik_zewn16(d, odc[_u(3, 0) // 5]) == 432
+    assert rysunek.pik_zewn16(d, odc[_u(3, 0) // 5], rysunek.SKALA_LINII) == 367
     assert rysunek.wysokosc_zewn(d, odc[_u(4, 0) // 5]) == 0
     assert rysunek.wysokosc_wewn(d, odc[_u(2, 0) // 5]) == 0  # ASV bez pików do środka (ADR-0037)
     o = rysunek.rysuj(d)
@@ -698,3 +707,132 @@ def test_szerokosc_kreski_znacznika(skala):
                     pole += 1
         szer = pole / (r_in - 1 - (r1 + 1))
         assert 3.5 <= szer <= 5.6, (w, szer)
+
+
+# ---------- kształt piku „dzwon” (R-POR-11, zmiana 2026-11-14, decyzja właściciela projektu 14.11.2026, wariant B) ----------
+
+def test_tabela_exp_jak_w_panelu():
+    """Ta sama tabela exp w obu językach i równa round(exp(−x²/2) · 65536) dla x = i/21 (przy σ = 420 s: d = 20·i s)."""
+    import re
+    zrodlo = os.path.join(_TU, "..", "..", "firmware", "prototyp", "src", "portret_ekran.cpp")
+    with open(zrodlo, encoding="utf-8") as f:
+        t = f.read()
+    m = re.search(r"EXP_GARBU\[64\] = \{([^}]*)\}", t)
+    assert m
+    panel = tuple(int(v) for v in m.group(1).replace("\n", " ").split(",") if v.strip())
+    assert panel == rysunek.EXP_GARBU
+    assert len(panel) == 64 and rysunek.KROKI_NA_SIGMA * 3 == 63
+    assert panel == tuple(round(math.exp(-(i / 21) ** 2 / 2) * 65536) for i in range(64))
+    assert panel == tuple(round(math.exp(-(20 * i) ** 2 / (2 * 420 ** 2)) * 65536) for i in range(64))
+    for nazwa, v in (("SIGMA_S", 420), ("KROKI_NA_SIGMA", 21), ("PROG_GARBU16", 12), ("PIK_ZEWN_PX", 27),
+                     ("PIK_ZEWN_MIN_PX", 9), ("PIK_WEWN_PX", 15)):
+        assert re.search(r"\b%s = %d\b" % (nazwa, v), t), nazwa
+        assert getattr(rysunek, nazwa) == v
+
+
+def test_dzwon_jak_w_panelu():
+    """Te same liczby co testR_POR_11_dzwon() w test/testy_portret.cpp (panel i wzorzec liczą piki identycznie)."""
+    g = rysunek.garb16
+    assert all(g(h, 0) == h for h in range(1, 433))
+    for h in (144, 151, 194, 240, 367, 432):
+        for d in range(1260):
+            assert abs(g(h, d) - h * math.exp(-d * d / (2 * 420 * 420))) <= 1.0
+            assert g(h, d) == g(h, -d)
+            assert d == 0 or g(h, d) <= g(h, d - 1)
+    assert g(432, 1260) == g(432, -1260) == g(432, 5000) == g(0, 0) == 0
+    assert (g(432, 300), g(432, 150), g(432, 630)) == (335, 405, 140)
+    assert (g(144, 1000), g(432, 1259), g(240, 777)) == (8, 5, 43)
+    o = rysunek.obwiednia16
+    h = {10: 432}
+    assert o(h, 3150) == 432
+    assert o(h, 3150 + 1000) == 25 and o(h, 3150 + 1131) == 12
+    assert o(h, 3150 + 1134) == 0 and o(h, 3150 - 1134) == 0      # poniżej 0,75 px nie rysowany
+    h[11] = 432
+    assert o(h, 3300) == 405                                       # maksimum, nie suma
+    assert o(h, 3150) == 432 and o(h, 3450) == 432
+    del h[11]
+    h[9] = 194
+    assert o(h, 2850) == 335
+    assert max(o(h, u) for u in range(6000)) == 432
+    e = {0: 432, 287: 432}
+    assert o(e, 150) == 432 and o(e, -200) > 0 and o(e, 288 * 300 + 200) > 0
+
+
+def test_pik_zewn_co_najmniej_9_px():
+    """R-POR-09: każdy pik na zewnątrz CPAP i AutoSet co najmniej 9 px (także w skali 0,85: 7,65 px)."""
+    d = {"tryb": "AutoSet", "norma_ps10": None, "przebieg": {"braki": ""}}
+    for k in range(1, 13):
+        x = {"zew": k, "centr": 0, "ps": None}
+        assert rysunek.pik_zewn16(d, x) >= 9 * 16
+        assert rysunek.pik_zewn16(d, x) <= 27 * 16
+        assert rysunek.pik_zewn16(d, x, 85) >= 9 * 16 * 85 // 100
+
+
+# ---------- testy brzegowe (14.11.2026): pik tylko w sesji, znacznik na piku ----------
+@pytest.mark.parametrize("sesje,piki", [
+    ([(660, 840), (860, 1100)], (835, 860)),   # pik-przy-przerwie-20-min
+    ([(660, 900)], (895,)),                    # pik-koniec-sesji
+    ([(660, 840), (850, 1100)], (835,)),       # pik w krótkiej przerwie 10 min
+])
+@pytest.mark.parametrize("linia", ["", "Co było inaczej? ↻ 2 s"])
+def test_pik_nie_wychodzi_poza_sesje(sesje, piki, linia):
+    """R-POR-11, każdy czarny piksel w pasie pików (promienie 96–172 poza torem pierścienia) ma kąt tarczy w sesji
+    (0 s poza sesją), poza okolicą znacznika startu (±20 min); żaden nie jest odosobniony (bez sąsiada w 8 kierunkach)."""
+    skala = 85 if linia else 100
+    cy = (rysunek.GORA_TRESCI + (rysunek.WYS_LINII if linia else 0) + rysunek.DOL_TRESCI) // 2
+    r_in, r_out, r_min, r_max = _sk(118, skala), _sk(134, skala), _sk(96, skala), _sk(172, skala)
+    d = _noc_znacznika(sesje, 720)
+    d["linia"] = linia
+    for m in piki:
+        d["przebieg"]["odcinki"][m // 5].update(zew=7, centr=7)
+    w = rysunek.okno(d)
+    assert w == 600
+    o = rysunek.rysuj(d)
+    poza, samotne, w_pasie = [], 0, 0
+    for y in range(cy - r_max, cy + r_max + 1):
+        for x in range(CX - r_max, CX + r_max + 1):
+            dx, dy = x - CX, y - cy
+            r2 = dx * dx + dy * dy
+            if r2 < r_min * r_min or r2 >= r_max * r_max or r_in * r_in <= r2 < r_out * r_out or not o.czarny(x, y):
+                continue
+            q = (math.atan2(dx, -dy) % (2 * math.pi)) / (2 * math.pi) * 43200.0
+            od_startu = (q - w * 60) % 43200.0
+            if od_startu < 1200 or od_startu > 43200 - 1200:
+                continue
+            w_pasie += 1
+            u = w * 60 + od_startu
+            if not any(a * 60 <= u < b * 60 for a, b in sesje):
+                poza.append((x, y, u))
+            if not any(o.czarny(x + ex, y + ey) for ex in (-1, 0, 1) for ey in (-1, 0, 1) if ex or ey):
+                samotne += 1
+    assert w_pasie > 200
+    assert poza == []
+    assert samotne == 0
+
+
+@pytest.mark.parametrize("w", [0, 300, 570, 715])
+@pytest.mark.parametrize("ostatni", [False, True])
+@pytest.mark.parametrize("linia", ["", "Co było inaczej? ↻ 2 s"])
+def test_znacznik_czytelny_na_piku(w, ostatni, linia):
+    """R-POR-06, pik na zewnątrz i do środka (7 zdarzeń, 7 centralnych) w pierwszym albo ostatnim odcinku okna,
+    sesja przez brzeg okna: niezmienniki znacznika i biała obwódka 2 px (te same punkty co testR_POR_06_znacznikNaPiku
+    w panelu)."""
+    skala = 85 if linia else 100
+    cy = (rysunek.GORA_TRESCI + (rysunek.WYS_LINII if linia else 0) + rysunek.DOL_TRESCI) // 2
+    r1, r_in, r_out, r2 = _sk(110, skala), _sk(118, skala), _sk(134, skala), _sk(150, skala)
+    A = r2 - 7.5
+    sesje = [(w + 200, w + 720)] if ostatni else [(max(0, w - 30), w + 30), (w + 200, w + 715)]
+    d = _noc_znacznika(sesje, w + 120)
+    d["linia"] = linia
+    d["przebieg"]["odcinki"][(w + 715 if ostatni else w) // 5].update(zew=7, centr=7)
+    assert rysunek.okno(d) == w
+    o = rysunek.rysuj(d)
+    assert _znacznik_zawsze(o, w, cy, skala) == []
+    zle = [("nad", a) for a in range(r_out + 3, r2 - 1) if o.czarny(*_zn_punkt(w, a, -3.5, cy))]
+    zle += [("pod", a, t) for a in range(r1 + 1, r_in - 1) for t in (-3.5, 3.5) if o.czarny(*_zn_punkt(w, a, t, cy))]
+    if o.czarny(*_zn_punkt(w, A, 16.2, cy)):
+        zle.append(("czubek",))
+    for t in (6.0, 9.0):
+        pol = (15.0 - t) * 28.0 / 51.0 + 1.1
+        zle += [("bok", t, s) for s in (1, -1) if o.czarny(*_zn_punkt(w, A + s * pol, t, cy))]
+    assert zle == []

@@ -218,7 +218,64 @@ static void testR_KONF_44_instalacjaPrzyciskiem() {
   SPRAWDZ(wTekstach(t, "U-07 · Zainstalowano wersję 1.0.1."));
   aktualizacja::Stan s = aktualizacja::wczytaj(p.nvs);
   SPRAWDZ(s.instalujeNa.empty() && s.znana.empty() && s.probNieudanych == 0);
-  SPRAWDZ(wTekstach(t, "Oprogramowanie: 1.0.1 (app0)"));  // U-05 bez dopisku
+  SPRAWDZ(wTekstach(t, "Oprogramowanie: 1.0.1"));  // U-05 bez dopisku (slot tylko w logu, 14.11.2026)
+}
+
+// ---------- R-KONF-56: „Co nowego” z opisu wydania na U-07, zapis w NVS, stare wydania bez bloku ----------
+// wymaganie: R-KONF-56
+static void testR_KONF_56_coNowegoZWydania() {
+  Panel p;
+  zToken(p);
+  p.wydania.ustaw("1.0.1", obrazTestowy(), ukladWkompilowany(), PLYTKA_WYDANIA,
+                  {"Portret nocy: łagodniejsze piki", "Ustawienia w nowym układzie"});
+  przyciskiem(p, ep(2026, 11, 10, 9, 0), Ekran::USTAWIENIA, B_SRODEK, 2500);  // ↻ 2 s na U-01
+  TekstyWybudzenia t = wybudz(p);
+  SPRAWDZ(wTekstach(t, "U-07 · Jest wersja 1.0.1. Masz 1.0.0."));
+  SPRAWDZ(wTekstach(t, "U-07 · Co nowego: Portret nocy: łagodniejsze piki"));
+  SPRAWDZ(wTekstach(t, "U-07 · Co nowego: Ustawienia w nowym układzie"));
+  // jeden klucz z wersją i liniami (zapis atomowy)
+  SPRAWDZ(p.nvs.tekst(aktualizacja::PRZESTRZEN, "u07_cnv", "") ==
+          "1.0.1\nPortret nocy: łagodniejsze piki\nUstawienia w nowym układzie");
+  // ten sam U-07 po śnie (wybudzenie zegarem w czasie na wybór): linie z NVS, bez nowego zapytania
+  size_t zadan = p.wydania.zadania.size();
+  zegarem(p, ep(2026, 11, 10, 9, 2));
+  p.start.stan.ekran = (uint8_t)Ekran::AKTUALIZACJA;
+  TekstyWybudzenia t2 = wybudz(p);
+  if (wTekstach(t2, "U-07 · Jest wersja 1.0.1."))  // U-07 narysowany ponownie: z liniami „Co nowego” z NVS
+    SPRAWDZ(wTekstach(t2, "U-07 · Co nowego: Portret nocy: łagodniejsze piki"));
+  // daneU07 z NVS po śnie (ekran „jest nowsza” narysowany od nowa, np. po restarcie): linie tej samej wersji
+  przyciskiem(p, ep(2026, 11, 10, 9, 3), Ekran::AKTUALIZACJA, B_LEWY, 200);  // ◀ nie teraz: U-01
+  wybudz(p);
+  SPRAWDZ(p.nvs.tekst(aktualizacja::PRZESTRZEN, "u07_cnv", "") ==
+          "1.0.1\nPortret nocy: łagodniejsze piki\nUstawienia w nowym układzie");
+  SPRAWDZ(p.wydania.zadania.size() == zadan);
+  // nowsze wydanie bez pola (jak wydania sprzed 14.11.2026): bez bloku, stare linie innej wersji nie wracają
+  Panel q;
+  zToken(q);
+  q.wydania.ustaw("1.0.1", obrazTestowy(), ukladWkompilowany(), PLYTKA_WYDANIA, {"Stara linia"});
+  przyciskiem(q, ep(2026, 11, 10, 9, 0), Ekran::USTAWIENIA, B_SRODEK, 2500);
+  wybudz(q);
+  q.wydania.ustaw("1.0.2", obrazTestowy(), ukladWkompilowany());
+  przyciskiem(q, ep(2026, 11, 10, 9, 10), Ekran::USTAWIENIA, B_SRODEK, 2500);
+  TekstyWybudzenia tq = wybudz(q);
+  SPRAWDZ(wTekstach(tq, "U-07 · Jest wersja 1.0.2. Masz 1.0.0."));
+  for (auto& l : tq.linieTestu) SPRAWDZ(l.find("Co nowego") == std::string::npos);
+  // nieudany zapis „Co nowego” nowszej wersji (pełna NVS) → blok pominięty, nie nowości poprzedniej wersji
+  Panel z;
+  zToken(z);
+  z.wydania.ustaw("1.0.1", obrazTestowy(), ukladWkompilowany(), PLYTKA_WYDANIA, {"Stara linia"});
+  przyciskiem(z, ep(2026, 11, 10, 9, 0), Ekran::USTAWIENIA, B_SRODEK, 2500);
+  wybudz(z);
+  z.nvs.nieudaneTeksty.insert(std::string(aktualizacja::PRZESTRZEN) + "/u07_cnv");
+  z.wydania.ustaw("1.0.2", obrazTestowy(), ukladWkompilowany(), PLYTKA_WYDANIA, {"Nowa linia"});
+  przyciskiem(z, ep(2026, 11, 10, 9, 10), Ekran::USTAWIENIA, B_SRODEK, 2500);
+  TekstyWybudzenia tz = wybudz(z);
+  SPRAWDZ(wTekstach(tz, "U-07 · Jest wersja 1.0.2. Masz 1.0.0."));
+  for (auto& l : tz.linieTestu) SPRAWDZ(l.find("Stara linia") == std::string::npos);
+  // po śnie (U-07 z NVS): wersja w NVS to dalej 1.0.1, więc bez bloku
+  przyciskiem(z, ep(2026, 11, 10, 9, 11), Ekran::AKTUALIZACJA, B_LEWY, 200);
+  wybudz(z);
+  SPRAWDZ(z.nvs.tekst(aktualizacja::PRZESTRZEN, "u07_cnv", "").rfind("1.0.1\n", 0) == 0);
 }
 
 // ---------- R-KONF-44: ◀ „nie teraz”, ↻ i 5 min bez wyboru nie instalują ----------
@@ -502,28 +559,31 @@ static void testR_EKR_61_ikona() {
   zToken(z);  // bez klucza ikony nie ma
   wybudz(z);
   wybudz(bez);
-  SPRAWDZ(czarneIkony(z) > 200 && wLogu(z, "ikona aktualizacji"));
-  SPRAWDZ(!wLogu(bez, "ikona aktualizacji"));
+  // od 14.11.2026 (R-EKR-69): ekran dnia ma belkę, więc znak nowej wersji stoi na belce, a stopka jest bez ikony
+  SPRAWDZ(wLogu(z, "belka: znak nowej wersji") && !wLogu(z, "ikona aktualizacji"));
+  SPRAWDZ(czarneIkony(z) == czarneIkony(bez));
+  SPRAWDZ(!wLogu(bez, "ikona aktualizacji") && !wLogu(bez, "belka: znak nowej wersji"));
   if (logEkranuDnia(z) != logEkranuDnia(bez)) printf("  [%s] [%s]\n", logEkranuDnia(z).c_str(), logEkranuDnia(bez).c_str());
   SPRAWDZ(logEkranuDnia(z) == logEkranuDnia(bez) && !logEkranuDnia(z).empty());  // ten sam wybór ekranu dnia
   // S9 w nocy: bez ikony
   airbridge(z, d0 + 1);
   zegarem(z, ep(2026, 11, 10, 23, 30));
   wybudz(z);
-  SPRAWDZ(wLogu(z, "ekran nocny") && !wLogu(z, "ikona aktualizacji"));
+  SPRAWDZ(wLogu(z, "ekran nocny") && !wLogu(z, "ikona aktualizacji") && !wLogu(z, "belka: znak nowej wersji"));
   // po instalacji wersji 1.0.1: bez ikony
   z.start.napisWersji = "1.0.1+def";
   airbridge(z, d0 + 1);
   zegarem(z, ep(2026, 11, 11, 7, 0));
   wybudz(z);
-  SPRAWDZ(!wLogu(z, "ikona aktualizacji"));
-  // ekrany serwisowe: U-01 bez ikony
+  SPRAWDZ(!wLogu(z, "ikona aktualizacji") && !wLogu(z, "belka: znak nowej wersji"));
+  // ekrany serwisowe: U-01 bez ikony w stopce; od 14.11.2026 znak nowej wersji na belce (zamiast `jest aktualizacja ·`)
   z.start.napisWersji = WERSJA_ATRAPY;
   // ◀ z testu sprzętu U-05 → U-01 (od ADR-0041 bez strony „Sprzęt” przed U-01)
   przyciskiem(z, ep(2026, 11, 11, 9, 0), Ekran::TEST, B_LEWY, 200);
   aktualizacja::zapisz(z.nvs, s);
   wybudz(z);
   SPRAWDZ(z.start.stan.ekran == (uint8_t)Ekran::USTAWIENIA && !wLogu(z, "ikona aktualizacji"));
+  SPRAWDZ(wLogu(z, "belka: znak nowej wersji"));
 }
 
 // ---------- R-NF-36, R-NF-32: token nigdzie poza żądaniem do API; certyfikat spoza zestawu ----------
@@ -664,6 +724,7 @@ static void testR_NF_33_brakWydanIBezKlucza() {
 }
 
 int main() {
+  testR_KONF_56_coNowegoZWydania();
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
   tzset();
   testR_NF_33_bezTokenu();

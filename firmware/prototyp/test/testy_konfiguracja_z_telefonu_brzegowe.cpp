@@ -152,8 +152,10 @@ static void xss() {
   s.abKonto = "a'onmouseover='x";
   formularz::Pola p = formularz::zPliku("", s);
   std::string st = formularz::strona(p, "/u/t/", "Panel sprawdza sieć <img src=x onerror=1>", {{"ssid", "<b>"}});
-  SPRAWDZ("trzyma", !zawiera(st, "<script>") && !zawiera(st, "<img") && !zawiera(st, "'onmouseover") &&
-                        !zawiera(st, "<b>"));
+  // od 14.11.2026 strona ma jeden własny skrypt (licznik zmian) i `<b>` w nagłówkach sekcji (R-KONF-59): wstrzyknięte
+  // znaczniki sprawdzane po treści, a skrypt musi być jeden
+  SPRAWDZ("trzyma", !zawiera(st, "<script>alert") && st.find("<script") == st.rfind("<script") && !zawiera(st, "<img") &&
+                        !zawiera(st, "'onmouseover") && !zawiera(st, "<p class=\"b\"><b>") && zawiera(st, "&lt;b&gt;"));
   SPRAWDZ("trzyma", !zawiera(st, "Haslo-Tajne-77") && !zawiera(st, "Ab-Tajne-88"));
   SPRAWDZ("trzyma", !zawiera(st, "http://") && !zawiera(st, "https://"));
 }
@@ -181,8 +183,9 @@ static void token() {
   formularz::Sesja s3;
   s3.otworz(tk, 0, "192.168.1.30");
   SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", "", serwer::CZAS_MS, "S").kod == 404);
-  // ciało ponad limit: 413, bez rozkładu
-  SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", std::string(5000, 'a'), 1, "S").kod == 413);
+  // ciało ponad limit: 413, bez rozkładu (limit MAKS_CIALA, od 14.11.2026 8 KB); na samym limicie przyjęte
+  SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", std::string(formularz::MAKS_CIALA + 1, 'a'), 1, "S").kod == 413);
+  SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", std::string(formularz::MAKS_CIALA, 'a'), 1, "S").kod == 200);
 }
 
 // Trzyma: nowa sieć bez hasła przy innej nazwie odrzucona; puste hasło przy tej samej = bez zmiany.

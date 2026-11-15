@@ -12,12 +12,16 @@
 
 // Ekran slotu dziennego (S-K-33…S-K-37, S-K-39): nagłówek `{dzień tyg.} {dd.mm}` / `prognoza {hh:mm}` (S-K-39:
 // `drzemka {hh:mm}–{hh:mm}`), treść według wyboru, stopka dzienna (R-KON-51). S-K-39 w negatywie (ton „problem”).
-void rysujSlotDzienny(Plotno& p, const Naglowek& n, const WyborSlotu& w, const TekstySlotu& t, const WejscieSlotu& we,
+// Nagłówek ekranów slotu dziennego (bez belki, ADR-0043): lewo data, prawo `prognoza {hh:mm}` albo `drzemka …`.
+struct NaglowekSlotu {
+  std::string lewo, prawo;
+};
+void rysujSlotDzienny(Plotno& p, const NaglowekSlotu& n, const WyborSlotu& w, const TekstySlotu& t, const WejscieSlotu& we,
                       const StopkaDzienna& s);
 // S-K-38: obraz wyśrodkowany w polu 800×434 na białym tle, bez nagłówka, ze stopką dzienną (R-KON-55).
 void rysujObrazekDnia(Plotno& p, const ObrazPbm& o, const StopkaDzienna& s);
 // Ekran danych S-K-01, S-K-02, S-K-13 (szablon A, ton „spokój”).
-void rysujEkranKontekstu(Plotno& p, const Naglowek& n, const TrescKontekstu& k, const std::string& stopkaLewo,
+void rysujEkranKontekstu(Plotno& p, const Belka& n, const TrescKontekstu& k, const std::string& stopkaLewo,
                          const std::string& stopkaPrawo);
 // Podpis godziny na osi wykresów slotu dziennego (S-K-33 słupki i linia temperatury, S-K-36, pas doby S-K-37):
 // godzina zegarowa `HH:00` (`20:00`, `07:00`; g modulo 24), żeby nie myliła się z wartością na osi (R-KON-63).

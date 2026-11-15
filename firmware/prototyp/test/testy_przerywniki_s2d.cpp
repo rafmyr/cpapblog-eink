@@ -354,7 +354,7 @@ struct Pamiec : Plotno {
 // T-TEST-334: 36 kart mieści się w układzie S2d i nie wchodzi na rysunek budzika; karta bez etykiety
 static void testUklad() {
   Teksty tk = wczytajPlik();
-  Naglowek n{"czwartek 12.11", "AirBridge 05:42"};
+  Belka n{"czwartek 12.11", "AirBridge 05:42"};
   DaneDnia d;
   d.dzis = DZIS;
   int p34 = 0;

@@ -4,7 +4,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include "airbridge.h"
 #include "czynniki.h"
+#include "dzien.h"
 #include "fonty.h"
 #include "nawigacja.h"
 #include "obrazy.h"
@@ -349,18 +351,322 @@ void etykieta(Plotno& p, int x, int y, const std::string& u, bool cz = true) { t
 
 void kreska(Plotno& p, int y, int g = 2, int x0 = 0, int x1 = 800) { p.prostokat(x0, y, x1 - x0, g, true); }
 
-// nagłówek ekranu danych: 0–52, linia 2 px na 52, linia bazowa 35. Ekrany dnia: obie strony (P24B); K1 i test:
-// prawa P22B (SPEC-KOKPIT 2).
-void naglowekDanych(Plotno& p, const Naglowek& n, const GFXfont* prawy = F_P24B) {
-  tekst(p, F_P24B, X, 35, n.lewo);
-  if (!n.prawo.empty()) tekstPrawo(p, prawy, XP, 35, n.prawo);
-  kreska(p, 52);
+}  // namespace
+
+// ---------- belka informacyjna (spec 5.4.17, ADR-0043) ----------
+const char* const BELKA_PORANEK = "Poranek";
+const char* const BELKA_WIECZOR = "Wieczór";
+const char* const BELKA_PYTANIE = "Pytanie";
+
+namespace {
+BateriaEkranu bateriaTeraz;
+}
+void ustawBaterieEkranu(const BateriaEkranu& b) { bateriaTeraz = b; }
+BateriaEkranu bateriaEkranu() { return bateriaTeraz; }
+
+int polaBaterii(int procent) {
+  int n = 0;
+  for (int i = 0; i < BATERIA_POLA; i++)
+    if (procent >= BATERIA_PROGI_POL[i]) n = i + 1;
+  return n;
 }
 
-// nagłówek karty, S9 i pytania (ADR-0009): linia na 46, linia bazowa 32 (pytanie 33), lewo P24B, prawo P22B
-void naglowekKarty(Plotno& p, const Naglowek& n, int b = 32) {
-  tekst(p, F_P24B, X, b, n.lewo);
-  if (!n.prawo.empty()) tekstPrawo(p, F_P22B, XP, b, n.prawo);
+std::string tekstBaterii(const BateriaEkranu& b) {
+  if (b.kabel) return "kabel";
+  if (b.procent < 0) return "–";
+  return std::to_string(b.procent > 100 ? 100 : b.procent) + "%";
+}
+
+bool bateriaNiska(int procent, bool kabel, bool bylaNiska) {
+  if (kabel) return false;
+  if (procent < 0) return bylaNiska;
+  return procent < (bylaNiska ? BATERIA_NISKA_KONIEC : BATERIA_NISKA);
+}
+
+std::string tekstNiskiejBaterii(const BateriaEkranu& b) { return tekstBaterii(b) + " · podłącz kabel"; }
+
+int ikonaBaterii(Plotno& p, int x, int y, int pola, bool kabel, bool cz) {
+  p.prostokat(x, y, BATERIA_W, BATERIA_H, !cz);  // wnętrze w kolorze tła
+  p.ramka(x, y, BATERIA_W, BATERIA_H, BATERIA_KRESKA, cz);
+  p.prostokat(x + BATERIA_W, y + (BATERIA_H - BATERIA_NOSEK_H) / 2, BATERIA_NOSEK_W, BATERIA_NOSEK_H, cz);
+  // wnętrze 30 × 14; pola 5 × 10 co 7 px od x + 4 (2 px odstępu od obrysu i między polami)
+  const int poleW = 5, poleH = BATERIA_H - 2 * BATERIA_KRESKA - 4, krok = poleW + 2;
+  if (kabel) {  // na kablu: bez pól, pionowa kreska w środku obrysu
+    p.prostokat(x + BATERIA_W / 2 - 1, y + BATERIA_KRESKA + 2, 2, poleH, cz);
+  } else {
+    for (int i = 0; i < pola && i < BATERIA_POLA; i++)
+      p.prostokat(x + BATERIA_KRESKA + 2 + i * krok, y + BATERIA_KRESKA + 2, poleW, poleH, cz);
+  }
+  return x + BATERIA_W + BATERIA_NOSEK_W;
+}
+
+int szerPolaBaterii(const BateriaEkranu& b) {
+  return BATERIA_W + BATERIA_NOSEK_W + BATERIA_ODSTEP + szer(F_P22B, tekstBaterii(b));
+}
+
+int rysujBaterie(Plotno& p, int x, int baza, const BateriaEkranu& b, const std::string& t) {
+  // dół obrysu 1 px nad linią bazową: obrys 18 px stoi na wysokości wersalików i cyfr P22B
+  int xi = ikonaBaterii(p, x, baza - BATERIA_H, polaBaterii(b.procent), b.kabel);
+  return tekst(p, F_P22B, xi + BATERIA_ODSTEP, baza, t);
+}
+
+std::string nazwaStronyKokpitu(const std::string& nazwa, const std::string& numer) {
+  return numer.empty() ? nazwa : nazwa + " " + numer;
+}
+
+namespace {
+std::string stanBelki(const Belka& b) { return b.stan.empty() ? std::string() : b.stan + " ·"; }
+}
+
+// ---------- znaki stanu danych (R-EKR-67…R-EKR-69) ----------
+const char* const BELKA_POBIERAM = "pobieram";
+namespace {
+ZnakiBelki znakiTeraz;
+bool klepsydraWKlatce = false;
+bool znakWersjiWKlatce = false;
+}
+static bool belkaWKlatce = false;  // belka() w tej klatce (od ustawIkoneAktualizacji()): ikona aktualizacji nie w stopce
+void ustawZnakiBelki(const ZnakiBelki& z) {
+  znakiTeraz = z;
+  klepsydraWKlatce = false;
+  znakWersjiWKlatce = false;
+}
+ZnakiBelki znakiBelki() { return znakiTeraz; }
+bool klepsydraNarysowana() { return klepsydraWKlatce; }
+bool znakWersjiNarysowany() { return znakWersjiWKlatce; }
+std::string tekstNieaktualnych(const ZnakiBelki& z) { return z.daneZ.empty() ? "brak danych" : "dane z " + z.daneZ; }
+
+namespace {
+std::string tekstPolaAlarmu(const std::string& a) { return "! " + a; }
+}
+int szerPolaAlarmu(const std::string& a) {
+  return a.empty() ? 0 : szer(F_P22B, tekstPolaAlarmu(a)) + 2 * BELKA_POLE_WCIECIE;
+}
+int szerKlepsydry(bool zeSlowem) {
+  return KLEPSYDRA_W + (zeSlowem ? KLEPSYDRA_ODSTEP + szer(F_P22B, BELKA_POBIERAM) : 0);
+}
+
+int rysujKlepsydre(Plotno& p, int x, int y, bool cz) {
+  // rysunek piksel po pikselu (18 × 22 px, symetryczny): ścianki 2 px, prosta szyjka 2 wiersze z otworem
+  // 2 px (w 1 bicie skośne kreski zbiegające się w punkt wyglądały jak „X”), piasek u góry, strużka i kopczyk
+  static const char* const WZOR[KLEPSYDRA_H] = {
+      "##################",
+      "##################",
+      ".##............##.",
+      ".##............##.",
+      "..##.########.##..",
+      "..##..######..##..",
+      "...##..####..##...",
+      "...##...##...##...",
+      "....##..##..##....",
+      ".....##.##.##.....",
+      "......##..##......",
+      "......##..##......",
+      ".....##.##.##.....",
+      "....##..##..##....",
+      "...##...##...##...",
+      "...##........##...",
+      "..##..........##..",
+      "..##....##....##..",
+      ".##....####....##.",
+      ".##..########..##.",
+      "##################",
+      "##################",
+  };
+  for (int r = 0; r < KLEPSYDRA_H; r++)
+    for (int c = 0; c < KLEPSYDRA_W; c++)
+      if (WZOR[r][c] == '#') p.piksel(x + c, y + r, cz);
+  return x + KLEPSYDRA_W;
+}
+
+int rysujZnakWersji(Plotno& p, int x, int y, bool cz) {
+  const int r = ZNAK_WERSJI_D / 2, cx = x + r, cy = y + r;
+  p.kolo(cx, cy, r, true, cz);
+  p.kolo(cx, cy, r - 2, true, !cz);                      // obrys 2 px
+  p.prostokat(cx - 1, cy - 7, 3, 9, cz);                 // trzon strzałki
+  p.trojkat(cx - 6, cy + 1, cx + 6, cy + 1, cx, cy + 7, cz);  // grot w dół
+  return x + ZNAK_WERSJI_D;
+}
+
+namespace {
+// szerokość części środka, które nie ustępują: pole alarmu, `poPolu`, klepsydra (ze słowem albo bez), z odstępami
+// od tekstu przed nimi (odstęp tylko między niepustymi częściami)
+int szerStalych(const Belka& b, bool tekstPrzed, bool klepsydra, bool slowo) {
+  int w = 0;
+  bool cos = tekstPrzed;
+  if (!b.alarm.empty()) {
+    w += (cos ? BELKA_ODSTEP_POLA : 0) + szerPolaAlarmu(b.alarm);
+    cos = true;
+  }
+  if (!b.poPolu.empty()) {
+    w += (cos ? BELKA_ODSTEP_POLA : 0) + szer(F_P22B, b.poPolu);
+    cos = true;
+  }
+  if (klepsydra) w += (cos ? BELKA_ODSTEP_POLA : 0) + szerKlepsydry(slowo);
+  return w;
+}
+// najkrótszy środek, przy którym znaki jeszcze stoją: ostatni tekst z kolejności ustępowania, który ma godzinę
+// odczytu (R-EKR-65: godzina zostaje zawsze, więc znaki ustępują przed nią), a bez godziny w ogóle ostatni tekst;
+// do tego części stałe (klepsydra bez słowa)
+int najwezszySrodek(const Belka& b, bool klepsydra) {
+  const std::string* ost = b.ustepuje.empty() ? &b.srodek : &b.ustepuje.back();
+  if (b.srodek.find("odczyt ") != std::string::npos) {
+    ost = &b.srodek;
+    for (const std::string& u : b.ustepuje)
+      if (u.find("odczyt ") != std::string::npos) ost = &u;
+  }
+  return szer(F_P22B, *ost) + szerStalych(b, !ost->empty(), klepsydra, false);
+}
+int miejsceBezZnakow(const Belka& b, int prawePole) {
+  return prawePole - BELKA_ODSTEP_PRAWEGO - xSrodkaBelki(b);
+}
+int xPrawegoBezZnaku(const Belka& b) {
+  int x = BELKA_XP - szerPolaBaterii(bateriaTeraz);
+  const std::string st = stanBelki(b);
+  if (!st.empty()) x -= szer(F_P22B, st) + BELKA_ODSTEP_STANU;
+  return x;
+}
+}  // namespace
+
+// Znaki, które mogą ustąpić, gdy środek z polem alarmu, rombem i oceną nie zostawia miejsca (najciaśniej: K1 przy
+// danych nieaktualnych z oceną ograniczoną): najpierw znak nowej wersji (jest też na każdym innym ekranie), potem
+// klepsydra (stan chwilowy). Pole alarmu, romb i ocena nie ustępują nigdy (ADR-0029 pkt 7).
+bool znakWersjiNaBelce(const Belka& b) {
+  if (!znakiTeraz.nowaWersja) return false;
+  const int m = miejsceBezZnakow(b, xPrawegoBezZnaku(b) - ZNAK_WERSJI_D - BELKA_ODSTEP_ZNAKU);
+  return najwezszySrodek(b, znakiTeraz.pobieram) <= m;
+}
+bool klepsydraNaBelce(const Belka& b) {
+  return znakiTeraz.pobieram && najwezszySrodek(b, true) <= miejsceSrodkaBelki(b);
+}
+
+int xPrawegoPolaBelki(const Belka& b) {
+  return xPrawegoBezZnaku(b) - (znakWersjiNaBelce(b) ? ZNAK_WERSJI_D + BELKA_ODSTEP_ZNAKU : 0);
+}
+int xSrodkaBelki(const Belka& b) {
+  return b.nazwa.empty() ? BELKA_X : BELKA_X + szer(F_P24B, b.nazwa) + BELKA_ODSTEP_SRODKA;
+}
+int miejsceSrodkaBelki(const Belka& b) { return miejsceBezZnakow(b, xPrawegoPolaBelki(b)); }
+
+namespace {
+// pierwszy tekst z kolejności ustępowania, który mieści się w `m` px obok części stałych; gdy żaden, ostatni skrócony
+std::string wybierzSrodek(const Belka& b, int m, bool klepsydra, bool slowo) {
+  auto miesci = [&](const std::string& t) { return szer(F_P22B, t) + szerStalych(b, !t.empty(), klepsydra, slowo) <= m; };
+  if (miesci(b.srodek)) return b.srodek;
+  for (const std::string& u : b.ustepuje)
+    if (miesci(u)) return u;
+  const std::string& ost = b.ustepuje.empty() ? b.srodek : b.ustepuje.back();
+  return skrocDoSlow(F_P22B, ost, m - szerStalych(b, true, klepsydra, slowo));
+}
+}  // namespace
+
+UkladSrodka ukladSrodkaBelki(const Belka& b) {
+  UkladSrodka u;
+  const int m = miejsceSrodkaBelki(b);
+  u.klepsydra = klepsydraNaBelce(b);
+  // najpierw ustępuje słowo `pobieram` (znak zostaje), dopiero potem tekst środka
+  if (u.klepsydra && szer(F_P22B, b.srodek) + szerStalych(b, !b.srodek.empty(), true, true) <= m) {
+    u.slowo = true;
+    u.tekst = b.srodek;
+    return u;
+  }
+  u.tekst = wybierzSrodek(b, m, u.klepsydra, false);
+  return u;
+}
+
+std::string srodekBelki(const Belka& b) { return ukladSrodkaBelki(b).tekst; }
+
+void ustawSrodekNocy(Belka& b, const SrodekNocy& s) {
+  auto zloz = [&](const std::string& noc, const std::string& godz) {
+    std::string t = noc;
+    if (!godz.empty()) t += (t.empty() ? "" : " · ") + ("odczyt " + godz);
+    if (s.romb) t += (t.empty() ? "" : " ") + std::string("◆");
+    if (!s.dopisek.empty()) t += (t.empty() ? "" : " · ") + s.dopisek;
+    return t;
+  };
+  const std::string krotka = s.data.empty() ? std::string() : s.przed + s.data;
+  const std::string pelna = s.data.empty() ? std::string() : s.przed + (s.dzien.empty() ? "" : s.dzien + " ") + s.data;
+  b.srodek = zloz(pelna, s.odczyt);
+  b.ustepuje.clear();
+  auto dodaj = [&](const std::string& t) {
+    if (t != b.srodek && (b.ustepuje.empty() || b.ustepuje.back() != t)) b.ustepuje.push_back(t);
+  };
+  dodaj(zloz(krotka, s.odczyt));                                   // 1. bez dnia tygodnia
+  if (!s.dataStala && !s.odczyt.empty()) dodaj(zloz("", s.odczyt));  // 2. bez daty: godzina zostaje
+  dodaj(zloz(krotka, ""));                                          // 3. bez godziny
+  if (!s.dataStala) dodaj(zloz("", ""));                            // 4. sam romb i dopisek
+}
+
+void ustawAlarmNocy(Belka& b, const SrodekNocy& s) {
+  if (!znakiTeraz.nieaktualne) return;
+  // R-EKR-67: dane nieaktualne. Środek: data dnia (ustępuje: dzień tygodnia, potem data), za nią odwrócone pole
+  // `! dane z {data}`; `dane z …` i `noc {data}` z tekstu środka przechodzą do pola, godziny odczytu nie ma (nie ma
+  // nocy ubiegłej). Romb i ocena (K1) stoją za polem i nie ustępują.
+  const bool doPola = s.dopisek.rfind("dane z ", 0) == 0;  // `dane z {data}` ekranu dnia: treść pola
+  // data dnia zostaje (ekran dnia, Portret); `noc {data}` K1 (data stała bez `dane z`) przechodzi do pola
+  // Portret (`noc na {dzień} {data}`) bez daty poranka: obok `! dane z {data}` innej nocy myliłaby, której nocy
+  // jest Portret; belka Portretu ma wtedy samo pole (i ocenę)
+  const bool portret = s.przed == "noc na ";
+  const bool bezDaty = (s.dataStala && !doPola) || portret;
+  SrodekNocy t;
+  t.przed = bezDaty ? std::string() : s.przed;
+  t.dzien = bezDaty ? std::string() : s.dzien;
+  t.data = bezDaty ? std::string() : s.data;
+  ustawSrodekNocy(b, t);
+  if (!b.srodek.empty() && (b.ustepuje.empty() || !b.ustepuje.back().empty())) b.ustepuje.push_back("");
+  b.alarm = tekstNieaktualnych(znakiTeraz);
+  std::string po = s.romb ? std::string("◆") : std::string();
+  if (!s.dopisek.empty() && !doPola) po += (po.empty() ? "" : " · ") + s.dopisek;
+  b.poPolu = po;
+}
+
+void belka(Plotno& p, const Belka& b) {
+  belkaWKlatce = true;
+  p.prostokat(0, 0, 800, BELKA_WYSOKOSC, false);  // belka jasna na każdym ekranie
+  if (!b.nazwa.empty()) tekst(p, F_P24B, BELKA_X, BELKA_BAZA, b.nazwa);
+  const UkladSrodka u = ukladSrodkaBelki(b);
+  int x = xSrodkaBelki(b);
+  bool cos = false;
+  if (!u.tekst.empty()) {
+    x = tekst(p, F_P22B, x, BELKA_BAZA, u.tekst);
+    cos = true;
+  }
+  if (!b.alarm.empty()) {  // R-EKR-67: odwrócone pole `! {alarm}`, biały tekst na czarnym
+    if (cos) x += BELKA_ODSTEP_POLA;
+    const int w = szerPolaAlarmu(b.alarm);
+    p.prostokat(x, BELKA_POLE_Y, w, BELKA_POLE_H, true);
+    tekst(p, F_P22B, x + BELKA_POLE_WCIECIE, BELKA_BAZA, tekstPolaAlarmu(b.alarm), false);
+    x += w;
+    cos = true;
+  }
+  if (!b.poPolu.empty()) {
+    if (cos) x += BELKA_ODSTEP_POLA;
+    x = tekst(p, F_P22B, x, BELKA_BAZA, b.poPolu);
+    cos = true;
+  }
+  if (u.klepsydra) {  // R-EKR-68
+    if (cos) x += BELKA_ODSTEP_POLA;
+    x = rysujKlepsydre(p, x, KLEPSYDRA_Y);
+    if (u.slowo) tekst(p, F_P22B, x + KLEPSYDRA_ODSTEP, BELKA_BAZA, BELKA_POBIERAM);
+    klepsydraWKlatce = true;
+  }
+  x = xPrawegoPolaBelki(b);
+  const std::string st = stanBelki(b);
+  if (!st.empty()) x = tekst(p, F_P22B, x, BELKA_BAZA, st) + BELKA_ODSTEP_STANU;
+  if (znakWersjiNaBelce(b)) {  // R-EKR-69
+    x = rysujZnakWersji(p, x, ZNAK_WERSJI_Y) + BELKA_ODSTEP_ZNAKU;
+    znakWersjiWKlatce = true;
+  }
+  rysujBaterie(p, x, BELKA_BAZA, bateriaTeraz, tekstBaterii(bateriaTeraz));
+  p.prostokat(0, BELKA_LINIA_Y, 800, BELKA_LINIA_GRUBOSC, true);
+}
+
+namespace {
+// nagłówek ekranu nocnego S9 w wariantach A1 i A3 (ADR-0018; S9 nie ma belki): linia 2 px na 46, linia bazowa 32,
+// lewo P24B, prawo P22B
+void naglowekNocy(Plotno& p, const std::string& lewo, const std::string& prawo) {
+  tekst(p, F_P24B, X, 32, lewo);
+  if (!prawo.empty()) tekstPrawo(p, F_P22B, XP, 32, prawo);
   kreska(p, 46);
 }
 
@@ -481,24 +787,53 @@ void uporzadkujPrzyciski(std::vector<std::string>& grupy) {
 
 // (5.6.1 pkt 3): na stronach kokpitu stopka podpisuje każdy przycisk, także ◀ wstecz, ▶ dalej i ↻ ekran dnia,
 // krótko nazwą strony, do której prowadzi; kolejność ◀ ▶ ↻.
-std::vector<std::string> stopkaK1(bool jestNoc, const std::string& wstecz) {
-  // ◀ ekran dnia (z Portretu: strona Portretu, R-POR-24), ▶ K2, ↻ ekran dnia, ↻ 2 s „Co było inaczej?” (R-CZY-08)
-  return {wstecz.empty() ? std::string("◀ ekran dnia") : wstecz, "▶ 7 nocy", jestNoc ? "↻ ekran dnia · 2 s co było inaczej" : "↻ ekran dnia"};
+std::vector<std::string> stopkaK1(bool jestNoc, const std::string& wstecz, bool sprawy, bool liczby, bool sypialnia) {
+  // ◀ strona przed K1 w ciągu (domyślnie ekran dnia; z Portretu: strona Portretu, R-POR-24), ▶ strona po K1 (domyślnie
+  // K2), ↻ ekran dnia, ↻ 2 s „Co było inaczej?” (R-CZY-08); cele z nawigacji (podpisCelu(), R-KOK-35)
+  const KontekstNaw k = kontekstStopki(sprawy, liczby, sypialnia);
+  return {wstecz.empty() ? "◀ " + podpisCelu(Ekran::K1, false, k) : wstecz, "▶ " + podpisCelu(Ekran::K1, true, k),
+          jestNoc ? "↻ ekran dnia · 2 s co było inaczej" : "↻ ekran dnia"};
 }
-std::vector<std::string> stopkaK2(bool sprawy, bool liczby) {
-  // ◀ K1, ▶ następna strona ciągu (5.5.7: „Co znaczą te liczby” w profilu publicznym, „Otwarte sprawy” przy sprawie,
-  // inaczej U-01), ▶ 2 s raport ogólny (R-LEK-02, usługa z Wi-Fi), ↻ ekran dnia
-  return {"◀ ostatnia noc", liczby ? "▶ liczby · 2 s raport" : sprawy ? "▶ sprawy · 2 s raport" : "▶ ustawienia · 2 s raport",
-          "↻ ekran dnia"};
+std::vector<std::string> stopkaK2(bool sprawy, bool liczby, bool sypialnia, const std::string& wstecz) {
+  // ◀ strona przed K2 (domyślnie K1), ▶ następna strona ciągu (5.5.7: „Co znaczą te liczby” w profilu publicznym,
+  // „Otwarte sprawy” przy sprawie, inaczej następna strona z numerem albo U-01), ▶ 2 s raport ogólny (R-LEK-02,
+  // usługa z Wi-Fi), ↻ ekran dnia; cele z nawigacji (podpisCelu(), R-KOK-35)
+  const KontekstNaw k = kontekstStopki(sprawy, liczby, sypialnia);
+  return {wstecz.empty() ? "◀ " + podpisCelu(Ekran::K2, false, k) : wstecz,
+          "▶ " + podpisCelu(Ekran::K2, true, k) + " · 2 s raport", "↻ ekran dnia"};
 }
-std::string naglowekK1Prawo(const DaneK1& d) {
-  return d.ocena.empty() ? numerStronyTekst(Ekran::K1) : d.ocena + " · " + numerStronyTekst(Ekran::K1);
+Belka belkaK1(const DaneK1& d) {
+  Belka b;
+  b.nazwa = nazwaStronyKokpitu("Ostatnia noc", numerStronyTekst(Ekran::K1));
+  SrodekNocy s;
+  s.data = d.dataNocy;
+  s.romb = d.romb;
+  s.dopisek = d.ocena;  // R-KOK-21
+  if (d.ubiegla) {
+    s.dzien = d.dzienNocy;
+    s.odczyt = d.godzinaDanych;  // R-KOK-26
+  } else if (!d.dataNocy.empty()) {
+    // R-KOK-04: `noc 18.10` bez godziny (dzisiejsza godzina odczytu myliłaby, z kiedy są dane); data nie ustępuje
+    s.przed = "noc ";
+    s.dataStala = true;
+  }
+  ustawSrodekNocy(b, s);
+  ustawAlarmNocy(b, s);  // R-EKR-67
+  return b;
 }
-std::string naglowekK1Lewo(const DaneK1& d) {
-  // godzina tylko przy nocy ubiegłej: przy `Noc 18.10` (R-KOK-04) dzisiejsza godzina odczytu myliłaby, z kiedy są dane
-  std::string l = d.naglowek;
-  if (d.ubiegla && !d.godzinaDanych.empty()) l += " · dane " + d.godzinaDanych;
-  return l + (d.romb ? " ◆" : "");
+
+Belka belkaK2(const DaneK2& d) {
+  Belka b;
+  b.nazwa = nazwaStronyKokpitu("7 nocy", numerStronyTekst(Ekran::K2));
+  b.srodek = d.zakres;
+  if (!d.godzinaDanych.empty()) b.srodek += (b.srodek.empty() ? "" : " · ") + ("odczyt " + d.godzinaDanych);
+  b.ustepuje = {d.zakres};
+  if (znakiBelki().nieaktualne) {  // R-EKR-67: zakres zostaje (ustępuje w całości), godziny odczytu nie ma
+    b.srodek = d.zakres;
+    b.ustepuje = {""};
+    b.alarm = tekstNieaktualnych(znakiBelki());
+  }
+  return b;
 }
 std::vector<std::string> stopkaPytania() {
   // bez liczby zaznaczonych w nawiasie (`zapisz (2)` czytało się jak „zapisz za 2 s”); ile jest
@@ -583,15 +918,10 @@ static void trescKarty(Plotno& p, const std::string& et, const std::string& tytu
 // R-EKR-10, albo podpis akcji), prawo bez zmian (`przy łóżku …` albo akcja). Pogodę z lewej wywołujący skraca
 // wcześniej tą samą regułą co na ekranie danych (dopasujStopke(): opis pogody, miasto, dopisek CO2); gdy obie
 // części i tak nie mieszczą się w 744 px, ustępuje lewa, bo prawa jest odczytem albo akcją.
-void rysujKarte(Plotno& p, const Naglowek& n, const TrescEkranu& t, const std::string& sc) {
+void rysujKarte(Plotno& p, const Belka& n, const TrescEkranu& t, const std::string& sc) {
   p.prostokat(0, 0, 800, 480, false);
-  if (t.tonProblem) {  // ton „problem” (R-HUM-24, kanwa K09): czarny pasek nagłówka z białym tekstem; tło jasne (ADR-0009)
-    p.prostokat(0, 0, 800, 48, true);
-    tekst(p, F_P24B, X, 32, n.lewo, false);
-    if (!n.prawo.empty()) tekstPrawo(p, F_P22B, XP, 32, n.prawo, false);
-  } else {
-    naglowekKarty(p, n);
-  }
+  // belka jasna także w tonie „problem” (ADR-0043): ton niesie etykieta w czarnym polu (R-HUM-24), tło jasne (ADR-0009)
+  belka(p, n);
   trescKarty(p, t.etykietaKarty.empty() ? t.etykieta : t.etykietaKarty, t.tytul,
              zawin(F_P22B, t.powodKarty.empty() ? t.powod : t.powodKarty, KOL_TEKST),
              t.fakty, t.krok, t.tonProblem, t.kartaBezEtykiety);
@@ -725,9 +1055,9 @@ static void ekranOgolny(Plotno& p, const TrescEkranu& t, int h) {
   if (!t.krok.empty()) tekst(p, F_P28B, xi, t.ramkaPrzerywana ? 408 : 410, t.krok);
 }
 
-void rysujEkranDanych(Plotno& p, const Naglowek& n, const TrescEkranu& t) {
+void rysujEkranDanych(Plotno& p, const Belka& n, const TrescEkranu& t) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, {t.naglowekLewo.empty() ? n.lewo : t.naglowekLewo, n.prawo});
+  belka(p, n);
   int h = wysLinii(t);
   if (h) liniaUwagiEkranu(p, t.linia, t.liniaA, t.liniaOstrzezenie, false);  // zwykła B6 na 87, wzorca A B5 na 94
   switch (t.uklad) {
@@ -787,8 +1117,7 @@ std::string ocenaK1JednaLinia(const WierszK1& w, int maxW) {
 
 void rysujK1(Plotno& p, const DaneK1& d) {
   p.prostokat(0, 0, 800, 480, false);
-  // R-KOK-21: `ocena częściowa · 1 / 3` albo `ocena ograniczona · 1 / 3`, przy ocenie pełnej sam numer
-  naglowekDanych(p, {naglowekK1Lewo(d), naglowekK1Prawo(d)}, F_P22B);
+  belka(p, belkaK1(d));  // R-KOK-21: `ocena częściowa` albo `ocena ograniczona` w środku belki, nigdy nie ustępuje
   // R-CZY-20 (5.5.2 „Odkrycie o czynniku”): tytuł i powód O-12 pod nagłówkiem, nad 4 liczbami ostatniej nocy
   // (liczby zostają). Wygląd („dopasuj do całości”):
   // wariant to zwykły K1 z dodatkowym pasem. Pas: tytuł P24B na linii bazowej opisów liczb (82), powód P22B (≤ 2 linie
@@ -862,16 +1191,13 @@ void rysujK1(Plotno& p, const DaneK1& d) {
     tekst(p, F_P22B, xs, y1, slowa);
     if (!w.slowo2.empty()) tekst(p, F_P22B, xs, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
   }
-  stopkaAkcji(p, "", stopkaK1(d.jestNoc, d.stopkaWstecz));
+  stopkaAkcji(p, "", stopkaK1(d.jestNoc, d.stopkaWstecz, d.sprawyWCiagu, d.profilPubliczny));
 }
 
 // ---------- K2 (5.5.3, SPEC-KOKPIT 4, opcja A) ----------
 void rysujK2(Plotno& p, const DaneK2& d) {
   p.prostokat(0, 0, 800, 480, false);
-  // nagłówek jak w K1 (`… · 1 / 2`): co to za strona i jej numer
-  tekst(p, F_P24B, X, 33, d.zakres.empty() ? std::string("Ostatnie 7 nocy") : "Ostatnie 7 nocy · " + d.zakres);
-  tekstPrawo(p, F_P22B, XP, 33, numerStronyTekst(Ekran::K2));  // `2 / 3`
-  kreska(p, 44, 2, X, XP);
+  belka(p, belkaK2(d));  // `7 nocy 2 / 3`, zakres dat i godzina odczytu (R-KOK-26)
   tekst(p, F_SB24, X, 68, d.zdanie);
   // tabela na marginesach 20 px: etykieta 20–164, 7 nocy co 68 px od 168, norma do prawej na 780; bez kolumny 30 nocy
   const int TX = 20, TXP = 780, xKol = 168, krok = 68, top = 119, h = 28;
@@ -952,7 +1278,7 @@ void rysujK2(Plotno& p, const DaneK2& d) {
   // wariant c: bez pełnej linii krótki tekst w linii legendy, do prawego marginesu, z odstępem 26 px od legendy
   else if (!d.krokPasmaKrotki.empty() && koniecLegendy + K2_KROK_ODSTEP_LEGENDY <= XP - szer(F_P22B, d.krokPasmaKrotki))
     tekstPrawo(p, F_P22B, XP, ly, d.krokPasmaKrotki);
-  stopkaAkcji(p, "", stopkaK2(d.sprawy, d.liczby));
+  stopkaAkcji(p, "", stopkaK2(d.sprawy, d.liczby, sypialniaWKokpicie(), d.stopkaWstecz));
 }
 
 std::string zwinieteK2(const DaneK2& d, bool zwin[DaneK2::WIERSZE]) {
@@ -984,15 +1310,11 @@ std::string zwinieteK2(const DaneK2& d, bool zwin[DaneK2::WIERSZE]) {
 }
 
 // ---------- pytanie „Co było inaczej?” (5.11.4, SPEC-KOKPIT 5) ----------
-static const char* const DNI_PELNE[7] = {"niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"};
 
 void rysujPytanie(Plotno& p, const DanePytania& d) {
   p.prostokat(0, 0, 800, 480, false);
   int dt = dzienTygodnia(d.dataPoranka);
-  std::string prawo = dt >= 0 ? std::string(DNI_PELNE[dt]) + ", " + std::to_string(liczbaCalk(d.dataPoranka.substr(8, 2).c_str())) +
-                                    " " + MIESIACE_D[liczbaCalk(d.dataPoranka.substr(5, 2).c_str()) - 1]
-                              : std::string();
-  naglowekKarty(p, {"Pytanie poranne", prawo}, 33);
+  belka(p, {BELKA_PYTANIE, dt >= 0 ? std::string(DNI_KROTKO[dt]) + " " + ddmm(d.dataPoranka) : std::string()});
   std::string et = d.innaNoc ? "INNA NOC" : "NOC " + ddmm(d.dataPoranka);
   int we = szer(F_P22B, et, 1);
   p.ramka(X, 60, we + 18, 30, 2);
@@ -1038,81 +1360,58 @@ void rysujPytanie(Plotno& p, const DanePytania& d) {
   stopkaAkcji(p, "", stopkaPytania());
 }
 
-// ---------- U-05 „Test sprzętu” (kanwa design/kanwa/U05-test-sprzetu.dc.html) ----------
-// Wymiary z kanwy (podgląd design/png/U05-test-sprzetu.png): nagłówek 0–48 i kreska 2 px na 48, linia bazowa 31,
-// marginesy 26 px; kolumny od 26 i 414 po 360 px; nazwa kolumny P16 wersalikami (rozstrzelenie 1 px) na 79, kreska 2 px
-// na 89; wiersze co 47 px (46 + kreska 1 px) od 91, linia bazowa 30 px od góry wiersza; ramka 2 px 26..774 × 378..422,
-// tekst na 407, wcięcie 16 px (2 + 14); stopka: kreska 2 px na 436, P18B na 466, od 20 i do 780.
+// ---------- U-05 „Test sprzętu” (makieta 14.11.2026, decyzja 4) ----------
+// Wymiary: belka 0…43; pas werdyktu 52…89 (P24B na 79, wcięcie 14 px); nazwy kolumn P16 wersalikami (rozstrzelenie
+// 1 px) na 112, kreska 2 px na 118; wiersze co 38 px od 120 (6 wierszy do 348: 5 w kolumnach i wiersz `dol` na całą
+// szerokość od 310, albo 6 w kolumnie bez wiersza `dol`), linia bazowa 26 px od góry wiersza, kreska 1 px pod
+// wierszem (poza ostatnim na ekranie); ramka 2 px 28…772 × 356…395, tekst na 382, wcięcie 16 px;
+// stopka jak na ekranach danych (kreska 2 px na 434, P22B na 465).
 namespace {
-const int T_X = 26, T_XP = 774, T_KOL2 = 414;
-const int T_NAGLOWEK = 48, T_BAZA_NAGLOWKA = 31;
-const int T_BAZA_KOLUMNY = 79, T_KRESKA_KOLUMNY = 89, T_WIERSZ0 = 91, T_WIERSZ = 47, T_BAZA_WIERSZA = 30;
-const int T_RAMKA_Y = 378, T_RAMKA_H = 44, T_BAZA_RAMKI = 407, T_WCIECIE_RAMKI = 16;
-const int T_STOPKA = 436, T_BAZA_STOPKI = 466, T_STOPKA_X = 20, T_STOPKA_XP = 780;
+const int T_X = 28, T_XP = 772, T_KOL2 = T_X + TEST_KOLUMNA + TEST_ODSTEP_KOLUMN;
+const int T_PAS_Y = 52, T_PAS_H = 38, T_BAZA_PASA = 79, T_WCIECIE_PASA = 14;
+const int T_BAZA_KOLUMNY = 112, T_KRESKA_KOLUMNY = 118, T_WIERSZ0 = 120, T_WIERSZ = 38, T_BAZA_WIERSZA = 26;
+const int T_RAMKA_Y = 356, T_RAMKA_H = 40, T_BAZA_RAMKI = 382, T_WCIECIE_RAMKI = 16;
 
-// Ikony stopki U-05 jak na kanwie: znaki kroju bez kwadratu (◀ pełny trójkąt, ↻ okrąg z grotem), czarne na białym.
-// Wymiary zmierzone z podglądu kanwy dla 18 px: ◀ 14 × 17 px, tekst 20 px od początku ikony; ↻ okrąg o średnicy 13 px
-// (kreska 2 px) z przerwą w prawej górnej ćwiartce i grotem w prawo u góry, tekst 21 px od początku ikony.
-const int IK_U05_LEWO = 20, IK_U05_ODSWIEZ = 21;  // przesunięcie tekstu za ikoną
-void ikonaU05(Plotno& p, int ik, int x, int yb) {
-  if (ik == IK_LEWO || ik == IK_PRAWO) {  // ▶ jako lustro ◀ (stopka U-05 `▶ odśwież`)
-    int yc = yb - 7;
-    if (ik == IK_LEWO) p.trojkat(x, yc, x + 13, yc - 8, x + 13, yc + 8);
-    else p.trojkat(x + 13, yc, x, yc - 8, x, yc + 8);
-    return;
+// jeden wiersz U-05 od góry `y0`: nazwa z lewej, wartość z prawej (z usterką w odwróconym polu z `!`), kreska pod nim
+void wierszU05(Plotno& p, int x0, int y0, const WierszTestu& w, int kol, bool kreskaPod) {
+  int b = y0 + T_BAZA_WIERSZA;
+  tekst(p, F_P20, x0, b, w.nazwa);
+  std::string v = dopasujWartosc(w.nazwa, {w.wartosc}, kol, w.usterka);
+  if (w.usterka) {  // odwrócone pole z `!` (R-KONF-58)
+    std::string t = "! " + v;
+    int sw = szer(F_P20B, t), xp = x0 + kol;
+    p.prostokat(xp - sw - TEST_USTERKA_DODATEK, y0 + 5, sw + TEST_USTERKA_DODATEK, T_WIERSZ - 10, true);
+    tekstPrawo(p, F_P20B, xp - TEST_USTERKA_DODATEK / 2, b, t, false);
+  } else {
+    tekstPrawo(p, F_P20B, x0 + kol, b, v);
   }
-  // ↻: środek okręgu (x + 8,5; yb − 6,5), promień 4,5–6,5 px; bez łuku dla kąta z (−90°, 0°) (oś y w dół)
-  double cx = x + 8.5, cy = yb - 6.5;
-  for (int yy = yb - 14; yy <= yb; yy++)
-    for (int xx = x + 1; xx <= x + 16; xx++) {
-      double dx = xx + 0.5 - cx, dy = yy + 0.5 - cy, d = std::sqrt(dx * dx + dy * dy);
-      if (d < 4.5 || d > 6.5) continue;
-      if (dx > 0 && dy < 0) continue;
-      p.piksel(xx, yy, true);
-    }
-  p.trojkat(x + 8, yb - 16, x + 8, yb - 9, x + 11, yb - 13);
+  if (kreskaPod) p.prostokat(x0, y0 + T_WIERSZ - 1, kol, 1, true);
 }
-// Grupa stopki U-05 zawsze zaczyna się ikoną (stopkaTestu()): `◀ `, `▶ ` albo `↻ `; zwraca ikonę i początek tekstu.
-int kodIkonyU05(const std::string& g, size_t& reszta) {
-  for (auto& [z, ik] : {std::pair<const char*, int>{"◀ ", IK_LEWO}, {"▶ ", IK_PRAWO}})
-    if (g.rfind(z, 0) == 0) {
-      reszta = std::string(z).size();
-      return ik;
-    }
-  reszta = std::string("↻ ").size();
-  return IK_ODSWIEZ;
-}
-int przesuniecieU05(int ik) { return ik == IK_ODSWIEZ ? IK_U05_ODSWIEZ : IK_U05_LEWO; }
-int szerGrupyU05(const std::string& g) {
-  size_t r;
-  int ik = kodIkonyU05(g, r);
-  return przesuniecieU05(ik) + szer(F_P18B, g.substr(r));
-}
-void grupaU05(Plotno& p, int x, const std::string& g) {
-  size_t r;
-  int ik = kodIkonyU05(g, r);
-  ikonaU05(p, ik, x, T_BAZA_STOPKI);
-  tekst(p, F_P18B, x + przesuniecieU05(ik), T_BAZA_STOPKI, g.substr(r));
-}
-
-void kolumnaU05(Plotno& p, int x0, const std::string& nazwa, const std::vector<WierszTestu>& w) {
+// kolumna: `maks` wierszy; `kreskaOstatni`: kreska także pod ostatnim (nad wierszem `dol`)
+void kolumnaU05(Plotno& p, int x0, const std::string& nazwa, const std::vector<WierszTestu>& w, int kol, int maks,
+                bool kreskaOstatni) {
   if (w.empty()) return;
   tekst(p, F_P16, x0, T_BAZA_KOLUMNY, wersaliki(nazwa), true, 1);
-  p.prostokat(x0, T_KRESKA_KOLUMNY, TEST_KOLUMNA, 2, true);
-  for (size_t i = 0; i < w.size() && i < 5; i++) {
-    int y0 = T_WIERSZ0 + (int)i * T_WIERSZ;
-    tekst(p, F_P20, x0, y0 + T_BAZA_WIERSZA, w[i].nazwa);
-    tekstPrawo(p, F_P20B, x0 + TEST_KOLUMNA, y0 + T_BAZA_WIERSZA, dopasujWartosc(w[i].nazwa, {w[i].wartosc}));
-    p.prostokat(x0, y0 + T_WIERSZ - 1, TEST_KOLUMNA, 1, true);
-  }
+  p.prostokat(x0, T_KRESKA_KOLUMNY, kol, 2, true);
+  int n = std::min((int)w.size(), maks);
+  for (int i = 0; i < n; i++)
+    wierszU05(p, x0, T_WIERSZ0 + i * T_WIERSZ, w[(size_t)i], kol, i < n - 1 || kreskaOstatni);
+}
+std::string krotkoTestu(const WierszTestu& w) {
+  if (!w.krotko.empty()) return w.krotko;
+  std::string n = w.nazwa;
+  if (!n.empty() && n[0] >= 'A' && n[0] <= 'Z' && n.rfind("AirBridge", 0) != 0 && n.rfind("Wi-Fi", 0) != 0)
+    n[0] = (char)(n[0] - 'A' + 'a');
+  return n;
 }
 }  // namespace
 
 int miejsceNaWartosc(const std::string& nazwa, int szerokosc) { return szerokosc - szer(F_P20, nazwa) - TEST_ODSTEP; }
 
-std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty, int szerokosc) {
+std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::string>& warianty, int szerokosc,
+                           bool usterka) {
   if (warianty.empty()) return "";
-  int m = miejsceNaWartosc(nazwa, szerokosc);
+  int m = miejsceNaWartosc(nazwa, szerokosc) - (usterka ? szer(F_P20B, "! ") + TEST_USTERKA_DODATEK : 0);
   for (auto& w : warianty)
     if (szer(F_P20B, w) <= m) return w;
   std::string w = warianty.back();
@@ -1124,34 +1423,151 @@ std::string dopasujWartosc(const std::string& nazwa, const std::vector<std::stri
   return w + "…";
 }
 
+std::string dopasujZOgonem(const std::string& nazwa, const std::string& poczatek, const std::string& ogon,
+                           int szerokosc, bool usterka) {
+  int m = miejsceNaWartosc(nazwa, szerokosc) - (usterka ? szer(F_P20B, "! ") + TEST_USTERKA_DODATEK : 0);
+  if (szer(F_P20B, poczatek + ogon) <= m) return poczatek + ogon;
+  std::string w = poczatek;
+  while (!w.empty() && szer(F_P20B, std::string(w).append("…").append(ogon)) > m) {
+    size_t k = w.size() - 1;
+    while (k > 0 && ((unsigned char)w[k] & 0xC0) == 0x80) k--;  // cały znak UTF-8
+    w.erase(k);
+  }
+  return w.empty() ? "" : std::string(w).append("…").append(ogon);
+}
+
+WierszTestu wierszU05(const std::string& nazwa, const std::vector<std::string>& warianty, bool usterka,
+                      const std::string& krotko, bool bezOceny, int szerokosc) {
+  WierszTestu w(nazwa, dopasujWartosc(nazwa, warianty, szerokosc, usterka), usterka, krotko);
+  w.nieSprawdzono = bezOceny && !usterka;
+  return w;
+}
+
+WierszTestu wierszU05Wifi(const std::string& ssid, int rssi, const std::string& kiedy) {
+  const std::string n = "Wi-Fi";
+  if (ssid.empty()) return wierszU05(n, {"brak połączenia"}, true, "Wi-Fi");
+  std::string sl = slowoSygnalu(rssi);
+  if (sl.empty()) return wierszU05(n, {ssid + kiedy, ssid}, false, "Wi-Fi");
+  bool slaby = rssi <= SYGNAL_SLABY;
+  std::string syg = " · sygnał " + sl, dbm = (rssi < 0 ? "−" + std::to_string(-rssi) : std::to_string(rssi)) + " dBm";
+  // nazwa sieci nie znika przed słowem sygnału: `{sieć} · słaby`, `{sieć…} · słaby`, na końcu `sygnał słaby`
+  std::vector<std::string> war = {ssid + syg + " (" + dbm + ")" + kiedy, ssid + syg + kiedy, ssid + syg, ssid + " · " + sl};
+  std::string skr = dopasujZOgonem(n, ssid, " · " + sl, TEST_KOLUMNA, slaby);
+  if (!skr.empty()) war.push_back(skr);
+  war.push_back("sygnał " + sl);
+  return wierszU05(n, war, slaby, "Wi-Fi");
+}
+
+WierszTestu wierszU05Adresu(const std::string& ip, const std::string& ddmm, const std::string& hhmm, bool dzis) {
+  if (ip.empty()) return wierszU05("Adres panelu", {"–"});
+  if (ddmm.empty()) return wierszU05("Adres panelu", {ip});
+  std::string pelna = ip + " (" + ddmm + " " + hhmm + ")";
+  if (dzis) return wierszU05("Adres panelu", {pelna, ip + " (" + hhmm + ")", ip});
+  return wierszU05("Adres panelu", {pelna, ip + " (" + ddmm + ")", ip});
+}
+
+WierszTestu wierszU05Baterii(bool kabel, int procent, int niska) {
+  if (kabel) return wierszU05("Bateria", {procent >= 0 ? "na zasilaniu · " + std::to_string(procent) + "%" : "na zasilaniu"});
+  if (procent < 0) return wierszU05("Bateria", {"brak odczytu"}, false, "bateria", true);
+  return wierszU05("Bateria", {std::to_string(procent) + "%"}, procent < niska, "bateria");
+}
+
+std::vector<std::string> bladAirBridgeU05(int kod) {
+  if (kod == 404) return {"błąd AirBridge: zły adres", "błąd AirBridge"};
+  if (kod >= 500) return {"błąd AirBridge: błąd modułu", "błąd AirBridge"};
+  if (kod > 0 && kod != 200 && kod != 401) return {"błąd AirBridge"};
+  if (kod == AB_KOD_URWANE) return {"błąd AirBridge: urwana odpowiedź", "błąd AirBridge"};
+  if (kod == AB_KOD_ZA_DUZO) return {"błąd AirBridge: za duża odpowiedź", "błąd AirBridge"};
+  if (kod == KOD_E03) return {"błąd AirBridge: nieczytelny", "błąd AirBridge"};
+  return {};
+}
+
+WierszTestu wierszU05Pobrania(const std::string& pobrano, bool nowsza, bool kontaktStary, bool bezOceny,
+                              bool pobieram) {
+  const std::string n = "Ostatnie pobranie";
+  // pobieranie zaległych nocy w toku: stan pracy, nie usterka i nie „nie sprawdzono” (ustalenie po przeglądzie B)
+  // „bez oceny” (zegar nieznany, brak kontaktu albo żadnej pobranej nocy) ma pierwszeństwo: wiersz nie
+  // może wyglądać jak sprawny (ADR-0029 pkt 7)
+  if (pobieram && !nowsza && !kontaktStary && !bezOceny) {
+    const size_t sp = pobrano.find(' ');  // `DD.MM hh:mm` → bez godziny, gdy pełny się nie mieści
+    return wierszU05(n, {pobrano + " · pobieram", (sp == std::string::npos ? pobrano : pobrano.substr(0, sp)) + " · pobieram",
+                         BELKA_POBIERAM});
+  }
+  if (nowsza) return wierszU05(n, {pobrano + " · jest nowsza", pobrano}, true, "pobieranie nocy");
+  if (kontaktStary) return wierszU05(n, {pobrano}, true, "pobieranie nocy");
+  return wierszU05(n, {pobrano}, false, "pobieranie nocy", bezOceny);
+}
+
+std::vector<std::string> wariantyOprogramowaniaU05(const std::string& wersja, const std::string& dopisek) {
+  if (dopisek.empty()) return {wersja};
+  std::string kr = dopisek;  // kolumna: krótsze warianty dopisku, pełny tekst w diagnostyce (`Wersja: …`)
+  size_t q = kr.find("jest wersja ");
+  if (q != std::string::npos) kr.replace(q, 12, "jest ");
+  q = kr.find("odrzucona ");
+  if (q != std::string::npos) kr.replace(q, 10, "odrz. ");
+  return {wersja + dopisek, wersja + kr, kr.substr(3), wersja + dopisek};
+}
+
+std::vector<std::string> wariantyNowszychDanychU05(const std::string& co) {
+  return {"dane z nowszej wersji: " + co, "dane z nowszej wersji", "dane nowszej wersji"};
+}
+
+std::string slowoSygnalu(int dbm) {
+  if (dbm >= 0) return "";
+  return dbm >= SYGNAL_DOBRY ? "dobry" : dbm > SYGNAL_SLABY ? "średni" : "słaby";
+}
+
+int usterkiTestu(const DaneTestu& d) {
+  int n = 0;
+  for (auto* k : {&d.lewa, &d.prawa, &d.dol})
+    for (auto& w : *k) n += w.usterka ? 1 : 0;
+  return n;
+}
+
+std::string werdyktTestu(const DaneTestu& d) {
+  std::vector<std::string> nazwy, bezOceny;
+  for (auto* k : {&d.lewa, &d.prawa, &d.dol})
+    for (auto& w : *k) {
+      if (w.usterka) nazwy.push_back(krotkoTestu(w));
+      else if (w.nieSprawdzono) bezOceny.push_back(krotkoTestu(w));
+    }
+  bool usterki = !nazwy.empty();
+  if (!usterki && bezOceny.empty()) return "Wszystko działa";  // każdy wiersz oceniony i dobry (ADR-0029 pkt 7)
+  std::string pocz = usterki ? std::to_string(nazwy.size()) + (nazwy.size() == 1 ? " rzecz" : " rzeczy") +
+                                   " do sprawdzenia: "
+                             : "Bez usterek · nie sprawdzono: ";
+  if (!usterki) nazwy = bezOceny;
+  const int maks = T_XP - T_X - 2 * T_WCIECIE_PASA - (usterki ? szer(F_P24B, "! ") : 0);
+  for (size_t n = nazwy.size(); n > 0; n--) {
+    std::string t = pocz;
+    for (size_t i = 0; i < n; i++) t += (i ? ", " : "") + nazwy[i];
+    if (n < nazwy.size()) t += ", …";
+    if (szer(F_P24B, t) <= maks) return t;
+  }
+  return pocz + "…";
+}
+
 void rysujTest(Plotno& p, const DaneTestu& d) {
   p.prostokat(0, 0, 800, 480, false);
-  tekst(p, F_P20B, T_X, T_BAZA_NAGLOWKA, "Test sprzętu");
-  tekstPrawo(p, F_P20, T_XP, T_BAZA_NAGLOWKA, "Ustawienia → Test sprzętu");
-  kreska(p, T_NAGLOWEK);
-  kolumnaU05(p, T_X, "Oprogramowanie i pamięć", d.lewa);
-  kolumnaU05(p, T_KOL2, "Łączność i bateria", d.prawa);
-  if (!d.dol.empty()) {  // wiersz pod kolumnami na całą szerokość, jak wiersz kolumny (P20, P20B, kreska 1 px)
-    int y0 = T_WIERSZ0 + 5 * T_WIERSZ;
-    const WierszTestu& w = d.dol.front();
-    tekst(p, F_P20, T_X, y0 + T_BAZA_WIERSZA, w.nazwa);
-    tekstPrawo(p, F_P20B, T_XP, y0 + T_BAZA_WIERSZA, dopasujWartosc(w.nazwa, {w.wartosc}, TEST_SZEROKOSC));
-    p.prostokat(T_X, y0 + T_WIERSZ - 1, TEST_SZEROKOSC, 1, true);
+  belka(p, {"Test sprzętu", d.sprawdzono.empty() ? "" : "sprawdzono " + d.sprawdzono});
+  std::string w = werdyktTestu(d);
+  if (usterkiTestu(d) > 0) {  // pas w negatywie: wymaga uwagi
+    p.prostokat(T_X, T_PAS_Y, T_XP - T_X, T_PAS_H, true);
+    tekst(p, F_P24B, T_X + T_WCIECIE_PASA, T_BAZA_PASA, "! " + w, false);
+  } else {  // `Wszystko działa` albo `Bez usterek · nie sprawdzono: …`: ramka, bez negatywu
+    p.ramka(T_X, T_PAS_Y, T_XP - T_X, T_PAS_H, 2);
+    tekst(p, F_P24B, T_X + T_WCIECIE_PASA, T_BAZA_PASA, w);
   }
+  bool dol = !d.dol.empty() && !d.prawa.empty();
+  int maks = dol ? TEST_WIERSZY - 1 : TEST_WIERSZY;
+  kolumnaU05(p, T_X, "Panel", d.lewa, d.prawa.empty() ? T_XP - T_X : TEST_KOLUMNA, maks, dol);
+  kolumnaU05(p, T_KOL2, "Łączność", d.prawa, TEST_KOLUMNA, maks, dol);
+  if (dol)  // wiersz na całą szerokość pod kolumnami (jak do 14.11.2026), bez kreski: pod nim ramka okna
+    wierszU05(p, T_X, T_WIERSZ0 + maks * T_WIERSZ, d.dol.front(), TEST_SZEROKOSC, false);
   p.ramka(T_X, T_RAMKA_Y, T_XP - T_X, T_RAMKA_H, 2);
   tekst(p, F_P20B, T_X + T_WCIECIE_RAMKI, T_BAZA_RAMKI, d.ramkaLewo);
   tekstPrawo(p, F_P20, T_XP - T_WCIECIE_RAMKI, T_BAZA_RAMKI, d.ramkaPrawo);
-  kreska(p, T_STOPKA);
-  std::vector<std::string> s = stopkaTestu(d.awaryjny);
-  if (s.size() == 1) {  // awaryjny: sam `◀ wróć` jak dotąd z prawej
-    grupaU05(p, T_STOPKA_XP - szerGrupyU05(s[0]), s[0]);
-  } else {  // grupy od lewej w kolejności ◀ ▶ ↻, odstęp 26 px
-    int x = T_STOPKA_X;
-    for (auto& g : s) {
-      grupaU05(p, x, g);
-      x += szerGrupyU05(g) + 26;
-    }
-  }
+  stopkaEkranu(p, stopkaTestu(d.awaryjny), "");
 }
 
 // ---------- ekran nocny „Dobranoc” (ADR-0018, SPEC-KOKPIT 6) ----------
@@ -1171,7 +1587,7 @@ void rysujDobranoc(Plotno& p, const DaneNocy& d) {
   auto stopkaNocy = [&]() { stopkaDnia(p, t.stopkaLewo, t.stopkaPrawo); };
   switch (d.wybor.wariant) {
     case WariantNocy::A1: {  // karta według anatomii ADR-0009
-      naglowekKarty(p, {t.naglowekLewo, t.naglowekPrawo});
+      naglowekNocy(p, t.naglowekLewo, t.naglowekPrawo);
       std::vector<Fakt> f;
       f.reserve(t.fakty.size());
       for (auto& e : t.fakty) f.push_back({e.first, e.second});
@@ -1186,7 +1602,7 @@ void rysujDobranoc(Plotno& p, const DaneNocy& d) {
       tekstSrodek(p, F_P22B, 400, 440, t.liniaA2);
       break;
     case WariantNocy::A3:  // typograficzny: godzina założenia maski
-      naglowekKarty(p, {t.naglowekLewo, t.naglowekPrawo});
+      naglowekNocy(p, t.naglowekLewo, t.naglowekPrawo);
       etykieta(p, XK, 92, t.etykieta);
       if (t.tytulGodzina) tekst(p, F_S140, 20, 240, t.tytul);
       else tekst(p, F_S110, 20, 222, t.tytul);
@@ -1246,11 +1662,10 @@ std::vector<std::string> stopkaWzorca(bool lekarz, const std::string& dalej) {
 void rysujWzorzec(Plotno& p, const DaneWzorca& d) {
   const bool B = false;  // treść na negatywie: biała
   p.prostokat(0, 0, 800, 480, true);
-  if (d.lekarz) p.ramka(4, 4, 792, 472, 6, B);
-  int x0 = d.lekarz ? 10 : 0, x1 = d.lekarz ? 790 : 800;  // kreski nagłówka i stopki w ramce
-  tekst(p, F_P24B, X, 41, d.naglowek.lewo, B);
-  if (!d.naglowek.prawo.empty()) tekstPrawo(p, F_P24B, XP, 41, d.naglowek.prawo, B);
-  p.prostokat(x0, 52, x1 - x0, 2, B);
+  // belka jasna nad negatywem (ADR-0043); biała ramka tonu „lekarz” zaczyna się pod belką
+  belka(p, d.naglowek);
+  if (d.lekarz) p.ramka(4, BELKA_WYSOKOSC + 4, 792, 472 - BELKA_WYSOKOSC, 6, B);
+  int x0 = d.lekarz ? 10 : 0, x1 = d.lekarz ? 790 : 800;  // linia uwagi i kreska stopki w ramce
   // strefa linii uwagi na ekranie „problem” (S3); bez etykiety tytuł wchodzi w jej miejsce (36 px), więc treść
   // przesuwa się o wysokość linii minus to miejsce, a wizualizacja traci resztę (krok i stopka zostają na swoich liniach)
   // R-PIE-07: na ekranie wzorca A (ton „lekarz”) jedyną linią jest E-05 krytyczne (dyrygent podaje ją tylko wtedy);
@@ -1324,7 +1739,7 @@ void rysujWzorzec(Plotno& p, const DaneWzorca& d) {
 
 void rysujRaport(Plotno& p, const DaneRaportu& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, d.naglowek);
+  belka(p, d.naglowek);
   etykieta(p, X, 94, wersaliki("Raport dla lekarza"));
   tekst(p, F_SB44, X, 145, d.temat);
   tekst(p, F_P28B, X, 195, "Nie udało się przygotować raportu (" + d.kod + ")");
@@ -1333,7 +1748,7 @@ void rysujRaport(Plotno& p, const DaneRaportu& d) {
 
 void rysujPotwierdzenie(Plotno& p, const DanePotwierdzenia& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, d.naglowek);
+  belka(p, d.naglowek);
   int y = 145;
   if (!d.nad.empty()) {
     tekst(p, F_P28B, X, 97, d.nad);  // kanwa P-zapisano: pytanie od 76 px, tytuł od 123 px
@@ -1369,7 +1784,7 @@ std::vector<std::string> zdaniaOmowienia(int wariant) {
 
 void rysujOmowione(Plotno& p, const DaneOmowione& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, d.naglowek, F_P22B);
+  belka(p, d.naglowek);
   etykieta(p, X, 94, wersaliki(d.nazwa));
   tekst(p, F_SB44, X, 145, "Omówione z lekarzem?");
   int y = 186;
@@ -1390,16 +1805,17 @@ void rysujOmowione(Plotno& p, const DaneOmowione& d) {
   tekstPrawo(p, F_P22B, XP, 465, "↻ anuluj");
 }
 
-std::vector<std::string> stopkaSpraw(int i, int n, bool liczby) {
+std::vector<std::string> stopkaSpraw(int i, int n, bool liczby, bool sypialnia) {
   // ◀ poprzednia karta (przed pierwszą K2 albo w profilu publicznym „Co znaczą te liczby”), ▶ następna karta (za
-  // ostatnią U-01, R-KOK-20), ↻ ekran dnia
-  return {i <= 1 || n == 0 ? (liczby ? "◀ liczby" : "◀ 7 nocy") : "◀ poprzednia", n > 0 && i < n ? "▶ następna" : "▶ ustawienia",
-          "↻ ekran dnia"};
+  // ostatnią następna strona ciągu, R-KOK-20, R-KOK-35), ↻ ekran dnia
+  const KontekstNaw k = kontekstStopki(true, liczby, sypialnia);
+  return {i <= 1 || n == 0 ? "◀ " + podpisCelu(Ekran::SPRAWY, false, k) : std::string("◀ poprzednia"),
+          n > 0 && i < n ? std::string("▶ następna") : "▶ " + podpisCelu(Ekran::SPRAWY, true, k), "↻ ekran dnia"};
 }
 
 void rysujSprawy(Plotno& p, const DaneSpraw& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, {d.naglowek, numerStronyTekst(Ekran::SPRAWY)});  // bez numeru (R-KOK-19)
+  belka(p, d.naglowek);  // strona kokpitu bez numeru (R-KOK-19)
   if (d.n > 0) etykieta(p, X, 94, wersaliki("Sprawa " + std::to_string(d.i) + " z " + std::to_string(d.n)));
   tekst(p, F_SB44, X, 145, d.tytul);
   int y = 195;
@@ -1419,8 +1835,6 @@ void rysujSprawy(Plotno& p, const DaneSpraw& d) {
   stopkaAkcji(p, "", stopkaSpraw(d.i, d.n, d.liczby));
 }
 
-void naglowekEkranu(Plotno& p, const Naglowek& n) { naglowekDanych(p, n, F_P22B); }
-
 void stopkaEkranu(Plotno& p, std::vector<std::string> lewo, const std::string& prawo0) {
   uporzadkujPrzyciski(lewo);
   StylStopki st;
@@ -1434,7 +1848,7 @@ void stopkaEkranu(Plotno& p, std::vector<std::string> lewo, const std::string& p
 
 void rysujPytanieTN(Plotno& p, const DanePytaniaTN& d) {
   p.prostokat(0, 0, 800, 480, false);
-  naglowekDanych(p, d.naglowek);
+  belka(p, d.naglowek);
   etykieta(p, X, 94, wersaliki(d.etykieta));
   tekst(p, F_SB44, X, 145, d.tytul);
   tekst(p, F_P28B, X, 195, d.opis);
@@ -1450,12 +1864,18 @@ void rysujPytanieTN(Plotno& p, const DanePytaniaTN& d) {
 namespace {
 bool ikonaWl = false;
 }
-void ustawIkoneAktualizacji(bool wl) { ikonaWl = wl; }
-bool ikonaAktualizacjiWlaczona() { return ikonaWl; }
-int prawyBrzegStopki() { return ikonaWl ? XP - BOK_IKONY_AKTUALIZACJI - ODSTEP_IKONY_AKTUALIZACJI : XP; }
+void ustawIkoneAktualizacji(bool wl) {
+  ikonaWl = wl;
+  belkaWKlatce = false;
+}
+// od 14.11.2026 (R-EKR-69): ekran z belką ma znak nowej wersji na belce, więc stopka jest bez ikony (jedno miejsce)
+bool ikonaAktualizacjiWlaczona() { return ikonaWl && !belkaWKlatce; }
+int prawyBrzegStopki() {
+  return ikonaAktualizacjiWlaczona() ? XP - BOK_IKONY_AKTUALIZACJI - ODSTEP_IKONY_AKTUALIZACJI : XP;
+}
 
 bool ikonaAktualizacji(Plotno& p, bool tloCzarne) {
-  if (!ikonaWl) return false;
+  if (!ikonaAktualizacjiWlaczona()) return false;
   const int b = BOK_IKONY_AKTUALIZACJI, x = XP - b, y = 465 - b + 2;  // dolna krawędź jak dół ikon przycisków
   // pas od lewej krawędzi ikony minus odstęp do prawej krawędzi ekranu w kolorze tła stopki: treść się skraca
   p.prostokat(x - ODSTEP_IKONY_AKTUALIZACJI, 437, 800 - (x - ODSTEP_IKONY_AKTUALIZACJI), 43, tloCzarne);

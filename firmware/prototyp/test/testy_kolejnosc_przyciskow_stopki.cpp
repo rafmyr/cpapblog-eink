@@ -90,7 +90,9 @@ static void testStopkiPortretu() {
     SPRAWDZ(stopkaK1(noc, "")[0] == "◀ ekran dnia");
   }
   DaneK1 k;
-  k.naglowek = "Ostatnia noc · śr 04.11";
+  k.ubiegla = true;
+  k.dzienNocy = "śr";
+  k.dataNocy = "04.11";
   PlotnoT a, b;
   rysujK1(a, k);
   k.stopkaWstecz = wstecz;

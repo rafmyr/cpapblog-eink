@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // S7, S8, „Co znaczą te liczby” i ekran danych S1; opis w src/podsumowanie.h.
+#include "nawigacja.h"
 #include "podsumowanie.h"
 
 #include <algorithm>
@@ -158,7 +159,7 @@ TrescEkranu trescS7(const DaneS7& d) {
   return t;
 }
 
-void rysujS7(Plotno& p, const Naglowek& n, const DaneS7& d, const TrescEkranu& t) {
+void rysujS7(Plotno& p, const Belka& n, const DaneS7& d, const TrescEkranu& t) {
   rysujEkranDanych(p, n, t);
   int h = t.linia.empty() ? 0 : (t.liniaA ? 60 : 48);
   int y = 234 + h / 2;  // linia bazowa liczb (kanwa S7-miesiac: 235)
@@ -209,7 +210,7 @@ DaneS8 budujS8(const WejscieS8& w) {
     d.krok = "→ Pasmo centralnych wysokie. Obserwuj kolejne noce.";
     d.informacja = true;
   } else if (w.wzorzecL) {
-    d.krok = "→ Otwarte sprawy: za stroną 2 / 3.";  // numer strony kokpitu (R-KOK-23)
+    d.krok = numeryStronWTekscie("→ Otwarte sprawy: za stroną 2 / 3.");  // numer strony kokpitu (R-KOK-23, R-KOK-30)
     d.informacja = true;
   } else {
     d.krok = "Odchylenia liczę od tego.";  // wyjaśnienie, nie czynność: bez `→` (5.4.3, strefa „Krok”)
@@ -226,7 +227,7 @@ TrescEkranu trescS8(const DaneS8& d) {
   return t;
 }
 
-void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t) {
+void rysujS8(Plotno& p, const Belka& n, const DaneS8& d, const TrescEkranu& t) {
   rysujEkranDanych(p, n, t);
   int h = t.linia.empty() ? 0 : (t.liniaA ? 60 : 48);
   int krok = d.wiersze.size() > 3 && h ? 42 : 46;
@@ -238,9 +239,11 @@ void rysujS8(Plotno& p, const Naglowek& n, const DaneS8& d, const TrescEkranu& t
 }
 
 // ---------- „Co znaczą te liczby” ----------
-DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy) {
+DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy, bool sypialnia) {
   DaneLiczb d;
-  if (sprawy) d.stopkaLewo = "◀ 7 nocy   ▶ sprawy   ↻ ekran dnia";  // grupy co 3 spacje
+  // cele ◀ i ▶ z nawigacji (R-KOK-35): ◀ K2, ▶ „Otwarte sprawy” albo następna strona ciągu; grupy co 3 spacje
+  const KontekstNaw k = kontekstStopki(sprawy, true, sypialnia);
+  d.stopkaLewo = "◀ " + podpisCelu(Ekran::LICZBY, false, k) + "   ▶ " + podpisCelu(Ekran::LICZBY, true, k) + "   ↻ ekran dnia";
   d.wiersze.push_back({"Bezdechy na godzinę (AHI):", " przerwy i spłycenia oddechu."});
   d.wiersze.push_back({"Czas z maską:", " ile godzin aparat pracował."});
   if (tryb == reguly::Tryb::ASV || tryb == reguly::Tryb::ASVAUTO) {
@@ -255,7 +258,7 @@ DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy) {
   return d;
 }
 
-void rysujLiczby(Plotno& p, const Naglowek& n, const DaneLiczb& d) {
+void rysujLiczby(Plotno& p, const Belka& n, const DaneLiczb& d) {
   TrescEkranu t;
   if (!d.etykieta.empty()) t.etykieta = wersaliki(d.etykieta);
   t.krok = d.zdanie;
@@ -281,7 +284,7 @@ TrescEkranu trescS1(const odkrycia::TrescOdkrycia& o) {
   return t;
 }
 
-void rysujOdkrycie(Plotno& p, const Naglowek& n, const odkrycia::TrescOdkrycia& o, const TrescEkranu& t) {
+void rysujOdkrycie(Plotno& p, const Belka& n, const odkrycia::TrescOdkrycia& o, const TrescEkranu& t) {
   TrescEkranu bez = t;
   bez.fakty.clear();
   rysujEkranDanych(p, n, bez);

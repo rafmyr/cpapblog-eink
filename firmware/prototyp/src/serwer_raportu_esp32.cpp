@@ -35,7 +35,7 @@ class GniazdoEsp32 : public serwer::GniazdoHttp {
     f_ = nullptr;
   }
   // formularz konfiguracji (GET strona, POST zapis). Ciało POST składane z argumentów WebServer (bez `plain`),
-  // najwyżej 4 KB [PRÓG]; hasła z ciała nie trafiają do logu (adapter niczego nie wypisuje).
+  // najwyżej serwer::MAKS_CIALA_POST (8 KB [PRÓG]); hasła z ciała nie trafiają do logu (adapter niczego nie wypisuje).
   void obsluzZadania(const std::function<serwer::Odpowiedz(const Zadanie&)>& f) override {
     if (!s_) return;
     fz_ = &f;
@@ -70,7 +70,7 @@ class GniazdoEsp32 : public serwer::GniazdoHttp {
       z.metoda = s_->method() == HTTP_GET ? "GET" : s_->method() == HTTP_POST ? "POST" : "INNA";
       z.sciezka = s_->uri().c_str();
       if (s_->method() == HTTP_POST)
-        for (int i = 0; i < s_->args() && z.cialo.size() <= 4096; i++) {
+        for (int i = 0; i < s_->args() && z.cialo.size() <= serwer::MAKS_CIALA_POST; i++) {
           if (s_->argName(i) == "plain") continue;
           if (!z.cialo.empty()) z.cialo += '&';
           z.cialo += koduj(s_->argName(i)) + "=" + koduj(s_->arg(i));

@@ -34,7 +34,7 @@ double medianaNormy(const Norma& nm, const std::string& m) {
 
 DaneWzorca trescZdarzenia(const sprawy::SprawaL& s, const DaneDnia& d) {
   DaneWzorca w;
-  w.naglowek = {naglowekDniaLewo(d), naglowekDniaPrawo(d)};
+  w.naglowek = belkaDnia(d);
   w.lekarz = false;  // ton „problem”: negatyw bez ramki i bez znaku ostrzeżenia (5.4.3)
   w.tytul = s.tytul;
   w.powod = s.powod;

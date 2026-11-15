@@ -33,6 +33,10 @@ struct NocSypialni {
   int co2Ponad = -1, co2Maks = -1;
   std::string co2Seria;
 };
+// Zakres wartości przy wczytaniu: wartość spoza zakresu jest przycinana do brzegu (nie odrzucana), `inf` i `nan`
+// odrzucają wiersz. Granice to zakres pola na ekranie, nie progi oceny.
+const double SYP_T_MIN = -99.9, SYP_T_MAX = 99.9;  // °C
+const double SYP_CO2_MAX = 9999;                   // ppm (np. 65535 z czujnika = 9999)
 // `data;temp;wilg` (także `data;temp;wilg;co2` i wersja 2 `data;temp;wilg;co2;co2_ponad;co2_maks;co2_seria`)
 bool parsujSypialnie(const std::string& linia, NocSypialni& n);
 // Pola wersji 2 po `co2`: `;{co2_ponad};{co2_maks};{co2_seria}`; puste przy braku.

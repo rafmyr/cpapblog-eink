@@ -371,7 +371,8 @@ static void testKartySpraw() {
   ROWNE(sprawy::kartaPusta(p).ocena, "ograniczona: ostatnia noc z dużym wyciekiem");
   DaneSpraw d = trescSpraw({}, 1, p);
   ROWNE_L(d.n, 0);
-  ROWNE(d.naglowek, "Otwarte sprawy · cz 05.11");
+  ROWNE(d.naglowek.nazwa, "Otwarte sprawy");  // belka: nazwa strony bez numeru, data w środku (R-EKR-64)
+  ROWNE(d.naglowek.srodek, "cz 05.11");
   // linie zdrowia bez sprawy: z kolejki tylko te, których nie niesie sprawa L/E
   std::vector<kolejka::LiniaUwagi> kol = {{"Wciąż: Senność mimo terapii.", GrupaLinii::WZORCE_L, false, "L-11"},
                                           {"Senność w dzień: powiedz o tym lekarzowi.", GrupaLinii::PILNOSC_A_SENNOSC,
@@ -840,26 +841,29 @@ static void testRysowanie() {
   d.hist = nullptr;
   PlotnoT p;
   rysujWzorzec(p, w);
-  SPRAWDZ(p.cz(2, 2) && !p.cz(6, 6) && p.cz(20, 300));  // czarne tło, biała ramka 6 px od 4 px, czarne wnętrze
+  // czarne tło pod jasną belką (ADR-0043), biała ramka 6 px od 4 px zaczyna się pod belką, czarne wnętrze
+  SPRAWDZ(!p.cz(2, 2) && p.cz(2, 46) && !p.cz(6, 50) && !p.cz(400, 50) && p.cz(400, 56) && p.cz(20, 300));
   // linia wzorca A na ekranie dnia: czarny pasek 60 px (54…113)
   d.linia = "Wciąż: Saturacja: sprawa dla lekarza.";
   d.liniaA = d.liniaOstrzezenie = true;
   TrescEkranu t = trescDnia("S5", "", d);
   SPRAWDZ(t.liniaA && t.liniaOstrzezenie);
   PlotnoT q;
-  rysujEkranDanych(q, {"cz 05.11", ""}, t);
+  rysujEkranDanych(q, {"Poranek", "cz 05.11"}, t);
   SPRAWDZ(q.cz(400, 56) && q.cz(400, 112) && !q.cz(400, 116));
-  // karta w tonie „problem” (R-HUM-24): czarny pasek nagłówka, etykieta w czarnym polu, tło jasne (ADR-0009)
+  // karta w tonie „problem” (R-HUM-24): belka jasna jak na każdym ekranie (ADR-0043), etykieta w czarnym polu, tło
+  // jasne (ADR-0009)
   TrescEkranu kp;
   kp.etykieta = "MASKA · TRZECIA NOC";
   kp.tytul = "Maska przecieka.";
   kp.tonProblem = true;
   PlotnoT kpp;
-  rysujKarte(kpp, {"pn 09.11", "dane 05:44"}, kp, "");
-  SPRAWDZ(kpp.cz(400, 5) && kpp.cz(400, 44) && kpp.cz(27, 62) && !kpp.cz(400, 300) && !kpp.cz(790, 300));
+  rysujKarte(kpp, {"Poranek", "pn 09.11"}, kp, "");
+  SPRAWDZ(!kpp.cz(400, 5) && kpp.cz(400, 42) && !kpp.cz(400, 46) && kpp.cz(27, 62) && !kpp.cz(400, 300) &&
+          !kpp.cz(790, 300));
   kp.tonProblem = false;
   PlotnoT kz;
-  rysujKarte(kz, {"pn 09.11", "dane 05:44"}, kp, "");
+  rysujKarte(kz, {"Poranek", "pn 09.11"}, kp, "");
   SPRAWDZ(!kz.cz(400, 5) && !kz.cz(27, 62));
 }
 

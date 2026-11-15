@@ -369,8 +369,27 @@ LICZBA_W_TEKSCIE = r"(?<![A-Za-z0-9-])\d+(?:,\d+)?(?![A-Za-z0-9])"
 # numer strony kokpitu w tekście (`raport 2 / 3`, `strona 3 / 3`, `za stroną 2 / 3`; 5.5.7, R-KOK-19): tylko `n / 3`
 # po słowie „raport”, „strona” albo „stroną”; każdy inny ułamek (`3 / 7 nocy`) dalej podlega kontroli liczb progów
 NUMER_STRONY = r"(?<=raport )[1-3] / 3(?![\d,])|(?<=strona )[1-3] / 3(?![\d,])|(?<=stroną )[1-3] / 3(?![\d,])"
+# każdy `{1|2|3} / 3` (odstęp zwykły albo twardy) poza słowem strony = błąd (R-KOK-30): panel przelicza numer
+# strony tylko po słowach z src/nawigacja.cpp numeryStronWTekscie(), więc ułamek `2 / 3 nocy` by się nie zmienił, ale
+# czytelnik wziąłby go za numer strony, a numer bez słowa zostałby `n / 3` przy kokpicie `n / 4`
+SLOWA_STRONY = ("strona", "stronie", "stroną", "strony", "stronę", "raport", "raporcie", "raportu")
+NUMER_STRONY_DOWOLNY = r"(?<![\d,])[1-3][ \u00a0]/[ \u00a0]3(?![\d,])"
+
+
+def numer_strony_bez_slowa(tekst):
+    """Pierwszy `{1|2|3} / 3`, przed którym nie stoi słowo strony (SLOWA_STRONY i odstęp), albo None."""
+    for m in re.finditer(NUMER_STRONY_DOWOLNY, tekst):
+        przed = tekst[:m.start()]
+        if not re.search(r"(?<![A-Za-z\u00c0-\u017f])(?:%s)[ \u00a0]$" % "|".join(SLOWA_STRONY), przed):
+            return m.group(0)
+    return None
 # numer strony sprzed ADR-0041 (`raport 2 / 6`, `strona 3 / 6`): R-KOK-23, zero takich tekstów na ekranie
 NUMER_STRONY_STARY = r"(?:raport|strona|stroną) [1-6] / 6(?![\d,])"
+# numer strony już przeliczony (`raport 2 / 4`, `strona 1 / 3` z inną liczbą stron): zestaw pisze zawsze postać
+# kanoniczną `{1|2|3} / 3` (K1, K2, U-01), a panel wstawia bieżący numer i liczbę stron dla każdej kolejności stron
+# (R-KOK-36, ADR-0045); `n / 4`, `n / 5` … w zestawie zostałyby bez przeliczenia
+NUMER_STRONY_NIEKANONICZNY = r"(?<![A-Za-z\u00c0-\u017f])(?:%s)[ \u00a0][1-9][ \u00a0]/[ \u00a0](?:[4-9]|[1-9]\d)(?![\d,])" % "|".join(
+    ("strona", "stronie", "stroną", "strony", "stronę", "raport", "raporcie", "raportu"))
 JEDNOSTKI_PO_LICZBIE = [("L/min", r"L\s*/\s*min"), ("/min", r"/\s*min"), ("/h", r"/\s*h"), ("cmH2O", r"cmH2O"),
                         ("min", r"min"), ("h", r"h(?![A-Za-ząćęłńóśźż])"), ("%", r"%"), ("noce", r"noc"),
                         ("dni", r"(dni|dzie|dob)"), ("tygodnie", r"tydz|tyg"), ("miesiące", r"miesi")]
@@ -420,6 +439,13 @@ def buduj(progi_csv, katalog_dir, spec_md, rodzaje_dodatkowe=(), ostrzezenia=Non
         g = "teksty.csv, wiersz %d (%s)" % (t["_nr"], idt)
         if re.search(NUMER_STRONY_STARY, t["tekst"]):
             raise BladZestawu("%s: numer strony kokpitu `n / 6` sprzed ADR-0041; kokpit ma 3 strony (R-KOK-23)" % g)
+        if re.search(NUMER_STRONY_NIEKANONICZNY, t["tekst"]):
+            raise BladZestawu("%s: numer strony kokpitu inny niż `{1|2|3} / 3`; zestaw pisze postać `n / 3`, a panel "
+                              "przelicza ją na bieżący ciąg i kolejność stron (R-KOK-36)" % g)
+        bez_slowa = numer_strony_bez_slowa(t["tekst"])
+        if bez_slowa:
+            raise BladZestawu("%s: `%s` bez słowa strony (%s) przed liczbą; panel przelicza numer strony kokpitu "
+                              "tylko po tych słowach (R-KOK-30)" % (g, bez_slowa, ", ".join(SLOWA_STRONY)))
         z_progami = podstaw_progi(t["tekst"], progi, g)
         sprawdz_tekst_w_spec(z_progami, spec_norm, g)
         sprawdz_granice(z_progami, t["rola"], g)

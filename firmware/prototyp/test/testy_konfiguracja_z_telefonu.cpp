@@ -210,7 +210,7 @@ static void formularzStrona() {
   SPRAWDZ(zawiera(h, "Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc."));
   SPRAWDZ(zawiera(h, "method=\"post\" action=\"/u/abc/\""));
   SPRAWDZ(zawiera(h, "value=\"publiczny\" selected"));
-  SPRAWDZ(h.size() < 12000);  // pamięć serwera panelu
+  SPRAWDZ(h.size() < 16000);  // pamięć serwera panelu (od ADR-0045 z sekcją „Ekrany”: 14,4 KB; było < 12000)
 }
 
 static void formularzCialo() {

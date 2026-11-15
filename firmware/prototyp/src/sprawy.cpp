@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Sprawy z wyników silnika reguł (src/sprawy.h).
+#include "nawigacja.h"
 #include "sprawy.h"
 
 #include <algorithm>
@@ -52,7 +53,9 @@ int rangaSprawy(const SprawaL& s) {
 // „Na kontroli: raport 2 / 3.” z linii pilności C (5.12.5, „Linie”): karta sprawy i raport mają zdanie bez tej części
 std::string bezKontroli(const std::string& l) {
   // starsze postacie z zestawu danych z karty (ADR-0023): numer sprzed ADR-0041 i nazwa robocza sprzed 10.11.2026
-  static const char* const K[] = {" Na kontroli: raport 2 / 3.", " Na kontroli: raport 2 / 6.", " Na kontroli: raport z K2."};
+  // każdy numer strony `{n} / {N}` (R-KOK-30, R-KOK-36: przy innej kolejności stron K2 bywa `1 / 3`, `3 / 4`, …)
+  if (size_t n = dlugoscKontroliZNumerem(l)) return l.substr(0, l.size() - n);
+  static const char* const K[] = {" Na kontroli: raport z K2."};
   for (const char* k : K) {
     const std::string s(k);
     if (l.size() >= s.size() && l.compare(l.size() - s.size(), s.size(), s) == 0) return l.substr(0, l.size() - s.size());
@@ -397,7 +400,7 @@ std::string wierszDalej(const SprawaL& s, const WejscieSpraw& w) {
   if (s.jestL() && s.wygaszonyB()) return "przypomnę 1. dnia miesiąca, obserwacja trwa";  // R-SKI-09, R-SKI-13
   if (s.jestL() && s.pilnosc == Pilnosc::B && s.ton == Ton::LEKARZ) return "przypomnę co 3 dni, obserwacja trwa";
   if (s.jestL() && s.pilnosc == Pilnosc::A) return "przypominam codziennie, obserwacja trwa";
-  if (s.jestL() && s.pilnosc == Pilnosc::C) return "w niedzielnym podsumowaniu, strona 2 / 3 i raport";
+  if (s.jestL() && s.pilnosc == Pilnosc::C) return numeryStronWTekscie("w niedzielnym podsumowaniu, strona 2 / 3 i raport");  // R-KOK-30
   return "dziś ekranem jest inna sprawa, obserwacja trwa";
 }
 
@@ -447,7 +450,7 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
       x.powod = m.nazwa + " " + m.x + " przy zwykłych " + m.p10 + "–" + m.p90 + ".";
       x.ocena = "pełna";
       x.ty = "bez potwierdzeń";
-      x.dalej = m.nocy >= 21 ? "bez pełnego ekranu: strona 2 / 3 i raport" : "bez pełnego ekranu: strona 2 / 3";
+      x.dalej = numeryStronWTekscie(m.nocy >= 21 ? "bez pełnego ekranu: strona 2 / 3 i raport" : "bez pełnego ekranu: strona 2 / 3");
       x.koniec = "po powrocie do normy";
       k.push_back(x);
     }

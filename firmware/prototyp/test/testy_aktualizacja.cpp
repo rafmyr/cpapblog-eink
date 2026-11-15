@@ -333,7 +333,9 @@ static void testR_KONF_44_teksty() {
   SPRAWDZ(t.linie[0] == "Instaluję. Panel zaraz uruchomi się ponownie." && t.stopka.empty());
   d.stan = StanU07::SAMOSPRAWDZENIE;  // po restarcie, przed potwierdzeniem nowej wersji
   t = trescU07(d);
-  SPRAWDZ(t.linie.size() == 1 && t.linie[0] == "Sprawdzam nową wersję…" && t.stopka.empty());
+  // od 14.11.2026 z pasem `Nie odłączaj zasilania.` (restart nowej wersji jeszcze niepotwierdzony)
+  SPRAWDZ(t.linie.size() == 2 && t.linie[0] == "Sprawdzam nową wersję…" && t.linie[1] == "Nie odłączaj zasilania." &&
+          t.pas == "Nie odłączaj zasilania." && t.stopka.empty());
   d.stan = StanU07::PO_UDANEJ;
   t = trescU07(d);
   SPRAWDZ(t.linie[0] == "Zainstalowano wersję 1.0.1.");
@@ -389,7 +391,7 @@ static void testR_KONF_43_nawigacja() {
   k.aktualizacja = 0;  // aktualna, po udanej, wyłączone: ▶ nic
   SPRAWDZ(nacisniecie(Ekran::AKTUALIZACJA, Przycisk::PRAWY, false, k).akcja == Akcja::NIC);
   SPRAWDZ(numerStrony(Ekran::AKTUALIZACJA) == 0 && !zKolejkiWolno(Ekran::AKTUALIZACJA, false));
-  SPRAWDZ(ekranZRtc(17) == Ekran::AKTUALIZACJA && ekranZRtc(19) == Ekran::DZIEN);
+  SPRAWDZ(ekranZRtc(17) == Ekran::AKTUALIZACJA && ekranZRtc(20) == Ekran::DZIEN);  // 19 = SYPIALNIA od 14.11.2026 (ADR-0044)
   // 5 min bez wyboru: U-01, bez instalacji (R-KONF-44); w nocy zostaje (R-PRZ-18)
   SPRAWDZ(sekundDoPowrotu(Ekran::AKTUALIZACJA, 299, 9 * 60) == 1 && sekundDoPowrotu(Ekran::AKTUALIZACJA, 300, 9 * 60) == 0);
   SPRAWDZ(ekranPoStarcie(PowodWybudzenia::ZEGAR, Ekran::AKTUALIZACJA, true, U07_CZAS_S, 9 * 60) == Ekran::USTAWIENIA);
@@ -400,7 +402,8 @@ static void testR_KONF_43_nawigacja() {
 // ---------- stopki: kolejność ◀ ▶ ↻ i szerokość ≤ 744 px (R-PRZ-04) ----------
 static void testR_KONF_43_stopki() {
   std::vector<std::string> u01 = stopkaU01();
-  SPRAWDZ((u01 == std::vector<std::string>{"◀ 7 nocy · 2 s sieć", "▶ 2 s telefon", "↻ ekran dnia · 2 s aktualizacja"}));
+  // od 14.11.2026 tylko krótkie naciśnięcia; ↻ 2 s (aktualizacja) w kafelku `Oprogramowanie` (R-KONF-55)
+  SPRAWDZ((u01 == std::vector<std::string>{"◀ 7 nocy", "↻ ekran dnia"}));
   std::vector<std::string> u = u01;
   uporzadkujPrzyciski(u);
   SPRAWDZ(u == u01);
@@ -478,14 +481,156 @@ static void testR_KONF_44_rysowanieU07() {
   d.wlasna = "1.0.0-beta.1";
   d.nowa = "1.0.1";
   d.powod = Powod::TOKEN_ODRZUCONY;
-  for (int st = 0; st <= (int)StanU07::WYLACZONE; st++) {
+  for (int st = 0; st <= (int)STAN_U07_OSTATNI; st++) {
     d.stan = (StanU07)st;
     TresciU07 t = trescU07(d);
     PlotnoAtrapy p;
-    rysujAktualizacje(p, t.linie, t.stopka);
+    rysujAktualizacje(p, t);
     SPRAWDZ(czarneW(p, 0, 60, 800, 430) > 0);
     SPRAWDZ(czarneW(p, 0, 437, 800, 480) > 0 || t.stopka.empty());
   }
+}
+
+// ---------- R-KONF-56: „Co nowego” z pola `nowosci` opisu wydania, zgodność ze starymi wydaniami ----------
+// wymaganie: R-KONF-56
+static void testR_KONF_56_coNowego() {
+  OpisWydania o;
+  // stare wydanie bez pola: opis poprawny, lista pusta
+  SPRAWDZ(parsujOpis(opisPrzyklad(), o) && o.nowosci.empty());
+  // nowe wydanie: pole na końcu, zapis i odczyt w obie strony
+  OpisWydania n;
+  SPRAWDZ(parsujOpis(opisPrzyklad(), n));
+  n.nowosci = {"Portret nocy: łagodniejsze piki", "Cudzysłów \" i ukośnik \\", "Ustawienia w nowym układzie"};
+  std::string t = zapiszOpis(n);
+  SPRAWDZ(t.find(",\"nowosci\":[\"Portret nocy: łagodniejsze piki\",\"Cudzysłów \\\" i ukośnik \\\\\",") !=
+          std::string::npos);
+  SPRAWDZ(t.size() > 2 && t.compare(t.size() - 3, 3, "]}\n") == 0);
+  OpisWydania r;
+  SPRAWDZ(parsujOpis(t, r) && r.nowosci == n.nowosci && r.wersja == n.wersja && r.sha256 == n.sha256);
+  // bez pola zapis jak dotąd (stare panele i narzędzie bez zmian)
+  n.nowosci.clear();
+  SPRAWDZ(zapiszOpis(n).find("nowosci") == std::string::npos);
+  // zły typ pola albo elementów: opis dalej poprawny (wydanie do instalacji), lista bez złych elementów
+  std::string baza = opisPrzyklad();
+  baza.erase(baza.size() - 2);  // bez `}\n`
+  for (const char* pole : {",\"nowosci\":\"tekst\"", ",\"nowosci\":null", ",\"nowosci\":{\"a\":1}", ",\"nowosci\":[]"}) {
+    SPRAWDZ(parsujOpis(baza + pole + "}", r) && r.nowosci.empty());
+  }
+  SPRAWDZ(parsujOpis(baza + ",\"nowosci\":[1,\"Jedna\",null,\"  \",\" Dwie \",\"Trzy\",\"Cztery\"]}", r));
+  SPRAWDZ((r.nowosci == std::vector<std::string>{"Jedna", "Dwie", "Trzy"}));  // najwyżej 3, bez pustych i spacji
+  // znaki sterujące usunięte, linia ponad 40 znaków skrócona do 39 i `…` (liczone w znakach, nie bajtach)
+  SPRAWDZ(parsujOpis(baza + ",\"nowosci\":[\"a\\nb\\tc\",\"" + std::string(45, 'x') + "\",\"" +
+                         "ąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąąą\"]}", r));
+  SPRAWDZ(r.nowosci.size() == 3 && r.nowosci[0] == "abc");
+  SPRAWDZ(r.nowosci[1] == std::string(39, 'x') + "…");
+  std::string q;
+  for (int i = 0; i < 39; i++) q += "ą";
+  SPRAWDZ(r.nowosci[2] == q + "…");
+  // dokładnie 40 znaków zostaje bez skracania
+  SPRAWDZ(parsujOpis(baza + ",\"nowosci\":[\"" + std::string(40, 'y') + "\"]}", r) && r.nowosci[0] == std::string(40, 'y'));
+  // U-07: blok `Co nowego` tylko w stanie „jest nowsza” (i po udanej), z danych wołającego
+  DaneU07 d;
+  d.wlasna = "1.0.0";
+  d.nowa = "1.1.0";
+  d.coNowego = {"A", "B"};
+  for (int st = 0; st <= (int)STAN_U07_OSTATNI; st++) {
+    d.stan = (StanU07)st;
+    TresciU07 tr = trescU07(d);
+    bool ma = d.stan == StanU07::NOWSZA || d.stan == StanU07::PO_UDANEJ;
+    SPRAWDZ(tr.coNowego.empty() != ma);
+  }
+  // linia na ekranie: bez znaków spoza krojów i bez ikon przycisków, bez podwójnych spacji, w szerokości kolumny
+  SPRAWDZ(liniaCoNowego("Zapis ◀ ▶ ↻ ◆ i emoji 😀 koniec", 536) == "Zapis i emoji koniec");
+  std::string w = liniaCoNowego(std::string(40, 'W'), 536 - 22);
+  SPRAWDZ(szer(F_P22B, w) <= 536 - 22 && w.size() > 3 && w.compare(w.size() - 3, 3, "…") == 0);
+  SPRAWDZ(liniaCoNowego("Portret nocy: łagodniejsze piki", 514) == "Portret nocy: łagodniejsze piki");
+}
+
+// ---------- R-KONF-57: układ U-07 (rysunek, wersje, kroki, pas) we wszystkich stanach; teksty bez zmian ----------
+// wymaganie: R-KONF-57, R-KONF-44, R-NF-35
+static void testR_KONF_57_ukladU07() {
+  DaneU07 d;
+  d.wlasna = "1.0.0";
+  d.nowa = "1.1.0";
+  d.procentBaterii = 31;
+  struct O {
+    StanU07 st;
+    ObrazekU07 ob;
+    const char* belka;
+    bool pas, kroki, wersje;
+  };
+  for (const O& o : {O{StanU07::SPRAWDZANIE, ObrazekU07::PANEL, "sprawdzam", false, false, false},
+                     O{StanU07::AKTUALNA, ObrazekU07::UDANA, "aktualna wersja", false, false, false},
+                     O{StanU07::NOWSZA, ObrazekU07::NOWA, "jest nowa wersja", true, false, true},
+                     O{StanU07::POBIERANIE, ObrazekU07::W_TOKU, "krok 1 z 4", true, true, true},
+                     O{StanU07::INSTALACJA, ObrazekU07::W_TOKU, "krok 3 z 4", true, true, true},
+                     O{StanU07::SAMOSPRAWDZENIE, ObrazekU07::W_TOKU, "krok 4 z 4", true, true, false},
+                     O{StanU07::PO_UDANEJ, ObrazekU07::UDANA, "gotowe", false, true, false},
+                     O{StanU07::PO_NIEUDANEJ, ObrazekU07::NIEUDANA, "nie udało się", false, true, false},
+                     O{StanU07::WYLACZONE, ObrazekU07::PANEL, "wyłączone", false, false, false},
+                     O{StanU07::SPRAWDZENIE_NIEUDANE, ObrazekU07::NIEUDANA, "nie udało się sprawdzić", false, false, false}}) {
+    d.stan = o.st;
+    d.powod = o.st == StanU07::PO_NIEUDANEJ ? Powod::USZKODZONY : Powod::BRAK;
+    TresciU07 t = trescU07(d);
+    SPRAWDZ(t.obrazek == o.ob);
+    SPRAWDZ(t.stanBelki == o.belka);
+    SPRAWDZ(t.pas.empty() != o.pas && t.kroki == o.kroki && (!t.wersjaZ.empty()) == o.wersje);
+    // pas tylko w stanach „nie odłączaj”: tekst z linii stanu
+    if (o.pas) SPRAWDZ(t.pas.rfind("Nie odłączaj zasilania.", 0) == 0 && t.linie.back() == t.pas);
+    // każde zdanie z linii stoi na ekranie: jako zdanie główne, opis, pas albo (pierwsze w „jest nowsza”) wersje
+    for (size_t i = 0; i < t.linie.size(); i++) {
+      bool jest = t.linie[i] == t.glowne || t.linie[i] == t.pas;
+      for (auto& x : t.opis) jest = jest || x == t.linie[i];
+      if (o.st == StanU07::NOWSZA && i == 0) jest = t.wersjaZ == "1.0.0" && t.wersjaNa == "1.1.0";
+      if (!jest) printf("  U-07 stan %d: linia `%s` bez miejsca na ekranie\n", (int)o.st, t.linie[i].c_str());
+      SPRAWDZ(jest);
+    }
+    // pobieranie, instalacja, samosprawdzenie: bez stopki (przyciski nie działają), stopka pozostałych bez zmian
+    SPRAWDZ(t.stopka.empty() == (o.st == StanU07::POBIERANIE || o.st == StanU07::INSTALACJA || o.st == StanU07::SAMOSPRAWDZENIE));
+  }
+  // kroki: stan „teraz” i zrobione przed nim
+  d.stan = StanU07::POBIERANIE;
+  TresciU07 t = trescU07(d);
+  SPRAWDZ(t.krok[0] == KrokU07::TERAZ && t.krok[1] == KrokU07::CZEKA && t.krok[3] == KrokU07::CZEKA);
+  d.stan = StanU07::INSTALACJA;
+  t = trescU07(d);
+  SPRAWDZ(t.krok[0] == KrokU07::ZROBIONY && t.krok[1] == KrokU07::ZROBIONY && t.krok[2] == KrokU07::TERAZ);
+  d.stan = StanU07::PO_UDANEJ;
+  t = trescU07(d);
+  for (auto k : t.krok) SPRAWDZ(k == KrokU07::ZROBIONY);
+  // nieudana: krok z powodu (każdy powód poza BRAK i NIE_NOWSZA ma krok), wcześniejsze zrobione
+  d.stan = StanU07::PO_NIEUDANEJ;
+  for (int pw = 0; pw <= (int)POWOD_OSTATNI; pw++) {
+    d.powod = (Powod)pw;
+    t = trescU07(d);
+    int k = krokNieudany(d.powod);
+    bool bezKroku = d.powod == Powod::BRAK || d.powod == Powod::NIE_NOWSZA;
+    SPRAWDZ((k < 0) == bezKroku && t.kroki == !bezKroku);
+    if (k >= 0) {
+      SPRAWDZ(t.krok[k] == KrokU07::NIEUDANY);
+      for (int i = 0; i < k; i++) SPRAWDZ(t.krok[i] == KrokU07::ZROBIONY);
+      for (int i = k + 1; i < KROKI_U07; i++) SPRAWDZ(t.krok[i] == KrokU07::CZEKA);
+    }
+  }
+  SPRAWDZ(krokNieudany(Powod::USZKODZONY) == 1 && krokNieudany(Powod::NIE_WSTALA) == 3 && krokNieudany(Powod::BATERIA) == 0);
+  // najdłuższe wersje i powody: treść w polu nad pasem (do 391) i nad stopką (do 433), nie wchodzi na rysunek
+  d.wlasna = "12.12.12-rc.12";
+  d.nowa = "12.12.13-rc.12";
+  d.coNowego = {std::string(40, 'W'), std::string(40, 'W'), std::string(40, 'W')};
+  for (int st = 0; st <= (int)STAN_U07_OSTATNI; st++)
+    for (int pw = 0; pw <= (int)POWOD_OSTATNI; pw++) {
+      d.stan = (StanU07)st;
+      d.powod = (Powod)pw;
+      t = trescU07(d);
+      PlotnoAtrapy p;
+      rysujAktualizacje(p, t);
+      int dol = t.pas.empty() ? 433 : U07_PAS_Y - 1;
+      int poza = czarneW(p, U07_X, dol + 1, 800, t.pas.empty() ? 434 : U07_PAS_Y);
+      if (poza) printf("  U-07 stan %d powód %d: treść schodzi pod %d\n", st, pw, dol);
+      SPRAWDZ(poza == 0);
+      SPRAWDZ(czarneW(p, U07_OBRAZEK_X + U07_OBRAZEK_W + 1, 44, U07_X, dol) == 0);  // odstęp rysunek ↔ tekst pusty
+      SPRAWDZ(czarneW(p, 773, 44, 800, dol) == 0);  // prawy margines
+    }
 }
 
 // ---------- sekrety: token, hasło okna, dodatki (R-NF-36) ----------
@@ -552,7 +697,7 @@ static void testR_NF_36_formularz() {
   SPRAWDZ(formularz::zPliku("", ob).aktualizacjaAuto == "nie");
   p.kluczWydan = true;
   std::string st = formularz::strona(p, "/u/t/", "", {});
-  SPRAWDZ(zawiera(st, "<legend>Aktualizacje</legend>") && zawiera(st, "Instaluj nowe wersje samodzielnie") &&
+  SPRAWDZ(zawiera(st, "<summary><b>Aktualizacje</b>") && zawiera(st, "Instaluj nowe wersje samodzielnie") &&
           zawiera(st, "Klucz wydań (token GitHub)") && zawiera(st, "placeholder=\"ustawiony\"") &&
           zawiera(st, "usuń klucz") &&
           zawiera(st, "Klucz dostajesz od osoby, która instalowała panel. Bez klucza panel nie pobiera aktualizacji.") &&
@@ -671,6 +816,8 @@ int main() {
   testR_KONF_43_stopki();
   testR_EKR_61_ikonaStopki();
   testR_KONF_44_rysowanieU07();
+  testR_KONF_56_coNowego();
+  testR_KONF_57_ukladU07();
   testR_NF_36_sekrety();
   testR_NF_36_formularz();
   testR_NF_36_przekierowaniaAdaptera();
