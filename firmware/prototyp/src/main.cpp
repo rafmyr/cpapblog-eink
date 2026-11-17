@@ -27,6 +27,8 @@ extern "C" __attribute__((used)) const char ZNACZNIK_OBRAZU_WYDANIA[] = "cpap-ei
 #endif
 #include "adaptery_esp32.h"
 #include "dyrygent.h"
+#include "pliki_pamiec.h"  // ADR-0047
+#include "przebiegi.h"     // ADR-0047
 #include "sekrety.h"
 #include "start.h"
 
@@ -137,6 +139,7 @@ static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s, const sekrety::D
 
 #if POMIAR_CZASU
 void pomiarHistoria();  // src/adaptery_esp32.cpp: historia pomiarów z NVS na port szeregowy
+void pomiarLadowarka();  // src/adaptery_esp32.cpp: rejestry ładowarki na port szeregowy, tylko odczyt
 #endif
 
 void setup() {
@@ -150,6 +153,7 @@ void setup() {
 #if POMIAR_CZASU
   Serial.printf("POMIAR start programu: %lu ms od startu procesora\n", (unsigned long)millis());
   pomiarHistoria();
+  pomiarLadowarka();
 #endif
 #ifdef BEZ_SEKRETOW
   Serial.printf("%s\n", ZNACZNIK_OBRAZU_WYDANIA);  // odwołanie trzyma znacznik w obrazie (linker nie usuwa)
@@ -162,12 +166,12 @@ void setup() {
   static ZegarEsp32 zegar;
   static NvsEsp32 nvs;
   static PlikiEsp32 pliki;
-  // sekrety z NVS przed siecią i dyrygentem (secrets.h tylko jako wartość początkowa, src/sekrety.h)
-  static const sekrety::Wynik sek = sekrety::wczytaj(nvs, zKompilacji());
-  static const sekrety::Dodatki dodatki = sekrety::wczytajDodatki(nvs, dodatkiZKompilacji(), OBRAZ_Z_SEKRETAMI);
-  // hasło okna serwisowego z NVS: OTA_PASS z secrets.h tylko jako wartość początkowa, formularz je zmienia
-  static const std::string hasloOkna = sekrety::wczytajHasloOkna(nvs, HASLO_OKNA_Z_KOMPILACJI, OBRAZ_Z_SEKRETAMI);
-  static SiecEsp32 siec({sek.d.ssid, sek.d.hasloWifi, hasloOkna.empty() ? nullptr : hasloOkna.c_str()}, pliki);
+  // ADR-0047: pamięć plików między przebiegami bez głębokiego snu (włączona dopiero po pierwszym czekaniu na kablu,
+  // więc wybudzenie z głębokiego snu, czyli każde na baterii, czyta pliki jak dotąd)
+  static PlikiZPamiecia plikiPrzebiegow(pliki);
+  static PamiecPrzebiegow przebiegi;
+  // sieć bez konfiguracji: sieć domową i hasło okna ustawia każdy przebieg z NVS (niżej)
+  static SiecEsp32 siec({"", "", nullptr}, pliki);
   static WydaniaEsp32 wydania;  // aktualizacja z wydań GitHub (ADR-0032, ADR-0038)
   static WyswietlaczEsp32 ekran;
   static CzujnikiEsp32 czujniki;
@@ -177,9 +181,24 @@ void setup() {
   static SenEsp32 sen;
   static PortEsp32 port;
   static DiagnostykaEsp32 diagnostyka;
-  Adaptery a{zegar, nvs, pliki, siec, ekran, przyciski, czujniki, dzwiek, uruchomienie, straznik, sen, port, diagnostyka,
-             &wydania};
-  Dyrygent(a, konfiguracja(sek, dodatki, !hasloOkna.empty())).wybudzenie();
+  Adaptery a{zegar, nvs, plikiPrzebiegow, siec, ekran, przyciski, czujniki, dzwiek, uruchomienie, straznik, sen, port,
+             diagnostyka, &wydania};
+  // ADR-0047: przebiegi. Po głębokim śnie program startuje od nowa, więc pętla ma jeden obieg (jak dotąd); na kablu
+  // przebieg kończy się czekaniem (Sen::czekaj()) i następny przebieg rusza tu, nowym Dyrygentem, ze świeżymi
+  // sekretami i konfiguracją z NVS (zmiany z formularza działają jak po starcie programu).
+  for (;;) {
+    // sekrety z NVS przed siecią i dyrygentem (secrets.h tylko jako wartość początkowa, src/sekrety.h)
+    const sekrety::Wynik sek = sekrety::wczytaj(nvs, zKompilacji());
+    const sekrety::Dodatki dodatki = sekrety::wczytajDodatki(nvs, dodatkiZKompilacji(), OBRAZ_Z_SEKRETAMI);
+    // hasło okna serwisowego z NVS: OTA_PASS z secrets.h tylko jako wartość początkowa, formularz je zmienia
+    const std::string hasloOkna = sekrety::wczytajHasloOkna(nvs, HASLO_OKNA_Z_KOMPILACJI, OBRAZ_Z_SEKRETAMI);
+    siec.ustawSiecDomowa(sek.d.ssid, sek.d.hasloWifi);
+    siec.ustawHasloOkna(hasloOkna);
+    KonfiguracjaPanelu k = konfiguracja(sek, dodatki, !hasloOkna.empty());
+    k.bezTekstowKoncowych = true;  // teksty tylko dla testów (na panelu sen dotąd nie wracał)
+    if (!Dyrygent(a, k, &przebiegi).wybudzenie()) break;
+    plikiPrzebiegow.wlacz(true);
+  }
   // tu tylko, gdy dyrygent wrócił bez snu (nieudany powrót do poprzedniej wersji): licznik startów od zera jak przed
   // każdym snem (T-WYM-82), potem sen awaryjny
   zerujPrzedSnem(uruchomienie.licznik(), identyfikatorWersji(uruchomienie.wersja()));

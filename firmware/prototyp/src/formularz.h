@@ -50,6 +50,8 @@ struct Pola {
   std::string miasto;                 // "" = nie wybrano, albo nazwa z listy miast (src/miasta.h)
   std::string czynniki = "KL";        // kody zaznaczonych czynników raportu (bez wiersza: stan domyślny 5.13.7)
   std::string uwagaOMasce = "10";     // R-KONF-42 „Uwaga o masce od”, L/min 10–15 (klucz `uwaga_o_masce`)
+  // R-DANE-66 (ADR-0046): limit ładowania baterii na kablu, klucz `ladowanie_limit`, domyślnie `nie` (brak wiersza)
+  std::string ladowanieLimit = "nie";  // `tak` | `nie`
   // sekcja „Aktualizacje” (ADR-0038): automat z pliku (`aktualizacja_auto=tak`,
   // domyślnie `nie`); token wydań i hasło okna serwisowego tylko jako „ustawiony” (wartości nigdy do przeglądarki)
   std::string aktualizacjaAuto = "nie";  // `tak` | `nie`
@@ -127,9 +129,13 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 // pierwszej zmiany pola; nazwy pól, walidacja i zapis bez zmian), wersja w nagłówku. Składana w jednym `std::string`
 // z rezerwacją REZERWACJA_STRONY bajtów: najgorszy realny przypadek (najdłuższe sekrety z samych znaków ucieczki,
 // prawdziwe błędy wszystkich pól, najdłuższy komunikat dyrygenta) mieści się w niej bez realokacji.
-// Od 16.11.2026 (pola wygaszacza, R-KON-74, R-KON-77) 21 KB: scenariusz „wszystkie pola z błędem” miał przed nimi 24 B
-// zapasu wobec 20 KB, a dwa pola z etykietami dokładają ok. 0,5 KB; wcześniej od ADR-0045 (sekcja „Ekrany”) 20 KB, 16 KB.
-const size_t REZERWACJA_STRONY = size_t{21} * 1024;
+// od 16.11.2026 (limit ładowania i wygaszacz razem) 23 KB: scenariusz brzegowy (błąd 91 B przy każdym
+// polu, także przy `ladowanie_limit`, `wygaszacz`, `wygaszacz_min`, czas 720) ma 21 749 B, najgorszy realny przypadek
+// 19 574 B (zmierzone w test/testy_formularz_u03.cpp); 23 KB daje zapas co najmniej 1 KB także w scenariuszu
+// brzegowym (1 803 B), jak dla przypadku realnego. Pole `ladowanie_limit` (ADR-0046) dokłada w tym scenariuszu
+// 535 B, pola wygaszacza (R-KON-74, R-KON-77) 681 B. Wcześniej 21 KB (wygaszacz), od ADR-0045
+// (sekcja „Ekrany”) 20 KB, przedtem 16 KB.
+const size_t REZERWACJA_STRONY = size_t{23} * 1024;
 // Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
 const size_t MAKS_OKRESU_Z_PLIKU = 8;
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,

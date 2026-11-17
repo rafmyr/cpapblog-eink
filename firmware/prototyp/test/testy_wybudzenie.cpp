@@ -278,10 +278,37 @@ static void testT_WYM_21_przyciskBudzacy() {
   // ◀ przytrzymany 2,5 s → przytrzymanie; puszczony po 0,5 s → krótkie (weryfikacja T-WYM-21)
   SPRAWDZ(przytrzymanie(0, 2500, true) == Przytrzymanie::DLUGO);
   SPRAWDZ(przytrzymanie(0, 500, false) == Przytrzymanie::KROTKO);
-  SPRAWDZ(przytrzymanie(0, 1999, true) == Przytrzymanie::TRWA);
+  // 17.11.2026: wciśnięty w ms 1999 = trwa już 2000 ms (ms 0…1999), więc przytrzymanie (R-PRZ-08 „co najmniej”)
+  SPRAWDZ(przytrzymanie(0, 1998, true) == Przytrzymanie::TRWA);
+  SPRAWDZ(przytrzymanie(0, 1999, true) == Przytrzymanie::DLUGO);
   SPRAWDZ(przytrzymanie(0, 2000, true) == Przytrzymanie::DLUGO);
-  SPRAWDZ(przytrzymanie(1000, 2999, true) == Przytrzymanie::TRWA);
+  SPRAWDZ(przytrzymanie(1000, 2998, true) == Przytrzymanie::TRWA);
+  SPRAWDZ(przytrzymanie(1000, 2999, true) == Przytrzymanie::DLUGO);
   SPRAWDZ(przytrzymanie(1000, 3000, true) == Przytrzymanie::DLUGO);
+  SPRAWDZ(przytrzymanie(0, 2000, false) == Przytrzymanie::KROTKO);
+  // krok pętli: próbka dokładnie w ms progu − 1, poza tym co 5 ms
+  SPRAWDZ(krokPrzytrzymania(0, 0) == 5);
+  SPRAWDZ(krokPrzytrzymania(0, 1995) == 4);
+  SPRAWDZ(krokPrzytrzymania(0, 1997) == 2);
+  SPRAWDZ(krokPrzytrzymania(0, 1998) == 1);
+  SPRAWDZ(krokPrzytrzymania(0, 1999) == 5);
+  SPRAWDZ(krokPrzytrzymania(1000, 2996) == 3);
+  SPRAWDZ(krokPrzytrzymania(5000, 1000) == 5);  // chwila naciśnięcia „z przyszłości”: bez zera
+  {  // każda ścieżka próbkowania od dowolnego przesunięcia trafia w ms progu − 1
+    for (uint32_t start = 0; start < 12; start++) {
+      uint32_t t = start;
+      bool trafil = false;
+      while (t < 2100) {
+        trafil = trafil || t == PROG_PRZYTRZYMANIA_MS - 1;
+        t += krokPrzytrzymania(0, t);
+      }
+      SPRAWDZ(trafil);
+    }
+  }
+  // naciśnięcie już puszczone (kolejka adaptera): co najmniej próg
+  SPRAWDZ(!przytrzymaniePuszczone(1999));
+  SPRAWDZ(przytrzymaniePuszczone(2000));
+  SPRAWDZ(przytrzymaniePuszczone(2001));
   SPRAWDZ(przytrzymanie(1000, 3000, false) == Przytrzymanie::KROTKO);
   SPRAWDZ(PROG_PRZYTRZYMANIA_MS == 2000);
 }

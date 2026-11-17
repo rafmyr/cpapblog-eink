@@ -12,5 +12,6 @@ typedef struct {
 esp_err_t esp_task_wdt_init(const esp_task_wdt_config_t* config);
 esp_err_t esp_task_wdt_reconfigure(const esp_task_wdt_config_t* config);
 esp_err_t esp_task_wdt_add(TaskHandle_t task_handle);
+esp_err_t esp_task_wdt_status(TaskHandle_t task_handle);
 esp_err_t esp_task_wdt_reset(void);
 #define CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0 1

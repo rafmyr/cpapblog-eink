@@ -62,6 +62,8 @@
 #include "sypialnia.h"
 #include "sypialnia_ekran.h"  // strona kokpitu „Sypialnia · 30 nocy” (ADR-0044)
 #include "szybkosc.h"  // T-WYM-99: przełącznik pamięci podręcznej (testy), punkty faz pomiaru
+#include "czekanie.h"   // ADR-0047: czekanie na zasilaniu zewnętrznym zamiast głębokiego snu
+#include "przebiegi.h"  // ADR-0047: pamięć między przebiegami bez głębokiego snu
 #include "wspolne.h"
 // silnik reguł podpięty do ekranu dnia. CPAP_SILNIK_REGUL = 0 tylko do diagnozy (bez silnika:
 // ekran dnia, linie i przyciski jak przed BETĄ); testy i symulator mogą podać wyniki przez sprawy::zrodloTestowe.
@@ -156,17 +158,23 @@ uint32_t skrotWierszy(const std::vector<std::string>& w) {
 // NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding): jeden obiekt na wybudzenie, pola w kolejności prototypu
 class Przebieg {
  public:
-  Przebieg(const Adaptery& ad, const KonfiguracjaPanelu& ko, TekstyWybudzenia& t)
+  Przebieg(const Adaptery& ad, const KonfiguracjaPanelu& ko, TekstyWybudzenia& t, PamiecPrzebiegow* p)
       : nvsZm(ad.nvs),
         a(zNvs(ad, nvsZm)),
         k(ko),
         r(ad.uruchomienie.rtc()),
         rej(ko.rejestr ? *ko.rejestr : rejestrFormatow()),
         mag(ad.pliki, [this](const std::string& w) { a.port.wiersz(w); }, rej),
-        tk(t) {}
+        tk(t),
+        pp(p),
+        silnik_(p ? &p->silnik : &silnikWlasny_) {}
 
-  // Jedno wybudzenie od startu programu do snu (dyrygent.h).
+  // Jedno wybudzenie od startu programu (albo od końca czekania na kablu, ADR-0047) do snu (dyrygent.h).
   void wykonaj() {
+    if (pp) {  // ADR-0047: przebieg od nowa; pamięci z kluczem treści zostają
+      pp->czekano = false;
+      pp->przebiegow++;
+    }
     // T-WYM-81: strażnik przed każdym innym adapterem
     UstawieniaStraznika u = ustawieniaStraznika();
     a.straznik.zapisz(u.limitS, u.panika);
@@ -183,6 +191,7 @@ class Przebieg {
       a.nvs.usun(NVS_PRZESTRZEN, NVS_KLUCZ_AWARYJNY);
       log("tryb awaryjny: start innej albo nowo wgranej wersji, znacznik usunięty (R-AW-39)");
     }
+    if (pp && przyczyna != PrzyczynaStartu::USPIENIE) poStarcieBezSnu(przyczyna);  // T-WYM-17
     PowodWybudzenia w = a.uruchomienie.powod();
     // skrót klatki tylko między wybudzeniami z uśpienia: po każdym innym starcie pierwsze rysowanie zawsze odświeża
     // e-ink
@@ -213,6 +222,11 @@ class Przebieg {
   const std::vector<FormatPliku>& rej;
   Magazyn mag;
   TekstyWybudzenia& tk;
+  PamiecPrzebiegow* pp;  // ADR-0047: pamięć między przebiegami bez głębokiego snu; nullptr = jak dotąd
+  // T-WYM-99: ostatnia ocena silnikiem; przy pamięci przebiegów (ADR-0047, T-WYM-14) z poprzedniego przebiegu,
+  // inaczej tylko z tego wybudzenia (RAM; po głębokim śnie pusta)
+  PamiecPrzebiegow::Silnik silnikWlasny_;
+  PamiecPrzebiegow::Silnik* silnik_;
   bool zwykle = false;
   uint32_t wersjaId = 0;
   PrzyczynaStartu przyczynaStartu = PrzyczynaStartu::NIEZNANA;  // z wykonaj
@@ -1012,15 +1026,37 @@ class Przebieg {
       nieczytelneNoce.clear();
       std::vector<std::string> sc;
       std::vector<std::string> wn = wczytaj("noce", "", &sc);
+      // T-WYM-14 (ADR-0047): te same wiersze i ścieżki co w poprzednim przebiegu bez głębokiego snu = te same noce
+      // (parsujNocV5() to czysta funkcja wiersza), więc bez rozkładu od nowa; wiersze nieczytelne i ich log jak zawsze
+      PamiecPrzebiegow::Historia* ph = pp && !szybkosc::bezPamieci ? &pp->historia : nullptr;
+      bool zPamieci = ph && ph->jest && ph->wiersze == wn && ph->sciezki == sc;
+      if (pp) (zPamieci ? pp->trafienHistorii : pp->parsowanHistorii)++;
+      if (ph && !zPamieci) {
+        ph->jest = false;
+        ph->noce.clear();
+        ph->czytelne.assign(wn.size(), 0);
+      }
+      size_t j = 0;
       for (size_t i = 0; i < wn.size(); i++) {
         Noc n;
-        if (parsujNocV5(wn[i], n)) {
+        bool czytelny = zPamieci ? ph->czytelne[i] != 0 : parsujNocV5(wn[i], n);
+        if (czytelny) {
+          if (zPamieci) n = ph->noce[j++];
+          else if (ph) {
+            ph->czytelne[i] = 1;
+            ph->noce.push_back(n);
+          }
           hist.push_back(n);  // wiersze wersji 1…5
         } else {  // zachowany dosłownie do następnego przepisania pliku
           nieczytelneNoce[sc[i]].push_back(wn[i]);
           log("noce: wiersz nieczytelny w %s zachowany bez zmian (%s)", nazwaPliku(sc[i]).c_str(),
               pierwszePola(wn[i], 1).substr(0, 10).c_str());
         }
+      }
+      if (ph && !zPamieci) {
+        ph->wiersze = std::move(wn);
+        ph->sciezki = std::move(sc);
+        ph->jest = true;
       }
     }
     sortuj();
@@ -1274,13 +1310,8 @@ class Przebieg {
     }
     return s;
   }
-  // T-WYM-99: ostatnia ocena silnikiem w tym wybudzeniu (RAM; po głębokim śnie pusta) z kluczem wejść.
-  struct PamiecSilnika {
-    bool jest = false;
-    uint64_t klucz = 0;
-    std::vector<reguly::Wynik> wyniki;
-    std::vector<std::string> log;  // wiersze `reguly: … nie oceniam` z tej oceny, w kolejności
-  } silnikPamiec_;
+  // T-WYM-99: ostatnia ocena silnikiem z kluczem wejść: `silnik_` (PamiecPrzebiegow::Silnik, w tym wybudzeniu albo
+  // przy pamięci przebiegów także z poprzedniego przebiegu bez głębokiego snu, ADR-0047, T-WYM-14).
   // Klucz wejść reguly::ocen(): reguly::kluczOceny() (src/reguly_pomoc.h; strażnik pól i test mutacji tam) z sygnałami
   // tego wybudzenia i `sp_model`, od którego zależą historia do normy, stany i norma w Kontekst.
   uint64_t kluczSilnikaB5(const reguly::Kontekst& kx) { return reguly::kluczOceny(kx, &b5.sygnaly, spModelB16()); }
@@ -1324,9 +1355,9 @@ class Przebieg {
     // funkcje Kontekstu i sygnałów, src/reguly.h), więc bez ponownego przebiegu: kopia wyników i te same wiersze logu
     // `reguly: … nie oceniam` w tym samym miejscu. Klucz obejmuje każde wejście oceny (kluczSilnikaB5()).
     uint64_t klucz = kluczSilnikaB5(kx);
-    if (silnikPamiec_.jest && silnikPamiec_.klucz == klucz && !szybkosc::bezPamieci) {
-      for (auto& l : silnikPamiec_.log) log("%s", l.c_str());
-      return silnikPamiec_.wyniki;
+    if (silnik_->jest && silnik_->klucz == klucz && !szybkosc::bezPamieci) {
+      for (auto& l : silnik_->log) log("%s", l.c_str());
+      return silnik_->wyniki;
     }
     std::vector<std::string> wiersze;
     reguly::OpcjeOceny op;
@@ -1338,10 +1369,10 @@ class Przebieg {
     // wiersze odkryć poza dzienną oceną E/L/H (nie są sprawami pacjenta, src/odkrycia.h)
     std::vector<reguly::Wynik> w = reguly::ocen(odkrycia::bezOdkryc(reguly::zestawWbudowany()), kx, op);
     szybkosc::przebiegiSilnika++;
-    silnikPamiec_.jest = true;
-    silnikPamiec_.klucz = klucz;
-    silnikPamiec_.wyniki = w;
-    silnikPamiec_.log = std::move(wiersze);
+    silnik_->jest = true;
+    silnik_->klucz = klucz;
+    silnik_->wyniki = w;
+    silnik_->log = std::move(wiersze);
     szybkosc::faza("reguly");
     return w;
 #else
@@ -1739,6 +1770,8 @@ class Przebieg {
   bool prognozaWczytana_ = false, prognozaDoZapisu_ = false;
   UstawieniaDnia ustawieniaB9_;
   bool ustawieniaWczytane_ = false;
+  bool ustawieniaZnane_ = true;  // ustawieniaB9_ z udanego odczytu, braku pliku albo właśnie zapisanej treści
+  int8_t kabelBezSnuZW_ = -1;  // `kabel_bez_snu` z `W konfiguracja.txt` w tym przebiegu: 1 tak, 0 nie, -1 bez komendy
   // współrzędne pogody i wschodu słońca: wpis z formularza U-03 (`miasto=`) ma
   // pierwszeństwo przed `POGODA_LAT` i `POGODA_LON` z secrets.h; bez wpisu jak dotąd (R-KONF-24). Plik czytany raz na
   // wybudzenie, więc nowe współrzędne działają od następnego wybudzenia (prognoza i S-K-37 biorą je przy najbliższym użyciu).
@@ -1797,7 +1830,11 @@ class Przebieg {
     if (!ustawieniaWczytane_) {
       ustawieniaWczytane_ = true;
       std::string t;
-      if (fsOk() && a.pliki.czytaj("/konfiguracja.txt", t)) {
+      bool przeczytany = fsOk() && a.pliki.czytaj("/konfiguracja.txt", t);
+      // nieznane: bez pamięci plików albo plik jest, a odczyt zawiódł; inaczej niż domyślne traktuje to tylko
+      // `kabel_bez_snu` (kabelBezSnuUstawienie()), reszta ustawień zostaje domyślna jak dotąd
+      ustawieniaZnane_ = przeczytany || (fsOk() && !a.pliki.istnieje("/konfiguracja.txt"));
+      if (przeczytany) {
         ustawieniaB9_ = parsujUstawieniaDnia(t);
         for (auto& b : ustawieniaB9_.bledy) log("konfiguracja: pominięty wiersz '%s'", b.c_str());
         if (ustawieniaB9_.profilPubliczny) log("konfiguracja: profil publiczny (5.6.4, R-EKR-51)");
@@ -2210,6 +2247,7 @@ class Przebieg {
     else log("sprzęt: zapis wymiany nieudany, data do restartu (R-AW-05)");
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
     ustawieniaWczytane_ = true;
+    ustawieniaZnane_ = true;
     return ok;
   }
   // R-MAS-16: pole `Nowy model maski od dziś` w formularzu U-03 (formularz::Wynik::nowyModelMaski): datę wymiany maski
@@ -2251,6 +2289,7 @@ class Przebieg {
     bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
     ustawieniaWczytane_ = true;
+    ustawieniaZnane_ = true;
     if (model.empty()) a.nvs.usun("cpap", "sp_model");
     else a.nvs.ustawTekst("cpap", "sp_model", model);
     spModelJest_ = false;  // T-WYM-99
@@ -2273,6 +2312,7 @@ class Przebieg {
       else log("sprzęt: zapis cofnięcia nieudany, daty do restartu (R-AW-05)");
       ustawieniaB9_ = parsujUstawieniaDnia(nowa);
       ustawieniaWczytane_ = true;
+      ustawieniaZnane_ = true;
     }
     if (!w.empty()) a.nvs.usun("cpap", "sp_cofw");
     b5.dzis.clear();
@@ -4253,6 +4293,34 @@ class Przebieg {
     if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
     return t;
   }
+  // Treść /konfiguracja.txt do decyzji, które przy nieznanym ustawieniu nie mogą przyjąć wartości domyślnej
+  // (limit ładowania, `kabel_bez_snu`). Zwraca false (ustawienie nieznane), gdy pamięć plików nie jest zamontowana
+  // albo plik jest, a odczyt się nie udał; true z pustą treścią (wartości domyślne), gdy nośnik nie widzi pliku
+  // (zmiana 2026-11-17).
+  bool konfiguracjaZnana(std::string& t) {
+    t.clear();
+    if (!fsOk()) return false;
+    if (a.pliki.czytaj("/konfiguracja.txt", t)) return true;
+    t.clear();
+    return !a.pliki.istnieje("/konfiguracja.txt");
+  }
+  // ADR-0046 (R-DANE-66…R-DANE-68): limit ładowania baterii na kablu z `ladowanie_limit=tak`. Bez pamięci plików
+  // albo przy nieudanym odczycie istniejącego /konfiguracja.txt ustawienie jest nieznane, więc w tym przebiegu nic się
+  // nie zmienia (ani limit, ani przywrócenie, ani wpis `lad_zast`; zmiana 2026-11-17);
+  // log tylko przy włączonej opcji, przy nieczytelnej konfiguracji albo gdy coś było do zrobienia.
+  void limitLadowaniaTeraz() {
+    ladowarka::Rejestry* ukladLad = a.czujniki.rejestryLadowarki();
+    if (!ukladLad || !fsOk()) return;
+    std::string konf;
+    if (!konfiguracjaZnana(konf)) {
+      log("ładowanie: /konfiguracja.txt nieczytelna, limit bez zmian w tym przebiegu (ADR-0046)");
+      return;
+    }
+    ladowarka::PamiecZastanychNvs pam(a.nvs);
+    bool wl = ladowarka::limitWKonfiguracji(konf);
+    ladowarka::WynikLimitu wyn = ladowarka::limitLadowania(*ukladLad, pam, wl, zasilanie == Zasilanie::ZEWNETRZNE);
+    if (wl || wyn.wynik != ladowarka::Wynik::WYLACZONY) log("%s", ladowarka::opis(wyn).c_str());
+  }
   void otworzFormularzP07() {
     std::string stan = frm.stan;
     zamknijFormularzP07();
@@ -4331,6 +4399,7 @@ class Przebieg {
       plikOk = ok;
       ustawieniaB9_ = parsujUstawieniaDnia(nowa);  // R-KONF-23: nowa wartość do restartu także przy błędzie zapisu
       ustawieniaWczytane_ = true;
+      ustawieniaZnane_ = true;
       b5.dzis.clear();
       log(ok ? "formularz: /konfiguracja.txt zapisany (R-KONF-17)" : "formularz: zapis /konfiguracja.txt nieudany");
       if (!ok) dopisek = " Nie udało się zapisać w pamięci panelu.";
@@ -4555,6 +4624,7 @@ class Przebieg {
     if (w.nowyModelMaski) nowyModelZFormularzaB16(ok, staraMaska);  // R-MAS-16
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
     ustawieniaWczytane_ = true;
+    ustawieniaZnane_ = true;
     b5.dzis.clear();
     log(ok ? "formularz: /konfiguracja.txt zapisany (R-KONF-17)" : "formularz: zapis /konfiguracja.txt nieudany");
     if (w.cofnijNowyModel) cofnijNowyModelZFormularzaB16();  // R-MAS-19, po zapisie pozostałych pól
@@ -5372,6 +5442,7 @@ class Przebieg {
     }
     log("%s: zapisano %s (%lu B, komenda W)", konfiguracja ? "konfiguracja" : "obrazki", sciezka.c_str(),
         (unsigned long)t.size());
+    if (konfiguracja) kabelBezSnuZW_ = parsujUstawieniaDnia(t).kabelBezSnuWlaczone() ? 1 : 0;  // T-WYM-16
     wynikW(kw.nazwa, nullptr, false);
     return true;
   }
@@ -5633,7 +5704,8 @@ class Przebieg {
     odswiezanie::Wejscie wo;
     wo.ekran = ekran();
     wo.poPrzycisku = rysowaniePrzyciskiem;
-    wo.obrazZnany = obrazWTymPrzebiegu;
+    // ADR-0047: po czekaniu na kablu (bez głębokiego snu) adapter zna obraz z poprzedniego przebiegu
+    wo.obrazZnany = obrazWTymPrzebiegu || a.wyswietlacz.poprzedniObrazZnany();
     wo.zawszePelne = zawsze;
     wo.naPlotnieDzien = dzienNaPlotnie;
     if (dzienNaPlotnie && ekran() != Ekran::DZIEN)
@@ -7240,7 +7312,7 @@ class Przebieg {
     for (;;) {
       Przytrzymanie s = przytrzymanie(od, ms(), (a.przyciski.wcisniete() & bit) != 0);
       if (s != Przytrzymanie::TRWA) return s == Przytrzymanie::DLUGO;
-      czekaj(5);
+      czekaj(krokPrzytrzymania(od, ms()));  // próbka w ms progu (R-PRZ-08)
     }
   }
 
@@ -7492,7 +7564,10 @@ class Przebieg {
   // ---------- sen ----------
   // Tuż przed każdym snem: wiersz pamięci, licznik startów od zera, sen (T-WYM-82). Wersja
   // niesprawdzona nie zasypia (7.8): zamiast snu powrót do poprzedniej.
-  void przedSnem(const PlanSnu& plan) {
+  // ADR-0047: na zasilaniu zewnętrznym czekanie zamiast głębokiego snu (T-WYM-10…T-WYM-13), decyzja w rdzeniu
+  // (src/czekanie.h). Stan przed czekaniem taki sam jak przed snem (wiersz pamięci, licznik startów od zera), więc
+  // restart w trakcie czekania albo następnego przebiegu wznawia jak po głębokim śnie.
+  void przedSnem(const PlanSnu& plan, bool awaryjny = false) {
     PamiecWybudzenia pm = pamiecTeraz();
     zapamietajPamiec(pm);
     a.port.wiersz(wierszPamieci(pm));
@@ -7503,7 +7578,122 @@ class Przebieg {
     }
     zerujPrzedSnem(a.uruchomienie.licznik(), wersjaId);
     odnow();
+    if (czekajNaKablu(plan, awaryjny, pm)) return;
     a.sen.spij(plan);
+  }
+
+  // T-WYM-17: start inny niż wybudzenie (z głębokiego snu albo z czekania) przy fladze `cz_akt` = program był w trybie
+  // bez snu. Flaga zdjęta; start po błędzie programu (panika, strażnik) = blokada czekania do końca doby.
+  // NVS `cpap` z nowszej wersji (T-WYM-54): bez zapisu flagi i blokady (sprawdzWersjeNvs() jeszcze nie zablokował
+  // zapisu w tym miejscu), a czekanie i tak wyłączone (czekajNaKablu(), Powod::NVS_NOWSZY); zmiana 2026-11-17.
+  void poStarcieBezSnu(PrzyczynaStartu p) {
+    if (!a.nvs.flaga("cpap", czekanie::NVS_KLUCZ_AKTYWNE, false)) return;
+    if (nvsCpapNowszy()) return;
+    a.nvs.ustawFlage("cpap", czekanie::NVS_KLUCZ_AKTYWNE, false);
+    if (!czekanie::startPoBledzie(p)) return;
+    std::string d = dzisiaj();
+    a.nvs.ustawTekst("cpap", czekanie::NVS_KLUCZ_BLOKADA, d.empty() ? "?" : d);
+    log("czekanie na kablu: restart po błędzie (%s) w trybie bez snu, do końca doby %s głęboki sen (T-WYM-17)",
+        nazwaPrzyczyny(p), d.empty() ? "(data nieznana)" : d.c_str());
+  }
+  // T-WYM-17: blokada czekania po restarcie po błędzie trwa (ta doba albo data nieznana); po dobie koniec z wierszem.
+  bool blokadaPoBledzie() {
+    std::string z = a.nvs.tekst("cpap", czekanie::NVS_KLUCZ_BLOKADA, ""), d = dzisiaj();
+    switch (czekanie::blokada(z, d)) {
+      case czekanie::Blokada::BRAK: return false;
+      case czekanie::Blokada::KONIEC:
+        a.nvs.usun("cpap", czekanie::NVS_KLUCZ_BLOKADA);
+        log("czekanie na kablu: koniec blokady po restarcie po błędzie z %s, nowa doba (T-WYM-17)", z.c_str());
+        return false;
+      case czekanie::Blokada::PRZYSZLA:  // zegar był w przyszłości w chwili restartu: wpis wygasły
+        a.nvs.usun("cpap", czekanie::NVS_KLUCZ_BLOKADA);
+        log("czekanie na kablu: blokada po restarcie po błędzie z datą %s dalej niż doba po dziś %s, usunięta (T-WYM-17)",
+            z.c_str(), d.c_str());
+        return false;
+      case czekanie::Blokada::USTAL_DZIS:
+        a.nvs.ustawTekst("cpap", czekanie::NVS_KLUCZ_BLOKADA, d);
+        return true;
+      case czekanie::Blokada::TRWA: return true;
+    }
+    return true;
+  }
+  // T-WYM-16: `kabel_bez_snu` z ustawień tego przebiegu; gdy przebieg ich nie czytał (wybudzenie pomiarowe), odczyt
+  // pliku bez wierszy logu ustawieniaB9(), żeby log wybudzenia był jak przed ADR-0047.
+  // Wartość wpisana komendą `W konfiguracja.txt` w tym przebiegu (czuwanie) działa od tej decyzji o śnie: treść
+  // właśnie zapisana, bez ponownego odczytu nośnika (zmiana 2026-11-17).
+  // Zwraca 1 tak, 0 nie, -1 nieznane: pamięć plików niezamontowana albo plik jest, a odczyt zawiódł. Nieznane =
+  // głęboki sen w tym przebiegu: błąd odczytu nie może włączyć czekania wbrew `nie` (zmiana 2026-11-17).
+  // Brak pliku = wartość domyślna (tak).
+  int kabelBezSnuUstawienie() {
+    if (kabelBezSnuZW_ >= 0) return kabelBezSnuZW_;
+    if (ustawieniaWczytane_) return ustawieniaZnane_ ? (ustawieniaB9_.kabelBezSnuWlaczone() ? 1 : 0) : -1;
+    std::string t;
+    if (!konfiguracjaZnana(t)) return -1;
+    return parsujUstawieniaDnia(t).kabelBezSnuWlaczone() ? 1 : 0;
+  }
+  // T-WYM-54: NVS `cpap` z wersji wyższej niż znana (sam odczyt, bez wiersza logu; ten sam warunek co sprawdzWersjeNvs())
+  bool nvsCpapNowszy() { return a.nvs.liczbaU("cpap", NVS_KLUCZ_WERSJA, 0) > WERSJA_NVS_CPAP; }
+  void czekanieAktywne(bool w) {  // flaga `cz_akt` tylko przy zmianie (T-WYM-17)
+    if (pp->czekanieAktywne == w) return;
+    pp->czekanieAktywne = w;
+    a.nvs.ustawFlage("cpap", czekanie::NVS_KLUCZ_AKTYWNE, w);
+  }
+
+  // Zwraca true, gdy sen załatwiło czekanie: przebieg skończony czekaniem (pp->czekano, wołający robi następny) albo
+  // czekanie przerwane odłączeniem kabla i głęboki sen na resztę planu. false = zwykły głęboki sen (wołający).
+  bool czekajNaKablu(const PlanSnu& plan, bool awaryjny, const PamiecWybudzenia& pm) {
+    if (!pp || !a.sen.czekanieDostepne()) return false;  // bez żadnego odczytu i wiersza: jak przed ADR-0047
+    czekanie::Wejscie w;
+    w.obsluga = true;
+    w.awaryjny = awaryjny;
+    w.naStarcie = awaryjny ? Zasilanie::NIEZNANE : zasilanie;
+    if (w.naStarcie == Zasilanie::ZEWNETRZNE) {
+      int kbs = kabelBezSnuUstawienie();
+      w.wylaczone = kbs == 0;            // T-WYM-16: `kabel_bez_snu=nie`
+      w.ustawienieNieznane = kbs < 0;    // konfiguracja nieczytelna: głęboki sen w tym przebiegu
+      if (kbs > 0) w.nvsNowszy = nvsCpapNowszy();  // T-WYM-54: blokada by się nie zapisała
+      if (kbs > 0 && !w.nvsNowszy) w.poBledzie = blokadaPoBledzie();
+    }
+    // świeży odczyt tylko przy kablu na początku przebiegu i bez wyłącznika (na baterii bez dodatkowego odczytu); przy
+    // ustawieniu nieznanym też, jak przed zmianą 2026-11-17 (wtedy było `tak`), żeby log podał właściwy powód głębokiego snu
+    w.przedSnem = w.naStarcie == Zasilanie::ZEWNETRZNE && !w.wylaczone ? a.czujniki.zasilanie().stan
+                                                                      : Zasilanie::NIEZNANE;
+    w.budzZegarem = plan.budzZegarem;
+    w.pamiecWBudzecie = pamiecWBudzecie(pm);
+    w.najwiekszyBlokPsram = a.diagnostyka.najwiekszyBlokPsram();
+    w.najwiekszyBlokWewn = a.diagnostyka.najwiekszyBlokWewn();
+    w.sekundOdStartu = a.diagnostyka.sekundOdStartu();
+    w.przebiegow = pp->przebiegow;
+    w.minutaDoby = zegar() ? minutaDoby() : -1;
+    czekanie::Decyzja d = czekanie::decyzja(w);
+    if (d.wybor != czekanie::Wybor::CZEKANIE) {
+      czekanieAktywne(false);  // głęboki sen: nowy program po wybudzeniu, bez flagi trybu bez snu
+      // wiersz tylko, gdy przebieg zaczął się na kablu i bez wyłącznika: na baterii i przy `kabel_bez_snu=nie` log
+      // jak przed ADR-0047
+      if (w.naStarcie == Zasilanie::ZEWNETRZNE && !w.wylaczone)
+        log("sen: głęboki mimo zasilania zewnętrznego: %s (T-WYM-11)", czekanie::opis(d.powod));
+      return false;
+    }
+    log("sen: czekanie na zasilaniu zewnętrznym zamiast głębokiego snu, przebieg %lu (T-WYM-10)",
+        (unsigned long)pp->przebiegow);
+    czekanieAktywne(true);  // T-WYM-17: restart po błędzie od tej chwili blokuje czekanie do końca doby
+    WynikCzekania wc = a.sen.czekaj(plan, [this]() { return czekanie::przerwacCzekanie(a.czujniki.zasilanie().stan); });
+    switch (wc.rodzaj) {
+      case WynikCzekania::Rodzaj::NIE_UMIE: czekanieAktywne(false); return false;
+      case WynikCzekania::Rodzaj::PRZERWANE: {
+        czekanieAktywne(false);
+        PlanSnu reszta = plan;
+        reszta.sekund = wc.zostaloS < 1 ? 1 : wc.zostaloS;
+        log("czekanie: zasilanie inne niż zewnętrzne, głęboki sen na pozostałe %lu s (T-WYM-12)",
+            (unsigned long)reszta.sekund);
+        a.sen.spij(reszta);
+        return true;
+      }
+      case WynikCzekania::Rodzaj::ZEGAR:
+      case WynikCzekania::Rodzaj::PRZYCISK: break;
+    }
+    pp->czekano = true;
+    return true;
   }
 
   // Chwila, do której to wybudzenie wykonało terminy planu: zegar ze znanym czasem → chwila
@@ -7585,7 +7775,11 @@ class Przebieg {
     if (w == PowodWybudzenia::PRZYCISK) {
       // przytrzymanie liczone od startu programu (ms = 0), a przycisk był wciśnięty już przed startem (T-WYM-21)
       budzacy = przyciskBudzacy(a.uruchomienie.przyciskiBudzace());
-      skrotBudzenia = przytrzymanieLubSkrot(budzacy, 0, budzacyDlugo);
+      uint32_t puszczonyPo = a.uruchomienie.trwanieBudzacegoMs();
+      // ADR-0047: już puszczony. Co najmniej próg (R-PRZ-08), jak po głębokim śnie: tam przycisk wciśnięty w
+      // milisekundzie PROG_PRZYTRZYMANIA_MS − 1 daje przytrzymanie() == DLUGO (zmiana 2026-11-17).
+      if (puszczonyPo) budzacyDlugo = przytrzymaniePuszczone(puszczonyPo);
+      else skrotBudzenia = przytrzymanieLubSkrot(budzacy, 0, budzacyDlugo);
       if (skrotBudzenia == 1) budzacy = Przycisk::PRAWY;
     }
     r.wybudzen++;
@@ -7669,6 +7863,7 @@ class Przebieg {
     log("zasilanie: %s, REG08=%d, REG0A=%d",
         zasilanie == Zasilanie::ZEWNETRZNE ? "zewnetrzne" : zasilanie == Zasilanie::BATERIA ? "bateria" : "nieznane",
         (int)odczytZasilania.rejStanu, (int)odczytZasilania.rejWejscia);
+    limitLadowaniaTeraz();  // ADR-0046: raz na wybudzenie, po odczycie zasilania i wczytaniu plików
     // skąd sieć i AirBridge (src/sekrety.h), bez haseł (R-KONF-38)
     if (!k.opisSekretow.empty()) log("konfiguracja: %s", k.opisSekretow.c_str());
     odnow();
@@ -7864,7 +8059,7 @@ class Przebieg {
         dlugo = s == Przytrzymanie::DLUGO;
         return 0;
       }
-      czekaj(5);
+      czekaj(krokPrzytrzymania(od, ms()));  // próbka w ms progu (R-PRZ-08)
     }
     uint32_t odOba = ms();
     while ((a.przyciski.wcisniete() & oba) == oba) {
@@ -7893,7 +8088,7 @@ class Przebieg {
     while (a.przyciski.zKolejki(nr, trwalo)) {
       if (nr < (int)Przycisk::LEWY || nr > (int)Przycisk::PRAWY) continue;
       Przycisk q = (Przycisk)nr;
-      bool dlugo = trwalo >= PROG_PRZYTRZYMANIA_MS;
+      bool dlugo = przytrzymaniePuszczone(trwalo);  // ≥ próg, jak po głębokim śnie (R-PRZ-08, zmiana 2026-11-17)
       if (!zKolejkiWolno(ekran(), dlugo)) {
         pominiete = 1;
         while (a.przyciski.zKolejki(nr, trwalo)) pominiete++;
@@ -8045,14 +8240,14 @@ class Przebieg {
     if (wifi) a.siec.wylacz();
     PlanSnu plan = planSnuAwaryjny(a.przyciski.wcisniete());  // budzi tylko przycisk (R-AW-39)
     log("tryb awaryjny: sen do naciśnięcia przycisku");
-    przedSnem(plan);
+    przedSnem(plan, true);  // ADR-0047: w trybie awaryjnym zawsze głęboki sen
     return false;
   }
 };
 
 }  // namespace
 
-void Dyrygent::wybudzenie() {
+bool Dyrygent::wybudzenie() {
   teksty_ = TekstyWybudzenia();
   // R-KOK-29: strona sypialni w ciągu liczy się w każdym wybudzeniu od nowa (na panelu i tak: po głębokim śnie stan
   // zmiennych zaczyna się od zera); po wybudzeniu też false, żeby kolejne wybudzenie albo funkcja bez dyrygenta
@@ -8060,10 +8255,11 @@ void Dyrygent::wybudzenie() {
   ustawSypialnieWKokpicie(false);
   ustawUkladKokpitu(UkladKokpitu());  // ADR-0045: układ z konfiguracji ustawia przebieg (sypialniaWKokpicieB44())
   {
-    Przebieg p(a_, k_, teksty_);
+    Przebieg p(a_, k_, teksty_, pp_);
     p.wykonaj();
-    p.tekstyKoncowe();
+    if (!k_.bezTekstowKoncowych) p.tekstyKoncowe();
   }
   ustawSypialnieWKokpicie(false);
   ustawUkladKokpitu(UkladKokpitu());
+  return pp_ && pp_->czekano;  // ADR-0047: przebieg skończony czekaniem na kablu
 }

@@ -42,7 +42,12 @@ struct KonfiguracjaPanelu {
   std::string opisSekretow{};
   // sieć domowa (do formularza U-03: nazwa w polu, hasło tylko jako „ustawione”, R-KONF-38, R-KONF-39)
   std::string ssid{}, hasloWifi{};
+  // (ADR-0047) true = bez TekstyWybudzenia po przebiegu: na panelu sen nie wracał, więc tekstów nikt nie liczył;
+  // przy czekaniu na kablu przebieg wraca, a teksty są tylko dla testów i symulatora. src/main.cpp ustawia true.
+  bool bezTekstowKoncowych = false;
 };
+
+struct PamiecPrzebiegow;  // src/przebiegi.h (ADR-0047)
 
 // Teksty ostatniego wybudzenia do testów i symulatora (ekran testu jest tylko w pikselach).
 struct TekstyWybudzenia {
@@ -65,9 +70,15 @@ struct TekstyWybudzenia {
 class Dyrygent {
  public:
   Dyrygent(const Adaptery& a, const KonfiguracjaPanelu& k) : a_(a), k_(k) {}
-  // Jedno wybudzenie od startu programu do snu. Na panelu nie wraca (Sen::spij(), restart po wgraniu albo powrót
-  // do poprzedniej wersji); z atrapami wraca po Sen::spij() albo Uruchomienie::wrocDoPoprzedniej().
-  void wybudzenie();
+  // (ADR-0047) `p`: pamięć między przebiegami bez głębokiego snu, którą wołający trzyma przez cały program
+  // (src/main.cpp). Z nią dyrygent na zasilaniu zewnętrznym może czekać zamiast głębokiego snu (T-WYM-10) i bierze
+  // noce oraz ocenę silnika z poprzedniego przebiegu, gdy klucz z treści się zgadza (T-WYM-14). nullptr = jak dotąd.
+  Dyrygent(const Adaptery& a, const KonfiguracjaPanelu& k, PamiecPrzebiegow* p) : a_(a), k_(k), pp_(p) {}
+  // Jedno wybudzenie (przebieg) od startu programu albo końca czekania do snu. Na panelu po głębokim śnie nie wraca
+  // (Sen::spij(), restart po wgraniu albo powrót do poprzedniej wersji); z atrapami wraca po Sen::spij() albo
+  // Uruchomienie::wrocDoPoprzedniej(). Zwraca true, gdy przebieg skończył się czekaniem na kablu (Sen::czekaj(),
+  // ADR-0047): wołający uruchamia wtedy następny przebieg nowym Dyrygentem z tą samą pamięcią przebiegów.
+  bool wybudzenie();
   // Teksty ostatniego wybudzenia: linie każdego narysowanego ekranu testu i linie stanu tuż przed snem
   // (TekstyWybudzenia); puste po trybie awaryjnym.
   const TekstyWybudzenia& teksty() const { return teksty_; }
@@ -76,4 +87,5 @@ class Dyrygent {
   Adaptery a_;
   KonfiguracjaPanelu k_;
   TekstyWybudzenia teksty_;
+  PamiecPrzebiegow* pp_ = nullptr;
 };

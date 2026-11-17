@@ -14,6 +14,7 @@
 #include <vector>
 #include "airbridge.h"
 #include "ekrany.h"
+#include "ladowarka.h"
 #include "nawigacja.h"
 #include "odswiezanie.h"
 #include "start.h"
@@ -46,6 +47,21 @@ class Nvs {
   // false = zapis się nie udał (sekrety sprawdzają też odczytem kontrolnym, bo flash bywa zawodny po cichu).
   virtual bool ustawTekst(const char* przestrzen, const char* klucz, const std::string& v) = 0;
   virtual uint32_t liczbaU(const char* przestrzen, const char* klucz, uint32_t domysl) = 0;
+  // Odczyt liczby z odróżnieniem braku klucza od błędu odczytu (ADR-0046 pkt 4): liczbaU()
+  // przy błędzie zwraca wartość domyślną jak przy braku klucza. Używa tego tylko wpis `cpap`/`lad_zast` ładowarki.
+  // Domyślnie przez dwa odczyty liczbaU() z różnymi wartościami domyślnymi: obie zwrócone = BRAK, ta sama wartość = JEST,
+  // inna para = BLAD (błąd, który zawsze daje wartość domyślną, wygląda tu jak BRAK; adapter ESP32 odróżnia go kodem
+  // ESP-IDF).
+  enum class Odczyt : uint8_t { JEST, BRAK, BLAD };
+  virtual Odczyt liczbaUStan(const char* przestrzen, const char* klucz, uint32_t& v) {
+    const uint32_t a = liczbaU(przestrzen, klucz, 0u), b = liczbaU(przestrzen, klucz, 0xFFFFFFFFu);
+    if (a == b) {
+      v = a;
+      return Odczyt::JEST;
+    }
+    if (a == 0u && b == 0xFFFFFFFFu) return Odczyt::BRAK;
+    return Odczyt::BLAD;
+  }
   virtual void ustawLiczbeU(const char* przestrzen, const char* klucz, uint32_t v) = 0;
   virtual int32_t liczba(const char* przestrzen, const char* klucz, int32_t domysl) = 0;
   virtual void ustawLiczbe(const char* przestrzen, const char* klucz, int32_t v) = 0;
@@ -207,6 +223,10 @@ class Wyswietlacz {
   // Bufor płótna po rysowaniu: BAJTOW_KLATKI bajtów (800×480, 1 bit na piksel, wiersz po wierszu), do skrótu klatki.
   // Nie zmienia ekranu.
   virtual const uint8_t* bufor() = 0;
+  // R-NF-25, ADR-0047: adapter ma kopię obrazu ostatnio wysłanego do sterownika z tego samego startu programu
+  // (po czekaniu na kablu bez głębokiego snu), więc odświeżenie częściowe jest możliwe już przy pierwszym rysowaniu
+  // przebiegu. Po głębokim śnie i starcie false. Domyślnie false.
+  virtual bool poprzedniObrazZnany() { return false; }
 };
 const size_t BAJTOW_KLATKI = (size_t)800 / 8 * 480;  // 48 000 B
 
@@ -256,6 +276,9 @@ class Czujniki {
   virtual OdczytCzujnikow czytaj() = 0;
   // Stan zasilania zewnętrznego teraz (R-DANE-65); domyślnie NIEZNANE (adapter bez takiego odczytu).
   virtual OdczytZasilania zasilanie() { return OdczytZasilania(); }
+  // Rejestry układu ładowarki do limitu ładowania (ADR-0046, R-DANE-67); nullptr = adapter bez ładowarki z I2C
+  // (wtedy limit nie działa, a panel ładuje jak dotąd).
+  virtual ladowarka::Rejestry* rejestryLadowarki() { return nullptr; }
 };
 
 // Buzzer (T-KOMP-22).
@@ -272,6 +295,10 @@ class Uruchomienie {
   virtual PrzyczynaStartu przyczyna() = 0;   // esp_reset_reason()
   virtual PowodWybudzenia powod() = 0;       // esp_sleep_get_wakeup_cause()
   virtual uint8_t przyciskiBudzace() = 0;    // bity przycisków z esp_sleep_get_ext1_wakeup_status()
+  // (ADR-0047, od 17.11.2026) przebieg po czekaniu na kablu obudzony naciśnięciem już puszczonym (krótszym niż obieg
+  // pętli czekania, z kolejki): ile ms trwało; rdzeń bierze z tego krótkie albo przytrzymanie zamiast mierzyć.
+  // 0 = przycisk budzący trzymany w chwili startu (zawsze po głębokim śnie).
+  virtual uint32_t trwanieBudzacegoMs() { return 0; }
   virtual LicznikStartow& licznik() = 0;     // blok RTC_NOINIT_ATTR (T-WYM-82)
   virtual StanRtc& rtc() = 0;                // blok RTC_DATA_ATTR: przeżywa głęboki sen, ginie przy restarcie
   virtual const char* wersja() = 0;          // identyfikator wersji: WERSJA+skrót commitu (src/main.cpp)
@@ -291,11 +318,37 @@ class Straznik {
   virtual void odnow() = 0;
 };
 
+// Wynik czekania na zasilaniu zewnętrznym (Sen::czekaj(), ADR-0047).
+struct WynikCzekania {
+  enum class Rodzaj : uint8_t {
+    NIE_UMIE,   // adapter nie czekał (wołający usypia głęboko, jak dotąd)
+    ZEGAR,      // minął czas planu: następny przebieg jak po wybudzeniu zegarem
+    PRZYCISK,   // naciśnięcie przycisku z maski planu: następny przebieg jak po wybudzeniu przyciskiem
+    PRZERWANE,  // sprawdzenie (`przerwij`) kazało przerwać: wołający usypia głęboko na `zostaloS`
+  };
+  Rodzaj rodzaj = Rodzaj::NIE_UMIE;
+  uint32_t zostaloS = 0;  // PRZERWANE: sekundy planu, które zostały (co najmniej 1)
+};
+
 // Głęboki sen (część T-KOMP-19: budzenie ext1 i zegarem). Na panelu nie wraca.
 class Sen {
  public:
   virtual ~Sen() = default;
   virtual void spij(const PlanSnu& plan) = 0;
+  // Czekanie zamiast głębokiego snu na zasilaniu zewnętrznym (ADR-0047, T-WYM-10, T-WYM-12): na panelu pętla
+  // z delay(20) i żywą pamięcią programu (lekkie uśpienie odłożone), budzenie tymi samymi źródłami co plan
+  // (zegar po plan.sekund, przyciski z plan.przyciski; wybór przycisku czekanie::przyciskKonczacy()). Strażnik
+  // zadania odnawiany w każdym obiegu, co czekanie::KAWALEK_CZEKANIA_S adapter woła `przerwij`; true = koniec czekania
+  // z wynikiem PRZERWANE. Po ZEGAR i PRZYCISK adapter ustawia stan startu następnego przebiegu jak po wybudzeniu
+  // z głębokiego snu (Uruchomienie: przyczyna USPIENIE, powód, przyciski budzące, czas trzymania naciśnięcia już
+  // puszczonego; Zegar::ms() od chwili wciśnięcia przycisku budzącego albo od końca czekania; kolejka bez naciśnięć
+  // sprzed czekania, przycisk budzący z piskiem R-PRZ-20). Domyślnie (atrapy bez czekania, starsze adaptery): NIE_UMIE.
+  virtual bool czekanieDostepne() { return false; }
+  virtual WynikCzekania czekaj(const PlanSnu& plan, const std::function<bool()>& przerwij) {
+    (void)plan;
+    (void)przerwij;
+    return WynikCzekania();
+  }
 };
 
 // Port serwisowy UART (T-KOMP-23): log na żywo i komendy `Z`, `O`.
@@ -314,6 +367,15 @@ class Diagnostyka {
   // bez PSRAM (z PSRAM 8 MB próg 64 KB nie miałby sensu)
   virtual uint32_t minWolnaSterta() = 0;
   virtual uint32_t zapasStosu() = 0;      // uxTaskGetStackHighWaterMark(NULL) zadania loop, w bajtach
+  // (ADR-0047, T-WYM-13) największy wolny ciągły blok PSRAM w bajtach; 0 = brak wolnego bloku (głęboki sen);
+  // UINT32_MAX (czekanie::BLOK_NIEZNANY) = nieznany, bez sprawdzenia (zmiana 2026-11-17).
+  virtual uint32_t najwiekszyBlokPsram() { return UINT32_MAX; }
+  // (ADR-0047, T-WYM-13, od 17.11.2026) największy wolny ciągły blok pamięci wewnętrznej (MALLOC_CAP_INTERNAL |
+  // MALLOC_CAP_8BIT) w bajtach; 0 = brak wolnego bloku (głęboki sen); UINT32_MAX (czekanie::BLOK_NIEZNANY) = nieznany,
+  // bez sprawdzenia (zmiana 2026-11-17).
+  virtual uint32_t najwiekszyBlokWewn() { return UINT32_MAX; }
+  // (ADR-0047, T-WYM-13) sekundy od startu programu z czasem czekania (esp_timer_get_time()); 0 = nieznane.
+  virtual uint32_t sekundOdStartu() { return 0; }
 };
 
 // Wydania firmware z GitHub (ADR-0032, ADR-0038; T-KOMP-16 i T-KOMP-18; rdzeń: src/aktualizacja.h). HTTPS

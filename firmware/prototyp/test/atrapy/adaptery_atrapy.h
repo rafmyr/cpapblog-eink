@@ -97,10 +97,19 @@ class AtrapaNvs : public Nvs {
     if (nieudaneTeksty.count(k(p, kl))) return false;
     teksty[k(p, kl)] = v; zapis(p, kl); return true;
   }
+  // Klucze `p/kl`, których odczyt liczby się nie udaje: liczbaU() zwraca wartość domyślną (jak Preferences na panelu),
+  // liczbaUStan() zwraca BLAD (ADR-0046). Poza tym liczbaUStan() idzie przez wersję
+  // z Nvs (dwa odczyty liczbaU()), żeby klasy pochodne w testach przypadków brzegowych, które podmieniają tylko liczbaU(), działały.
+  std::set<std::string> bledneOdczytyU;
   uint32_t liczbaU(const char* p, const char* kl, uint32_t dom) override {
     odczyty[k(p, kl)]++;
+    if (bledneOdczytyU.count(k(p, kl))) return dom;
     auto i = liczbyU.find(k(p, kl));
     return i == liczbyU.end() ? dom : i->second;
+  }
+  Odczyt liczbaUStan(const char* p, const char* kl, uint32_t& v) override {
+    if (bledneOdczytyU.count(k(p, kl))) return Odczyt::BLAD;
+    return Nvs::liczbaUStan(p, kl, v);
   }
   void ustawLiczbeU(const char* p, const char* kl, uint32_t v) override { liczbyU[k(p, kl)] = v; zapis(p, kl); }
   int32_t liczba(const char* p, const char* kl, int32_t dom) override {
@@ -152,6 +161,8 @@ class AtrapaPlikow : public Pliki {
   long zanikPoBajtach = -1;
   bool zanik = false;
   std::map<std::string, int> odczyty;  // liczba odczytów każdego pliku (czytaj(), czytajWiersze(), pierwszyWiersz())
+  std::map<std::string, int> pierwsze;     // z tego pierwszyWiersz() (ADR-0047, koszt bez pamięci list, 17.11.2026)
+  std::map<std::string, int> listowania;  // wywołania listuj() każdego katalogu (jw.)
   // Partycja: dwa pierwsze bloki (2 × 4096 B) i opis z tablicy panelu; domyślnie poprawny superblok i układ
   // wkompilowany w firmware.
   std::string poczatek = superblok();
@@ -212,6 +223,7 @@ class AtrapaPlikow : public Pliki {
     return ile == dop.size();
   }
   bool pierwszyWiersz(const char* n, std::string& w) override {
+    if (montowane) pierwsze[n]++;
     std::vector<std::string> v;
     if (!czytajWiersze(n, v) || v.empty()) return false;
     w = v[0];
@@ -250,6 +262,7 @@ class AtrapaPlikow : public Pliki {
   bool listuj(const char* k, std::vector<std::string>& nazwy) override {
     nazwy.clear();
     if (!montowane) return false;
+    listowania[k]++;
     std::string p = std::string(k);
     if (p.empty() || p.back() != '/') p += '/';
     for (auto& kv : pliki)
@@ -471,6 +484,11 @@ class AtrapaWyswietlacza : public Wyswietlacz {
   // bez odświeżenia częściowego (adapter wykonuje pełne i zwraca PELNE)
   std::vector<Odswiezenie> rodzaje;
   bool czesciowePozwala = true;
+  // ADR-0047: `pamietaObraz` = adapter jak na panelu przy czekaniu na kablu (kopia obrazu przeżywa przebieg bez
+  // głębokiego snu); AtrapaSnu::spij() (głęboki sen) ją kasuje (zapomnij()). Domyślnie false: jak dotąd.
+  bool pamietaObraz = false;
+  void zapomnij() { znany_ = false; }
+  bool poprzedniObrazZnany() override { return pamietaObraz && znany_; }
   void wlacz() override { d_.dodaj("ekran.wlacz"); }
   Plotno& plotno() override { return p; }
   void odswiez() override {
@@ -478,6 +496,7 @@ class AtrapaWyswietlacza : public Wyswietlacz {
     klatki.push_back(p.b);
     rodzaje.push_back(biezacy_);
     biezacy_ = Odswiezenie::PELNE;
+    znany_ = true;
     d_.dodaj("ekran.odswiez");
   }
   Odswiezenie odswiezJako(Odswiezenie rodzaj) override {
@@ -490,6 +509,7 @@ class AtrapaWyswietlacza : public Wyswietlacz {
  private:
   Dziennik& d_;
   Odswiezenie biezacy_ = Odswiezenie::PELNE;
+  bool znany_ = false;
 };
 
 // Przyciski ze skryptem: stan od chwili (ms zegara procesora); przed pierwszym wpisem nic nie wciśnięte.
@@ -529,11 +549,77 @@ class AtrapaCzujnikow : public Czujniki {
   OdczytCzujnikow czytaj() override { return o; }
   Zasilanie zas = Zasilanie::NIEZNANE;  // R-DANE-65: stan zasilania zewnętrznego, który „widzi” panel
   int odczytowZasilania = 0;
+  // ADR-0047: >= 0 = od odczytu o tym numerze (licząc od 1) zasilanie z baterii (kabel odłączony w trakcie
+  // przebiegu albo czekania); -1 = bez zmiany.
+  int bateriaOdOdczytu = -1;
+  // true = każdy odczyt zasilania czyta też z `lad` REG0B, REG08 i REG0A jak CzujnikiEsp32::zasilanie() na tej samej
+  // magistrali Wire1 (test K w testy_kabel_bez_snu.cpp: odczyty co 10 s w czekaniu obok zapisu limitu ładowania).
+  // Stan zasilania dalej z `zas`. Domyślnie false: liczniki odczytów układu w innych testach bez zmian.
+  bool zasilanieZUkladu = false;
   OdczytZasilania zasilanie() override {
     odczytowZasilania++;
+    if (bateriaOdOdczytu >= 0 && odczytowZasilania >= bateriaOdOdczytu) {
+      zas = Zasilanie::BATERIA;
+      bateriaOdOdczytu = -1;
+    }
     OdczytZasilania odczyt;
     odczyt.stan = zas;
+    if (zasilanieZUkladu && lad) {
+      uint8_t w = 0;
+      if (lad->czytaj(0x0B, w) && lad->czytaj(0x08, w)) odczyt.rejStanu = w;
+      if (lad->czytaj(0x0A, w)) odczyt.rejWejscia = w;
+    }
     return odczyt;
+  }
+  ladowarka::Rejestry* lad = nullptr;  // ADR-0046: atrapa układu ładowarki (AtrapaLadowarki), nullptr = bez układu
+  ladowarka::Rejestry* rejestryLadowarki() override { return lad; }
+};
+
+// Model rejestrów ładowarki SY6974B (ADR-0046) według karty Rev. 0.9 (src/ladowarka.h [K]) i karty SGM41512 [S]:
+// wartości po starcie zasilania, tryb domyślny i host (każdy zapis = host), upływ licznika watchdoga w trybie host
+// przywraca wartości domyślne (poza REG00, REG06, REG07, jak w [S]); REG08…REG0A tylko do odczytu.
+// Wstrzykiwanie błędów: brak odpowiedzi, nieudany n-ty zapis, rejestr, który potwierdza zapis, ale go nie przyjmuje.
+class AtrapaLadowarki : public ladowarka::Rejestry {
+ public:
+  uint8_t r[12] = {};
+  bool host = false;
+  bool odpowiada = true;
+  std::set<uint8_t> nieczytelne;  // rejestry, których odczyt się nie udaje
+  int nieudanyZapisNr = -1;       // numer zapisu (od 1), który się nie udaje (bez zmiany rejestru); -1 = brak
+  int nieprzyjmuje = -1;          // rejestr, który potwierdza zapis, ale zostaje bez zmian; -1 = brak
+  std::vector<std::pair<uint8_t, uint8_t>> zapisy;
+  int odczytow = 0;
+  AtrapaLadowarki() { startZasilania(); }
+  // Wartości po starcie zasilania [K]: REG04 01011 000 (4208 mV), REG05 1 0 01 1 1 1 1 (WATCHDOG 40 s), REG09 bit 7
+  // WATCHDOG_FAULT (tryb domyślny), REG0B PN 1000. Pozostałe rejestry: wartości przykładowe (logika ich nie czyta).
+  void startZasilania() {
+    uint8_t d[12] = {0x17, 0x1A, 0xA2, 0x22, 0x58, 0x9F, 0xE6, 0x4C, 0x00, 0x80, 0x00, 0x40};
+    for (int i = 0; i < 12; i++) r[i] = d[i];
+    host = false;
+  }
+  // Upływ licznika w trybie host z włączonym licznikiem: tryb domyślny, wartości domyślne poza REG00, REG06, REG07.
+  void uplywWatchdoga() {
+    if (!host || (r[5] & 0x30) == 0) return;
+    uint8_t r0 = r[0], r6 = r[6], r7 = r[7];
+    startZasilania();
+    r[0] = r0;
+    r[6] = r6;
+    r[7] = r7;
+  }
+  bool czytaj(uint8_t rej, uint8_t& w) override {
+    odczytow++;
+    if (!odpowiada || rej > 0x0B || nieczytelne.count(rej)) return false;
+    w = r[rej];
+    return true;
+  }
+  bool zapisz(uint8_t rej, uint8_t w) override {
+    if (!odpowiada || rej > 0x0B) return false;
+    zapisy.push_back({rej, w});
+    if ((int)zapisy.size() == nieudanyZapisNr) return false;
+    host = true;
+    if (rej >= 0x08 && rej <= 0x0A) return true;  // tylko do odczytu
+    if ((int)rej != nieprzyjmuje) r[rej] = w;
+    return true;
   }
 };
 
@@ -561,6 +647,8 @@ class AtrapaUruchomienia : public Uruchomienie {
   PrzyczynaStartu przyczyna() override { d_.dodaj("start.przyczyna"); return przyczynaStartu; }
   PowodWybudzenia powod() override { return powodWybudzenia; }
   uint8_t przyciskiBudzace() override { return budzace; }
+  uint32_t trwanieBudzacego = 0;  // ADR-0047 (17.11.2026): naciśnięcie budzące już puszczone, ms; 0 = trzymane
+  uint32_t trwanieBudzacegoMs() override { return trwanieBudzacego; }
   LicznikStartow& licznik() override { return l; }
   StanRtc& rtc() override { return stan; }
   const char* wersja() override { return napisWersji; }
@@ -604,7 +692,8 @@ class AtrapaStraznika : public Straznik {
 
 class AtrapaSnu : public Sen {
  public:
-  AtrapaSnu(Dziennik& d, AtrapaUruchomienia& u, AtrapaStraznika& s) : d_(d), u_(u), s_(s) {}
+  AtrapaSnu(Dziennik& d, AtrapaUruchomienia& u, AtrapaStraznika& s, AtrapaWyswietlacza* e = nullptr)
+      : d_(d), u_(u), s_(s), e_(e) {}
   int snow = 0;
   PlanSnu plan;
   uint8_t licznikPrzySnie = 0xFF;  // LicznikStartow::poBledzie w chwili snu
@@ -612,11 +701,38 @@ class AtrapaSnu : public Sen {
     s_.sprawdz();
     d_.dodaj("sen");
     snow++; plan = p; licznikPrzySnie = u_.l.poBledzie;
+    if (e_) e_->zapomnij();  // głęboki sen: kopia obrazu w RAM adaptera ginie
+  }
+  // ADR-0047: czekanie na kablu. `czekanieWlaczone` = adapter umie czekać (jak panel); koniec czekania: `koniec`
+  // (ZEGAR albo PRZYCISK; stan startu następnego przebiegu ustawia test, jak przy głębokim śnie). `przerwij` wołane
+  // `sprawdzen` razy (jak co KAWALEK_CZEKANIA_S na panelu), pierwsze true kończy czekanie z PRZERWANE.
+  bool czekanieWlaczone = false;
+  int czekan = 0, przerwanych = 0, sprawdzen = 1;
+  WynikCzekania::Rodzaj koniec = WynikCzekania::Rodzaj::ZEGAR;
+  std::function<void()> wCzekaniu;  // wołane na początku czekania (np. test odłącza kabel)
+  bool czekanieDostepne() override { return czekanieWlaczone; }
+  WynikCzekania czekaj(const PlanSnu& p, const std::function<bool()>& przerwij) override {
+    s_.sprawdz();
+    d_.dodaj("czekanie");
+    WynikCzekania w;
+    if (!czekanieWlaczone) return w;
+    czekan++; plan = p; licznikPrzySnie = u_.l.poBledzie;
+    if (wCzekaniu) wCzekaniu();
+    for (int i = 0; i < sprawdzen; i++)
+      if (przerwij && przerwij()) {
+        przerwanych++;
+        w.rodzaj = WynikCzekania::Rodzaj::PRZERWANE;
+        w.zostaloS = p.sekund;
+        return w;
+      }
+    w.rodzaj = koniec;
+    return w;
   }
  private:
   Dziennik& d_;
   AtrapaUruchomienia& u_;
   AtrapaStraznika& s_;
+  AtrapaWyswietlacza* e_;
 };
 
 class AtrapaPortu : public PortSerwisowy {
@@ -636,8 +752,14 @@ class AtrapaPortu : public PortSerwisowy {
 class AtrapaDiagnostyki : public Diagnostyka {
  public:
   uint32_t sterta = 70000, stos = 5000;
+  uint32_t sekundy = 0;              // ADR-0047: 0 = nieznane (bez sprawdzenia)
+  uint32_t psram = UINT32_MAX;       // ADR-0047 (17.11.2026): największy blok PSRAM; UINT32_MAX = nieznany
+  uint32_t blokWewn = UINT32_MAX;    // ADR-0047 (17.11.2026): największy blok pamięci wewnętrznej; UINT32_MAX = nieznany
   uint32_t minWolnaSterta() override { return sterta; }
   uint32_t zapasStosu() override { return stos; }
+  uint32_t najwiekszyBlokPsram() override { return psram; }
+  uint32_t najwiekszyBlokWewn() override { return blokWewn; }
+  uint32_t sekundOdStartu() override { return sekundy; }
 };
 
 // Atrapa wydań GitHub (ADR-0032, ADR-0038): odpowiedź `releases/latest`, `wydanie.json` i obraz z pamięci.
@@ -772,7 +894,7 @@ struct Panel {
   AtrapaDzwieku dzwiek;
   AtrapaUruchomienia start{d};
   AtrapaStraznika straznik{d, zegar};
-  AtrapaSnu sen{d, start, straznik};
+  AtrapaSnu sen{d, start, straznik, &ekran};
   AtrapaPortu port{d};
   AtrapaDiagnostyki diag;
   AtrapaWydan wydania{d, zegar};

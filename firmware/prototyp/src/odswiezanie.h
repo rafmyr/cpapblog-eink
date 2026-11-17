@@ -5,8 +5,9 @@
 // (src/adaptery.h Wyswietlacz::odswiezJako()), atrapa zapisuje rodzaj do testów.
 //
 // Reguła (R-NF-25): częściowe tylko dla widoku otwartego przyciskiem (kokpit, pytania, potwierdzenia, strony Portretu)
-// i tylko wtedy, gdy sterownik ma wiarygodny poprzedni obraz (ten sam przebieg programu już odświeżył e-ink; po
-// głębokim śnie i po starcie zawsze pełne). Pełne zawsze: ekran dnia (w tym S9 i informacja U-07 na jego
+// i tylko wtedy, gdy sterownik ma wiarygodny poprzedni obraz (ten sam przebieg już odświeżył e-ink albo, od
+// 16.11.2026 na kablu bez głębokiego snu, ADR-0047, poprzedni przebieg tego samego programu; po głębokim śnie i po
+// starcie zawsze pełne). Pełne zawsze: ekran dnia (w tym S9 i informacja U-07 na jego
 // miejscu), każde odświeżenie z własnej inicjatywy panelu (zegar, powrót po 5 min, drugi ekran poranka), ekran testu,
 // samosprawdzenie, rysowanie bez zegara, ekrany z kodem QR i serwisowe (U-02, U-03, U-07, raport), co N-te
 // odświeżenie częściowe z rzędu i N = 0 (częściowe wyłączone).
@@ -32,7 +33,9 @@ extern const char* const KLUCZ_PELNE_CO;  // `eink.pelne_co`
 struct Wejscie {
   Ekran ekran = Ekran::DZIEN;   // ekran rysowany teraz
   bool poPrzycisku = false;     // rysowanie po akcji przycisku (budzącego, w czuwaniu albo z kolejki naciśnięć)
-  bool obrazZnany = false;      // ten przebieg programu już odświeżył e-ink (sterownik i adapter znają poprzedni obraz)
+  // sterownik i adapter znają poprzedni obraz: ten przebieg już odświeżył e-ink albo (ADR-0047, po czekaniu na kablu
+  // bez głębokiego snu) adapter ma obraz z poprzedniego przebiegu tego samego programu (Wyswietlacz::poprzedniObrazZnany())
+  bool obrazZnany = false;
   bool zawszePelne = false;     // ekran testu, samosprawdzenie wersji, rysowanie bez zegara (Przebieg::pokaz())
   // na płótnie ekran dnia, choć ekran() mówi co innego (potwierdzenie albo „Otwarte sprawy” bez danych rysuje
   // w pokaz() ekran dnia, `!pokazB5()` → `rysujDzien()`): pełne

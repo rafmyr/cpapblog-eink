@@ -287,6 +287,11 @@ struct UstawieniaDnia {
   // wyłączone; liczba całkowita 0…odswiezanie::PELNE_CO_MAX, bez pola w formularzu U-03 (przełącznik do prób na
   // panelu). -1 = bez wiersza albo zła wartość (wiersz w `bledy`): odswiezanie::PELNE_CO_DOMYSLNIE.
   int pelneCo = -1;
+  // `kabel_bez_snu=tak|nie` (ADR-0047, T-WYM-16): na zasilaniu zewnętrznym czekanie zamiast głębokiego snu.
+  // -1 = bez wiersza albo zła wartość (wiersz w `bledy`): włączone (decyzja właściciela projektu 16.11.2026); 0 = `nie`, wyłącznik
+  // awaryjny: głęboki sen jak przed 16.11.2026; 1 = `tak`. Bez pola w formularzu U-03.
+  int kabelBezSnu = -1;
+  bool kabelBezSnuWlaczone() const { return kabelBezSnu != 0; }
   std::vector<std::string> bledy;
   UstawieniaDnia();
 };

@@ -271,10 +271,24 @@ PlanSnu planSnuAwaryjny(uint8_t wcisniete);
 Przycisk przyciskBudzacy(uint8_t maskaExt1);
 
 enum class Przytrzymanie : uint8_t { TRWA, KROTKO, DLUGO };
-// Rozstrzygnięcie przytrzymania (R-PRZ-08, T-WYM-21). Przyjmuje chwilę naciśnięcia
-// (przy przycisku budzącym 0 = start programu), chwilę teraz w ms zegara procesora i czy przycisk jest wciśnięty.
-// Zwraca KROTKO, gdy puszczony; DLUGO, gdy wciśnięty i minęło co najmniej PROG_PRZYTRZYMANIA_MS; inaczej TRWA.
+// Rozstrzygnięcie przytrzymania (R-PRZ-08: naciśnięcie trwające co najmniej PROG_PRZYTRZYMANIA_MS, T-WYM-21).
+// Przyjmuje chwilę naciśnięcia (przy przycisku budzącym 0 = start programu), chwilę teraz w ms zegara procesora i czy
+// przycisk jest wciśnięty. Czas liczony w pełnych milisekundach zegara: przycisk wciśnięty w milisekundzie `terazMs`
+// trwa już terazMs − odMs + 1 ms (milisekundy od `odMs` do `terazMs` włącznie), tak jak naciśnięcie z kolejki adaptera
+// wciśnięte od milisekundy `od` i puszczone w milisekundzie `od + trwalo` trwa `trwalo` ms. Zwraca KROTKO, gdy
+// puszczony; DLUGO, gdy wciśnięty i trwa co najmniej PROG_PRZYTRZYMANIA_MS (terazMs − odMs ≥ PROG − 1); inaczej TRWA.
+// Zmiana 2026-11-17: wcześniej DLUGO dopiero przy terazMs − odMs ≥ PROG, więc
+// naciśnięcie trwające dokładnie PROG ms (puszczone w milisekundzie PROG) było krótkie, wbrew R-PRZ-08.
 Przytrzymanie przytrzymanie(uint32_t odMs, uint32_t terazMs, bool wcisniety);
+// Krok pętli sprawdzającej przytrzymanie (ms do następnej próbki): KROK_PRZYTRZYMANIA_MS, ale tak, żeby jedna próbka
+// wypadła dokładnie w milisekundzie odMs + PROG_PRZYTRZYMANIA_MS − 1, w której przytrzymanie() rozstrzyga próg.
+// Zwraca od 1 do KROK_PRZYTRZYMANIA_MS.
+uint32_t krokPrzytrzymania(uint32_t odMs, uint32_t terazMs);
+const uint32_t KROK_PRZYTRZYMANIA_MS = 5;
+// Naciśnięcie już puszczone, znane tylko z czasu trwania (kolejka adaptera, ADR-0047). Zwraca true (przytrzymanie),
+// gdy trwało co najmniej PROG_PRZYTRZYMANIA_MS (R-PRZ-08), tak samo jak przytrzymanie() z próbką w milisekundzie
+// PROG − 1 (zmiana 2026-11-17; wcześniej było „ściśle dłużej”).
+inline bool przytrzymaniePuszczone(uint32_t trwaloMs) { return trwaloMs >= PROG_PRZYTRZYMANIA_MS; }
 
 // Wciśnięty przycisk z pominięciem zaciętych (U4, T-WYM-29). Przyjmuje bity wciśniętych w tej
 // chwili i bity zaciętych (zmieniane). Sprawdza w kolejności LEWY, SRODEK, PRAWY: puszczony zdejmuje swój bit

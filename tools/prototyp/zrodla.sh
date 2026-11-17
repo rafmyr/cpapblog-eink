@@ -39,12 +39,16 @@ ZRODLA+=("$FW/src/sprzet.cpp" "$FW/src/infekcja.cpp" "$FW/src/kontekst_sk.cpp")
 ZRODLA+=("$FW/src/sekrety.cpp" "$FW/src/formularz.cpp" "$FW/src/ekrany_konfiguracji.cpp")
 # Tabela miast do pogody (src/miasta.cpp)
 ZRODLA+=("$FW/src/miasta.cpp")
+# Limit ładowania baterii na kablu: decyzja o zapisie do ładowarki SY6974B (src/ladowarka.cpp), ADR-0046
+ZRODLA+=("$FW/src/ladowarka.cpp")
 # Aktualizacja firmware z wydań GitHub (ADR-0032, ADR-0038): rdzeń decyzji, wersji, opisu wydania i SHA-256
 ZRODLA+=("$FW/src/aktualizacja.cpp")
 # Rodzaj odświeżenia e-ink: pełne albo częściowe (src/odswiezanie.cpp), R-NF-25
 ZRODLA+=("$FW/src/odswiezanie.cpp")
 # Szybkość ścieżki „przycisk → rysowanie” (T-WYM-99): przełącznik pamięci podręcznej do testów i haczyk faz pomiaru
 ZRODLA+=("$FW/src/szybkosc.cpp")
+# Czekanie na zasilaniu zewnętrznym zamiast głębokiego snu i pamięć plików między przebiegami (ADR-0047)
+ZRODLA+=("$FW/src/czekanie.cpp" "$FW/src/pliki_pamiec.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -73,6 +77,9 @@ TESTY+=("$FW/test/testy_aparat_autoset_brzegowe.cpp") # przypadki brzegowe: apar
 TESTY+=("$FW/test/testy_poranek_szybciej.cpp") # szybszy wynik nocy rano: gęste okno, powtórka przy przetwarzaniu, pobranie po przycisku
 TESTY+=("$FW/test/testy_poranek_brzegowe.cpp") # przypadki brzegowe szybszego wyniku nocy rano
 TESTY+=("$FW/test/testy_zasilanie_rytm.cpp") # częstsze sprawdzanie rano na zasilaniu zewnętrznym (R-DANE-63…65)
+TESTY+=("$FW/test/testy_ladowarka.cpp") # limit ładowania na kablu: rejestry SY6974B, nigdy wyżej niż zastane, formularz (ADR-0046)
+TESTY+=("$FW/test/testy_ladowarka_brzegowe.cpp") # testy brzegowe limitu ładowania: własny model układu, błędy na każdym kroku, wpisy nieaktualne
+TESTY+=("$FW/test/testy_ladowarka_brzegowe_2.cpp") # testy brzegowe limitu ładowania, część 2: własności zapisu, przegląd bajtów REG04 × wpis, sekwencje 3 wybudzeń z błędem
 TESTY+=("$FW/test/testy_belka.cpp") # belka informacyjna: pola, ustępowanie środka, bateria, ekrany bez belki (ADR-0043)
 TESTY+=("$FW/test/testy_belka_bez_kabla_brzegowe.cpp") # testy brzegowe belki: na kablu sama ikona (R-EKR-66, 16.11.2026)
 TESTY+=("$FW/test/testy_zegar_ntp.cpp") # zegar nowego panelu, NTP 3 próby i czas z AirBridge (R-AW-18, T-TEST-327)
@@ -86,6 +93,10 @@ TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu por
 TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
 TESTY+=("$FW/test/testy_szybciej_przycisk.cpp") # szybsza zmiana ekranu po przycisku: liczniki i równoważność (T-WYM-99)
 TESTY+=("$FW/test/testy_szybciej_przycisk_brzegowe.cpp") # testy brzegowe T-WYM-99: mutacje kluczy, testy różnicowe z pamięcią i bez
+TESTY+=("$FW/test/testy_kabel_bez_snu.cpp") # czekanie na kablu zamiast głębokiego snu: równoważność, liczniki, awarie (ADR-0047)
+TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe.cpp") # testy brzegowe ADR-0047: usterka odczytu a pamięć plików, losowe sekwencje
+TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp") # testy brzegowe ADR-0047, część 2: lista katalogu i nowy rok, usterki nośnika na obu ścieżkach
+TESTY+=("$FW/test/testy_kabel_ladowanie_brzegowe.cpp") # testy brzegowe: limit ładowania × czekanie na kablu, losowo na dwóch ścieżkach
 TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
 TESTY+=("$FW/test/testy_odswiezanie_czesciowe.cpp") # rodzaj odświeżenia e-ink: pełne i częściowe (R-NF-25)
 TESTY+=("$FW/test/testy_odswiezanie_czesciowe_brzegowe.cpp") # testy brzegowe R-NF-25: bez nowych odświeżeń wobec N = 0, licznik, kolejka, parser

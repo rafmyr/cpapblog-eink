@@ -91,10 +91,19 @@ Przycisk przyciskBudzacy(uint8_t maskaExt1) {
   return Przycisk::PRAWY;
 }
 
-// Puszczony = krótko; wciśnięty dłużej niż próg = długo; inaczej przytrzymanie trwa (R-PRZ-08).
+// Puszczony = krótko; wciśnięty w milisekundzie, w której naciśnięcie trwa już co najmniej próg (milisekundy od `odMs`
+// do `terazMs` włącznie) = długo; inaczej przytrzymanie trwa (R-PRZ-08, zmiana 2026-11-17).
 Przytrzymanie przytrzymanie(uint32_t odMs, uint32_t terazMs, bool wcisniety) {
   if (!wcisniety) return Przytrzymanie::KROTKO;
-  return terazMs - odMs >= PROG_PRZYTRZYMANIA_MS ? Przytrzymanie::DLUGO : Przytrzymanie::TRWA;
+  return terazMs - odMs >= PROG_PRZYTRZYMANIA_MS - 1 ? Przytrzymanie::DLUGO : Przytrzymanie::TRWA;
+}
+
+// Próbka w milisekundzie odMs + PROG − 1 (tam przytrzymanie() rozstrzyga próg), poza tym co KROK_PRZYTRZYMANIA_MS.
+uint32_t krokPrzytrzymania(uint32_t odMs, uint32_t terazMs) {
+  const uint32_t uplynelo = terazMs - odMs;
+  if (uplynelo >= PROG_PRZYTRZYMANIA_MS - 1) return KROK_PRZYTRZYMANIA_MS;
+  const uint32_t doProgu = PROG_PRZYTRZYMANIA_MS - 1 - uplynelo;
+  return doProgu < KROK_PRZYTRZYMANIA_MS ? doProgu : KROK_PRZYTRZYMANIA_MS;
 }
 
 // Kolejność lewy, środkowy, prawy; puszczony przycisk przestaje być zacięty (T-WYM-29).

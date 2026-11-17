@@ -739,7 +739,8 @@ static void testR_KONF_59_uklad_strony() {
   SPRAWDZ(ile(sb, "<details open>") == 1 && zawiera(sb, "<details open><summary><b>Dźwięk i humor"));
   struct { const char* pole; const char* sekcja; } bl[] = {
       {"ssid", "Sieć domowa"}, {"wifi_haslo", "Sieć domowa"}, {"ab_adres", "AirBridge"}, {"ab_konto", "AirBridge"},
-      {"ab_haslo", "AirBridge"}, {"miasto", "Pogoda"}, {"profil", "Panel"}, {"co2", "Panel"}, {"humor", "Dźwięk i humor"},
+      {"ab_haslo", "AirBridge"}, {"miasto", "Pogoda"}, {"profil", "Panel"}, {"co2", "Panel"},
+      {"ladowanie_limit", "Panel"}, {"humor", "Dźwięk i humor"},
       {"buzzer", "Dźwięk i humor"}, {"cisza_od", "Dźwięk i humor"}, {"podpowiedz", "Dźwięk i humor"},
       {"wymiana.maska", "Sprzęt"}, {"okres.maska", "Sprzęt"}, {"wymiana.filtr", "Sprzęt"}, {"okres.filtr_tyg", "Sprzęt"},
       {"nowy_model", "Sprzęt"}, {"uwaga_o_masce", "Sprzęt"}, {"cz_start", "Raport dla lekarza"},
@@ -773,8 +774,8 @@ static void testR_KONF_59_uklad_strony() {
   std::string sw = formularz::strona(w, "/u/abc/", "", {});
   size_t f0 = sw.find("<form"), f1 = sw.find("</form>");
   std::vector<std::string> nazwy = {"ssid", "wifi_haslo", "wifi_bez", "ab_adres", "ab_konto", "ab_haslo", "ab_bez",
-                                    "profil", "co2", "miasto", "humor", "buzzer", "cisza_od", "cisza_do", "podpowiedz",
-                                    "cz_start", "wymiana.maska", "okres.maska", "nowy_model", "nowy_model_cofnij",
+                                    "profil", "co2", "ladowanie_limit", "miasto", "humor", "buzzer", "cisza_od", "cisza_do",
+                                    "podpowiedz", "cz_start", "wymiana.maska", "okres.maska", "nowy_model", "nowy_model_cofnij",
                                     "wymiana.filtr", "okres.filtr_tyg", "uwaga_o_masce", "aktualizacja_auto",
                                     "klucz_wydan", "klucz_usun", "haslo_okna",
                                     // sekcja „Ekrany” (ADR-0045, R-KONF-60)
@@ -881,7 +882,7 @@ static void testR_KONF_59_uklad_strony() {
   std::map<std::string, std::string> zle_pola = {
       {"ssid", ""}, {"wifi_haslo", "123"}, {"ab_adres", "http://x"}, {"ab_konto", "a\"b"}, {"profil", "zly"},
       {"wymiana.maska", "2099-01-01"}, {"okres.maska", "99"}, {"okres.filtr_tyg", "0"}, {"co2", "x"},
-      {"humor", "x"}, {"buzzer", "x"}, {"podpowiedz", "x"}, {"cisza_od", "25:00"}, {"cisza_do", "x"},
+      {"humor", "x"}, {"buzzer", "x"}, {"podpowiedz", "x"}, {"ladowanie_limit", "x"}, {"cisza_od", "25:00"}, {"cisza_do", "x"},
       {"miasto", "Atlantyda"}, {"uwaga_o_masce", "9"}, {"aktualizacja_auto", "x"}, {"klucz_wydan", "krotki"},
       {"haslo_okna", "krotkie"}, {"cz_start", "ZZ"},
       // sekcja „Ekrany” (ADR-0045): każde miejsce złe (7 błędów przy polach)
@@ -929,7 +930,8 @@ static void testR_KONF_59_uklad_strony() {
   gr.termin[0] = gr.termin[1] = "po terminie od 02.03.2027";
   gr.wersja = "10.10.100-rc.100+g1234567";
   std::map<std::string, std::string> wszystkie;
-  for (const char* pole : {"ssid", "wifi_haslo", "wifi_bez", "ab_adres", "ab_konto", "ab_haslo", "profil", "co2", "miasto",
+  for (const char* pole : {"ssid", "wifi_haslo", "wifi_bez", "ab_adres", "ab_konto", "ab_haslo", "profil", "co2",
+                           "ladowanie_limit", "miasto",
                            "humor", "buzzer", "cisza_od", "cisza_do", "podpowiedz", "cz_start", "wymiana.maska",
                            "okres.maska", "nowy_model", "nowy_model_cofnij", "wymiana.filtr", "okres.filtr_tyg",
                            "uwaga_o_masce", "aktualizacja_auto", "klucz_wydan", "klucz_usun", "haslo_okna",
@@ -951,6 +953,17 @@ static void testR_KONF_59_uklad_strony() {
          "%zu B z przyciętym plikiem, %zu B scenariusz brzegowy (rezerwacja %zu B)\n",
          s.size(), sd.size(), sg.size(), formularz::REZERWACJA_STRONY - sg.size(), sz.size(), sr.size(),
          formularz::REZERWACJA_STRONY);
+  // ADR-0046: ile bajtów dokłada pole `ladowanie_limit` w najgorszym przypadku (scenariusz brzegowy, pole z błędem);
+  // liczba w komentarzu przy REZERWACJA_STRONY w src/formularz.h
+  {
+    size_t a = sr.find("<label for=\"ladowanie_limit\">");
+    size_t e = a == std::string::npos ? a : sr.find("</p>", sr.find("Oszczędzanie baterii", a) + 1);
+    e = sr.find("</p>", e + 1);  // pierwsze </p> to błąd pola, drugie zamyka opis pod polem
+    SPRAWDZ(a != std::string::npos && e != std::string::npos);
+    size_t pole = e + 4 - a;
+    printf("pole ladowanie_limit w scenariuszu brzegowym: %zu B\n", pole);
+    SPRAWDZ(pole <= 700);
+  }
 }
 
 int main() {

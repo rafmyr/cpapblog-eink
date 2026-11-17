@@ -124,6 +124,15 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_poranek_brzegowe.cp
 echo "testy rytmu na zasilaniu zewnętrznym (test/testy_zasilanie_rytm.cpp: R-DANE-63 okno poranne co 5 min, R-DANE-64 gęste okno co 2 min, R-DANE-65 stan zasilania; bateria bez zmian)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zasilanie_rytm.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zasilanie_rytm"
 "$BUD/testy_zasilanie_rytm"
+echo "testy limitu ładowania na kablu (test/testy_ladowarka.cpp: R-DANE-66…R-DANE-68, ADR-0046: rejestry SY6974B na atrapie, twarda granica VREG ≤ 4208 mV i nigdy w górę przy limicie, odczyt z panelu 16.11.2026, formularz, dyrygent)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_ladowarka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ladowarka"
+"$BUD/testy_ladowarka"
+echo "testy brzegowe limitu ładowania (test/testy_ladowarka_brzegowe.cpp: T-TEST-491: własny model SY6974B, błąd na każdym kroku, restart, wpisy nieaktualne)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_ladowarka_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ladowarka_brzegowe"
+"$BUD/testy_ladowarka_brzegowe"
+echo "testy brzegowe limitu ładowania, część 2 (test/testy_ladowarka_brzegowe_2.cpp: niezależny model SY6974B i NVS, T-TEST-492: własności zapisu, błąd odczytu NVS i wpis poniżej limitu blokujące, błąd I2C i NVS na każdym kroku; pełny przegląd: BRZEGOWE2_PELNY=1)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_ladowarka_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ladowarka_brzegowe_2"
+"$BUD/testy_ladowarka_brzegowe_2"
 
 echo "testy belki informacyjnej (test/testy_belka.cpp: R-EKR-63…R-EKR-66 pola, ustępowanie środka, ikona baterii, ekrany bez belki; R-KON-69 niska bateria w stopce dnia)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_belka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka"
@@ -430,6 +439,18 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_szybciej_przycisk.cpp" "${
 echo "testy brzegowe szybkości (test/testy_szybciej_przycisk_brzegowe.cpp: T-WYM-99, mutacje pól kluczy, ocena z PamiecOceny i bez, wybudzenia z wejściami zmiennymi w czuwaniu)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_szybciej_przycisk_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_szybciej_przycisk_brzegowe"
 "$BUD/testy_szybciej_przycisk_brzegowe"  # blokuje przy błędzie (w tym strażnik rozmiaru Noc)
+echo "testy czekania na kablu zamiast głębokiego snu (test/testy_kabel_bez_snu.cpp: ADR-0047, T-WYM-10…T-WYM-14, T-WYM-16, T-WYM-17, doba i tydzień na jednym żywym stanie wobec głębokiego snu)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_kabel_bez_snu.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu"
+"$BUD/testy_kabel_bez_snu"
+echo "testy brzegowe czekania na kablu (test/testy_kabel_bez_snu_brzegowe.cpp: ADR-0047, przejściowy błąd odczytu a PlikiZPamiecia, wyłącznik w czuwaniu, losowe sekwencje głęboki sen ≡ czekanie)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_bez_snu_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu_brzegowe"
+"$BUD/testy_kabel_bez_snu_brzegowe"  # blokuje przy błędzie (PlikiZPamiecia nie pamięta nieudanego odczytu ani braku pliku)
+echo "testy brzegowe czekania na kablu, część 2 (test/testy_kabel_bez_snu_brzegowe_2.cpp: ADR-0047 zmiana 2026-11-17, lista katalogu z ukośnikiem a nowy rok, częściowe listuj(), usterki nośnika na obu ścieżkach, naciśnięcie już puszczone)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu_brzegowe_2"
+"$BUD/testy_kabel_bez_snu_brzegowe_2"  # blokuje przy błędzie (PlikiZPamiecia bez pamięci listuj() i pierwszyWiersz(), próg przytrzymania jak po głębokim śnie)
+echo "testy brzegowe limitu ładowania z czekaniem na kablu (test/testy_kabel_ladowanie_brzegowe.cpp: ADR-0046 × ADR-0047, losowe sekwencje na dwóch ścieżkach z resetem układu, błędami I2C i NVS; przywrócenie po wyłączeniu w czekaniu; formularz zachowuje kabel_bez_snu; nieczytelna konfiguracja: limit bez zmian, głęboki sen; KL_ZIARNA=n)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_ladowanie_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_ladowanie_brzegowe"
+"$BUD/testy_kabel_ladowanie_brzegowe"  # blokuje przy błędzie, także nieczytelna konfiguracja: ani zdjęcie limitu, ani czekanie
 echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
 "$BUD/testy_kolejnosc_portret"

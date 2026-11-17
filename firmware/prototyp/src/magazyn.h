@@ -257,6 +257,9 @@ class NvsTylkoZmiany : public Nvs {
   std::string tekst(const char* przestrzen, const char* klucz, const std::string& domysl) override;
   bool ustawTekst(const char* przestrzen, const char* klucz, const std::string& v) override;
   uint32_t liczbaU(const char* przestrzen, const char* klucz, uint32_t domysl) override;
+  Odczyt liczbaUStan(const char* przestrzen, const char* klucz, uint32_t& v) override {
+    return n_.liczbaUStan(przestrzen, klucz, v);  // odczyt bez zmian, z rozróżnieniem błędu adaptera
+  }
   void ustawLiczbeU(const char* przestrzen, const char* klucz, uint32_t v) override;
   int32_t liczba(const char* przestrzen, const char* klucz, int32_t domysl) override;
   void ustawLiczbe(const char* przestrzen, const char* klucz, int32_t v) override;

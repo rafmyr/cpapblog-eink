@@ -23,6 +23,7 @@ class NvsEsp32 : public Nvs {
   std::string tekst(const char* przestrzen, const char* klucz, const std::string& domysl) override;
   bool ustawTekst(const char* przestrzen, const char* klucz, const std::string& v) override;
   uint32_t liczbaU(const char* przestrzen, const char* klucz, uint32_t domysl) override;
+  Odczyt liczbaUStan(const char* przestrzen, const char* klucz, uint32_t& v) override;  // przez ESP-IDF nvs_get_u32
   void ustawLiczbeU(const char* przestrzen, const char* klucz, uint32_t v) override;
   int32_t liczba(const char* przestrzen, const char* klucz, int32_t domysl) override;
   void ustawLiczbe(const char* przestrzen, const char* klucz, int32_t v) override;
@@ -91,6 +92,12 @@ class SiecEsp32 : public Siec {
     k_.ssid = ssid;
     k_.haslo = haslo;
   }
+  // ADR-0047: hasło okna serwisowego z NVS na każdy przebieg (src/main.cpp), jak po starcie programu; "" = bez okna.
+  // Kopia w adapterze, bo KonfiguracjaSieci trzyma wskaźnik. Tylko przy zamkniętym oknie (początek przebiegu).
+  void ustawHasloOkna(const std::string& h) {
+    hasloOkna_ = h;
+    k_.hasloOkna = hasloOkna_.empty() ? nullptr : hasloOkna_.c_str();
+  }
   bool wlaczRadio() override;
   bool uruchomSiecPanelu(const std::string& ssid, const std::string& haslo) override;
   std::string adresSieciPanelu() override;
@@ -98,6 +105,7 @@ class SiecEsp32 : public Siec {
 
  private:
   KonfiguracjaSieci k_;
+  std::string hasloOkna_;
   PlikiEsp32& pliki_;
   bool okno_ = false;
   bool ap_ = false;  // sieć panelu działa
@@ -127,6 +135,7 @@ class WyswietlaczEsp32 : public Wyswietlacz {
   void odswiez() override;
   Odswiezenie odswiezJako(Odswiezenie rodzaj) override;  // R-NF-25: pełne albo częściowe całej powierzchni
   const uint8_t* bufor() override;
+  bool poprzedniObrazZnany() override;  // ADR-0047
 };
 
 class PrzyciskiEsp32 : public Przyciski {
@@ -139,10 +148,25 @@ class PrzyciskiEsp32 : public Przyciski {
   bool piskPrzyNacisnieciu() const override { return true; }
 };
 
+// Rejestry ładowarki SY6974B na Wire1 (ADR-0046): jeden bajt na operację, limit czasu magistrali jak w odczycie stanu.
+class RejestryLadowarkiEsp32 : public ladowarka::Rejestry {
+ public:
+  bool czytaj(uint8_t rejestr, uint8_t& wartosc) override;
+  bool zapisz(uint8_t rejestr, uint8_t wartosc) override;
+
+ private:
+  bool magistrala();
+  bool gotowa_ = false;
+};
+
 class CzujnikiEsp32 : public Czujniki {
  public:
   OdczytCzujnikow czytaj() override;
   OdczytZasilania zasilanie() override;
+  ladowarka::Rejestry* rejestryLadowarki() override { return &ladowarka_; }
+
+ private:
+  RejestryLadowarkiEsp32 ladowarka_;
 };
 
 class DzwiekEsp32 : public Dzwiek {
@@ -156,6 +180,7 @@ class UruchomienieEsp32 : public Uruchomienie {
   PrzyczynaStartu przyczyna() override;
   PowodWybudzenia powod() override;
   uint8_t przyciskiBudzace() override;
+  uint32_t trwanieBudzacegoMs() override;  // ADR-0047
   LicznikStartow& licznik() override;
   StanRtc& rtc() override;
   const char* wersja() override { return wersja_; }
@@ -178,6 +203,9 @@ class StraznikEsp32 : public Straznik {
 class SenEsp32 : public Sen {
  public:
   void spij(const PlanSnu& plan) override;
+  // ADR-0047: czekanie na kablu (pętla z delay(), bez lekkiego uśpienia); decyzję podejmuje rdzeń (src/czekanie.h)
+  bool czekanieDostepne() override { return true; }
+  WynikCzekania czekaj(const PlanSnu& plan, const std::function<bool()>& przerwij) override;
 };
 
 class PortEsp32 : public PortSerwisowy {
@@ -190,6 +218,9 @@ class DiagnostykaEsp32 : public Diagnostyka {
  public:
   uint32_t minWolnaSterta() override;
   uint32_t zapasStosu() override;
+  uint32_t najwiekszyBlokPsram() override;  // ADR-0047
+  uint32_t najwiekszyBlokWewn() override;   // ADR-0047, T-WYM-13 (17.11.2026)
+  uint32_t sekundOdStartu() override;       // ADR-0047
 };
 
 // Piny i przygotowanie sprzętu przed dyrygentem, wołane z setup() w src/main.cpp (piny przycisków, UART, dioda,

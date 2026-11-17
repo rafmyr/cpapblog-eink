@@ -4,6 +4,7 @@
 #include "magazyn.h"
 #include "aktualizacja.h"
 #include "szybkosc.h"
+#include "czekanie.h"  // ADR-0047: KAWALEK_CZEKANIA_S
 #include "certyfikaty_github.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -12,6 +13,7 @@
 #include <NetworkClientSecure.h>
 #include <mbedtls/md5.h>
 #include <Preferences.h>
+#include <nvs.h>
 #include <sys/time.h>
 #include <LittleFS.h>
 #include <Wire.h>
@@ -109,13 +111,26 @@ void snAwaryjny() {
   esp_deep_sleep_start();
 }
 
+// ---------- czekanie na kablu zamiast głębokiego snu (ADR-0047) ----------
+// Stan startu przebiegu po czekaniu (SenEsp32::czekaj()): UruchomienieEsp32 mówi wtedy „wybudzenie z uśpienia” z tym
+// powodem i przyciskami, ZegarEsp32::ms() liczy od końca czekania, obraz pomiarowy podpisuje wiersz `POMIAR`.
+namespace czekanieEsp32 {
+bool poCzekaniu = false;
+PowodWybudzenia powod = PowodWybudzenia::START;
+uint8_t budzace = 0;
+uint32_t poczatekMs = 0;  // millis() początku bieżącego przebiegu (0 = start programu)
+uint32_t trwanieBudzacego = 0;  // ms trzymania naciśnięcia budzącego już puszczonego (z kolejki), 0 = trzymany teraz
+}  // namespace czekanieEsp32
+
 // ---------- zegar ----------
 uint32_t ZegarEsp32::teraz() {
   time_t t;
   time(&t);
   return (uint32_t)t;
 }
-uint32_t ZegarEsp32::ms() { return (uint32_t)millis(); }
+// od startu programu albo od końca czekania na kablu (ADR-0047): rdzeń liczy przytrzymanie przycisku budzącego,
+// chwilę wybudzenia i aktywność od 0 każdego przebiegu, jak po głębokim śnie
+uint32_t ZegarEsp32::ms() { return (uint32_t)millis() - czekanieEsp32::poczatekMs; }
 void ZegarEsp32::czekaj(uint32_t m) { delay(m); }
 bool ZegarEsp32::lokalny(uint32_t t, std::tm& w) {
   time_t tt = (time_t)t;
@@ -155,6 +170,22 @@ uint32_t NvsEsp32::liczbaU(const char* p, const char* k, uint32_t d) {
   uint32_t v = prefs.getUInt(k, d);
   prefs.end();
   return v;
+}
+// Preferences::getUInt() zwraca wartość domyślną i przy braku klucza, i przy błędzie, więc wprost przez ESP-IDF (ta sama
+// domyślna partycja `nvs` i ten sam typ u32 co Preferences::putUInt()): ESP_ERR_NVS_NOT_FOUND = brak przestrzeni albo
+// klucza, każdy inny kod różny od ESP_OK (także zły typ wpisu) = błąd odczytu (ADR-0046 pkt 4).
+Nvs::Odczyt NvsEsp32::liczbaUStan(const char* p, const char* k, uint32_t& v) {
+  nvs_handle_t h = 0;
+  esp_err_t e = nvs_open(p, NVS_READONLY, &h);
+  if (e == ESP_ERR_NVS_NOT_FOUND) return Odczyt::BRAK;
+  if (e != ESP_OK) return Odczyt::BLAD;
+  uint32_t x = 0;
+  e = nvs_get_u32(h, k, &x);
+  nvs_close(h);
+  if (e == ESP_ERR_NVS_NOT_FOUND) return Odczyt::BRAK;
+  if (e != ESP_OK) return Odczyt::BLAD;
+  v = x;
+  return Odczyt::JEST;
 }
 void NvsEsp32::ustawLiczbeU(const char* p, const char* k, uint32_t v) {
   prefs.begin(p, false);
@@ -821,7 +852,18 @@ static void zrzut() {  // bufor 800x480 1 bit w base64 po PackBits, do podglądu
 }
 #endif
 
+// ADR-0047: sterownik inicjowany raz na start programu. Kolejny przebieg po czekaniu na kablu nie woła epd.init(),
+// bo GxEPD2 ustawia wtedy `_initial_refresh` i każde częściowe zamienia na pełne; ze stanu hibernacji sterownik
+// budzi się sam resetem przy następnym zapisie (`_InitDisplay()`).
+static bool sterownikGotowy = false;
 void WyswietlaczEsp32::wlacz() {
+  if (sterownikGotowy) {
+#if POMIAR_CZASU
+    pomiar::wlaczenieMs = 0;
+#endif
+    return;
+  }
+  sterownikGotowy = true;
 #if POMIAR_CZASU
   uint32_t p0 = (uint32_t)millis();
 #endif
@@ -863,6 +905,19 @@ static void zapamietajObraz() {
 
 void WyswietlaczEsp32::odswiez() { (void)odswiezJako(Odswiezenie::PELNE); }
 
+// ADR-0047: kopia obrazu z tego startu programu (po czekaniu na kablu przeżywa przebieg; po głębokim śnie nie)
+bool WyswietlaczEsp32::poprzedniObrazZnany() { return sterownikGotowy && poprzedniZnany && poprzedniObraz != nullptr; }
+
+#if POMIAR_CZASU
+// Pole `powod` wiersza POMIAR: po czekaniu na kablu `przycisk-czekanie` albo `zegar-czekanie` (ADR-0047).
+static const char* powodPomiaru() {
+  if (czekanieEsp32::poCzekaniu)
+    return czekanieEsp32::powod == PowodWybudzenia::PRZYCISK ? "przycisk-czekanie" : "zegar-czekanie";
+  esp_sleep_wakeup_cause_t pw = esp_sleep_get_wakeup_cause();
+  return pw == ESP_SLEEP_WAKEUP_EXT1 ? "przycisk" : pw == ESP_SLEEP_WAKEUP_TIMER ? "zegar" : "start";
+}
+#endif
+
 Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
 #if POMIAR_CZASU
   int64_t pUs = esp_timer_get_time();
@@ -898,7 +953,7 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
     int64_t wc = pomiar::pierwszeWcisniecieUs, pu = pomiar::ostatniePuszczenieUs;
     pomiar::pierwszeWcisniecieUs = 0;
     pomiar::ostatniePuszczenieUs = 0;
-    esp_sleep_wakeup_cause_t pw = esp_sleep_get_wakeup_cause();
+    const uint32_t od = czekanieEsp32::poczatekMs;  // ADR-0047: od końca czekania na kablu (0 = od startu programu)
     char godz[12] = "--:--:--";
     time_t tt = time(nullptr);
     struct tm tl;
@@ -908,12 +963,11 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
                   "POMIAR %s nr=%lu powod=%s rodzaj=%s od_startu_programu_ms=%lu od_wcisniecia_ms=%ld "
                   "od_puszczenia_ms=%ld wlaczenie_ekranu_ms=%lu obraz_ms=%lu uspienie_ekranu_ms=%lu "
                   "razem_do_konca_ms=%lu fazy=%s",
-                  godz, (unsigned long)++pomiar::numer,
-                  pw == ESP_SLEEP_WAKEUP_EXT1 ? "przycisk" : pw == ESP_SLEEP_WAKEUP_TIMER ? "zegar" : "start",
-                  odswiezanie::nazwa(czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE), (unsigned long)p0,
+                  godz, (unsigned long)++pomiar::numer, powodPomiaru(),
+                  odswiezanie::nazwa(czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE), (unsigned long)(p0 - od),
                   wc ? (long)((pUs - wc) / 1000) : -1L, pu ? (long)((pUs - pu) / 1000) : -1L,
                   (unsigned long)pomiar::wlaczenieMs, (unsigned long)(p1 - p0), (unsigned long)(p2 - p1),
-                  (unsigned long)p2, pomiar::fazyDl ? pomiar::fazy : "-");
+                  (unsigned long)(p2 - od), pomiar::fazyDl ? pomiar::fazy : "-");
     pomiar::fazyDl = 0;
     pomiar::fazy[0] = 0;
     Serial.println(wiersz);
@@ -923,7 +977,10 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
   }
 #endif
 #if ZRZUT_EKRANU
-  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER) zrzut();  // nie przy co-30-minutowym budzeniu
+  // nie przy co-30-minutowym budzeniu (także po czekaniu na kablu zakończonym zegarem, ADR-0047)
+  if (czekanieEsp32::poCzekaniu ? czekanieEsp32::powod != PowodWybudzenia::ZEGAR
+                                : esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER)
+    zrzut();
 #endif
   return czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE;
 }
@@ -937,6 +994,7 @@ namespace {
 struct NacisniecieKolejki {
   uint8_t przycisk;
   uint32_t trwaloMs;
+  int64_t puszczonyUs;  // ADR-0047: kolejność naciśnięć przy końcu czekania (czekanie::przyciskKonczacy())
 };
 struct StanKlawisza {
   bool wcisniety = false;  // stan po odsianiu drgań
@@ -985,6 +1043,7 @@ void probkujPrzyciski(void*) {
     if (!k.pomin && k.odUs != 0 && nast != kolejkaGlowa) {
       kolejkaPrz[kolejkaOgon].przycisk = (uint8_t)i;
       kolejkaPrz[kolejkaOgon].trwaloMs = (uint32_t)((t - k.odUs) / 1000);
+      kolejkaPrz[kolejkaOgon].puszczonyUs = t;
       kolejkaOgon = nast;
     }
     k.odUs = 0;
@@ -1036,6 +1095,44 @@ uint8_t PrzyciskiEsp32::wcisniete() {
 }
 
 void PrzyciskiEsp32::dioda(bool swieci) { digitalWrite(LED, swieci ? LOW : HIGH); }
+
+// ADR-0047: przed czekaniem kolejka od nowa (po głębokim śnie też byłaby pusta); próbkowanie działa dalej, więc
+// naciśnięcie w czasie czekania piszczy od razu (R-PRZ-20) i ma czas w obrazie pomiarowym.
+static void przyciskiPrzedCzekaniem() {
+  portENTER_CRITICAL(&muxPrzyciskow);
+  kolejkaGlowa = kolejkaOgon;
+  portEXIT_CRITICAL(&muxPrzyciskow);
+#if POMIAR_CZASU
+  pomiar::pierwszeWcisniecieUs = 0;
+  pomiar::ostatniePuszczenieUs = 0;
+#endif
+}
+// ADR-0047: przycisk, który kończy czekanie, tylko z maski planu; bit 0 = żaden. Wybór w rdzeniu z testem na PC
+// (czekanie::przyciskKonczacy()): starsze naciśnięcie z kolejki przed trzymanym teraz,
+// naciśnięcie z kolejki niesie czas trzymania. Wciśnięty teraz: bez kolejki po puszczeniu (przycisk budzący, jak po
+// głębokim śnie). Naciśnięcie krótsze niż obieg czekania (już w kolejce): zdjęte z kolejki i budzi, więc nie ginie
+// i nie jest obsłużone drugi raz.
+static czekanie::PrzyciskKonczacy przyciskKonczacyCzekanie(uint8_t maska) {
+  czekanie::KlawiszCzekania k[4];
+  czekanie::NacisniecieCzekania q[KOLEJKA_NACISNIEC];
+  portENTER_CRITICAL(&muxPrzyciskow);
+  for (int i = 1; i <= 3; i++) {
+    k[i].wcisniety = klawisze[i].wcisniety;
+    k[i].pomin = klawisze[i].pomin;
+    k[i].odUs = klawisze[i].odUs;
+  }
+  int ile = 0;
+  for (uint8_t j = kolejkaGlowa; j != kolejkaOgon; j = (uint8_t)((j + 1) % KOLEJKA_NACISNIEC), ile++) {
+    q[ile].przycisk = kolejkaPrz[j].przycisk;
+    q[ile].trwaloMs = kolejkaPrz[j].trwaloMs;
+    q[ile].puszczonyUs = kolejkaPrz[j].puszczonyUs;
+  }
+  czekanie::PrzyciskKonczacy w = czekanie::przyciskKonczacy(maska, k, q, ile);
+  if (w.bit && !w.zKolejki) klawisze[w.klawisz].pomin = true;
+  kolejkaGlowa = (uint8_t)((kolejkaGlowa + w.zdjacZKolejki) % KOLEJKA_NACISNIEC);
+  portEXIT_CRITICAL(&muxPrzyciskow);
+  return w;
+}
 
 // ---------- czujniki ----------
 OdczytCzujnikow CzujnikiEsp32::czytaj() {
@@ -1093,6 +1190,48 @@ OdczytZasilania CzujnikiEsp32::zasilanie() {
   return o;
 }
 
+// ADR-0046 (limit ładowania): decyzję, co zapisać, podejmuje rdzeń (src/ladowarka.cpp: rozpoznanie układu po REG0B,
+// tylko pola VREG i WATCHDOG, odczyt kontrolny); adapter wykonuje pojedyncze operacje na Wire1 z limitem LAD_LIMIT_MS.
+bool RejestryLadowarkiEsp32::magistrala() {
+  if (!gotowa_) {
+    if (!Wire1.begin(I2C1_SDA, I2C1_SCL)) return false;
+    Wire1.setTimeOut(LAD_LIMIT_MS);
+    gotowa_ = true;
+  }
+  return true;
+}
+bool RejestryLadowarkiEsp32::czytaj(uint8_t rejestr, uint8_t& wartosc) {
+  return magistrala() && rejestrLadowarki(rejestr, wartosc);
+}
+bool RejestryLadowarkiEsp32::zapisz(uint8_t rejestr, uint8_t wartosc) {
+  if (!magistrala()) return false;
+  Wire1.beginTransmission(LAD_ADRES);
+  Wire1.write(rejestr);
+  Wire1.write(wartosc);
+  return Wire1.endTransmission() == 0;
+}
+
+#if POMIAR_CZASU
+// Obraz pomiarowy: rejestry 0x00–0x0B ładowarki SY6974B na port szeregowy przy starcie programu. TYLKO ODCZYT
+// (żadnego zapisu do ładowarki): stan wyjściowy przed pracą nad limitem ładowania (16.11.2026).
+void pomiarLadowarka() {
+  if (!Wire1.begin(I2C1_SDA, I2C1_SCL)) { Serial.println("POMIAR ladowarka: brak magistrali"); return; }
+  Wire1.setTimeOut(LAD_LIMIT_MS);
+  char wiersz[160];
+  int k = snprintf(wiersz, sizeof wiersz, "POMIAR ladowarka:");
+  for (uint8_t r = 0x00; r <= 0x0B; r++) {
+    uint8_t w = 0;
+    if (rejestrLadowarki(r, w)) k += snprintf(wiersz + k, sizeof wiersz - k, " %02X=%02X", r, w);
+    else k += snprintf(wiersz + k, sizeof wiersz - k, " %02X=--", r);
+  }
+  // REG09 (błędy) zatrzaskuje się do odczytu [K]: drugi odczyt to stan bieżący (BATOVP przy limicie: ADR-0046 pkt 10)
+  uint8_t w9 = 0;
+  if (rejestrLadowarki(0x09, w9)) k += snprintf(wiersz + k, sizeof wiersz - k, " 09bis=%02X", w9);
+  else k += snprintf(wiersz + k, sizeof wiersz - k, " 09bis=--");
+  Serial.println(wiersz);
+}
+#endif
+
 // ---------- buzzer ----------
 void DzwiekEsp32::pisk(int n) {
   for (int i = 0; i < n; i++) {
@@ -1116,6 +1255,7 @@ UruchomienieEsp32::UruchomienieEsp32(const char* wersja) : wersja_(wersja) {
 }
 
 PrzyczynaStartu UruchomienieEsp32::przyczyna() {
+  if (czekanieEsp32::poCzekaniu) return PrzyczynaStartu::USPIENIE;  // ADR-0047: przebieg po czekaniu na kablu
   switch (esp_reset_reason()) {
     case ESP_RST_UNKNOWN: return PrzyczynaStartu::NIEZNANA;
     case ESP_RST_POWERON: return PrzyczynaStartu::ZASILANIE;
@@ -1132,6 +1272,7 @@ PrzyczynaStartu UruchomienieEsp32::przyczyna() {
 }
 
 PowodWybudzenia UruchomienieEsp32::powod() {
+  if (czekanieEsp32::poCzekaniu) return czekanieEsp32::powod;
   switch (esp_sleep_get_wakeup_cause()) {
     case ESP_SLEEP_WAKEUP_TIMER: return PowodWybudzenia::ZEGAR;
     case ESP_SLEEP_WAKEUP_EXT1: return PowodWybudzenia::PRZYCISK;
@@ -1139,7 +1280,10 @@ PowodWybudzenia UruchomienieEsp32::powod() {
   }
 }
 
+uint32_t UruchomienieEsp32::trwanieBudzacegoMs() { return czekanieEsp32::poCzekaniu ? czekanieEsp32::trwanieBudzacego : 0; }
+
 uint8_t UruchomienieEsp32::przyciskiBudzace() {
+  if (czekanieEsp32::poCzekaniu) return czekanieEsp32::budzace;
   uint64_t m = esp_sleep_get_ext1_wakeup_status();
   uint8_t b = 0;
   for (Przycisk p : {Przycisk::LEWY, Przycisk::SRODEK, Przycisk::PRAWY})
@@ -1194,7 +1338,10 @@ void StraznikEsp32::zapisz(uint32_t limitS, bool panika) {
   if (e == ESP_ERR_INVALID_STATE) e = esp_task_wdt_init(&c);  // strażnik niezainicjowany przez rdzeń
   // zadanie loop (setup() biegnie w nim) tylko przy ustawionym limicie: przy domyślnych 5 s każde dłuższe żądanie
   // HTTP kończyłoby się restartem; bez strażnika zostaje licznik startów
-  esp_err_t d = e == ESP_OK ? esp_task_wdt_add(NULL) : e;
+  // ADR-0047: po czekaniu na kablu zadanie jest już zapisane (ten sam program), a drugie esp_task_wdt_add() daje
+  // w logu `task_wdt: add_entry(196): task is already subscribed` przy każdym przebiegu
+  esp_err_t d = e;
+  if (e == ESP_OK) d = esp_task_wdt_status(NULL) == ESP_OK ? ESP_OK : esp_task_wdt_add(NULL);
   Serial.printf("strażnik zadania: %lu s, panika %d (%d, %d)\n", (unsigned long)limitS, (int)panika, (int)e, (int)d);
 }
 
@@ -1212,6 +1359,63 @@ void SenEsp32::spij(const PlanSnu& plan) {
   esp_deep_sleep_start();
 }
 
+// ADR-0047, T-WYM-10, T-WYM-12: czekanie na kablu. Wariant prosty (wydanie bez nocy obserwacji, 16.11.2026): pętla
+// z delay() zamiast lekkiego uśpienia: zegar, Wi-Fi wyłączone (rdzeń zamknął sieć przed snem), ekran uśpiony,
+// próbkowanie przycisków co 5 ms jak w czuwaniu (pisk, kolejka), strażnik zadania odnawiany w każdym obiegu, co
+// czekanie::KAWALEK_CZEKANIA_S sprawdzenie zasilania przez rdzeń (`przerwij`). Procesor w obiegu stoi w delay()
+// (zadanie bezczynności), bez pętli zajętej. Lekkie uśpienie odłożone (do decyzji).
+static const uint32_t OBIEG_CZEKANIA_MS = 20;  // [PRÓG] reakcja na przycisk w czekaniu (próbkowanie i tak co 5 ms)
+WynikCzekania SenEsp32::czekaj(const PlanSnu& plan, const std::function<bool()>& przerwij) {
+  WynikCzekania w;
+  if (!plan.budzZegarem) return w;  // rdzeń o to nie prosi (tryb awaryjny śpi głęboko)
+  przyciskiPrzedCzekaniem();
+  Serial.flush();
+  const int64_t start = esp_timer_get_time();
+  const int64_t koniec = start + (int64_t)plan.sekund * 1000000LL;
+  int64_t sprawdzenie = start + (int64_t)czekanie::KAWALEK_CZEKANIA_S * 1000000LL;
+  czekanie::PrzyciskKonczacy b;
+  for (;;) {
+    esp_task_wdt_reset();
+    b = przyciskKonczacyCzekanie(plan.przyciski);
+    if (b.bit) {
+      w.rodzaj = WynikCzekania::Rodzaj::PRZYCISK;
+      break;
+    }
+    int64_t t = esp_timer_get_time();
+    if (t >= koniec) {
+      w.rodzaj = WynikCzekania::Rodzaj::ZEGAR;
+      break;
+    }
+    if (t >= sprawdzenie) {
+      sprawdzenie = t + (int64_t)czekanie::KAWALEK_CZEKANIA_S * 1000000LL;
+      if (przerwij && przerwij()) {
+        w.rodzaj = WynikCzekania::Rodzaj::PRZERWANE;
+        int64_t zostalo = (koniec - t + 999999) / 1000000;
+        w.zostaloS = zostalo < 1 ? 1u : (uint32_t)zostalo;
+        return w;
+      }
+    }
+    delay(OBIEG_CZEKANIA_MS);
+  }
+  // następny przebieg jak po wybudzeniu z głębokiego snu (przyczyna USPIENIE, powód, przyciski, ms od 0)
+  czekanieEsp32::poCzekaniu = true;
+  czekanieEsp32::powod =
+      w.rodzaj == WynikCzekania::Rodzaj::PRZYCISK ? PowodWybudzenia::PRZYCISK : PowodWybudzenia::ZEGAR;
+  czekanieEsp32::budzace = b.bit;
+  // Naciśnięcie już puszczone niesie czas trzymania (rdzeń: przytrzymanie zostaje przytrzymaniem); trzymany
+  // teraz: ms() rdzenia liczy od chwili wciśnięcia (millis() = esp_timer_get_time() / 1000), więc przytrzymanie
+  // budzącego jest mierzone od naciśnięcia, nie od końca czekania
+  czekanieEsp32::trwanieBudzacego = b.bit && b.zKolejki ? (b.trwaloMs ? b.trwaloMs : 1u) : 0u;
+  czekanieEsp32::poczatekMs =
+      b.bit && !b.zKolejki && b.odUs > 0 ? (uint32_t)(b.odUs / 1000) : (uint32_t)millis();
+#if POMIAR_CZASU
+  pomiar::ostatniPunktMs = (uint32_t)millis();
+  pomiar::numer = 0;
+  pomiar::ostatniePuszczenieUs = 0;
+#endif
+  return w;
+}
+
 // ---------- port serwisowy (UART) ----------
 void PortEsp32::wiersz(const std::string& t) { Serial.println(t.c_str()); }
 int PortEsp32::znak() { return Serial.available() ? Serial.read() : -1; }
@@ -1221,6 +1425,13 @@ uint32_t DiagnostykaEsp32::minWolnaSterta() {
   return (uint32_t)heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 }
 uint32_t DiagnostykaEsp32::zapasStosu() { return (uint32_t)uxTaskGetStackHighWaterMark(NULL); }  // bajty (ESP-IDF)
+uint32_t DiagnostykaEsp32::najwiekszyBlokPsram() {  // ADR-0047, T-WYM-13
+  return (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+}
+uint32_t DiagnostykaEsp32::najwiekszyBlokWewn() {  // ADR-0047, T-WYM-13 (17.11.2026)
+  return (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+}
+uint32_t DiagnostykaEsp32::sekundOdStartu() { return (uint32_t)(esp_timer_get_time() / 1000000LL); }
 
 // ---------- WydaniaEsp32 (ADR-0032, ADR-0038) ----------
 // Decyzje (adres po przekierowaniu, kompletność ciała, nadmiar bajtów) są w rdzeniu z testami na PC:

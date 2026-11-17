@@ -1,0 +1,76 @@
+# ADR-0047: Na kablu bez głębokiego snu
+
+| | |
+|---|---|
+| Data | 16.11.2026 |
+| Status | przyjęta 16.11.2026 (decyzja właściciela projektu: „Na kablu nie wygaszamy elektroniki, aby pierwszy ekran pojawiał się szybciej”; wyłącznik i samoczynny powrót po błędzie dodane tego samego dnia przed wydaniem z automatyczną aktualizacją) |
+| Źródło | pomiar na jednym egzemplarzu panelu z rokiem historii nocy (366 nocy), 16.11.2026: wybudzenie przyciskiem 9,5 s do gotowego ekranu, kolejna strona w czuwaniu 0,5–0,7 s liczenia i 1,66 s odświeżenia częściowego; spec funkcjonalna R-NF-45 i R-NF-46 (8.2), R-NF-25, R-DANE-63…R-DANE-65; spec techniczna 7.1 „Czekanie na zasilaniu zewnętrznym”, T-WYM-10…T-WYM-14, T-WYM-16, T-WYM-17, T-TEST-500, T-TEST-501; [ADR-0021](0021-podzial-firmware-na-komponenty.md) pkt 1 (dyrygent woła rdzeń i adaptery) |
+
+## Kontekst
+
+Każde wybudzenie panelu to start programu od zera: po głębokim śnie zostaje tylko pamięć RTC, NVS i pliki (spec techniczna 7.1). Na panelu z 366 nocami pierwsze naciśnięcie kosztuje 6,8 s liczenia przed rysowaniem (odczyt historii 1,7 s, pierwsza ocena silnika reguł 4,2 s) i pełne odświeżenie 2,7 s, bo sterownik e-ink po głębokim śnie nie zna poprzedniego obrazu. Kolejna strona w tym samym wybudzeniu kosztuje 0,5–0,7 s i odświeżenie częściowe 1,66 s. Na baterii głęboki sen jest konieczny (R-NF-01, 30 dni), ale panel przy łóżku często stoi na kablu, gdzie energia nie jest ograniczeniem.
+
+Zmiana ma wyjść w wydaniu z automatyczną aktualizacją, więc trafi na panele bez nocy obserwacji: ważniejsza jest przewidywalność niż pełnia optymalizacji.
+
+## Decyzja
+
+1. **Na kablu czekanie zamiast głębokiego snu** (R-NF-45, T-WYM-10). Przed każdym snem dyrygent pyta rdzeń (`src/czekanie.h` `czekanie::decyzja()`); przy „czekaj” adapter snu (`Sen::czekaj()`) czeka do terminu z planu (ten sam czas co sen) albo do naciśnięcia przycisku z maski planu, z żywą pamięcią programu. Po czekaniu rusza **nowy przebieg**: nowy obiekt `Przebieg` od zera, jak po głębokim śnie (przyczyna „wybudzenie z uśpienia”, powód zegar albo przycisk, przyciski budzące, zegar procesora od 0). Dzięki temu ekrany, teksty, terminy i zapisy są z definicji takie same jak po głębokim śnie.
+2. **Pamięć między przebiegami tylko z kluczem z treści** (T-WYM-14): rozłożone noce (klucz: wiersze plików nocy i ich ścieżki, `src/przebiegi.h`), ostatnia ocena silnika reguł (klucz `reguly::kluczOceny()`, T-WYM-99) i treść plików (warstwa `PlikiZPamiecia`, `src/pliki_pamiec.h`, unieważniana każdą zmianą przez adapter plików, włączona od drugiego przebiegu programu; tylko pełna treść z udanego `czytaj()` i „plik jest”, listy katalogów i pierwsze wiersze zawsze z nośnika, zob. Zmiana 2026-11-17). Zmiana danych unieważnia je sama; brak zmiany = bez ponownego liczenia.
+3. **Czekanie tylko przy pewności** (T-WYM-11): odczyt ładowarki „zasilanie zewnętrzne” na początku przebiegu i tuż przed snem, poza trybem awaryjnym (R-AW-39), z pamięcią w budżecie (`pamiecWBudzecie()`), z blokiem PSRAM ≥ 1 MB `[PRÓG]`, przed planowym restartem. Wszystko inne: głęboki sen, czyli dokładnie dotychczasowa ścieżka. Na baterii i przy stanie nieznanym nic się nie zmienia (bez dodatkowego odczytu ładowarki, bez nowych wierszy logu).
+4. **Odłączenie kabla w trakcie czekania** (T-WYM-12): co 10 s `[PRÓG]` sprawdzenie zasilania; inne niż zewnętrzne = głęboki sen na resztę planu.
+5. **Planowy restart** (T-WYM-13): po 20 h `[PRÓG]` pracy programu w oknie 02:00–04:00 `[PRÓG]`, najpóźniej po 48 h albo 1000 przebiegach `[PRÓG]`, jeden głęboki sen zamiast czekania (następne wybudzenie to świeży program). Przeciw fragmentacji sterty i nieznanym wyciekom przy dniach pracy bez restartu. Okno do decyzji właściciela projektu.
+6. **Wyłącznik** (T-WYM-16): `kabel_bez_snu=nie` w `/konfiguracja.txt` = głęboki sen jak przed 16.11.2026 (bez czekania, bez dodatkowego odczytu, bez wierszy logu). Bez wiersza albo przy złej wartości: włączone (decyzja właściciela projektu). Na razie bez pola w formularzu U-03 (zmiana tylko wierszem w pliku).
+7. **Samoczynny powrót po błędzie** (T-WYM-17): flaga NVS `cpap`/`cz_akt` mówi, że program był w trybie bez snu. Start po błędzie programu (panika, strażnik zadania, strażnik przerwań, inny strażnik) przy tej fladze zapisuje `cpap`/`cz_blok` = data doby (`?`, gdy zegar nieznany) i do końca tej doby panel śpi głęboko, z wierszem w logu. Licznik startów po błędzie i tryb awaryjny (R-AW-39) działają jak dotąd: przed czekaniem licznik jest zerowany jak przed snem.
+8. **Adapter panelu w wariancie prostym:** pętla z `delay(20)` `[PRÓG]` i odnowieniem strażnika w każdym obiegu, przyciski próbkowane dalej co 5 ms jak w czuwaniu (pisk w chwili naciśnięcia, krótkie naciśnięcie zdjęte z kolejki, więc nie ginie i nie jest obsłużone drugi raz), Wi-Fi wyłączone (zamknięte przed snem jak dotąd, T-NF-06). Sterownik e-ink inicjowany raz na program; po czekaniu adapter zna poprzedni obraz, więc pierwsze ▶ może być odświeżeniem częściowym według R-NF-25 (po głębokim śnie dalej pełnym).
+9. Sekrety, hasło okna i konfiguracja panelu czytane z NVS na każdy przebieg (`src/main.cpp`), jak po starcie programu.
+
+## Konsekwencje
+
+- Pierwsze naciśnięcie na kablu: bez odczytu historii z nośnika, bez rozkładu nocy i bez oceny silnika, gdy dane się nie zmieniły (na komputerze, 366 nocy: 0 ocen, 0 odczytów plików nocy, wobec 1 oceny i 6 odczytów po głębokim śnie); czas na panelu w obrazie pomiarowym (`POMIAR powod=przycisk-czekanie`).
+- Pierwsza ocena po zmianie pamięci reguł przez poprzednią ocenę liczy się jeszcze raz (jak dotąd w jednym wybudzeniu).
+- Panel na kablu nie śpi: procesor w pętli z `delay()` (zadanie bezczynności), bez Wi-Fi. Zużycie i temperatura obudowy niezmierzone. Kabel odłączony w czasie czekania: do 10 s czekania na baterii, potem głęboki sen.
+- Port serwisowy w czasie czekania nie przyjmuje komend (jak w głębokim śnie); komendy działają w czuwaniu po przycisku.
+- Nowe klucze NVS `cpap`/`cz_akt`, `cpap`/`cz_blok`; nowy klucz pliku `kabel_bez_snu`.
+- Planowy restart raz na dobę nocą: jeden głęboki sen, więc naciśnięcie w tej chwili kosztuje tyle co po głębokim śnie.
+
+## Warianty odrzucone
+
+- **Jeden długo żyjący `Przebieg` z zerowaniem pól jednego wybudzenia:** ok. 200 pól do ręcznego podziału na „tego wybudzenia” i „trwałe”; każda pomyłka zmienia zachowanie po cichu. Nowy `Przebieg` na przebieg daje równoważność z definicji, a szybkość dają pamięci z kluczem z treści.
+- **Lekkie uśpienie (`esp_light_sleep_start`) z budzeniem GPIO:** mniej energii i ciepła, ale więcej ryzyka bez nocy obserwacji (strażnik w uśpieniu, przełączanie pinów, zegar przycisków, port). Odłożone.
+- **Zapis wyniku silnika do pliku przez głęboki sen:** nie przyspiesza odczytu historii ani pierwszego odświeżenia; zbędny przy czekaniu.
+- **Restart przez `esp_restart()` jako planowy restart:** głęboki sen daje to samo bez zmiany przyczyny startu (licznik startów, okno przywracania).
+
+## Ryzyka
+
+| Ryzyko | Obrona |
+|---|---|
+| zawieszenie w czekaniu albo w przebiegu | strażnik zadania odnawiany w każdym obiegu czekania; restart po błędzie = do końca doby głęboki sen (T-WYM-17), trzy z rzędu = tryb awaryjny (R-AW-39) |
+| wyciek albo fragmentacja sterty przez dni | budżet sterty i stosu przed każdym czekaniem, blok PSRAM, blok pamięci wewnętrznej, planowy restart; test 30 dób na PC bez wzrostu żywych bloków |
+| chwilowy błąd odczytu nośnika zapamiętany na dni | warstwa pamięci plików nie pamięta nieudanego odczytu ani braku pliku (zob. Zmiana 2026-11-17) |
+| plik zmieniony z pominięciem warstwy pamięci | jedyna droga to wgranie obrazu pamięci plików w oknie serwisowym, po którym jest restart |
+| zły odczyt ładowarki | czekanie tylko przy „zewnętrzne” dwa razy w przebiegu; wyłącznik `kabel_bez_snu=nie`; na jednym egzemplarzu panelu 17.11.2026 bit PG potwierdzony (odłączenie kabla w czekaniu = głęboki sen) |
+| obraz po częściowym odświeżeniu z kopią sprzed czekania | ten sam mechanizm co w czuwaniu (R-NF-25, pełne co N-te); do oceny wzrokowej na panelu |
+
+## Zmiana 2026-11-17 (poprawki przed wydaniem)
+
+- Warstwa `PlikiZPamiecia` pamięta tylko udane odczyty i „plik jest”. Nieudany odczyt ani brak pliku nie trafiają do pamięci: na panelu `LittleFS.exists()` i `open()` zawodzą też chwilowo (np. bez pamięci na bufor przy Wi-Fi i TLS), a zapamiętany „brak” zostawałby na cały program (do 48 h). Następny przebieg czyta taki plik z nośnika, jak po głębokim śnie.
+- Dodatkowy warunek czekania: największy wolny blok pamięci wewnętrznej ≥ 48 KB `[PRÓG]` (na jednym egzemplarzu panelu przy starcie: 135 KB). NVS `cpap` z nowszej wersji (T-WYM-54) = głęboki sen, bo blokada po błędzie nie mogłaby się zapisać.
+- Blokada po błędzie z datą dalej niż 1 doba po bieżącej (zegar w przyszłości w chwili restartu) albo nieczytelną wygasa.
+- `kabel_bez_snu` wpisane komendą `W konfiguracja.txt` w czuwaniu działa od snu tego samego przebiegu (wartość z zapisanej treści, bez ponownego odczytu nośnika i bez wierszy logu).
+- Przycisk kończący czekanie wybiera rdzeń (`czekanie::przyciskKonczacy()`, test na PC): starsze naciśnięcie z kolejki przed trzymanym, naciśnięcie z kolejki niesie czas trzymania, przytrzymanie liczone od chwili wciśnięcia. Strażnik zadania bez drugiego `esp_task_wdt_add()`.
+- Pomiar na jednym egzemplarzu panelu (16.11.2026, obraz `e1001_pomiar`): pierwsze `▶` po czekaniu 2,76 s i 2,67 s wobec 9,5 s po głębokim śnie; cztery przebiegi czekania bez restartu; obraz czysty przy ocenie wzrokowej.
+- **Pamięć plików bez list katalogów i pierwszych wierszy.** `PlikiZPamiecia` pamięta tylko dwie rzeczy: pełną treść z udanego `czytaj()` i `istnieje() == true`. `listuj()` i `pierwszyWiersz()` idą zawsze na nośnik, jak po głębokim śnie. Powody: lista zapamiętana pod kluczem z ukośnikiem na końcu (`/dane/noce/`, tak woła `Magazyn::sciezki()`) nie traciłaby ważności, więc nowy plik roku 1 stycznia byłby niewidoczny do restartu; adapter na panelu przy braku pamięci w `openNextFile()` kończy listę wcześniej i zwraca `true`, a takiego wyniku nie da się odróżnić od pełnego; to samo z obciętym `pierwszyWiersz()`. Klucz pamięci to ścieżka bez ukośnika na końcu. Usunięcie albo zmiana nazwy unieważnia ścieżkę, jej `.tmp`, wszystko pod nią (katalog) i istnienie katalogów nad nią. Koszt (test na komputerze, doba na 366 nocach): po czekaniu 4 wywołania `listuj()` i 3,7 `pierwszyWiersz()` na przebieg, na jedno naciśnięcie 4 i 4, tyle samo co po głębokim śnie. Szacunek (niezmierzony): 40–120 ms przy pierwszym `▶`; odczyty treści plików nocy z nośnika dalej 0.
+- **Blok pamięci 0.** Na ESP32 `heap_caps_get_largest_free_block()` zwraca 0, gdy wolnego bloku nie ma, więc zmierzony największy wolny blok 0 (pamięci wewnętrznej albo PSRAM) daje głęboki sen. „Nieznany” (bez pomiaru, domyślna `Diagnostyka` i atrapa) to `czekanie::BLOK_NIEZNANY` (`UINT32_MAX`). Test: T-TEST-500 A, J.
+- **Przytrzymanie co najmniej 2000 ms na każdej drodze (R-PRZ-08, T-INT-28).** Wcześniej żywe sprawdzanie (`przytrzymanie()`) dawało przytrzymanie przy wciśniętym przycisku po upływie co najmniej 2000 ms, a naciśnięcie już puszczone (`przytrzymaniePuszczone()`) dopiero powyżej 2000 ms; naciśnięcie trwające dokładnie 2000 ms było więc krótkie, wbrew spec. Obecna reguła: czas liczony w pełnych milisekundach zegara procesora. Przycisk wciśnięty w milisekundzie `t` (licząc od chwili naciśnięcia `od`) trwa już `t − od + 1` ms, więc `przytrzymanie()` daje przytrzymanie przy wciśniętym w milisekundzie `od + 1999`; pętle sprawdzające (`Przebieg::przytrzymany()`, `przytrzymanieLubSkrot()`) czekają krokiem `krokPrzytrzymania()` (co 5 ms, ale z próbką dokładnie w tej milisekundzie). `przytrzymaniePuszczone(trwalo)` daje przytrzymanie przy `trwalo ≥ 2000`. Te same progi mają: żywe sprawdzanie w czuwaniu, przycisk budzący po głębokim śnie (`Przebieg::zwykleWybudzenie()`, od startu programu), naciśnięcie budzące już puszczone w czekaniu, kolejka z czasu rysowania i kolejka po czekaniu. **Co jest osiągalne:** ścieżka po głębokim śnie widzi tylko stan przycisku w próbkach, nie chwilę puszczenia. Na atrapie (czas w pełnych milisekundach, naciśnięcie trwające `n` ms jest wciśnięte w milisekundach `0…n−1`) obie ścieżki są dokładnie „≥ 2000 ms” i identyczne (`test/testy_kabel_bez_snu_brzegowe_2.cpp`, Q7: 36 prób, w tym 1999 i 2000 ms, wszystkie zgodne). Na panelu rozdzielczość to 1 ms zegara `millis()` (naciśnięcie dłuższe niż 1999 ms, a krótsze niż 2000 ms, może wyjść jako przytrzymanie, bo próbka w milisekundzie 1999 widzi przycisk wciśnięty), a stan przycisku adapter i tak próbkuje co 5 ms z zatwierdzeniem po 15 ms zgodnych próbek (T-KOMP-19); przy przycisku budzącym czas liczy się od startu programu, a nie od naciśnięcia (T-WYM-21). Różnica obu ścieżek przy tym samym fizycznym naciśnięciu jest więc mniejsza niż te niedokładności i nie zależy od reguły progu.
+- **`kabel_bez_snu` przy nieczytelnej konfiguracji.** Wcześniej nieudany odczyt istniejącego `/konfiguracja.txt` dawał wartość domyślną (`tak`), więc chwilowy błąd nośnika mógł włączyć czekanie wbrew `kabel_bez_snu=nie`. Teraz ustawienie jest wtedy nieznane i ten przebieg kończy się głębokim snem z wierszem `sen: głęboki mimo zasilania zewnętrznego: konfiguracja nieczytelna, kabel_bez_snu nieznane (T-WYM-11)` (powód `czekanie::Powod::USTAWIENIE_NIEZNANE`); to samo przy niezamontowanej pamięci plików. Brak pliku (nośnik nie widzi pliku) dalej oznacza wartość domyślną. Kierunek wybrany jako bezpieczniejszy: głęboki sen to zachowanie sprzed ADR-0047, a następny przebieg z dobrym odczytem wraca do czekania. Równoważność ścieżek się nie zmienia: ścieżka głębokiego snu tego ustawienia nie czyta, a przebieg czekania, który przez nieczytelną konfigurację usypia głęboko, jest z definicji taki jak po głębokim śnie. Test: T-TEST-502 T6, T-TEST-500 J.
+- **Test I:** kokpit liczony tylko otwarty wprost z obrazka wygaszacza; karta z budzikiem nigdy na czarnym tle w obu ścieżkach (piksele tła jak w `test/testy_kolejka_linii.cpp`).
+
+## Próby na panelu 17.11.2026 (jeden egzemplarz, obraz testowy, logger portu)
+
+- **Odłączenie kabla w czekaniu:** po odłączeniu i ponownym podłączeniu kabla naciśnięcie dało start z głębokiego snu (`rst:0x5 (DSLEEP)`), pełne odświeżenie, 9,65 s. Bit PG działa i panel zasypia po odłączeniu: dla tego egzemplarza potwierdzone (REG08 na kablu podczas czekania i tuż po starcie zgodne z mapą).
+- **Ponowne podłączenie kabla:** panel nie budzi się sam, więc pierwsze naciśnięcie po podłączeniu jest jeszcze wolne (start z głębokiego snu); szybki tryb wraca od następnego przebiegu.
+- **Ciągłość:** 9 przebiegów czekania pod rząd (co 15 min czujniki) bez restartu.
+
+## Zmiana 2026-11-17 (razem z ADR-0046)
+
+Wydanie łączy ten tryb z limitem ładowania (ADR-0046, opcja domyślnie wyłączona). Odczyt bitu PG (REG08) przed snem i co 10 s w czekaniu niczego nie zapisuje w układzie (R-DANE-65); zapis limitu (R-DANE-67) jest raz na przebieg, także po czekaniu, nigdy w czasie czekania. Równoważność z głębokim snem przy włączonym i wyłączonym limicie: T-TEST-500 K (`test/testy_kabel_bez_snu.cpp`) i T-TEST-502 (`test/testy_kabel_ladowanie_brzegowe.cpp`).

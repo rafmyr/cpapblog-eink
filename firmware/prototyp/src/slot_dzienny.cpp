@@ -773,6 +773,10 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
       ok = odswiezanie::pelneCoZTekstu(v, m);
       if (ok) u.pelneCo = m;
     }
+    if (k == "kabel_bez_snu") {  // ADR-0047: `tak` albo `nie`; inaczej wiersz pominięty, wartość domyślna (tak)
+      ok = v == "tak" || v == "nie";
+      if (ok) u.kabelBezSnu = v == "tak" ? 1 : 0;
+    }
     if (k == "okres.maska") {
       ok = indeksZTekstu(v.c_str(), 61, m) && m > 0;
       if (ok) u.sprzet[EL_MASKA].okres = m;

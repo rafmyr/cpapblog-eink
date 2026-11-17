@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "czynniki.h"
+#include "ladowarka.h"
 #include "miasta.h"
 #include "raport.h"
 #include "slot_dzienny.h"
@@ -311,6 +312,8 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
     if (k == "okres.filtr") staryFiltr = v;
     if (k == "aktualizacja_auto") p.aktualizacjaAuto = v == "tak" ? "tak" : "nie";  // zła wartość = `nie`
   }
+  // R-DANE-66: ten sam parser co panel (src/ladowarka.h), zła wartość = `nie`
+  p.ladowanieLimit = ladowarka::limitWKonfiguracji(konf) ? "tak" : "nie";
   int m = 0;
   if (!jestTyg && liczbaOkresu(staryFiltr, m)) p.okres[1] = std::to_string(std::min(104, 4 * m));
   // te same parsery co w panelu (parsujUstawieniaDnia, czynnikiZKonfiguracji), więc formularz pokazuje to, co
@@ -437,6 +440,12 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
     if (v == "tak" || v == "nie") w.plik["co2"] = v == "tak" ? "" : "nie";  // ze źródłem domyślnie `tak`
     else w.bledy["co2"] = "Wybierz z listy.";
   }
+  v = wartosc(m, "ladowanie_limit", jest);  // R-DANE-66: domyślnie `nie` = brak wiersza (R-KONF-20)
+  if (jest) {
+    if (v == "tak") w.plik["ladowanie_limit"] = "tak";
+    else if (v == "nie") w.plik["ladowanie_limit"] = "";
+    else w.bledy["ladowanie_limit"] = "Wybierz z listy.";
+  }
   v = wartosc(m, "humor", jest);
   if (jest) {
     if (v == "normalny") w.plik["humor"] = "";
@@ -561,7 +570,7 @@ int sekcjaPola(const std::string& k) {
   if (k == "ssid" || k == "wifi_haslo" || k == "wifi_bez") return 0;
   if (k.compare(0, 3, "ab_") == 0) return 1;
   if (k == "miasto") return 2;
-  if (k == "profil" || k == "co2") return 3;
+  if (k == "profil" || k == "co2" || k == "ladowanie_limit") return 3;
   if (k == "humor" || k == "buzzer" || k == "cisza_od" || k == "cisza_do" || k == "podpowiedz") return 4;
   if (k.compare(0, 8, "wymiana.") == 0 || k.compare(0, 6, "okres.") == 0 || k.compare(0, 10, "nowy_model") == 0 ||
       k == "uwaga_o_masce")
@@ -782,6 +791,12 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
          "<p class=\"s\">Dotyczy ekranów z czujnika CO2. Wybór działa od następnego wybudzenia panelu.</p>";
   else
     s += "<p class=\"s\">Ten panel nie ma czujnika CO2.</p>";
+  // R-DANE-66 (ADR-0046): limit ładowania na kablu, domyślnie wyłączony
+  s += "<label for=\"ladowanie_limit\">Oszczędzanie baterii na kablu: ładuj do ok. 70%</label>" +
+       opcjeWyboru("ladowanie_limit", p.ladowanieLimit, {{"nie", "nie"}, {"tak", "tak"}}) +
+       blad(b, "ladowanie_limit") +
+       "<p class=\"s\">Dla panelu, który stoi stale na kablu: bateria wolniej się zużywa. Po odłączeniu kabla ma ok. "
+       "70%, nie 100%, więc wystarczy na krócej. Zmiana działa od następnego wybudzenia panelu.</p>";
   s += KONIEC_SEKCJI;
   s += sekcjaEkranow(p, b, otw[8]);  // ADR-0045, R-KONF-60
   s += sekcja("Dźwięk i humor", p.buzzer == "nie" ? "dźwięk wyłączony" : "cisza " + p.ciszaOd + "–" + p.ciszaDo, otw[4]) +
