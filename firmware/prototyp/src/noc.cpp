@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "noc.h"
+#include "liczba_pol.h"
 #include "wspolne.h"
 #include <algorithm>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -123,6 +125,68 @@ std::string trescNocy(const Noc& r) {
   return zapiszNoc(r) + ";" + polaB1(r) + ";" + (r.m18 >= 0 ? std::to_string(r.m18) : std::string()) + ";" +
          pole(r.m14) + ";" + pole(r.m15);
 }
+
+// Skrót 64-bitowy (T-WYM-99): słowa po 8 bajtów mieszane jak w multiplikatywnym skrócie (xor słowa, mnożenie przez
+// nieparzyste 0x9E3779B97F4A7C15, xor z przesunięciem o 32; każdy krok odwracalny, więc każda zmiana słowa zmienia
+// stan), resztę bajtami jak FNV-1a (xor bajtu, mnożenie przez 1099511628211). Start: stała FNV offset basis
+// (SKROT_POCZATEK). To nie jest FNV-1a ani skrót kryptograficzny: wykrywa zmiany danych z dokładnością do kolizji 64 bitów.
+uint64_t skrotBajty(uint64_t k, const void* d, size_t n) {
+  const unsigned char* b = static_cast<const unsigned char*>(d);
+  size_t i = 0;
+  for (; i + 8 <= n; i += 8) {
+    uint64_t w;
+    std::memcpy(&w, b + i, 8);
+    k ^= w;
+    k *= 0x9E3779B97F4A7C15ULL;
+    k ^= k >> 32;
+  }
+  for (; i < n; i++) {
+    k ^= b[i];
+    k *= 1099511628211ULL;
+  }
+  return k;
+}
+// Tekst z długością przed treścią: "ab"+"c" ≠ "a"+"bc" bez żadnego znaku rozdzielającego.
+uint64_t skrotTekst(uint64_t k, const std::string& t) {
+  const uint32_t n = (uint32_t)t.size();
+  k = skrotBajty(k, &n, sizeof n);
+  return skrotBajty(k, t.data(), t.size());
+}
+
+// Jedyna lista pól Noc w skrócie (T-WYM-99). Każde pole jest na dokładnie jednej liście; skrotNocy() idzie po listach,
+// a static_assert niżej porównuje sumę ich rozmiarów z sizeof(Noc). Noc nie ma wypełnienia (kolejność pól w
+// src/noc.h), więc nowe pole bez wpisu tutaj (także bool w dawnej luce albo float na końcu) zwiększa sizeof(Noc)
+// ponad sumę i zatrzymuje kompilację na każdej platformie; pole dopisane dwa razy też. Mutacje każdego pola:
+// test/testy_szybciej_przycisk_brzegowe.cpp (A) i test/testy_szybciej_przycisk.cpp (kolumny wierszNocyV5()).
+#define NOC_POLA_TEKST(X) X(data) X(ustawienia) X(pna) X(srn) X(tryb)
+#define NOC_POLA_LICZBY(X)                                                                                         \
+  X(m01) X(ahi) X(cmed) X(cp95) X(wmed) X(wp95) X(emed) X(ep95) X(psmed) X(psp95) X(oa) X(ca) X(h) X(csr) X(import) \
+  X(m13) X(m17) X(m08) X(mpa) X(mpi) X(ipc) X(eep) X(mns) X(mxs) X(ua) X(m10) X(m10p) X(eai) X(eax) X(ans) X(axs)  \
+  X(epr) X(m18) X(m14) X(m15) X(wazna) X(zrodlo) X(czesciowa) X(epapStr)
+// NOLINTNEXTLINE(bugprone-macro-parentheses): składnik sumy w liście X-makra (`0 +a +b …`), nawias zepsułby sumę
+#define NOC_ROZMIAR(p) +sizeof(Noc::p)
+// NOLINTNEXTLINE(bugprone-sizeof-container): celowo rozmiar pola std::string w strukturze, nie liczba znaków
+static_assert(sizeof(Noc) == 0 NOC_POLA_TEKST(NOC_ROZMIAR) NOC_POLA_LICZBY(NOC_ROZMIAR),
+              "Noc ma pole spoza listy skrotNocy() albo wypełnienie: dopisz pole do NOC_POLA_* w src/noc.cpp "
+              "i ułóż pola w src/noc.h bez luk");
+#undef NOC_ROZMIAR
+// Drugi strażnik, niezależny od wypełnienia: liczba pól agregatu Noc = liczba wpisów na listach.
+// NOLINTNEXTLINE(bugprone-macro-parentheses): składnik sumy w liście X-makra (`0 +1 +1 …`), nawias zepsułby sumę
+#define NOC_JEDEN(p) +1
+static_assert(liczba_pol::policz<Noc>() == 0 NOC_POLA_TEKST(NOC_JEDEN) NOC_POLA_LICZBY(NOC_JEDEN),
+              "Noc ma pole spoza listy skrotNocy(): dopisz je do NOC_POLA_* w src/noc.cpp");
+#undef NOC_JEDEN
+uint64_t skrotNocy(uint64_t k, const Noc& r) {
+#define NOC_TEKST(p) k = skrotTekst(k, r.p);
+#define NOC_LICZBA(p) k = skrotBajty(k, &r.p, sizeof r.p);
+  NOC_POLA_TEKST(NOC_TEKST)
+  NOC_POLA_LICZBY(NOC_LICZBA)
+#undef NOC_TEKST
+#undef NOC_LICZBA
+  return k;
+}
+#undef NOC_POLA_TEKST
+#undef NOC_POLA_LICZBY
 
 std::string wierszNocyV3(const Noc& r) {
   return wierszNocyV2(r) + ";" + (r.m18 >= 0 ? std::to_string(r.m18) : std::string());

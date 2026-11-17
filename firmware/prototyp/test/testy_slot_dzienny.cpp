@@ -463,25 +463,47 @@ static void testR_KON_48_wymiana() {
   ROWNE(zwykle(teksty(w4, we3).powod), "Możesz już odebrać nową maskę z refundacji.");
 }
 
-// ---------- R-KON-50, R-KON-54, R-KON-53: obrazek dnia w pierwszym bloku, zastępstwa ----------
-// rotacja parzysty/nieparzysty dzień zastąpiona blokiem S-K-38 od startu slotu.
-static void testR_KON_50_rotacja() {
+// ---------- R-KON-73…R-KON-76, R-KON-54, R-KON-53: wygaszacz ekranu (obrazek dnia po progu bezczynności) ----------
+// Od 16.11.2026 (decyzje właściciela projektu, ADR-0027 „Zmiana 2026-11-16”) obrazek S-K-38 nie stoi w pierwszym bloku slotu
+// (R-KON-50 wycofane, zob. R-KON-73); zostaje zastępstwem D5 jak dotąd (R-KON-54, decyzja 20:54) i dochodzi wygaszacz.
+// T-TEST-460
+// wymaganie: R-KON-73
+static void testR_KON_73_wygaszacz() {
   ROWNE_L(nrDnia("2026-11-03"), 20760);
-  // poza blokiem (slotOd nieznany albo minęły 2 h) D5: S-K-37 w każdy dzień, parzysty i nieparzysty
+  // przed progiem: D5 S-K-37 każdego dnia; bez współrzędnych zastępstwo S-K-38 jak dotąd (R-KON-54)
   WejscieSlotu a = wejscie("2026-11-03", 12 * 60, nullptr, 21);
-  WejscieSlotu b = wejscie("2026-11-04", 12 * 60, nullptr, 21);
   SPRAWDZ(wybierzSlot(a).ekran == EkranSlotu::SK37);
-  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK37);
-  b.obrazekJest = false;
-  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK37);
-  b.obrazekJest = true;
-  b.liniaUwagi = true;
-  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK37);
-  a.wspolrzedne = false;  // bez współrzędnych → S-K-38 jako zastępstwo (R-KON-54)
+  a.wspolrzedne = false;
   SPRAWDZ(wybierzSlot(a).ekran == EkranSlotu::SK38);
-  a.obrazekJest = false;  // bez współrzędnych i bez obrazka → ekran z rana (W4)
+  a.bezczynnosc = true;  // obie role naraz: ten sam ekran, bez zmiany klatki
+  SPRAWDZ(wybierzSlot(a).ekran == EkranSlotu::SK38);
+  // brak obrazków: bez wygaszacza i bez pustego ekranu (R-KON-54): ekran z rana
+  a.obrazekJest = false;
   SPRAWDZ(wybierzSlot(a).ekran == EkranSlotu::BRAK);
-  // S-K-37: zachód w bloku B1, powód o długości dnia, bez kroku
+  // ekran z rana (bez S-K-37 i bez obrazka na D5, bo ukryty z telefonu) nie dostaje wygaszacza z ukrytym obrazkiem
+  WejscieSlotu e = wejscie("2026-11-03", 12 * 60, nullptr, 21);
+  e.wspolrzedne = false;
+  e.bezczynnosc = true;
+  e.uklad.pokaz[(int)RodzajDzienny::OBRAZEK] = false;
+  SPRAWDZ(wybierzSlot(e).ekran == EkranSlotu::BRAK);
+  // 61 kolejnych dni (parzyste i nieparzyste): od startu slotu S-K-37, po progu S-K-38
+  int dni38 = 0, dni37 = 0;
+  for (int i = 0; i < 61; i++) {
+    WejscieSlotu w = wejscie(dodajDni("2026-11-01", i), 8 * 60, nullptr, 21);
+    dni37 += wybierzSlot(w).ekran == EkranSlotu::SK37;
+    w.minuta = 11 * 60;
+    w.bezczynnosc = true;
+    dni38 += wybierzSlot(w).ekran == EkranSlotu::SK38;
+  }
+  ROWNE_L(dni37, 61);
+  ROWNE_L(dni38, 61);
+  // `obrazek` w `dzien.ukryte` (R-KON-71) ukrywa obie role: po progu dalej S-K-37 (wyłącznik samego wygaszacza
+  // `dzien.wygaszacz=nie` działa w dyrygencie: bezczynnosc = false, T-TEST-461)
+  WejscieSlotu b = wejscie("2026-11-04", 12 * 60, nullptr, 21);
+  b.bezczynnosc = true;
+  b.uklad.pokaz[(int)RodzajDzienny::OBRAZEK] = false;
+  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK37);
+  // S-K-37: zachód słońca, powód o długości dnia, bez kroku
   WejscieSlotu c = wejscie("2026-11-03", 12 * 60, nullptr, 21);
   WyborSlotu w = wybierzSlot(c);
   TekstySlotu t = teksty(w, c);
@@ -489,64 +511,144 @@ static void testR_KON_50_rotacja() {
   ROWNE(t.godzina, hhmm(w.slonce.zachod));
   SPRAWDZ(zwykle(t.powod).rfind("Dzień krótszy o ", 0) == 0);
   SPRAWDZ(t.krok.empty());
-  // D0: ekran z rana zostaje przy S5 i S10, dowód spokoju ustępuje
+  // D0: ekran z rana zostaje przy S5 i S10 (dyrygent nie woła wtedy wyboru slotu, więc i wygaszacza), dowód spokoju ustępuje
   SPRAWDZ(zostajeRano("S5", false) && zostajeRano("S10", false) && zostajeRano("S2A", true));
   SPRAWDZ(!zostajeRano("S2A", false) && !zostajeRano("S2B", false) && !zostajeRano("KM", false) && !zostajeRano("S6", false));
 }
 
-// T-TEST-340: obrazek dnia S-K-38 w pierwszym bloku slotu każdego dnia (R-KON-50)
-static void testB27_blokObrazka() {
-  SPRAWDZ(OBRAZEK_BLOK_MIN == 120);
-  SPRAWDZ(wBlokuObrazka(8 * 60, 8 * 60) && wBlokuObrazka(9 * 60 + 59, 8 * 60) && !wBlokuObrazka(10 * 60, 8 * 60));
-  SPRAWDZ(!wBlokuObrazka(7 * 60, 8 * 60) && !wBlokuObrazka(8 * 60, -1));
-  // każdy dzień od 01.11 do 31.12, parzysty i nieparzysty: S-K-38 w całym bloku, potem S-K-37
-  int dni38 = 0, dni = 0;
-  for (int i = 0; i < 61; i++) {
-    std::string d = dodajDni("2026-11-01", i);
-    WejscieSlotu w = wejscie(d, 8 * 60, nullptr, 21);
-    w.slotOd = 8 * 60;
-    dni++;
-    bool wszystkie = true;
-    for (int m = 8 * 60; m < 10 * 60; m += 30) {
-      w.minuta = m;
-      wszystkie = wszystkie && wybierzSlot(w).ekran == EkranSlotu::SK38;
-    }
-    dni38 += wszystkie;
-    w.minuta = 10 * 60;
-    SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::SK37);  // po bloku D5: S-K-37
+// T-TEST-460: próg bezczynności liczony od późniejszej z chwil (start slotu, ostatnie naciśnięcie)
+// wymaganie: R-KON-74
+static void testR_KON_74_progBezczynnosci() {
+  const uint32_t s = 1'800'000'000u;  // start slotu
+  // 2 h 59 min 59 s → nie; 3 h → tak (próg domyślny 180 min)
+  SPRAWDZ(s % 60 == 0);
+  SPRAWDZ(!poraWygaszacza(s + 179 * 60 + 59, s, 0, 180));
+  SPRAWDZ(poraWygaszacza(s + 180 * 60, s, 0, 180));
+  // w pełnych minutach: start 08:00:05 (po pobraniu), ocena 11:00:00 → 180 min; ocena 10:59:59 → 179 min
+  SPRAWDZ(poraWygaszacza(s + 180 * 60, s + 5, 0, 180) && !poraWygaszacza(s + 180 * 60 - 1, s + 5, 0, 180));
+  // naciśnięcie 1 h po starcie zeruje licznik: do 4 h po starcie nie, od 4 h tak (R-KON-76)
+  SPRAWDZ(!poraWygaszacza(s + 239 * 60, s, s + 60 * 60, 180));
+  SPRAWDZ(poraWygaszacza(s + 240 * 60, s, s + 60 * 60, 180));
+  // naciśnięcie sprzed startu slotu (wczoraj, rano przed slotem) nie przedłuża: liczy się start slotu
+  SPRAWDZ(poraWygaszacza(s + 180 * 60, s, s - 5 * 3600, 180));
+  // bez startu slotu nigdy (poza slotem dziennym wygaszacza nie ma)
+  SPRAWDZ(!poraWygaszacza(s + 1000 * 60, 0, 0, 180));
+  // zegar cofnięty: start slotu „w przyszłości” → bez wygaszacza; naciśnięcie „w przyszłości” (zepsuta pamięć RTC)
+  // liczy się jak brak naciśnięcia, więc nie wyłącza wygaszacza na stałe
+  SPRAWDZ(!poraWygaszacza(s, s + 60, 0, 180));
+  SPRAWDZ(poraWygaszacza(s + 300 * 60, s, s + 400 * 60, 180));
+  SPRAWDZ(!poraWygaszacza(s + 179 * 60, s, s + 400u * 24u * 3600u, 180) && poraWygaszacza(s + 180 * 60, s, s + 400u * 24u * 3600u, 180));
+  // wartości brzegowe progu 30 i 720 min; spoza zakresu = 180
+  SPRAWDZ(!poraWygaszacza(s + 29 * 60 + 59, s, 0, 30) && poraWygaszacza(s + 30 * 60, s, 0, 30));
+  SPRAWDZ(!poraWygaszacza(s + 719 * 60, s, 0, 720) && poraWygaszacza(s + 720 * 60, s, 0, 720));
+  SPRAWDZ(!poraWygaszacza(s + 60 * 60, s, 0, 29) && poraWygaszacza(s + 180 * 60, s, 0, 29));
+  SPRAWDZ(poraWygaszacza(s + 180 * 60, s, 0, 721) && !poraWygaszacza(s + 179 * 60, s, 0, 721));
+  SPRAWDZ(!poraWygaszacza(s + 179 * 60, s, 0, -1) && poraWygaszacza(s + 180 * 60, s, 0, -1));
+  ROWNE_L(WYGASZACZ_MIN_DOMYSLNIE, 180);
+  ROWNE_L(WYGASZACZ_MIN_OD, 30);
+  ROWNE_L(WYGASZACZ_MIN_DO, 720);
+}
+
+// T-TEST-460: co wygaszacz zasłania, a co zostaje na wierzchu (decyzja właściciela projektu 16.11.2026 22:08, wariant W3)
+// wymaganie: R-KON-75
+static void testR_KON_75_nieZaslania() {
+  const std::string d = "2026-11-03";
+  auto ekran = [](WejscieSlotu w, bool bezcz) {
+    w.bezczynnosc = bezcz;
+    return wybierzSlot(w);
+  };
+  // --- lista 1: zasłania (bez progu ten ekran, po progu S-K-38) ---
+  // `Wietrz od 11:00` (okno jeszcze się nie zaczęło), o 10:00
+  Prognoza p = prognoza(d, 1, 20);
+  godziny(p, 11, 15, 5, 20);
+  p.h[12].temp = 6;
+  p.h[11].temp = 4;
+  godziny(p, 15, 24, 2, 60);
+  WejscieSlotu od = wejscie(d, 10 * 60, &p, 21);
+  SPRAWDZ(ekran(od, false).ekran == EkranSlotu::SK33 && ekran(od, false).okno.wariant == Wietrzenie::POZNIEJ);
+  SPRAWDZ(ekran(od, true).ekran == EkranSlotu::SK38 && ekran(od, true).wygaszacz);
+  // przejście w trakcie wygaszacza: o 11:00 okno się zaczyna → `Wietrz do 15:00` wraca na wierzch
+  WejscieSlotu dor = wejscie(d, 11 * 60, &p, 21);
+  WyborSlotu wdo = ekran(dor, true);
+  SPRAWDZ(wdo.ekran == EkranSlotu::SK33 && wdo.okno.wariant == Wietrzenie::TRWA && !wdo.wygaszacz);
+  // po oknie (16:00, smog do wieczora): bez trwającego okna, więc wygaszacz
+  SPRAWDZ(ekran(wejscie(d, 16 * 60, &p, 21), true).ekran == EkranSlotu::SK38);
+  // `Dziś bez wietrzenia.` (smog cały dzień)
+  Prognoza s = prognoza(d, 2, 80);
+  WejscieSlotu sm = wejscie(d, 9 * 60, &s, 21);
+  SPRAWDZ(ekran(sm, false).okno.wariant == Wietrzenie::SMOG && ekran(sm, false).ekran == EkranSlotu::SK33);
+  SPRAWDZ(ekran(sm, true).ekran == EkranSlotu::SK38);
+  // S-K-34 „Jutro rano” (ślisko): bez czujnika (bez okna), jutro 06:00–09:00 mróz z opadem
+  Prognoza pj = prognoza("2026-11-04", 2, 10);
+  for (int h = 24 + JUTRO_OD; h < 24 + JUTRO_DO; h++) {
+    pj.h[(size_t)h].temp = -3;
+    pj.h[(size_t)h].opad = 80;
   }
-  ROWNE_L(dni38, dni);
-  // z linią uwagi bez obrazka w bloku (R-KON-54): zwykła kolejność D1…D5
-  WejscieSlotu l = wejscie("2026-11-04", 8 * 60, nullptr, 21);
-  l.slotOd = 8 * 60;
-  l.liniaUwagi = true;
-  SPRAWDZ(wybierzSlot(l).ekran == EkranSlotu::SK37);
-  // bez obrazków w bloku: bez dziury, zwykła kolejność (S-K-37; bez współrzędnych ekran z rana)
-  WejscieSlotu n = wejscie("2026-11-04", 8 * 60, nullptr, 21);
-  n.slotOd = 8 * 60;
-  n.obrazekJest = false;
-  SPRAWDZ(wybierzSlot(n).ekran == EkranSlotu::SK37);
-  n.wspolrzedne = false;
-  SPRAWDZ(wybierzSlot(n).ekran == EkranSlotu::BRAK);
-  // D0a (drzemka z wyciekiem) wygrywa z obrazkiem
-  WejscieSlotu dr = wejscie("2026-11-04", 9 * 60, nullptr, 21);
-  dr.slotOd = 8 * 60;
+  WejscieSlotu j = wejscie("2026-11-04", 12 * 60, &pj, NAN);
+  SPRAWDZ(ekran(j, false).ekran == EkranSlotu::SK34);
+  SPRAWDZ(ekran(j, true).ekran == EkranSlotu::SK38);
+  // S-K-36 pyłek
+  Prognoza pp = prognoza("2026-11-04", 2, 10);
+  for (int h = 12; h < 18; h++) pp.h[(size_t)h].pylek[PYL_BRZOZA] = 400;
+  WejscieSlotu py = wejscie("2026-11-04", 12 * 60, &pp, NAN);
+  py.pylki.zaznaczony[PYL_BRZOZA] = true;
+  py.pylki.prog[PYL_BRZOZA] = 100;
+  SPRAWDZ(ekran(py, false).ekran == EkranSlotu::SK36);
+  SPRAWDZ(ekran(py, true).ekran == EkranSlotu::SK38);
+  // S-K-37 i spokojny ekran z rana (bez S-K-37 i bez obrazka na D5: obrazek ukryty nie ma też wygaszacza; tu sam BRAK)
+  WejscieSlotu sl = wejscie("2026-11-04", 13 * 60, nullptr, 21);
+  SPRAWDZ(ekran(sl, false).ekran == EkranSlotu::SK37 && ekran(sl, true).ekran == EkranSlotu::SK38);
+  WejscieSlotu rano = wejscie("2026-11-04", 13 * 60, nullptr, 21);
+  rano.uklad.pokaz[(int)RodzajDzienny::DZIEN_I_NOC] = false;
+  rano.wspolrzedne = false;
+  rano.obrazekJest = false;
+  SPRAWDZ(ekran(rano, false).ekran == EkranSlotu::BRAK);
+  rano.obrazekJest = true;
+  SPRAWDZ(ekran(rano, true).ekran == EkranSlotu::SK38);
+  // zasłanianie dosłowne: S-K-34 zasłonięty, a S-K-35 niżej
+  // na liście ma akcję → wygaszacz, nie S-K-35; S-K-35 nie jest nawet oceniany (licznik `b9_sk35` nietknięty)
+  ElementWymiany el[EL_N];
+  el[EL_FILTR] = {"2026-10-07", 4, true};
+  WejscieSlotu jm = j;
+  jm.sprzet = &el;
+  SPRAWDZ(ekran(jm, false).ekran == EkranSlotu::SK34 && ekran(jm, true).ekran == EkranSlotu::SK38);
+  SPRAWDZ(ekran(jm, true).wymiana.element < 0);
+  // to samo przy `Wietrz od …` (D1) i S-K-35 (D3)
+  WejscieSlotu om = od;
+  om.sprzet = &el;
+  SPRAWDZ(ekran(om, false).ekran == EkranSlotu::SK33 && ekran(om, true).ekran == EkranSlotu::SK38);
+  // --- lista 2: zostaje na wierzchu także po progu ---
+  // S-K-39 drzemka z wyciekiem
+  WejscieSlotu dr = wejscie("2026-11-04", 13 * 60, nullptr, 21);
   dr.drzemka.minut = 70;
   dr.drzemka.wyciekP95 = 30;
-  SPRAWDZ(wybierzSlot(dr).ekran == EkranSlotu::SK39);
-  // wariant CO2 `Przewietrz teraz.` (R-KON-44) wygrywa z obrazkiem; po bloku okno wietrzenia wraca do głosu
-  Prognoza p = prognoza("2026-11-04", 2, 10);
-  WejscieSlotu c = wejscie("2026-11-04", 8 * 60, &p, 21);
-  c.slotOd = 8 * 60;
+  SPRAWDZ(ekran(dr, true).ekran == EkranSlotu::SK39);
+  // `Przewietrz teraz.` (CO2)
+  Prognoza c2 = prognoza("2026-11-04", 2, 10);
+  WejscieSlotu c = wejscie("2026-11-04", 11 * 60, &c2, 21);
   c.co2 = 1400;
-  WyborSlotu wc = wybierzSlot(c);
-  SPRAWDZ(wc.ekran == EkranSlotu::SK33 && wc.okno.wariant == Wietrzenie::CO2);
-  c.co2 = -1;
-  WyborSlotu bez = wybierzSlot(c);
-  SPRAWDZ(bez.ekran == EkranSlotu::SK38);  // zwykłe okno S-K-33 w bloku ustępuje obrazkowi
-  c.minuta = 10 * 60;
-  WyborSlotu po = wybierzSlot(c);
-  SPRAWDZ(po.ekran != EkranSlotu::SK38);  // po bloku wraca D1…D5
+  SPRAWDZ(ekran(c, true).ekran == EkranSlotu::SK33 && ekran(c, true).okno.wariant == Wietrzenie::CO2);
+  // trwające okno `Wietrz do …` (wyżej: 11:00)
+  SPRAWDZ(ekran(dor, true).ekran == EkranSlotu::SK33);
+  // upał `Okna zamknięte do 20:00` i `Okna zamknięte cały dzień.` (krok „zasłoń okna” teraz)
+  Prognoza l = prognoza("2026-07-17", 31, 10);
+  godziny(l, 20, 48, 23, 10);
+  WejscieSlotu wl = wejscie("2026-07-17", 12 * 60, &l, 26);
+  SPRAWDZ(ekran(wl, true).okno.wariant == Wietrzenie::UPAL_DO && ekran(wl, true).ekran == EkranSlotu::SK33);
+  Prognoza u = prognoza("2026-07-17", 31, 10);
+  WejscieSlotu wu = wejscie("2026-07-17", 12 * 60, &u, 26);
+  SPRAWDZ(ekran(wu, true).okno.wariant == Wietrzenie::UPAL_CALY_DZIEN && ekran(wu, true).ekran == EkranSlotu::SK33);
+  // S-K-35 wymiana sprzętu (akcja ◀ 2 s)
+  WejscieSlotu m = wejscie("2026-11-04", 12 * 60, nullptr, 21);
+  m.sprzet = &el;
+  SPRAWDZ(ekran(m, true).ekran == EkranSlotu::SK35);
+  // linia uwagi: bez wygaszacza, spokojny ekran zostaje
+  WejscieSlotu li = wejscie("2026-11-04", 13 * 60, nullptr, 21);
+  li.liniaUwagi = true;
+  SPRAWDZ(ekran(li, true).ekran == EkranSlotu::SK37);
+  // D0 (ekran z rana trzymany cały dzień), S5, S10, ekran otwarty przyciskiem i informacja po aktualizacji: dyrygent nie
+  // woła wtedy wyboru slotu albo daje bezczynnosc = false (T-TEST-461, testy_karta_po_aktualizacji_slot.cpp)
+  SPRAWDZ(zostajeRano("S5", false) && zostajeRano("S10", false));
 }
 
 // ---------- R-KON-51: stopka dzienna ----------
@@ -1115,8 +1217,9 @@ int main() {
   testR_KON_45_pylek();
   testR_KON_47_jutro();
   testR_KON_48_wymiana();
-  testR_KON_50_rotacja();
-  testB27_blokObrazka();
+  testR_KON_73_wygaszacz();
+  testR_KON_74_progBezczynnosci();
+  testR_KON_75_nieZaslania();
   testR_KON_51_stopka();
   testR_KON_57_drzemka();
   testR_KON_60_dobor();

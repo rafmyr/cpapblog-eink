@@ -17,4 +17,5 @@ struct Preferences {
   bool remove(const char*) { return true; }
   String getString(const char*, const String& d = String()) { return d; }
   size_t putString(const char*, const char* v) { return strlen(v); }
+  size_t putString(const char*, const String& v) { return v.length(); }
 };

@@ -182,6 +182,10 @@ struct StanRtc {
   // Kopia w NVS `cpap`/`ab_znn` (zapis tylko, gdy zmienia się noc, której stan poznano), odtwarzana po zaniku
   // zasilania razem ze StanAB.
   uint32_t nocZnanaEp = 0;
+  // R-NF-25 (src/odswiezanie.h): odświeżenia częściowe e-ink z rzędu od ostatniego pełnego; pełne zeruje, klatka bez
+  // zmian (bez odświeżenia) nie zmienia. Po N (`eink.pelne_co`) częściowych następne jest pełne. W RTC, żeby
+  // przetrwał głęboki sen; po starcie innym niż wybudzenie z uśpienia 0 (pierwsze rysowanie i tak pełne).
+  uint8_t czesciowychZRzedu = 0;
 };
 // StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
 static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");

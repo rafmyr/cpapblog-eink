@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Slot dzienny (spec 5.8.12, ADR-0027, R-KON-41…R-KON-58): prognoza godzinowa z serwisu pogody, reguła wietrzenia
 // S-K-33, „Jutro rano” S-K-34, wymiana sprzętu S-K-35, pyłek S-K-36, „Dzień i noc” S-K-37 (wschód i zachód słońca
-// liczone na panelu), rotacja z obrazkiem dnia S-K-38 (src/obrazki.h), drzemka S-K-39, stopka dzienna i wybór ekranu
+// liczone na panelu), wygaszacz z obrazkiem dnia S-K-38 (src/obrazki.h, R-KON-73…R-KON-77), drzemka S-K-39, stopka dzienna i wybór ekranu
 // według części „Dzień” tabeli 7.2. Bez zależności od Arduino; rysowanie w src/ekrany_kontekst.cpp.
 //
 // Prognoza (ADR-0027 „Granice bez zmian”, ADR-0001, ADR-0019 pkt 4): panel pyta serwis pogody Open-Meteo
@@ -220,6 +220,10 @@ bool prefiksSesji(const std::string& p, std::string& data, int& minuta);
 //                                                          i ocena wieczorna z Wi-Fi (R-KON-01); bez wiersza: według
 // lokalnego źródła otoczenia (
 //                                                          5.8.8); `tak` bez źródła nic nie włącza (brak danych CO2)
+//   dzien.wygaszacz = tak|nie                              wygaszacz z obrazkiem dnia (R-KON-77), domyślnie `tak`;
+//                                                          `obrazek` w `dzien.ukryte` ukrywa obrazek w obu rolach
+//   dzien.wygaszacz_min = {minuty}                         próg bezczynności wygaszacza (R-KON-74), 30–720,
+//                                                          domyślnie 180
 // Nieznany klucz i zła wartość: pominięte (wartość domyślna), z wpisem w `bledy`.
 const float PYLEK_PROG_DOMYSLNY[PYL_N] = {100, 50, 50, 30};  // [PRÓG] zastępczy do statystyki sezonu
 // 5.6.4 „Uwaga o masce od” (R-KONF-42): zakres [PRÓG R-KONF-42.zakres_min, R-KONF-42.zakres_max] i wartość domyślna
@@ -228,6 +232,8 @@ const float PYLEK_PROG_DOMYSLNY[PYL_N] = {100, 50, 50, 30};  // [PRÓG] zastępc
 // Źródło nocy bez wiersza `noc_zrodlo` (ADR-0036 „Zmiana 2026-11-11”): 1 = `plik`
 const int NOC_ZRODLO_DOMYSLNE = 1;
 const int UWAGA_O_MASCE_MIN = 10, UWAGA_O_MASCE_MAX = 15, UWAGA_O_MASCE_DOMYSLNIE = 10;
+// R-KON-74: próg bezczynności wygaszacza, minuty [PRÓG R-KON-74.bezczynnosc, R-KON-74.zakres_min, R-KON-74.zakres_max]
+const int WYGASZACZ_MIN_DOMYSLNIE = 180, WYGASZACZ_MIN_OD = 30, WYGASZACZ_MIN_DO = 720;
 struct UstawieniaDnia {
   ElementWymiany sprzet[EL_N];
   PylkiDnia pylki;
@@ -249,6 +255,15 @@ struct UstawieniaDnia {
   // Steruje tylko wariantem opisowym S-K-10 `Wyciek widoczny` (P95 od ustawienia do < 15 L/min); S-K-10 w tonie
   // „problem” (od 15), nocy niepewnej i dużego wycieku 24 L/min nie zmienia.
   int uwagaOMasce = -1;
+  // `dzien.wygaszacz_min=NN` (R-KON-74): próg bezczynności wygaszacza w minutach, liczba całkowita WYGASZACZ_MIN_OD…
+  // WYGASZACZ_MIN_DO; -1 = bez wiersza albo zła wartość (wiersz w `bledy`): WYGASZACZ_MIN_DOMYSLNIE.
+  int wygaszaczMin = -1;
+  int wygaszaczMinSkuteczne() const { return wygaszaczMin < 0 ? WYGASZACZ_MIN_DOMYSLNIE : wygaszaczMin; }
+  // `dzien.wygaszacz=tak|nie` (R-KON-77): rola wygaszacza obrazka dnia; 1 tak, 0 nie, -1 bez wiersza albo zła wartość
+  // (wiersz w `bledy`): włączony. Wyłącza tylko wygaszacz; obrazek na D5 (zastępstwo R-KON-54) zostaje, a `obrazek`
+  // w `dzien.ukryte` (R-KON-71) ukrywa obrazek w obu rolach. Zasilanie bez wpływu (decyzja właściciela projektu 16.11.2026).
+  int wygaszacz = -1;
+  bool wygaszaczWlaczony() const { return wygaszacz != 0; }
   // Współrzędne pogody i wschodu słońca z miasta z `miasto=` (lista 18 miast wojewódzkich, src/miasta.h); NAN = bez
   // wpisu (dyrygent bierze wtedy `POGODA_LAT` i `POGODA_LON` z secrets.h, a bez nich Katowice). Wpis z konfiguracji
   // ma pierwszeństwo przed secrets.h.
@@ -268,6 +283,10 @@ struct UstawieniaDnia {
   // obsluz() i przed rysowaniem), dzień idzie do slotu dziennego (WejscieSlotu::uklad); wartości złe pominięte
   // z jednym wpisem na klucz w `bledy`.
   UkladEkranow ekrany;
+  // `eink.pelne_co=N` (R-NF-25, src/odswiezanie.h): po tylu odświeżeniach częściowych z rzędu pełne, 0 = częściowe
+  // wyłączone; liczba całkowita 0…odswiezanie::PELNE_CO_MAX, bez pola w formularzu U-03 (przełącznik do prób na
+  // panelu). -1 = bez wiersza albo zła wartość (wiersz w `bledy`): odswiezanie::PELNE_CO_DOMYSLNIE.
+  int pelneCo = -1;
   std::vector<std::string> bledy;
   UstawieniaDnia();
 };
@@ -299,10 +318,19 @@ StopkaDzienna stopkaDzienna(const Noc* noc, bool nocUbiegla, int drzemkaMin, flo
 int grupaRano(const std::string& typEkranuDnia);  // numer grupy części „Rano” tabeli 7.2 (0…9), 0 = R0…R5 / nieznany
 bool zostajeRano(const std::string& typEkranuDnia, bool pytanieR0BezOdpowiedzi);
 
-// (R-KON-50): pierwszy blok slotu dziennego, w którym stoi obrazek dnia S-K-38 przed
-// zwykłymi ekranami D1…D5: od startu slotu przez tyle minut [PRÓG] (docs/spec/progi.csv R-KON-50.blok_obrazka).
-const int OBRAZEK_BLOK_MIN = 120;
-bool wBlokuObrazka(int minuta, int slotOd);  // slotOd ≤ minuta < slotOd + OBRAZEK_BLOK_MIN; slotOd < 0 = nie
+// Wygaszacz ekranu (R-KON-73…R-KON-77, decyzje właściciela projektu z 16.11.2026, ADR-0027 „Zmiana 2026-11-16”): obrazek dnia
+// S-K-38 nie stoi już w pierwszym bloku slotu (R-KON-50 wycofane, zob. R-KON-73). Ma dwie role: zastępstwo D5 jak
+// dotąd (R-KON-54) i wygaszacz po progu bezczynności liczonym od późniejszej z chwil: start slotu dziennego, ostatnie
+// naciśnięcie przycisku. Próg z klucza `dzien.wygaszacz_min` (minuty, WYGASZACZ_MIN_OD…WYGASZACZ_MIN_DO [PRÓG
+// R-KON-74.zakres_min, R-KON-74.zakres_max], bez wiersza albo przy złej wartości WYGASZACZ_MIN_DOMYSLNIE [PRÓG
+// R-KON-74.bezczynnosc]). Wyłącznik samego wygaszacza: `dzien.wygaszacz=nie` (R-KON-77, tylko z formularza na
+// telefonie); `obrazek` w `dzien.ukryte` (R-KON-71) ukrywa obie role. Zasilanie (bateria, kabel) nie ma wpływu.
+// Stałe WYGASZACZ_MIN_* przy ustawieniach slotu (wyżej).
+// Czy minął próg bezczynności: slotEp ≠ 0 i ≤ teraz, liczone od max(slotEp, nacisniecieEp), co najmniej progMin pełnych
+// minut zegara między tą chwilą a teraz (minuty ucięte: start slotu 08:00:05, ocena 11:00:00 = 180 min). progMin spoza
+// zakresu = WYGASZACZ_MIN_DOMYSLNIE. Naciśnięcie z przyszłości (zepsuta pamięć RTC, zegar cofnięty) liczy się jak brak
+// naciśnięcia (od startu slotu); start slotu z przyszłości: bez wygaszacza.
+bool poraWygaszacza(uint32_t teraz, uint32_t slotEp, uint32_t nacisniecieEp, int progMin);
 
 enum class EkranSlotu : uint8_t { BRAK, SK33, SK34, SK35, SK36, SK37, SK38, SK39 };
 const char* idEkranuSlotu(EkranSlotu e);  // `S-K-33` …
@@ -319,8 +347,8 @@ struct WejscieSlotu {
   bool wspolrzedne = false;
   double lat = NAN, lon = NAN;
   bool obrazekJest = false;        // jest obrazek do pokazania dziś (src/obrazki.h)
-  bool liniaUwagi = false;         // R-KON-54: z linią uwagi zamiast S-K-38 stoi S-K-37
-  int slotOd = -1;                 // minuta doby startu slotu dziennego (R-KON-41); -1 = nieznana, bez bloku obrazka
+  bool liniaUwagi = false;         // R-KON-54, R-KON-75: z linią uwagi bez wygaszacza
+  bool bezczynnosc = false;        // R-KON-73: minął próg bezczynności (poraWygaszacza()) i wygaszacz włączony (R-KON-77)
   // linia uwagi z kolejki 7.5 (src/kolejka.h ustawLinie()): rysowana na ekranie slotu pod nagłówkiem; gdy układ nie
   // ma miejsca, ustępuje wizualizacja (słupki, linia, oś, fakty, lista), nie linia
   std::string linia;
@@ -331,6 +359,7 @@ struct WejscieSlotu {
 };
 struct WyborSlotu {
   EkranSlotu ekran = EkranSlotu::BRAK;  // BRAK = ekran z rana zostaje (R-KON-54: bez współrzędnych i obrazka)
+  bool wygaszacz = false;  // S-K-38 w roli wygaszacza (R-KON-73), nie zastępstwa D5: ikona aktualizacji zostaje (R-EKR-61)
   WynikWietrzenia okno;
   WynikJutra jutro;
   WynikWymiany wymiana;
@@ -338,8 +367,12 @@ struct WyborSlotu {
   WynikSlonca slonce;
 };
 // Kolejność: D0a S-K-39 > D1 S-K-33 (po 16:00 za D2, gdy okno nie trwa i nie zaczyna się w ciągu 60 min) > D2 S-K-34
-// > D3 S-K-35 > D4 S-K-36 > D5 S-K-37 (zastępstwo S-K-38, R-KON-54). w pierwszym bloku slotu (OBRAZEK_BLOK_MIN)
-// S-K-38 stoi przed D1…D5 (R-KON-50), z wyjątkiem D0a i wariantu CO2 S-K-33 (`Przewietrz teraz.`); z linią uwagi bez bloku.
+// > D3 S-K-35 > D4 S-K-36 > D5 S-K-37 (zastępstwo S-K-38, R-KON-54). Wygaszacz S-K-38 (R-KON-73, R-KON-75, decyzja
+// 16.11.2026 22:08, W3): tylko po progu bezczynności (w.bezczynnosc); zasłania D5, ekran z rana, S-K-33 `Wietrz od …`
+// i `Dziś bez wietrzenia.`, S-K-34, S-K-36; nigdy D0a, `Przewietrz teraz.`, okna trwającego (`Wietrz do …`), upału
+// (`Okna zamknięte …`), S-K-35, linii uwagi ani bez obrazka; stan „niska bateria” go nie blokuje (stopka ostrzega).
+// Zasłanianie dosłowne (16.11.2026): po progu wynik to ten sam ekran co bez wygaszacza albo S-K-38,
+// nigdy dalszy kandydat D1…D4.
 // Bez prognozy S-K-33, S-K-34 i S-K-36 milczą (R-KON-53); bez czujnika panelu S-K-33 milczy (5.8.10).
 // ADR-0045: D1…D4 w kolejności w.uklad.kolejnosc (R-KON-70; R-KON-46 dalej stawia S-K-34 przed S-K-33 po 16:00, gdy
 // S-K-33 jest wyżej), ekran wyłączony (w.uklad.pokaz) nie jest kandydatem, a panel bierze następnego (R-KON-71);

@@ -40,6 +40,10 @@ class String {
   String operator+(const String& o) const { return String(s_ + o.s_); }
   friend String operator+(const char* a, const String& b) { return String(std::string(a) + b.s_); }
   String& operator+=(const String& o) { s_ += o.s_; return *this; }
+  String& operator+=(char c) { s_ += c; return *this; }
+  // kod pod POMIAR_CZASU (historia pomiarów w NVS, src/adaptery_esp32.cpp pomiar::historiaDopisz())
+  int indexOf(char c) const { size_t i = s_.find(c); return i == std::string::npos ? -1 : (int)i; }
+  void remove(unsigned od, unsigned ile) { if (od < s_.size()) s_.erase(od, ile); }
   bool operator==(const char* o) const { return s_ == o; }
   bool operator==(const String& o) const { return s_ == o.s_; }
   bool startsWith(const char* p) const { return s_.rfind(p, 0) == 0; }
@@ -52,6 +56,8 @@ struct HardwareSerial {
   void begin(unsigned long) {}
   size_t println(const char*) { return 0; }
   size_t println(const String&) { return 0; }
+  size_t print(const char*) { return 0; }
+  size_t print(const String&) { return 0; }
   int printf(const char*, ...) { return 0; }
   int available() { return 0; }
   int read() { return -1; }

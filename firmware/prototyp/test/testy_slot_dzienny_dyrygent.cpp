@@ -214,7 +214,9 @@ static std::vector<Wyb> symuluj(PanelSym& s, uint32_t od, uint32_t doT, Odpowied
   PowodWybudzenia pw = PowodWybudzenia::START;
   for (int i = 0; i < 600 && t < doT; i++) {
     odp(s, t);
-    if (zmiennaTemp) s.p.czujniki.o.temp = 15.0f + (float)(minutaLok(t) / 60);
+    // co godzinę inaczej, 18–21°: poniżej progu trybu letniego (24°), więc bez okna wietrzenia (od 16.11.2026 bez bloku
+    // obrazka okno zasłaniałoby wygaszacz, R-KON-75)
+    if (zmiennaTemp) s.p.czujniki.o.temp = 18.0f + (float)((minutaLok(t) / 60) % 4);
     Wyb w = wybudz(s, t, pw, k);
     v.push_back(w);
     if (!w.spal) break;
@@ -307,34 +309,40 @@ static std::string pbm(int w, int h) {
   return "P4\n" + std::to_string(w) + " " + std::to_string(h) + "\n" + std::string((size_t)((w + 7) / 8 * h), '\x0F');
 }
 
-// Doba 4.11.2026 (S-K-38 w pierwszym bloku slotu każdego dnia): noc o 07:00, slot od 08:00, prognoza pobrana raz przy starcie slotu
+// Doba 4.11.2026: noc o 07:00, slot od 08:00, prognoza pobrana raz przy starcie slotu. Od 16.11.2026 bez bloku
+// obrazka od startu slotu (R-KON-50 wycofane); obrazek S-K-38 jako wygaszacz po 3 h bez naciśnięcia (R-KON-73):
+// 08:00…10:00 S-K-37 (D5), od 11:00 S-K-38 do końca slotu dziennego (21:00).
+// T-TEST-461
+// wymaganie: R-KON-73
 static void testSlotDziennyZObrazkiem() {
   PanelSym s;
   s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
   s.p.pliki.pliki["/obrazki/002_syntetyczny.pbm"] = pbm(300, 200);
   s.p.pliki.pliki["/obrazki/obrazki.json"] =
       "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\",\"dni\":[\"sr\"]},{\"plik\":\"002_syntetyczny.pbm\"}]}";
-  std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30), odpowiedziB9, false, konf(true));
+  std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 22, 30), odpowiedziB9, false, konf(true));
   ROWNE_L(ileZadan(v, "/v1/forecast"), 1);      // R-KON-52: przy starcie slotu, prognoza świeża przez resztę dnia
   ROWNE_L(ileZadan(v, "/v1/air-quality"), 1);
   SPRAWDZ(logMa(v, "prognoza godzinowa: pobrana", 8 * 60, 8 * 60 + 1));
   SPRAWDZ(s.p.pliki.pliki.count("/dane/prognoza.csv") == 1);
-  // przed startem slotu: ekran z rana; od startu S-K-38 (środa: pula kontekstowa z `sr`)
-  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 0, 8 * 60));
-  SPRAWDZ(logMa(v, "slot dzienny: S-K-38 /obrazki/001_syntetyczny.pbm (pula k)", 8 * 60, 8 * 60 + 1));
-  // (R-KON-50): obrazek w pierwszym 2-godzinnym bloku slotu (08:00–10:00), potem D5: S-K-37 (T-TEST-341)
-  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 9 * 60, 9 * 60 + 1));  // 09:00: ten sam obrazek (odświeżeń 0, niżej)
+  // od startu slotu zwykła kolejność (S-K-37), wygaszacz dopiero po 3 h bez naciśnięcia, przy ocenie o 11:00
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-37", 8 * 60, 8 * 60 + 1));
   SPRAWDZ(logMa(v, "slot dzienny: S-K-37", 10 * 60, 10 * 60 + 1));
-  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 10 * 60, 21 * 60));
+  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 0, 11 * 60));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38 /obrazki/001_syntetyczny.pbm (pula k)", 11 * 60, 11 * 60 + 1));  // środa: `sr`
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 20 * 60, 20 * 60 + 1));
+  SPRAWDZ(!logMa(v, "slot dzienny: S-K-37", 11 * 60, 24 * 60));
+  // koniec slotu dziennego: wieczorem bez wygaszacza (slot wieczorny, R-KON-41)
+  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 21 * 60, 24 * 60));
   // R-KON-61: jeden wpis w dzienniku na dzień, mimo ocen o każdej pełnej godzinie
   std::string dz = s.p.pliki.pliki["/dane/obrazki.csv"];
   size_t pierwszy = dz.find("2026-11-04;001_syntetyczny.pbm;k");
   SPRAWDZ(pierwszy != std::string::npos && dz.find("2026-11-04;", pierwszy + 1) == std::string::npos);
-  // R-KON-42: oceny bez zmiany klatki nie odświeżają e-ink
+  // R-KON-42: oceny bez zmiany klatki nie odświeżają e-ink (wygaszacz o 12:00 i 13:00 bez odświeżenia)
   int odswiezen = 0;
   for (auto& w : v)
-    if (w.minuta > 8 * 60 && w.minuta < 10 * 60) odswiezen += w.m.odswiezen;
-  ROWNE_L(odswiezen, 0);  // w bloku obrazka żadnego odświeżenia; zmiana dopiero o 10:00 (R-KON-42, R-KON-50)
+    if (w.minuta > 11 * 60 && w.minuta < 14 * 60) odswiezen += w.m.odswiezen;
+  ROWNE_L(odswiezen, 0);
   // po 21:00: S-K-01 z CO2 1250 ppm z lokalnego źródła (traktowanego jak Qingping)
   KonfiguracjaPanelu k = konf(true);
   k.otoUrl = "http://192.168.1.60:8080/otoczenie";
@@ -344,6 +352,216 @@ static void testSlotDziennyZObrazkiem() {
   SPRAWDZ(q.p.pliki.pliki["/humor.csv"].find(";SK01;") != std::string::npos ||
           q.p.pliki.pliki["/dane/humor.csv"].find(";SK01;") != std::string::npos);
   SPRAWDZ(q.p.pliki.pliki.count("/co2-nocy.csv") == 0);  // r08: bez osobnego pliku serii CO2
+}
+
+// ---------- wygaszacz w przebiegu doby z naciśnięciami (R-KON-73…R-KON-77) ----------
+struct Nac {
+  uint32_t t;
+  uint8_t bit;
+};
+struct DobaWyg {
+  std::vector<Wyb> v;
+  std::vector<std::pair<uint32_t, uint8_t>> ekranPoPrzycisku;  // chwila naciśnięcia → ekran po nim (Ekran)
+};
+// Wybudzenia jak symuluj(), a naciśnięcie z `nac` wypada zamiast wybudzenia zegarem, gdy jest wcześniej.
+static DobaWyg dobaZNacisnieciami(PanelSym& s, uint32_t od, uint32_t doT, std::vector<Nac> nac,
+                                  const std::string& plikKonf = "", bool obrazki = true) {
+  if (obrazki) {
+    s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
+    s.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
+  }
+  if (!plikKonf.empty()) s.p.pliki.pliki["/konfiguracja.txt"] = plikKonf;
+  DobaWyg d;
+  zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+  uint32_t t = od;
+  PowodWybudzenia pw = PowodWybudzenia::START;
+  size_t n = 0;
+  const KonfiguracjaPanelu k = konf(true);
+  for (int i = 0; i < 800 && t < doT; i++) {
+    uint8_t bit = 0;
+    if (pw != PowodWybudzenia::START && n < nac.size() && nac[n].t <= t) {
+      t = nac[n].t;
+      bit = nac[n].bit;
+      n++;
+      pw = PowodWybudzenia::PRZYCISK;
+      s.p.start.budzace = bit;
+      s.p.przyciski.skrypt = {{0, bit}, {300, 0}};
+    }
+    odpowiedziB9(s, t);
+    Wyb w = wybudz(s, t, pw, k);
+    s.p.start.budzace = 0;
+    s.p.przyciski.skrypt.clear();
+    if (bit) d.ekranPoPrzycisku.push_back({t, s.p.start.stan.ekran});
+    d.v.push_back(w);
+    if (!w.spal) break;
+    uint32_t snu = s.sen.plan.budzZegarem ? s.sen.plan.sekund : OKRES_SNU_S;
+    if (snu == 0) snu = 1;
+    t += w.m.msPrzySnie / 1000 + snu;
+    pw = PowodWybudzenia::ZEGAR;
+  }
+  return d;
+}
+static bool ekranO(const std::vector<Wyb>& v, const char* id, int godz) {
+  return logMa(v, std::string("slot dzienny: ") + id, godz * 60, godz * 60 + 1);
+}
+
+// Naciśnięcie zeruje licznik bezczynności; ↻ na wygaszaczu: ekran dnia; ▶ na wygaszaczu: kokpit (R-KON-76)
+// T-TEST-461
+// wymaganie: R-KON-76
+static void testR_KON_76_przyciskNaWygaszaczu() {
+  PanelSym s;
+  DobaWyg d = dobaZNacisnieciami(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30),
+                                 {{ep(2026, 11, 4, 11, 20), BIT_SRODEK}, {ep(2026, 11, 4, 15, 30), BIT_PRAWY}});
+  SPRAWDZ(ekranO(d.v, "S-K-38", 11));
+  // ↻ o 11:20: od razu ekran dnia (S-K-37), wygaszacz znów dopiero po 3 h, przy ocenie o 15:00 (14:20 + do pełnej godziny)
+  SPRAWDZ(logMa(d.v, "slot dzienny: S-K-37", 11 * 60 + 20, 11 * 60 + 21));
+  SPRAWDZ(d.ekranPoPrzycisku.size() == 2 && d.ekranPoPrzycisku[0].second == (uint8_t)Ekran::DZIEN);
+  SPRAWDZ(ekranO(d.v, "S-K-37", 12) && ekranO(d.v, "S-K-37", 14));
+  SPRAWDZ(!logMa(d.v, "slot dzienny: S-K-38", 11 * 60 + 20, 15 * 60));
+  SPRAWDZ(ekranO(d.v, "S-K-38", 15));
+  // ▶ o 15:30 na wygaszaczu: pierwsza strona kokpitu (K1), bez kroku „zdejmij wygaszacz”
+  SPRAWDZ(d.ekranPoPrzycisku.size() == 2 && d.ekranPoPrzycisku[1].second == (uint8_t)Ekran::K1);
+  // po powrocie do ekranu dnia (R-PRZ-02) licznik od 15:30: S-K-37 o 16:00…18:00, wygaszacz o 19:00
+  SPRAWDZ(ekranO(d.v, "S-K-37", 16) && ekranO(d.v, "S-K-37", 18));
+  SPRAWDZ(!logMa(d.v, "slot dzienny: S-K-38", 15 * 60 + 30, 19 * 60));
+  SPRAWDZ(ekranO(d.v, "S-K-38", 19));
+}
+
+// Wygaszacz × odświeżenie częściowe (R-NF-25, 16.11.2026): każde
+// odświeżenie z inicjatywy panelu (wybudzenie zegarem i start), w tym wejście wygaszacza o pełnej godzinie, jest pełne;
+// ▶ budzący na wygaszaczu → K1 według reguły R-NF-25 bez jej zmiany (po głębokim śnie obraz nieznany: pełne), w czuwaniu
+// ▶ → K2 częściowe, ↻ → ekran dnia pełne; sam ↻ budzący na wygaszaczu → ekran dnia (S-K-37) pełne.
+// T-TEST-461
+// wymaganie: R-NF-25
+static void testR_NF_25_wygaszaczOdswiezenie() {
+  struct Wynik {
+    int odswiezen = 0, niepelnych = 0;
+    bool wyg11Pelne = false;
+  };
+  auto doba = [](PanelSym& s, uint32_t doT, Wynik& w) {
+    s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
+    s.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
+    zerujPrzedSnem(s.p.start.l, identyfikatorWersji(s.p.start.napisWersji));
+    uint32_t t = ep(2026, 11, 4, 0, 5);
+    PowodWybudzenia pw = PowodWybudzenia::START;
+    const KonfiguracjaPanelu k = konf(true);
+    for (int i = 0; i < 800 && t < doT; i++) {
+      odpowiedziB9(s, t);
+      const size_t przed = s.ekran.rodzaje.size();
+      Wyb x = wybudz(s, t, pw, k);
+      for (size_t j = przed; j < s.ekran.rodzaje.size(); j++) {
+        w.odswiezen++;
+        if (s.ekran.rodzaje[j] != Odswiezenie::PELNE) w.niepelnych++;
+      }
+      if (logMa({x}, "slot dzienny: S-K-38", 11 * 60, 11 * 60 + 1) && s.ekran.rodzaje.size() == przed + 1 &&
+          s.ekran.rodzaje.back() == Odswiezenie::PELNE)
+        w.wyg11Pelne = true;
+      if (!x.spal) break;
+      uint32_t snu = s.sen.plan.budzZegarem ? s.sen.plan.sekund : OKRES_SNU_S;
+      if (snu == 0) snu = 1;
+      t += x.m.msPrzySnie / 1000 + snu;
+      pw = PowodWybudzenia::ZEGAR;
+    }
+  };
+  auto przyciskiem = [](PanelSym& s, uint32_t t, std::vector<std::pair<uint32_t, uint8_t>> skrypt) {
+    odpowiedziB9(s, t);
+    s.p.start.budzace = skrypt.front().second;
+    s.p.przyciski.skrypt = std::move(skrypt);
+    const size_t przed = s.ekran.rodzaje.size();
+    Wyb x = wybudz(s, t, PowodWybudzenia::PRZYCISK, konf(true));
+    s.p.start.budzace = 0;
+    s.p.przyciski.skrypt.clear();
+    std::string r;
+    for (size_t j = przed; j < s.ekran.rodzaje.size(); j++) r += s.ekran.rodzaje[j] == Odswiezenie::PELNE ? 'P' : 'C';
+    return std::make_pair(r, x);
+  };
+  // doba bez naciśnięć do 20:30: wszystkie odświeżenia z inicjatywy panelu pełne, wygaszacz o 11:00 pełnym
+  PanelSym s;
+  Wynik w;
+  doba(s, ep(2026, 11, 4, 20, 30), w);
+  printf("  R-NF-25 × wygaszacz, doba bez naciśnięć: %d odświeżeń, niepełnych %d, wygaszacz 11:00 pełne %d\n",
+         w.odswiezen, w.niepelnych, w.wyg11Pelne);
+  SPRAWDZ(w.odswiezen > 0 && w.niepelnych == 0 && w.wyg11Pelne);
+  // ▶ budzący o 11:20 na wygaszaczu, w czuwaniu ▶ i ↻: K1 pełne (obraz nieznany po głębokim śnie), K2 częściowe,
+  // ekran dnia pełne
+  PanelSym a;
+  Wynik wa;
+  doba(a, ep(2026, 11, 4, 11, 20), wa);
+  SPRAWDZ(wa.wyg11Pelne && wa.niepelnych == 0);
+  auto ra = przyciskiem(a, ep(2026, 11, 4, 11, 20),
+                        {{0, BIT_PRAWY}, {300, 0}, {3300, BIT_PRAWY}, {3600, 0}, {6600, BIT_SRODEK}, {6900, 0}});
+  printf("  R-NF-25 × wygaszacz: ▶ budzący, ▶, ↻ w czuwaniu: %s (ekran na końcu %d)\n", ra.first.c_str(),
+         (int)a.p.start.stan.ekran);
+  SPRAWDZ(ra.first == "PCP");
+  SPRAWDZ(a.p.start.stan.ekran == (uint8_t)Ekran::DZIEN);
+  // ↻ budzący o 11:20 na wygaszaczu: ekran dnia S-K-37, pełne
+  PanelSym b;
+  Wynik wb;
+  doba(b, ep(2026, 11, 4, 11, 20), wb);
+  auto rb = przyciskiem(b, ep(2026, 11, 4, 11, 20), {{0, BIT_SRODEK}, {300, 0}});
+  printf("  R-NF-25 × wygaszacz: ↻ budzący: %s\n", rb.first.c_str());
+  SPRAWDZ(rb.first == "P");
+  SPRAWDZ(logMa({rb.second}, "slot dzienny: S-K-37"));
+}
+
+// Próg z telefonu (`dzien.wygaszacz_min`, R-KON-74) i wyłącznik (`obrazek` w `dzien.ukryte`, R-KON-77) w przebiegu doby
+// T-TEST-461
+// wymaganie: R-KON-74
+static void testR_KON_74_progZKonfiguracji() {
+  PanelSym a;
+  DobaWyg d60 = dobaZNacisnieciami(a, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 12, 30), {}, "dzien.wygaszacz_min=60\n");
+  SPRAWDZ(ekranO(d60.v, "S-K-37", 8) && ekranO(d60.v, "S-K-38", 9));
+  PanelSym b;  // zła wartość → domyślne 180 min (wiersz pominięty z wpisem w logu)
+  DobaWyg dz = dobaZNacisnieciami(b, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 12, 30), {}, "dzien.wygaszacz_min=10\n");
+  SPRAWDZ(ekranO(dz.v, "S-K-37", 10) && ekranO(dz.v, "S-K-38", 11));
+  PanelSym c;  // 720 min: przez cały slot (08:00–21:00) bez wygaszacza, bo 20:00 to dopiero 12 h po starcie
+  DobaWyg d720 = dobaZNacisnieciami(c, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30), {}, "dzien.wygaszacz_min=720\n");
+  SPRAWDZ(ekranO(d720.v, "S-K-37", 19) && !logMa(d720.v, "slot dzienny: S-K-38", 0, 20 * 60));
+}
+// Wyłącznik wygaszacza z telefonu (`dzien.wygaszacz=nie`, R-KON-77) i ukrycie obrazka (`obrazek` w `dzien.ukryte`,
+// R-KON-71); zasilanie z kabla nie zmienia wygaszacza
+// T-TEST-461
+// wymaganie: R-KON-77
+static void testR_KON_77_wylaczonyZTelefonu() {
+  PanelSym w;
+  DobaWyg dw = dobaZNacisnieciami(w, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30), {}, "dzien.wygaszacz=nie\n");
+  SPRAWDZ(ekranO(dw.v, "S-K-37", 11) && ekranO(dw.v, "S-K-37", 20) && !logMa(dw.v, "slot dzienny: S-K-38"));
+  PanelSym k;  // na kablu tak samo jak na baterii: wygaszacz o 11:00
+  k.p.czujniki.zas = Zasilanie::ZEWNETRZNE;
+  DobaWyg dk = dobaZNacisnieciami(k, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 12, 30), {});
+  SPRAWDZ(ekranO(dk.v, "S-K-37", 10) && ekranO(dk.v, "S-K-38", 11));
+  PanelSym a;
+  DobaWyg d = dobaZNacisnieciami(a, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30), {}, "dzien.ukryte=obrazek\n");
+  SPRAWDZ(ekranO(d.v, "S-K-37", 11) && ekranO(d.v, "S-K-37", 20) && !logMa(d.v, "slot dzienny: S-K-38"));
+  PanelSym b;  // brak obrazków: bez wygaszacza, bez pustego ekranu (R-KON-54)
+  DobaWyg bez = dobaZNacisnieciami(b, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 20, 30), {}, "", false);
+  SPRAWDZ(ekranO(bez.v, "S-K-37", 11) && !logMa(bez.v, "slot dzienny: S-K-38"));
+}
+
+// Restart panelu w trakcie wygaszacza (zanik zasilania o 12:30, prąd wraca o 13:10): pamięć RTC (start slotu,
+// ostatnie naciśnięcie) przepada, slot zaczyna się od startu zasilania, więc licznik bezczynności też: S-K-37 od 13:10,
+// wygaszacz o 17:00 (13:10 + 3 h, najbliższa ocena)
+// T-TEST-461
+// wymaganie: R-KON-73
+static void testR_KON_73_restartWTrakcie() {
+  PanelSym s;
+  DobaWyg d = dobaZNacisnieciami(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 12, 30), {});
+  SPRAWDZ(ekranO(d.v, "S-K-38", 12));
+  PanelSym q;
+  q.p.pliki.pliki = s.p.pliki.pliki;
+  q.p.nvs.teksty = s.p.nvs.teksty;
+  q.p.nvs.liczbyU = s.p.nvs.liczbyU;
+  q.p.nvs.liczby = s.p.nvs.liczby;
+  q.p.nvs.flagi = s.p.nvs.flagi;
+  q.p.nvs.bajtyMap = s.p.nvs.bajtyMap;
+  DobaWyg r = dobaZNacisnieciami(q, ep(2026, 11, 4, 13, 10), ep(2026, 11, 4, 18, 30), {});
+  SPRAWDZ(logMa(r.v, "slot dzienny: S-K-37", 13 * 60 + 10, 13 * 60 + 11));
+  SPRAWDZ(!logMa(r.v, "slot dzienny: S-K-38", 13 * 60, 17 * 60));
+  SPRAWDZ(ekranO(r.v, "S-K-38", 17));
+  // ten sam obrazek co przed restartem i bez drugiego wpisu w dzienniku (R-KON-61)
+  std::string dz = q.p.pliki.pliki["/dane/obrazki.csv"];
+  size_t p0 = dz.find("2026-11-04;");
+  SPRAWDZ(p0 != std::string::npos && dz.find("2026-11-04;", p0 + 1) == std::string::npos);
 }
 
 // bez obrazków → S-K-37 (R-KON-54); bez współrzędnych → bez zapytań do serwisu i bez S-K-37 (R-KON-53)
@@ -401,27 +619,27 @@ static void testDrzemka() {
 }
 
 // Od 06.11.2026 (R-KON-42): ocena o pełnej godzinie rysuje stopkę z odczytów klatki (za oknem
-// z prognozy godzinowej i przy łóżku), więc sama zmiana prognozy i czujnika nie odświeża e-ink w bloku obrazka;
-// przy zmianie ekranu (10:00, S-K-37) jedno odświeżenie ze świeżymi odczytami.
+// z prognozy godzinowej i przy łóżku), więc sama zmiana prognozy i czujnika nie odświeża e-ink przy tym samym ekranie:
+// od 16.11.2026 sprawdzane na wygaszaczu (S-K-38 o 11:00, potem 12:00, 13:00, 14:00 bez odświeżenia; S-K-37 zmienia się
+// co godzinę przez znacznik `teraz`). Przy zmianie ekranu (11:00) jedno odświeżenie.
 // wymaganie: R-KON-42
 static void testR_KON_42_stopkaZKlatki() {
   PanelSym s;
   s.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
   s.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
-  std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 11, 30), odpowiedziB9ZmiennaTemp, true,
+  std::vector<Wyb> v = symuluj(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 14, 30), odpowiedziB9ZmiennaTemp, true,
                                konf(true));
-  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 8 * 60, 8 * 60 + 1));
-  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 9 * 60, 9 * 60 + 1));
-  int odswiezen = 0;
-  for (auto& w : v)
-    if (w.minuta > 8 * 60 && w.minuta < 10 * 60) odswiezen += w.m.odswiezen;
-  ROWNE_L(odswiezen, 0);  // 09:00: za oknem 14° zamiast 13°, przy łóżku 24° zamiast 23°: bez odświeżenia
-  SPRAWDZ(logMa(v, "bez zmian: klatka jak wyświetlona", 9 * 60, 9 * 60 + 1));
-  int o10 = 0;
-  for (auto& w : v)
-    if (w.minuta == 10 * 60) o10 += w.m.odswiezen;
-  ROWNE_L(o10, 1);  // inny ekran (koniec bloku obrazka, R-KON-50): jedno odświeżenie, już ze świeżymi odczytami
-  SPRAWDZ(!logMa(v, "slot dzienny: S-K-38", 10 * 60, 10 * 60 + 1));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-37", 8 * 60, 8 * 60 + 1));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 11 * 60, 11 * 60 + 1));
+  SPRAWDZ(logMa(v, "slot dzienny: S-K-38", 13 * 60, 13 * 60 + 1));
+  int o11 = 0, potem = 0;
+  for (auto& w : v) {
+    if (w.minuta == 11 * 60) o11 += w.m.odswiezen;
+    if (w.minuta > 11 * 60) potem += w.m.odswiezen;
+  }
+  ROWNE_L(o11, 1);    // inny ekran (wygaszacz po 3 h): jedno odświeżenie, już ze świeżymi odczytami
+  ROWNE_L(potem, 0);  // 12:00…14:00: za oknem i przy łóżku co godzinę inaczej, bez odświeżenia
+  SPRAWDZ(logMa(v, "bez zmian: klatka jak wyświetlona", 12 * 60, 12 * 60 + 1));
 }
 
 // ---------- belka informacyjna i bateria w slocie dziennym (spec 5.4.17, R-EKR-66, R-KON-69) ----------
@@ -480,6 +698,12 @@ static DobaBaterii dobaBaterii(bool obrazki, F ustaw, const std::string& konfigu
   d.nvsLiczby = s.p.nvs.liczby;
   return d;
 }
+static int odswiezenOd(const DobaBaterii& d, int minuta) {
+  int n = 0;
+  for (auto& w : d.v)
+    if (w.minuta >= minuta) n += w.m.odswiezen;
+  return n;
+}
 static auto stanStaly(float v, Zasilanie z) {
   return [=](PanelSym& s, uint32_t, int) {
     s.p.czujniki.o.bateriaV = v;
@@ -510,9 +734,15 @@ static void testR_KON_69_stopkaSlotuZDyrygenta() {
   }
   printf("  slot dzienny, e-ink w dobie: 78%% %d, 18%% %d, 15%% %d, 18%% na kablu %d odświeżeń\n", b78.odswiezen,
          b18.odswiezen, b15.odswiezen, k18.odswiezen);
-  // stały stan „niska bateria” nie dodaje odświeżeń wobec 78% (stopka ma inny tekst, ale ten sam przez cały dzień)
+  // od decyzji 16.11.2026 22:08 (R-KON-75, W3): wygaszacz także przy stanie „niska bateria”; obrazek rysuje tę samą
+  // stopkę z ikoną baterii i `{x}% · podłącz kabel` (ostatnia klatka dnia to S-K-38, wyżej ikonaWStopce(b18.klatka)),
+  // a liczba odświeżeń doby przy 18% jest taka sama jak przy 78% (stały stan stopki nie dodaje odświeżeń). Na kablu
+  // od startu slotu (08:00) tyle samo co przy 78% (rano kabel ma swój rytm sprawdzania nocy, R-DANE-62)
+  SPRAWDZ(logMa(b18.v, "slot dzienny: S-K-38", 11 * 60, 11 * 60 + 1) && logMa(b18.v, "slot dzienny: S-K-38", 20 * 60, 20 * 60 + 1));
+  SPRAWDZ(logMa(b78.v, "slot dzienny: S-K-38", 11 * 60, 11 * 60 + 1) && logMa(k18.v, "slot dzienny: S-K-38", 11 * 60, 11 * 60 + 1));
   ROWNE_L(b18.odswiezen, b78.odswiezen);
-  ROWNE_L(k18.odswiezen, b78.odswiezen);
+  ROWNE_L(odswiezenOd(k18, 8 * 60), odswiezenOd(b78, 8 * 60));
+  ROWNE_L(odswiezenOd(b78, 11 * 60 + 1), 0);
 }
 
 // Stan „nie wiem” nie przełącza stanu „niska bateria” i nie odświeża e-ink: zasilanie na zmianę „zewnętrzne”
@@ -539,7 +769,8 @@ static void testR_EKR_66_stanNieznanyBezOdswiezen() {
          staleKabel.odswiezen, miga.odswiezen, staleBat.odswiezen, brakPomiaru.odswiezen, dwaBraki.odswiezen,
          staleBat.wybudzen);
   SPRAWDZ(staleKabel.odswiezen > 0);
-  ROWNE_L(miga.odswiezen, staleKabel.odswiezen);
+  // od startu slotu (rano na kablu inny rytm sprawdzania nocy, R-DANE-62, niezależny od stanu baterii)
+  ROWNE_L(odswiezenOd(miga, 8 * 60), odswiezenOd(staleKabel, 8 * 60));
   ROWNE_L(brakPomiaru.odswiezen, staleBat.odswiezen);
   ROWNE_L(dwaBraki.odswiezen, staleBat.odswiezen);
   SPRAWDZ(!ikonaWStopce(miga.klatka));        // ostatni znany stan to kabel: bez ostrzeżenia
@@ -608,6 +839,11 @@ int main() {
   tzset();
   testSlotDziennyZObrazkiem();
   testSlotBezObrazkowIBezMiasta();
+  testR_KON_76_przyciskNaWygaszaczu();
+  testR_NF_25_wygaszaczOdswiezenie();
+  testR_KON_74_progZKonfiguracji();
+  testR_KON_77_wylaczonyZTelefonu();
+  testR_KON_73_restartWTrakcie();
   testDrzemka();
   testR_KON_69_stopkaSlotuZDyrygenta();
   testR_EKR_66_stanNieznanyBezOdswiezen();

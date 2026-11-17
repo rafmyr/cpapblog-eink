@@ -49,9 +49,12 @@ Ograniczenia, które trzeba zachować:
 
 **Zmiana 2026-11-14 (po przeglądzie zmiany):** Portret ▶ otwiera pierwszą stronę ciągu zamiast zawsze K1, z powrotem ◀ z niej na Portret (pkt 2); układ na początku obsługi przycisku; log układu jeden na klucz; strona formularza bez kopii, `MAKS_CIALA` 8 KB; teksty sekcji „Ekrany” prostym językiem, nagłówek `3 strony` albo `do 4 stron`.
 
+
+**Zmiana 2026-11-16 ([ADR-0027](0027-ekran-dzienny.md) „Zmiana 2026-11-16”, R-KON-73…R-KON-77):** obrazek dnia nie ma już bloku od startu slotu; ma dwie role: zastępstwo S-K-37 (jak dotąd) i wygaszacz ekranu po progu bezczynności. `obrazek` w `dzien.ukryte` (pole „Obrazek dnia”) dalej ukrywa obrazek w obu rolach. Dochodzą dwa klucze poza układem: `dzien.wygaszacz=tak|nie` (pole „Wygaszacz ekranu: włączony / wyłączony”, wyłącza tylko rolę wygaszacza) i `dzien.wygaszacz_min` (czas bezczynności), oba w sekcji „Ekrany” pod polem „Obrazek dnia”. Przestawianie kolejności dotyczy dalej tylko D1…D4; obrazek nie ma miejsca na liście (wygaszacz to reguła czasu, a zastępstwo to reguła braku S-K-37), więc formularz bez zmian w tej części. Rezerwacja strony formularza 21 KB zamiast 20 KB (scenariusz „wszystkie pola z błędem” miał 24 B zapasu).
+
 ## Odrzucone warianty
 
 - **Przełącznik przy każdej stronie z numerem (także K1 i K2):** wyłączenie K1 usuwa z kokpitu jedyne `ocena częściowa` (ADR-0029 pkt 7) i drogę do „Co było inaczej?” po terminie, wyłączenie K2 usuwa wyniki „tylko raport” poza raportem i raport ogólny na żądanie. Do decyzji z kosztem przeniesienia tych informacji.
 - **„Otwarte sprawy” i „Co znaczą te liczby” jako osobne pozycje do przestawiania:** rozdzielają objaśnienie i sprawy od liczb, których dotyczą; „Otwarte sprawy” nie mogą być wyłączone.
 - **Strzałki jako przyciski wysyłające formularz bez JavaScriptu:** każde przesunięcie zapisuje też inne niezapisane pola i przeładowuje stronę; pole „miejsce” robi to samo bez tych skutków.
-- **Przestawianie S-K-37 i S-K-38 na liście:** S-K-37 jest kandydatem prawie zawsze, więc postawiony wyżej zasłaniałby resztę (to samo co wyłączenie reszty); obrazek ma regułę czasu (R-KON-50), nie miejsce na liście.
+- **Przestawianie S-K-37 i S-K-38 na liście:** S-K-37 jest kandydatem prawie zawsze, więc postawiony wyżej zasłaniałby resztę (to samo co wyłączenie reszty); obrazek ma regułę czasu (od 16.11.2026 wygaszacz, R-KON-73) i regułę zastępstwa (R-KON-54), nie miejsce na liście.

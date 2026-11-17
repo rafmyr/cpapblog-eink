@@ -461,7 +461,6 @@ struct Scena {
     w.lat = KAT_LAT;
     w.lon = KAT_LON;
     w.obrazekJest = true;
-    w.slotOd = 8 * 60;
     return w;
   }
 };
@@ -520,18 +519,24 @@ static void testR_KON_70_kolejnoscDnia() {
 // wymaganie: R-KON-71
 static void testR_KON_71_wylaczone() {
   Scena s;
-  // nic poza S-K-37 i S-K-38: po bloku obrazka S-K-37; wyłączony S-K-37 → S-K-38; oba wyłączone → ekran z rana
+  // nic poza S-K-37 i S-K-38: S-K-37; wyłączony S-K-37 → S-K-38; oba wyłączone → ekran z rana; po progu bezczynności
+  // wygaszacz S-K-38 (R-KON-73), a `obrazek` w `dzien.ukryte` ukrywa obie role obrazka
   WejscieSlotu w = s.we(13 * 60);
   for (int i = 0; i < 4; i++) w.uklad.pokaz[i] = false;
   SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::SK37);
+  w.bezczynnosc = true;
+  SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::SK38);
+  w.bezczynnosc = false;
   w.uklad.pokaz[(int)RodzajDzienny::DZIEN_I_NOC] = false;
   SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::SK38 && !wybierzSlot(w).slonce.jest);
   w.uklad.pokaz[(int)RodzajDzienny::OBRAZEK] = false;
   SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::BRAK);  // dyrygent: ekran z rana (W4, R-KON-54), nigdy pusty
-  // obrazek wyłączony: w pierwszym bloku slotu bez S-K-38, od razu lista
+  w.bezczynnosc = true;
+  SPRAWDZ(wybierzSlot(w).ekran == EkranSlotu::BRAK);  // ukryty obrazek: bez wygaszacza
+  // od startu slotu zwykła lista (bez bloku obrazka, R-KON-50 wycofane); wygaszacz nie zasłania D1…D4 (R-KON-75)
   WejscieSlotu b = s.we(8 * 60 + 30);
-  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK38);
-  b.uklad.pokaz[(int)RodzajDzienny::OBRAZEK] = false;
+  SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK33);
+  b.bezczynnosc = true;
   SPRAWDZ(wybierzSlot(b).ekran == EkranSlotu::SK33);
   // jedyny kandydat wyłączony: to, co bez niego (następny, a na końcu S-K-37)
   WejscieSlotu j = s.we(13 * 60);
@@ -549,7 +554,7 @@ static void testR_KON_72_zawszeWlaczone() {
   nic.kolejnosc[0] = RodzajDzienny::PYLEK;
   nic.kolejnosc[3] = RodzajDzienny::WIETRZENIE;
   // `Przewietrz teraz.` (CO2 ≥ 1000 przy czystej godzinie) przed wszystkim, także przy wyłączonym „Wietrzenie”
-  // i w bloku obrazka
+  // (rano, w środku dnia i po 16:00)
   for (int minuta : {8 * 60 + 30, 13 * 60, 17 * 60}) {
     WejscieSlotu w = s.we(minuta, true);
     w.pylki = PylkiDnia();  // godzina czysta (bez pyłku w regule), więc `Przewietrz teraz.`
@@ -613,7 +618,7 @@ static void testR_KON_70_zgodnoscZBaza() {
     w.lon = KAT_LON;
     w.obrazekJest = r(2);
     w.liniaUwagi = r(4) == 0;
-    w.slotOd = r(4) ? 6 * 60 + r(6 * 60) : -1;
+    w.bezczynnosc = r(2) != 0;  // od 16.11.2026 wygaszacz zamiast bloku obrazka (R-KON-73)
     if (r(10) == 0) {
       w.drzemka.minut = 40;
       w.drzemka.wyciekP95 = (float)r(50);
@@ -653,9 +658,107 @@ static std::map<std::string, std::string> poleFormularza(const std::string& stro
     size_t sel = s.find(" selected");
     if (sel == std::string::npos) continue;
     if (n.compare(0, 3, "kk_") == 0 || n.compare(0, 3, "dk_") == 0) m[n] = s.substr(sel + 10, 1);  // `<option selected>3`
+    if (n == "wygaszacz") {  // R-KON-77: `<option value="tak" selected>`
+      size_t v = s.rfind("value=\"", sel);
+      m[n] = s.substr(v + 7, s.find('"', v + 7) - v - 7);
+    }
   }
   return m;
 }
+// T-TEST-462: wyłącznik wygaszacza i czas bezczynności w formularzu (R-KON-74, R-KON-77): zapis, odczyt, zła wartość;
+// osobny klucz `dzien.wygaszacz`, niezależny od pola „Obrazek dnia” (`obrazek` w `dzien.ukryte`, R-KON-71)
+// wymaganie: R-KON-77
+static void testR_KON_77_formularzWygaszacza() {
+  sekrety::Dane s;
+  s.ssid = "Dom";
+  s.abAdres = "192.168.1.20";
+  std::string h = formularz::strona(formularz::zPliku("", s, true), "/u/abc/", "", {});
+  SPRAWDZ(zawiera(h, "<option value=\"tak\" selected>włączony</option>"));  // domyślnie włączony
+  SPRAWDZ(zawiera(h, "<label for=\"wygaszacz\">Wygaszacz ekranu (ostrzeżeń nie zasłania)</label>") &&
+          zawiera(h, "id=\"wygaszacz_min\" value=\"180\""));
+  std::map<std::string, std::string> m = poleFormularza(h);
+  SPRAWDZ(m["wygaszacz"] == "tak" && m["wygaszacz_min"] == "180" && m["pokaz_obrazek"] == "1");
+  formularz::Wynik w = formularz::waliduj(m, s, "2026-11-16");
+  SPRAWDZ(w.ok() && w.plik["dzien.ukryte"].empty() && w.plik.count("dzien.wygaszacz") && w.plik["dzien.wygaszacz"].empty() &&
+          w.plik.count("dzien.wygaszacz_min") && w.plik["dzien.wygaszacz_min"].empty());
+  // wyłączony wygaszacz: `dzien.wygaszacz=nie`, obrazek na D5 dalej włączony (`dzien.ukryte` puste), czas pominięty
+  std::map<std::string, std::string> z = m;
+  z["wygaszacz"] = "nie";
+  z["wygaszacz_min"] = "5";  // przy wyłączonym czas bez znaczenia: bez błędu i bez zapisu
+  w = formularz::waliduj(z, s, "2026-11-16");
+  SPRAWDZ(w.ok() && w.plik["dzien.wygaszacz"] == "nie" && w.plik["dzien.ukryte"].empty() && !w.plik.count("dzien.wygaszacz_min"));
+  std::string plik = formularz::scal("", w.plik);
+  SPRAWDZ(zawiera(plik, "dzien.wygaszacz=nie\n") && !zawiera(plik, "dzien.ukryte") && !zawiera(plik, "wygaszacz_min"));
+  UstawieniaDnia u0 = parsujUstawieniaDnia(plik);
+  SPRAWDZ(!u0.wygaszaczWlaczony() && u0.ekrany.dzien.pokazuj(RodzajDzienny::OBRAZEK) && u0.bledy.empty());
+  std::string h2 = formularz::strona(formularz::zPliku(plik, s, true), "/u/abc/", "", {});
+  SPRAWDZ(zawiera(h2, "<option value=\"nie\" selected>wyłączony</option>") && zawiera(h2, "name=\"pokaz_obrazek\" value=\"1\" checked"));
+  // ponowne przesłanie bez zmian: dalej wyłączony
+  SPRAWDZ(formularz::waliduj(poleFormularza(h2), s, "2026-11-16").plik["dzien.wygaszacz"] == "nie");
+  // obrazek ukryty, wygaszacz włączony: dwa różne ustawienia, każde w swoim kluczu
+  z = m;
+  z.erase("pokaz_obrazek");
+  w = formularz::waliduj(z, s, "2026-11-16");
+  SPRAWDZ(w.ok() && w.plik["dzien.ukryte"] == "obrazek" && w.plik["dzien.wygaszacz"].empty());
+  // włączony z czasem 90 min: zapis, odczyt panelu, odczyt formularza
+  z = m;
+  z["wygaszacz_min"] = "90";
+  w = formularz::waliduj(z, s, "2026-11-16");
+  SPRAWDZ(w.ok() && w.plik["dzien.wygaszacz_min"] == "90");
+  plik = formularz::scal("dzien.wygaszacz=nie\n", w.plik);
+  SPRAWDZ(zawiera(plik, "dzien.wygaszacz_min=90\n") && !zawiera(plik, "dzien.wygaszacz=nie"));
+  UstawieniaDnia u = parsujUstawieniaDnia(plik);
+  SPRAWDZ(u.wygaszaczMinSkuteczne() == 90 && u.wygaszaczWlaczony() && u.bledy.empty());
+  SPRAWDZ(zawiera(formularz::strona(formularz::zPliku(plik, s, true), "/u/abc/", "", {}),
+                  "name=\"wygaszacz_min\" id=\"wygaszacz_min\" value=\"90\""));
+  // wartości brzegowe 30 i 720 przyjęte, 180 = wiersz usuwany, puste = domyślne
+  for (const char* v : {"30", "720"}) {
+    z["wygaszacz_min"] = v;
+    w = formularz::waliduj(z, s, "2026-11-16");
+    SPRAWDZ(w.ok() && w.plik["dzien.wygaszacz_min"] == v);
+  }
+  for (const char* v : {"180", ""}) {
+    z["wygaszacz_min"] = v;
+    w = formularz::waliduj(z, s, "2026-11-16");
+    SPRAWDZ(w.ok() && w.plik.count("dzien.wygaszacz_min") && w.plik["dzien.wygaszacz_min"].empty());
+  }
+  // zła wartość: błąd przy polu, nic z sekcji nie zapisane (poprzednia wartość zostaje, R-KONF-18)
+  for (const char* v : {"29", "721", "abc", "-5", "90.5"}) {
+    z["wygaszacz_min"] = v;
+    w = formularz::waliduj(z, s, "2026-11-16");
+    SPRAWDZ(!w.ok() && w.bledy.count("wygaszacz_min") && !w.plik.count("dzien.wygaszacz_min") &&
+            !w.plik.count("dzien.wygaszacz") && !w.plik.count("dzien.ukryte"));
+  }
+  std::string hb = formularz::strona(formularz::zPliku("", s, true), "/u/abc/", "", w.bledy);
+  SPRAWDZ(zawiera(hb, "Liczba minut od 30 do 720.") && zawiera(hb, "<details open><summary><b>Ekrany</b>"));
+  z = m;
+  z["wygaszacz"] = "moze";
+  w = formularz::waliduj(z, s, "2026-11-16");
+  SPRAWDZ(!w.ok() && w.bledy.count("wygaszacz") && !w.plik.count("dzien.wygaszacz") && !w.plik.count("dzien.ukryte"));
+  // strona sprzed zmiany (bez pól wygaszacza): wygaszacz i czas bez zmian (klucze nie trafiają do zapisu)
+  z = m;
+  z.erase("wygaszacz");
+  z.erase("wygaszacz_min");
+  w = formularz::waliduj(z, s, "2026-11-16");
+  SPRAWDZ(w.ok() && !w.plik.count("dzien.wygaszacz") && !w.plik.count("dzien.wygaszacz_min"));
+  // plik: zła wartość → domyślne (włączony, 180 min) z wpisem w błędach; bez wiersza tak samo bez błędu
+  UstawieniaDnia pu = parsujUstawieniaDnia("");
+  SPRAWDZ(pu.wygaszaczMinSkuteczne() == WYGASZACZ_MIN_DOMYSLNIE && pu.wygaszaczWlaczony() && pu.bledy.empty());
+  for (const char* t : {"dzien.wygaszacz_min=29\n", "dzien.wygaszacz_min=721\n", "dzien.wygaszacz_min=abc\n",
+                        "dzien.wygaszacz_min=\n"}) {
+    UstawieniaDnia x = parsujUstawieniaDnia(t);
+    SPRAWDZ(x.wygaszaczMin == -1 && x.wygaszaczMinSkuteczne() == 180 && !x.bledy.empty());
+  }
+  for (const char* t : {"dzien.wygaszacz=wyl\n", "dzien.wygaszacz=\n", "dzien.wygaszacz=NIE\n"}) {
+    UstawieniaDnia x = parsujUstawieniaDnia(t);
+    SPRAWDZ(x.wygaszaczWlaczony() && !x.bledy.empty());
+  }
+  SPRAWDZ(parsujUstawieniaDnia("dzien.wygaszacz_min=30\n").wygaszaczMinSkuteczne() == 30 &&
+          parsujUstawieniaDnia("dzien.wygaszacz_min=720\n").wygaszaczMinSkuteczne() == 720 &&
+          !parsujUstawieniaDnia("dzien.wygaszacz=nie\n").wygaszaczWlaczony() &&
+          parsujUstawieniaDnia("dzien.wygaszacz=tak\n").wygaszaczWlaczony());
+}
+
 // wymaganie: R-KONF-60
 static void testR_KONF_60_formularz() {
   sekrety::Dane s;
@@ -670,6 +773,11 @@ static void testR_KONF_60_formularz() {
   for (const char* n : {"pokaz_sypialnia", "pokaz_wietrzenie", "pokaz_jutro_rano", "pokaz_wymiana", "pokaz_pylek",
                         "pokaz_dzien_i_noc", "pokaz_obrazek"})
     SPRAWDZ(ile(h, std::string("name=\"") + n + "\" value=\"1\" checked") == 1);
+  // R-KON-77: osobny wyłącznik wygaszacza (lista włączony / wyłączony) z czasem obok, pod polem „Obrazek dnia”
+  SPRAWDZ(ile(h, "name=\"wygaszacz\"") == 1 && ile(h, "name=\"wygaszacz_min\"") == 1 &&
+          h.find("name=\"pokaz_obrazek\"") < h.find("name=\"wygaszacz\""));
+  SPRAWDZ(zawiera(h, "Wygaszacz ekranu") && zawiera(h, "id=\"wygaszacz_min\" value=\"180\"") &&
+          h.find("name=\"wygaszacz\"") < h.find("name=\"wygaszacz_min\""));
   for (const char* n : {"pokaz_ostatnia_noc", "pokaz_7_nocy", "pokaz_ustawienia", "pokaz_sprawy", "pokaz_liczby", "pokaz_drzemka"})
     SPRAWDZ(!zawiera(h, n));
   SPRAWDZ(zawiera(h, "<b class=\"c\">Ostatnia noc</b><p class=\"s\">zawsze widoczna (nie da się ukryć): ") &&
@@ -989,6 +1097,7 @@ int main() {
   testR_KON_72_zawszeWlaczone();
   testR_KON_70_zgodnoscZBaza();
   testR_KONF_60_formularz();
+  testR_KON_77_formularzWygaszacza();
   testR_KOK_34_dyrygent();
   testR_KOK_34_pomiaroweZPrzyciskiem();
   printf("testy kolejności ekranów: %d ok, %d błędów\n", ok, zle);

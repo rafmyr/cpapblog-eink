@@ -86,7 +86,9 @@ class AtrapaNvs : public Nvs {
   std::map<std::string, std::string> bajtyMap;
   int zapisy = 0;
   static std::string k(const char* p, const char* kl) { return std::string(p) + "/" + kl; }
+  std::map<std::string, int> odczyty;  // liczba odczytów każdego klucza `p/kl` (tekst, liczby, flagi, bajty)
   std::string tekst(const char* p, const char* kl, const std::string& dom) override {
+    odczyty[k(p, kl)]++;
     auto i = teksty.find(k(p, kl));
     return i == teksty.end() ? dom : i->second;
   }
@@ -96,21 +98,25 @@ class AtrapaNvs : public Nvs {
     teksty[k(p, kl)] = v; zapis(p, kl); return true;
   }
   uint32_t liczbaU(const char* p, const char* kl, uint32_t dom) override {
+    odczyty[k(p, kl)]++;
     auto i = liczbyU.find(k(p, kl));
     return i == liczbyU.end() ? dom : i->second;
   }
   void ustawLiczbeU(const char* p, const char* kl, uint32_t v) override { liczbyU[k(p, kl)] = v; zapis(p, kl); }
   int32_t liczba(const char* p, const char* kl, int32_t dom) override {
+    odczyty[k(p, kl)]++;
     auto i = liczby.find(k(p, kl));
     return i == liczby.end() ? dom : i->second;
   }
   void ustawLiczbe(const char* p, const char* kl, int32_t v) override { liczby[k(p, kl)] = v; zapis(p, kl); }
   bool flaga(const char* p, const char* kl, bool dom) override {
+    odczyty[k(p, kl)]++;
     auto i = flagi.find(k(p, kl));
     return i == flagi.end() ? dom : i->second;
   }
   void ustawFlage(const char* p, const char* kl, bool v) override { flagi[k(p, kl)] = v; zapis(p, kl); }
   size_t bajty(const char* p, const char* kl, void* cel, size_t n) override {
+    odczyty[k(p, kl)]++;
     auto i = bajtyMap.find(k(p, kl));
     if (i == bajtyMap.end() || i->second.size() != n) return 0;
     memcpy(cel, i->second.data(), n);
@@ -461,12 +467,29 @@ class AtrapaWyswietlacza : public Wyswietlacz {
   PlotnoAtrapy p;
   int odswiezen = 0;
   std::vector<std::vector<uint8_t>> klatki;  // bufor przy każdym odświeżeniu
+  // R-NF-25: rodzaj każdego odświeżenia (ten sam indeks co `klatki`); `czesciowePozwala` = false udaje sterownik
+  // bez odświeżenia częściowego (adapter wykonuje pełne i zwraca PELNE)
+  std::vector<Odswiezenie> rodzaje;
+  bool czesciowePozwala = true;
   void wlacz() override { d_.dodaj("ekran.wlacz"); }
   Plotno& plotno() override { return p; }
-  void odswiez() override { odswiezen++; klatki.push_back(p.b); d_.dodaj("ekran.odswiez"); }
+  void odswiez() override {
+    odswiezen++;
+    klatki.push_back(p.b);
+    rodzaje.push_back(biezacy_);
+    biezacy_ = Odswiezenie::PELNE;
+    d_.dodaj("ekran.odswiez");
+  }
+  Odswiezenie odswiezJako(Odswiezenie rodzaj) override {
+    biezacy_ = czesciowePozwala ? rodzaj : Odswiezenie::PELNE;
+    Odswiezenie wykonane = biezacy_;
+    odswiez();  // podklasy testów liczą klatki w odswiez()
+    return wykonane;
+  }
   const uint8_t* bufor() override { return p.b.data(); }
  private:
   Dziennik& d_;
+  Odswiezenie biezacy_ = Odswiezenie::PELNE;
 };
 
 // Przyciski ze skryptem: stan od chwili (ms zegara procesora); przed pierwszym wpisem nic nie wciśnięte.

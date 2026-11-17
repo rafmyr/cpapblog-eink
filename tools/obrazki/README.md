@@ -25,6 +25,6 @@ Kolejność: najpierw firmware, potem obrazki (np. egzemplarz testowy).
    - Nowy panel po pierwszym starcie ma okno przywracania i stoi do 10 min na ekranie testu. Obrazki wejdą też w oknie; dowolny przycisk panelu kończy je od razu.
    - `brak odpowiedzi`: panel zasnął, skrypt przerywa. Naciśnij przycisk panelu i uruchom skrypt ponownie (pliki już przyjęte nadpisze tą samą treścią).
    - `UWAGA: manifest nie ma pozycji`: panel pokaże tylko pliki z pozycjami; zrób katalog jeszcze raz przez `przygotuj.py`.
-3. Obrazek pokaże się w dniu S-K-38 (rotacja R-KON-50).
+3. Obrazek pokaże się jako wygaszacz ekranu po 3 h bez naciśnięcia przycisku i jako zastępstwo S-K-37 bez miasta (R-KON-73, R-KON-54; od 16.11.2026).
 
 Nie używaj do tego `pio run -t uploadfs`: obraz pamięci plików kasuje całą historię na panelu.

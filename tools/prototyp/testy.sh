@@ -69,6 +69,9 @@ echo "składnia main.cpp i adapterów ESP32 z atrapami nagłówków Arduino i ES
 for z in "$FW/src/main.cpp" "$FW/src/adaptery_esp32.cpp"; do
   g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DZRZUT_EKRANU=1 -DARDUINO_ATRAPA -I"$FW/test/atrapy/arduino" \
     -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$z"
+  # obraz pomiarowy `e1001_pomiar` (wiersze POMIAR, historia w NVS; R-NF-25)
+  g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DPOMIAR_CZASU=1 -DARDUINO_ATRAPA -I"$FW/test/atrapy/arduino" \
+    -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$z"
 done
 # obraz wydania bez sekretów (tools/wydanie/): main.cpp bez secrets.h
 g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DBEZ_SEKRETOW -DWERSJA_WYDANIA='"9.9.9"' -DARDUINO_ATRAPA \
@@ -275,6 +278,12 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_dzienny.cpp" "
 echo "scenariusze slotu dziennego z dyrygentem na atrapach (test/testy_slot_dzienny_dyrygent.cpp: prognoza przy starcie slotu, S-K-38, S-K-37, S-K-01)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_dzienny_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_slot_dzienny_dyrygent"
 "$BUD/testy_slot_dzienny_dyrygent"
+echo "testy brzegowe wygaszacza ekranu (test/testy_wygaszacz_brzegowe.cpp: energia doby, przycisk przed oceną, drzemka, RTC, strona formularza)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wygaszacz_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wygaszacz_brzegowe"
+"$BUD/testy_wygaszacz_brzegowe"  # blokuje przy błędzie
+echo "testy brzegowe wygaszacza, wariant W3 (test/testy_wygaszacz_brzegowe_2.cpp: pełna tabela, stara baza, przejścia okna, bateria, informacja, piksele stopki)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wygaszacz_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wygaszacz_brzegowe_2"
+"$BUD/testy_wygaszacz_brzegowe_2"
 echo "testy przypadków brzegowych: slot dzienny i obrazki dnia (test/testy_slot_dzienny_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_dzienny_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_slot_dzienny_brzegowe"
 "$BUD/testy_slot_dzienny_brzegowe"  # po poprawkach wszystkie zielone, więc blokuje
@@ -415,12 +424,26 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_sypialnia_30.cpp" "${OBIEK
 echo "testy kolejności i widoczności ekranów z telefonu (test/testy_kolejnosc_ekranow.cpp: R-KOK-34…R-KOK-36, R-KON-70…R-KON-72, R-KONF-60, ADR-0045)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_kolejnosc_ekranow.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_ekranow"
 "$BUD/testy_kolejnosc_ekranow"
+echo "testy szybkości ścieżki „przycisk → rysowanie” (test/testy_szybciej_przycisk.cpp: T-WYM-99, liczniki i równoważność klatek)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_szybciej_przycisk.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_szybciej_przycisk"
+"$BUD/testy_szybciej_przycisk"
+echo "testy brzegowe szybkości (test/testy_szybciej_przycisk_brzegowe.cpp: T-WYM-99, mutacje pól kluczy, ocena z PamiecOceny i bez, wybudzenia z wejściami zmiennymi w czuwaniu)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_szybciej_przycisk_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_szybciej_przycisk_brzegowe"
+"$BUD/testy_szybciej_przycisk_brzegowe"  # blokuje przy błędzie (w tym strażnik rozmiaru Noc)
 echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
 "$BUD/testy_kolejnosc_portret"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_slot_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_slot_dyrygent"
 "$BUD/testy_kolejnosc_slot_dyrygent"
 "$BUD/testy_sypialnia_30"
+
+echo "testy rodzaju odświeżenia e-ink (test/testy_odswiezanie_czesciowe.cpp: R-NF-25, ekran dnia pełne, widoki z przycisku częściowe, co N-te pełne, eink.pelne_co)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odswiezanie_czesciowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odswiezanie_czesciowe"
+"$BUD/testy_odswiezanie_czesciowe"
+
+echo "testy brzegowe rodzaju odświeżenia e-ink (test/testy_odswiezanie_czesciowe_brzegowe.cpp: R-NF-25 wobec N = 0, licznik w RTC, kolejka, parser)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odswiezanie_czesciowe_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odswiezanie_czesciowe_brzegowe"
+"$BUD/testy_odswiezanie_czesciowe_brzegowe"
 
 echo "testy (test/testy_formularz_u03.cpp: formularz U-03 uzupełniony: miasto, CO2, humor, dźwięk, cisza, podpowiedź, czynniki)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_formularz_u03.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_formularz_u03"
@@ -469,3 +492,6 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_ekrany
 echo "testy brzegowe znaków belki (test/testy_belka_znaki_brzegowe.cpp: dane nieaktualne, klepsydra, znak wersji, U-05 pobieram; 0 błędów)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_belka_znaki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka_znaki_brzegowe"
 "$BUD/testy_belka_znaki_brzegowe"  # blokuje przy błędzie
+echo "testy brzegowe belki bez napisu kabel (test/testy_belka_bez_kabla_brzegowe.cpp: ikona na kablu na każdej belce i ekranie, liczby ze spec 5.4.17, kabel ↔ bateria w dyrygencie)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_belka_bez_kabla_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka_bez_kabla_brzegowe"
+"$BUD/testy_belka_bez_kabla_brzegowe"  # blokuje przy błędzie

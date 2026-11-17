@@ -121,8 +121,9 @@ static void testR_KONF_61_znakWersji() {
 }
 
 // ekran przykryty informacją nie zużywa limitu: obrazek dnia S-K-38 (dziennik obrazków) nigdy nie stoi pod
-// informacją, więc w bloku obrazka (08:00–10:00) obrazek jest na ekranie i wpisany raz, a informacja staje dopiero
-// na następnym ekranie slotu bez zużycia (S-K-37 od 10:00). Przerywnik S2d: test/testy_karta_po_aktualizacji.cpp.
+// informacją. Od 16.11.2026 (R-KON-75) obrazek nie ma bloku od startu slotu, a wygaszacz nie
+// wchodzi, dopóki czeka informacja: informacja stoi na S-K-37 od startu slotu także po progu bezczynności (11:00,
+// 12:00), obrazek nie jest rysowany ani wpisany. Przerywnik S2d: test/testy_karta_po_aktualizacji.cpp.
 // wymaganie: R-KONF-61
 static void testR_KONF_61_obrazekNieZuzyty() {
   PanelSym s;
@@ -141,10 +142,60 @@ static void testR_KONF_61_obrazekNieZuzyty() {
   size_t wpisow = 0;
   for (size_t q = dz.find("001_syntetyczny.pbm"); q != std::string::npos; q = dz.find("001_syntetyczny.pbm", q + 1)) wpisow++;
   printf("  R-KONF-61 S-K-38 narysowany %d razy (pod informacją %d), wpisów w dzienniku obrazków %zu; informacja "
-         "później na innym ekranie slotu %d\n", sk38, sk38Inf, wpisow, infPo);
-  SPRAWDZ(sk38 > 0 && sk38Inf == 0);
-  SPRAWDZ(wpisow == 1);
+         "na innym ekranie slotu %d\n", sk38, sk38Inf, wpisow, infPo);
+  SPRAWDZ(sk38 == 0 && sk38Inf == 0);
+  SPRAWDZ(wpisow == 0);
   SPRAWDZ(infPo > 0);
+  SPRAWDZ(logMa(v, INF_S, 11 * 60, 11 * 60 + 1) && logMa(v, INF_S, 12 * 60, 12 * 60 + 1));
+}
+
+// R-KON-75: informacja po aktualizacji samodzielnej zostaje na wierzchu mimo progu
+// bezczynności; po zamknięciu jej przyciskiem (↻ 12:30) wygaszacz wchodzi po progu liczonym od tego naciśnięcia
+// (16:00), z jednym wpisem w dzienniku obrazków.
+// wymaganie: R-KON-75
+static void testR_KON_75_informacjaPrzedWygaszaczem() {
+  PanelSym s;
+  uzbrojS(s);
+  DobaWyg d = dobaZNacisnieciami(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 17, 30), {{ep(2026, 11, 4, 12, 30), BIT_SRODEK}});
+  SPRAWDZ(logMa(d.v, INF_S, 11 * 60, 11 * 60 + 1) && logMa(d.v, INF_S, 12 * 60, 12 * 60 + 1));
+  SPRAWDZ(!logMa(d.v, "slot dzienny: S-K-38", 0, 16 * 60));
+  SPRAWDZ(!logMa(d.v, INF_S, 12 * 60 + 30, 24 * 60));  // zamknięta przyciskiem, nie wraca
+  SPRAWDZ(ekranO(d.v, "S-K-37", 13) && ekranO(d.v, "S-K-37", 15) && ekranO(d.v, "S-K-38", 16));
+  std::string dz = s.p.pliki.pliki["/dane/obrazki.csv"] + s.p.pliki.pliki["/obrazki.csv"];
+  size_t wpisow = 0;
+  for (size_t q = dz.find("001_syntetyczny.pbm"); q != std::string::npos; q = dz.find("001_syntetyczny.pbm", q + 1)) wpisow++;
+  SPRAWDZ(wpisow == 1);
+}
+
+// R-EKR-61, R-KON-75: ikona nowej wersji nie znika przez wygaszacz: na S-K-38 w roli
+// wygaszacza (11:00, 12:00) ikona w stopce jak na S-K-37; na S-K-38 jako zastępstwie D5 (panel bez miasta) bez ikony
+// (jak dotąd, R-EKR-61).
+// wymaganie: R-EKR-61
+static void testR_EKR_61_ikonaNaWygaszaczu() {
+  auto nowaWersja = [](PanelSym& s) {
+    sekrety::zapiszKluczWydan(s.p.nvs, "github_pat_ZNACZNIKTOKENU_0123456789abcdef");
+    aktualizacja::Stan st;
+    st.znana = "1.0.1";
+    st.sprawdzonoDnia = "2026-11-04";
+    st.sprawdzonoEp = ep(2026, 11, 4, 0, 1);
+    aktualizacja::zapisz(s.p.nvs, st);
+  };
+  const char* IK = "ekran dnia: ikona aktualizacji";
+  PanelSym s;
+  nowaWersja(s);
+  DobaWyg d = dobaZNacisnieciami(s, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 12, 30), {});
+  bool ik10 = logMa(d.v, IK, 10 * 60, 10 * 60 + 1), ik11 = logMa(d.v, IK, 11 * 60, 11 * 60 + 1);
+  printf("  R-EKR-61 wygaszacz: S-K-37 o 10:00 z ikoną %d, wygaszacz o 11:00 %d z ikoną %d\n", ik10,
+         ekranO(d.v, "S-K-38", 11), ik11);
+  SPRAWDZ(ekranO(d.v, "S-K-37", 10) && ik10);
+  SPRAWDZ(ekranO(d.v, "S-K-38", 11) && ik11 && logMa(d.v, IK, 12 * 60, 12 * 60 + 1));
+  // zastępstwo D5 bez miasta: S-K-38 od startu slotu, bez ikony (R-EKR-61 bez zmian dla tej roli)
+  PanelSym q;
+  nowaWersja(q);
+  q.p.pliki.pliki["/obrazki/001_syntetyczny.pbm"] = pbm(434, 434);
+  q.p.pliki.pliki["/obrazki/obrazki.json"] = "{\"wersja\":1,\"obrazki\":[{\"plik\":\"001_syntetyczny.pbm\"}]}";
+  std::vector<Wyb> v = symuluj(q, ep(2026, 11, 4, 0, 5), ep(2026, 11, 4, 10, 30), odpowiedziB9, false, konf(false));
+  SPRAWDZ(ekranO(v, "S-K-38", 9) && !logMa(v, IK, 9 * 60, 9 * 60 + 1));
 }
 
 int main() {
@@ -154,6 +205,8 @@ int main() {
   testR_KONF_61_liczbySlotu();
   testR_KONF_61_znakWersji();
   testR_KONF_61_obrazekNieZuzyty();
+  testR_KON_75_informacjaPrzedWygaszaczem();
+  testR_EKR_61_ikonaNaWygaszaczu();
   printf("testy_karta_po_aktualizacji_slot: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

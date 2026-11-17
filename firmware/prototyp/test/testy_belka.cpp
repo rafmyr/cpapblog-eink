@@ -596,8 +596,11 @@ static void testR_EKR_66_ikonaBaterii() {
   ROWNE(tekstBaterii(bat(0)), "0%");
   ROWNE(tekstBaterii(bat(100)), "100%");
   ROWNE(tekstBaterii(bat(-1)), "–");           // procent nieznany
-  ROWNE(tekstBaterii(bat(55, true)), "kabel");  // zasilanie zewnętrzne: słowo zamiast procentu
-  ROWNE(tekstBaterii(bat(-1, true)), "kabel");
+  // zasilanie zewnętrzne: sama ikona z kreską, bez tekstu (zmiana 2026-11-16, decyzja właściciela projektu „usuń napis kabel przy
+  // ładowaniu”; do 16.11.2026 słowo `kabel`)
+  ROWNE(tekstBaterii(bat(55, true)), "");
+  ROWNE(tekstBaterii(bat(-1, true)), "");
+  ROWNE_L(szerPolaBaterii(bat(55, true)), BATERIA_W + BATERIA_NOSEK_W);  // pole bez odstępu i bez tekstu
   // piksele ikony: obrys 34 × 18 kreską 2 px, nosek 3 × 8 z prawej, pola 5 × 10
   int czarnePol[5];
   for (int pola = 0; pola <= 4; pola++) {
@@ -619,7 +622,8 @@ static void testR_EKR_66_ikonaBaterii() {
     SPRAWDZ(p.czarne(102, 52, 132, 66) == 2 * 10 && p.cz(116, 59) && !p.cz(106, 59) && !p.cz(127, 59));
   }
   // w belce: ikona i tekst według stanu; prawe pole kończy się na 772 przy każdym stanie
-  for (const BateriaEkranu& stan : {bat(100), bat(78), bat(40), bat(15), bat(5), bat(-1), bat(60, true)}) {
+  // (na kablu od 16.11.2026 bez tekstu: osobny test testR_EKR_66_kabelBezTekstu())
+  for (const BateriaEkranu& stan : {bat(100), bat(78), bat(40), bat(15), bat(5), bat(-1)}) {
     ustawBaterieEkranu(stan);
     PlotnoT p;
     const Belka b{"Poranek", "pt 30.10"};
@@ -922,8 +926,10 @@ static void testR_EKR_68_klepsydra() {
   belka(q, b);
   SPRAWDZ(!klepsydraNarysowana());
   SPRAWDZ(q.czarne(xk, 0, xk + szerKlepsydry(true), 41) == 0);
-  // ciasno (K1, ocena ograniczona z rombem, kabel): najpierw ustępuje słowo `pobieram`, znak zostaje
-  ustawBaterieEkranu(bat(100, true));
+  // ciasno (K1, ocena ograniczona z rombem, `100%`): najpierw ustępuje słowo `pobieram`, znak zostaje
+  // (do 16.11.2026 najciaśniej było na kablu, słowo `kabel`; od zmiany na kablu jest sama ikona, a najszerszy tekst
+  // baterii to `100%`)
+  ustawBaterieEkranu(bat(100));
   ustawZnakiBelki(z);
   Belka k{"Ostatnia noc 1 / 3", ""};
   SrodekNocy s;
@@ -935,7 +941,7 @@ static void testR_EKR_68_klepsydra() {
   ustawSrodekNocy(k, s);
   UkladSrodka uk = ukladSrodkaBelki(k);
   SPRAWDZ(uk.klepsydra && uk.tekst == k.srodek && srodekMiesciSie(k));
-  printf("  R-EKR-68: K1 `%s` przy kablu: klepsydra %s słowa\n", uk.tekst.c_str(), uk.slowo ? "ze" : "bez");
+  printf("  R-EKR-68: K1 `%s` przy 100%%: klepsydra %s słowa\n", uk.tekst.c_str(), uk.slowo ? "ze" : "bez");
   // klepsydra na ekranie w negatywie: belka jasna, znak czarny
   {
     std::vector<Noc> h = nocDo("2026-11-13");
@@ -1040,6 +1046,83 @@ static void testR_EKR_69_znakNowejWersji() {
   ustawBaterieEkranu(BateriaEkranu());
 }
 
+// ---------- R-EKR-66 na kablu: sama ikona, bez tekstu (zmiana 2026-11-16, decyzja właściciela projektu) ----------
+// wymaganie: R-EKR-66
+// Powód zmiany oczekiwań: do 16.11.2026 na kablu za ikoną stało słowo `kabel`; teraz sama ikona z kreską, dosunięta
+// do prawego marginesu 772, bez odstępu za noskiem. Sąsiednie pola (nazwa, środek, stan ` ·`, znak nowej wersji) stoją
+// tam, gdzie wynika z szerokości samej ikony, bez pustej dziury.
+static void testR_EKR_66_kabelBezTekstu() {
+  const int IKONA = BATERIA_W + BATERIA_NOSEK_W;  // 37 px
+  const Belka b{"Poranek", "pt 30.10 · odczyt 07:05"};
+  // (1) ikona dosunięta do 772: obrys, kreska, nosek; za noskiem i między ikoną a środkiem nic
+  ustawBaterieEkranu(bat(60, true));
+  PlotnoT p;
+  belka(p, b);
+  const int xi = xPrawegoPolaBelki(b);
+  ROWNE_L(xi, 772 - IKONA);
+  SPRAWDZ(p.cz(xi, 12) && p.cz(xi + 33, 29));  // obrys
+  ROWNE_L(p.czarne(xi + 2, 14, xi + 32, 28), 20);  // wnętrze: sama kreska 2 × 10
+  ROWNE_L(p.czarne(xi + BATERIA_W, 0, xi + IKONA, 41), BATERIA_NOSEK_W * BATERIA_NOSEK_H);  // nosek
+  ROWNE_L(p.czarne(xi + IKONA, 0, 800, 41), 0);  // za noskiem żadnego tekstu
+  const std::string sr = srodekBelki(b);
+  ROWNE(sr, b.srodek);
+  const int koniecSrodka = xSrodkaBelki(b) + szer(F_P22B, sr);
+  ROWNE_L(p.czarne(koniecSrodka + 1, 0, xi, 41), 0);  // przed ikoną bez separatora i bez resztek
+  // (2) nazwa i środek dokładnie tam, gdzie przy procencie (piksel w piksel do końca środka)
+  ustawBaterieEkranu(bat(78));
+  PlotnoT q;
+  belka(q, b);
+  int rozne = 0;
+  for (int y = 0; y < 41; y++)
+    for (int x = 0; x <= koniecSrodka; x++) rozne += p.cz(x, y) != q.cz(x, y);
+  ROWNE_L(rozne, 0);
+  // (3) miejsce na środek większe dokładnie o tekst procentu i odstęp (nic nie ginie, nic nie wisi)
+  const int m78 = miejsceSrodkaBelki(b);
+  ustawBaterieEkranu(bat(60, true));
+  ROWNE_L(miejsceSrodkaBelki(b) - m78, szer(F_P22B, "78%") + BATERIA_ODSTEP);
+  printf("  R-EKR-66 kabel: miejsce na środek K1 %d px, ekran dnia %d px, Portret %d px\n",
+         miejsceSrodkaBelki(Belka{"Ostatnia noc 1 / 3", ""}), miejsceSrodkaBelki(Belka{"Poranek", ""}),
+         miejsceSrodkaBelki(Belka{"Portret nocy", ""}));
+  // (4) tekst stanu z ` ·` (U-01): 8 px przed ikoną, bez dziury po słowie
+  const Belka u{"Ustawienia 3 / 3", "", "jest aktualizacja"};
+  const int wSt = szer(F_P22B, "jest aktualizacja ·");
+  ROWNE_L(xPrawegoPolaBelki(u), 772 - IKONA - BELKA_ODSTEP_STANU - wSt);
+  PlotnoT r;
+  belka(r, u);
+  SPRAWDZ(r.czarne(xPrawegoPolaBelki(u), 8, xPrawegoPolaBelki(u) + wSt, 38) > 0);
+  ROWNE_L(r.czarne(xPrawegoPolaBelki(u) + wSt + 1, 0, 772 - IKONA, 41), 0);
+  SPRAWDZ(r.cz(772 - IKONA, 12));
+  ROWNE_L(r.czarne(772, 0, 800, 41), 0);
+  // (5) znak nowej wersji: BELKA_ODSTEP_ZNAKU przed ikoną, ikona na swoim miejscu
+  ZnakiBelki z;
+  z.nowaWersja = true;
+  ustawZnakiBelki(z);
+  ROWNE_L(xPrawegoPolaBelki(b), 772 - IKONA - BELKA_ODSTEP_ZNAKU - ZNAK_WERSJI_D);
+  PlotnoT s;
+  belka(s, b);
+  SPRAWDZ(znakWersjiNarysowany());
+  ROWNE_L(s.czarne(772 - IKONA - BELKA_ODSTEP_ZNAKU, 0, 772 - IKONA, 41), 0);
+  SPRAWDZ(s.cz(772 - IKONA, 12));
+  ustawZnakiBelki(ZnakiBelki());
+  // (6) rysujBaterie() z pustym tekstem (U-05, podgląd): zwraca x za noskiem, nic dalej
+  PlotnoT t;
+  ROWNE_L(rysujBaterie(t, 100, 30, bat(60, true), tekstBaterii(bat(60, true))), 100 + IKONA);
+  ROWNE_L(t.czarne(100 + IKONA, 0, 800, 480), 0);
+  ustawBaterieEkranu(BateriaEkranu());
+}
+
+// ---------- R-KON-69: tekst niskiej baterii bez wiszącego separatora (poprawka 16.11.2026) ----------
+// wymaganie: R-KON-69
+// Od 16.11.2026 tekstBaterii() na kablu jest pusty. Na kablu stan „niska bateria” nie występuje (bateriaNiska()), ale
+// funkcja ma się bronić sama: pusty tekst baterii → `podłącz kabel`, nigdy ` · podłącz kabel`.
+static void testR_KON_69_tekstNiskiejBateriiBezTekstu() {
+  ROWNE(tekstNiskiejBaterii(bat(60, true)), "podłącz kabel");
+  ROWNE(tekstNiskiejBaterii(bat(15, true, true)), "podłącz kabel");
+  ROWNE(tekstNiskiejBaterii(bat(15)), "15% · podłącz kabel");  // zwykły przypadek bez zmian
+  ROWNE(tekstNiskiejBaterii(bat(-1)), "– · podłącz kabel");     // bez zmian (stopka i tak go nie pokazuje, R-EKR-66)
+  SPRAWDZ(tekstNiskiejBaterii(bat(60, true)).rfind(" ·", 0) != 0);
+}
+
 int main() {
   testR_EKR_63_geometria();
   testR_EKR_64_zawartoscTresci();
@@ -1047,7 +1130,9 @@ int main() {
   testR_EKR_64_ekranyBezBelki();
   testR_EKR_65_ustepowanieSrodka();
   testR_EKR_66_ikonaBaterii();
+  testR_EKR_66_kabelBezTekstu();
   testR_KON_69_niskaBateriaWStopceDnia();
+  testR_KON_69_tekstNiskiejBateriiBezTekstu();
   testR_EKR_67_definicjaNieaktualnych();
   testR_EKR_67_wygladNieaktualnych();
   testR_EKR_68_klepsydra();

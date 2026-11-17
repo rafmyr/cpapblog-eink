@@ -135,6 +135,10 @@ static KonfiguracjaPanelu konfiguracja(const sekrety::Wynik& s, const sekrety::D
   return k;
 }
 
+#if POMIAR_CZASU
+void pomiarHistoria();  // src/adaptery_esp32.cpp: historia pomiarów z NVS na port szeregowy
+#endif
+
 void setup() {
   piskBudzenia();  // przycisk budzący słychać od razu, przed resztą startu (R-PRZ-20)
   // Zwykłe alokacje od 8 B do PSRAM (8 MB): historia nocy, teksty i stany silnika reguł (głównie małe węzły map
@@ -143,6 +147,10 @@ void setup() {
   // 162 KB (06.11.2026). Bufory z wymaganym typem pamięci (DMA, Wi-Fi) idą jak dotąd.
   heap_caps_malloc_extmem_enable(8);
   przygotujPanel();
+#if POMIAR_CZASU
+  Serial.printf("POMIAR start programu: %lu ms od startu procesora\n", (unsigned long)millis());
+  pomiarHistoria();
+#endif
 #ifdef BEZ_SEKRETOW
   Serial.printf("%s\n", ZNACZNIK_OBRAZU_WYDANIA);  // odwołanie trzyma znacznik w obrazie (linker nie usuwa)
 #endif

@@ -3,6 +3,7 @@
 #include "adaptery_esp32.h"
 #include "magazyn.h"
 #include "aktualizacja.h"
+#include "szybkosc.h"
 #include "certyfikaty_github.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -700,6 +701,75 @@ static std::string md5Hex(const std::string& t) {
 }
 Md5Hex SiecEsp32::md5() { return md5Hex; }
 
+// ---------- pomiar czasu zmiany ekranu (tylko obraz `e1001_pomiar`, -DPOMIAR_CZASU=1) ----------
+// Wiersze `POMIAR …` na porcie szeregowym przy każdym rysowaniu: ile minęło od startu programu, od pierwszego
+// wciśnięcia i od ostatniego puszczenia przycisku po poprzednim rysowaniu (czas liczenia strony), ile trwało włączenie
+// sterownika ekranu, przesłanie obrazu z odświeżeniem i uśpienie sterownika. Zwykłe obrazy są bez tego kodu.
+#if POMIAR_CZASU
+namespace pomiar {
+volatile int64_t pierwszeWcisniecieUs = 0;  // pierwsze wciśnięcie po poprzednim rysowaniu (0 = nie było)
+volatile int64_t ostatniePuszczenieUs = 0;  // ostatnie puszczenie po poprzednim rysowaniu (0 = nie było)
+uint32_t wlaczenieMs = 0;                   // czas ostatniego WyswietlaczEsp32::wlacz() (0 = sterownik już włączony)
+uint32_t numer = 0;                         // numer rysowania w tym wybudzeniu
+// Historia wierszy w pamięci NVS (przestrzeń `pomiar`): pomiar nie zależy od tego, czy kabel był podłączony w chwili
+// rysowania (mostek USB potrafi zniknąć z komputera, 16.11.2026). Najstarsze wiersze wypadają powyżej 3500 znaków.
+void historiaDopisz(const char* wiersz) {
+  Preferences p;
+  if (!p.begin("pomiar", false)) return;
+  String h = p.getString("h", "");
+  h += wiersz;
+  h += '\n';
+  while (h.length() > 3500) {
+    int i = h.indexOf('\n');
+    if (i < 0) { h = ""; break; }
+    h.remove(0, i + 1);
+  }
+  p.putString("h", h);
+  p.end();
+}
+// Punkty faz liczenia przed rysowaniem (T-WYM-99, haczyk szybkosc::faza() z rdzenia). Wewnątrz mierzonego odcinka
+// tylko dopisanie do bufora w RAM (bez portu szeregowego i bez zapisu flash); bufor trafia jako pole `fazy=` do
+// głównego wiersza `POMIAR` po rysowaniu, razem z nim na port i jednym zapisem do historii NVS. Postać skrócona:
+// `{litera}{trwało ms}` po spacji (h historia, p przycisk, r reguly, s sprawy, ? inna), od poprzedniego punktu albo
+// końca poprzedniego rysowania; nadmiar ponad bufor znaczony `+` (główne wiersze nie są wypychane z historii).
+uint32_t ostatniPunktMs = 0;
+char fazy[96] = "";
+size_t fazyDl = 0;
+void punktFazy(const char* nazwa) {
+  uint32_t t = (uint32_t)millis();
+  char lit = nazwa[0] == 'h' || nazwa[0] == 'p' || nazwa[0] == 'r' || nazwa[0] == 's' ? nazwa[0] : '?';
+  char kawalek[16];
+  int n = snprintf(kawalek, sizeof kawalek, "%s%c%lu", fazyDl ? " " : "", lit, (unsigned long)(t - ostatniPunktMs));
+  ostatniPunktMs = t;
+  if (n > 0 && fazyDl + (size_t)n + 2 < sizeof fazy) {
+    memcpy(fazy + fazyDl, kawalek, (size_t)n);
+    fazyDl += (size_t)n;
+    fazy[fazyDl] = 0;
+  } else if (fazyDl + 1 < sizeof fazy && (fazyDl == 0 || fazy[fazyDl - 1] != '+')) {
+    fazy[fazyDl++] = '+';
+    fazy[fazyDl] = 0;
+  }
+}
+// Haczyk ustawiany przy starcie programu (inicjalizacja statyczna, przed setup()); tylko w obrazie pomiarowym.
+struct UstawHaczykFazy {
+  UstawHaczykFazy() { szybkosc::haczykFazy = punktFazy; }
+} ustawHaczykFazy;
+}  // namespace pomiar
+
+// Historia na port szeregowy przy każdym starcie programu; po resecie z komputera (linia EN, `rst:0x1`) historia jest
+// po wypisaniu kasowana, więc kolejny pomiar zaczyna od pustej.
+void pomiarHistoria() {
+  Preferences p;
+  if (!p.begin("pomiar", false)) return;
+  String h = p.getString("h", "");
+  Serial.println("POMIAR-HISTORIA-OD");
+  Serial.print(h);
+  Serial.println("POMIAR-HISTORIA-DO");
+  if (esp_reset_reason() == ESP_RST_POWERON) p.remove("h");
+  p.end();
+}
+#endif
+
 // ---------- ekran e-ink ----------
 static SPIClass hspi(HSPI);
 static GxEPD2_BW<GxEPD2_750_GDEY075T7, GxEPD2_750_GDEY075T7::HEIGHT> epd(
@@ -752,26 +822,110 @@ static void zrzut() {  // bufor 800x480 1 bit w base64 po PackBits, do podglądu
 #endif
 
 void WyswietlaczEsp32::wlacz() {
+#if POMIAR_CZASU
+  uint32_t p0 = (uint32_t)millis();
+#endif
   hspi.begin(EPD_SCK, -1, EPD_MOSI, -1);
   epd.epd2.selectSPI(hspi, SPISettings(2000000, MSBFIRST, SPI_MODE0));
   epd.init(0);
+#if POMIAR_CZASU
+  pomiar::wlaczenieMs = (uint32_t)millis() - p0;
+#endif
 }
 
 Plotno& WyswietlaczEsp32::plotno() { return plotnoGfx; }
 
 const uint8_t* WyswietlaczEsp32::bufor() { return kanwa.getBuffer(); }  // GFXcanvas1 800×480: 48 000 B
 
-void WyswietlaczEsp32::odswiez() {
-  epd.setFullWindow();
-  epd.firstPage();
-  do {
-    epd.fillScreen(GxEPD_WHITE);
-    epd.drawBitmap(0, 0, kanwa.getBuffer(), 800, 480, GxEPD_BLACK);
-  } while (epd.nextPage());
+// R-NF-25 (src/odswiezanie.h): kopia obrazu ostatnio wysłanego do sterownika (bit 1 = czarny, jak kanwa), potrzebna
+// do odświeżenia częściowego. Sterownik UC8179 porównuje obraz poprzedni (komenda 0x10) z nowym (0x13); po
+// `hibernate()` budzi się resetem (GxEPD2 `_InitDisplay()`), więc na jego pamięci nie polegamy: przed każdym
+// częściowym wysyłamy obraz poprzedni z tej kopii, a dopiero potem nowy (2 × 48 000 B po SPI, ok. 0,19 s więcej
+// [szacunek]). Kopia żyje tylko do głębokiego snu (zmienne zwykłej pamięci): pierwsze odświeżenie po wybudzeniu
+// i po starcie zawsze pełne. Brak PSRAM na kopię: zawsze pełne, wpis w logu (bez zapasu w pamięci
+// wewnętrznej).
+static uint8_t* poprzedniObraz = nullptr;
+static bool poprzedniZnany = false;
+
+static void zapamietajObraz() {
+  if (!poprzedniObraz) {
+    // tylko PSRAM: 48 000 B z pamięci wewnętrznej odebrałoby stertę Wi-Fi i TLS
+    poprzedniObraz = (uint8_t*)heap_caps_malloc(BAJTOW_KLATKI, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!poprzedniObraz) {
+      Serial.println("e-ink: brak PSRAM na kopię obrazu, odświeżenie zawsze pełne (R-NF-25)");
+      poprzedniZnany = false;
+      return;
+    }
+  }
+  memcpy(poprzedniObraz, kanwa.getBuffer(), BAJTOW_KLATKI);
+  poprzedniZnany = true;
+}
+
+void WyswietlaczEsp32::odswiez() { (void)odswiezJako(Odswiezenie::PELNE); }
+
+Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
+#if POMIAR_CZASU
+  int64_t pUs = esp_timer_get_time();
+  uint32_t p0 = (uint32_t)millis();
+#endif
+  // częściowe: sterownik z szybkim przebiegiem (GxEPD2_750_GDEY075T7::hasFastPartialUpdate) i znany poprzedni obraz
+  const bool czesciowe = rodzaj == Odswiezenie::CZESCIOWE && GxEPD2_750_GDEY075T7::hasFastPartialUpdate &&
+                         poprzedniZnany && poprzedniObraz != nullptr;
+  if (rodzaj == Odswiezenie::CZESCIOWE && !czesciowe)
+    Serial.println("e-ink: odświeżenie częściowe niemożliwe (sterownik albo brak poprzedniego obrazu), pełne");
+  if (czesciowe) {
+    // cała powierzchnia szybkim przebiegiem bez błysku (GxEPD2: _Init_Part() z tablicą z OTP, `refresh(x, y, w, h)`);
+    // invert: kanwa ma 1 = czarny, sterownik 1 = biały
+    epd.epd2.writeImageToPrevious(poprzedniObraz, 0, 0, 800, 480, true, false, false);
+    epd.epd2.writeImage(kanwa.getBuffer(), 0, 0, 800, 480, true, false, false);
+    epd.epd2.refresh(0, 0, 800, 480);
+  } else {
+    epd.setFullWindow();
+    epd.firstPage();
+    do {
+      epd.fillScreen(GxEPD_WHITE);
+      epd.drawBitmap(0, 0, kanwa.getBuffer(), 800, 480, GxEPD_BLACK);
+    } while (epd.nextPage());
+  }
+#if POMIAR_CZASU
+  uint32_t p1 = (uint32_t)millis();
+#endif
   epd.hibernate();
+  zapamietajObraz();
+#if POMIAR_CZASU
+  {
+    uint32_t p2 = (uint32_t)millis();
+    int64_t wc = pomiar::pierwszeWcisniecieUs, pu = pomiar::ostatniePuszczenieUs;
+    pomiar::pierwszeWcisniecieUs = 0;
+    pomiar::ostatniePuszczenieUs = 0;
+    esp_sleep_wakeup_cause_t pw = esp_sleep_get_wakeup_cause();
+    char godz[12] = "--:--:--";
+    time_t tt = time(nullptr);
+    struct tm tl;
+    if (localtime_r(&tt, &tl)) strftime(godz, sizeof godz, "%H:%M:%S", &tl);
+    char wiersz[420];
+    snprintf(wiersz, sizeof wiersz,
+                  "POMIAR %s nr=%lu powod=%s rodzaj=%s od_startu_programu_ms=%lu od_wcisniecia_ms=%ld "
+                  "od_puszczenia_ms=%ld wlaczenie_ekranu_ms=%lu obraz_ms=%lu uspienie_ekranu_ms=%lu "
+                  "razem_do_konca_ms=%lu fazy=%s",
+                  godz, (unsigned long)++pomiar::numer,
+                  pw == ESP_SLEEP_WAKEUP_EXT1 ? "przycisk" : pw == ESP_SLEEP_WAKEUP_TIMER ? "zegar" : "start",
+                  odswiezanie::nazwa(czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE), (unsigned long)p0,
+                  wc ? (long)((pUs - wc) / 1000) : -1L, pu ? (long)((pUs - pu) / 1000) : -1L,
+                  (unsigned long)pomiar::wlaczenieMs, (unsigned long)(p1 - p0), (unsigned long)(p2 - p1),
+                  (unsigned long)p2, pomiar::fazyDl ? pomiar::fazy : "-");
+    pomiar::fazyDl = 0;
+    pomiar::fazy[0] = 0;
+    Serial.println(wiersz);
+    pomiar::historiaDopisz(wiersz);
+    pomiar::wlaczenieMs = 0;
+    pomiar::ostatniPunktMs = (uint32_t)millis();  // następna faza liczona od końca tego rysowania
+  }
+#endif
 #if ZRZUT_EKRANU
   if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER) zrzut();  // nie przy co-30-minutowym budzeniu
 #endif
+  return czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE;
 }
 
 // ---------- przyciski i dioda (digitalWrite(LED, …)) ----------
@@ -818,8 +972,14 @@ void probkujPrzyciski(void*) {
     if (teraz) {
       k.odUs = t;
       if (!k.pomin) tone(BUZZER, 2000, 60);  // pisk w chwili naciśnięcia, nie po rysowaniu
+#if POMIAR_CZASU
+      if (!k.pomin && pomiar::pierwszeWcisniecieUs == 0) pomiar::pierwszeWcisniecieUs = t;
+#endif
       continue;
     }
+#if POMIAR_CZASU
+    if (!k.pomin && k.odUs != 0) pomiar::ostatniePuszczenieUs = t;
+#endif
     portENTER_CRITICAL(&muxPrzyciskow);
     uint8_t nast = (uint8_t)((kolejkaOgon + 1) % KOLEJKA_NACISNIEC);
     if (!k.pomin && k.odUs != 0 && nast != kolejkaGlowa) {

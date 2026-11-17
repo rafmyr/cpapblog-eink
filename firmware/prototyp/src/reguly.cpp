@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -38,13 +39,33 @@
 #include "reguly_pomoc.h"
 #include "reguly_sygnaly.h"
 #include "reguly_wewn.h"
+#include "liczba_pol.h"
 #include "stany.h"
+#include "szybkosc.h"
 #include "wspolne.h"
 
 namespace reguly {
 
 namespace {
 const Sygnaly* gSygnaly = nullptr;
+// T-WYM-99: pamięć jednej oceny ocen(). W czasie oceny historia jest stała (Kontekst::historia to wskaźnik do stałej
+// historii wołającego, rodzaje warunków nie podstawiają innej), więc noce posortowane z trybem (dla danej daty) i
+// historia posortowana do norm liczą się raz zamiast w każdej regule i w każdej nocy okna. Klucz: adres i liczba
+// nocy historii (inne = pamięć od nowa) oraz data. Poza oceną i przy szybkosc::bezPamieci gOcena == nullptr.
+struct PamiecOceny {
+  const std::vector<Noc>* historia = nullptr;
+  size_t rozmiar = 0;
+  bool jestPos = false;
+  HistoriaPos pos;
+  std::map<std::string, std::pair<std::vector<wewn::NocTrybu>, bool>> noce;  // data → (noce, znane)
+};
+PamiecOceny* gOcena = nullptr;
+void przypnij(PamiecOceny& p, const std::vector<Noc>* h) {
+  if (p.historia == h && p.rozmiar == h->size()) return;
+  p = PamiecOceny();
+  p.historia = h;
+  p.rozmiar = h->size();
+}
 }  // namespace
 
 namespace wewn {
@@ -126,6 +147,14 @@ std::vector<NocTrybu> nocePosortowane(const Kontekst& k, bool& znane) {
   znane = false;
   std::vector<NocTrybu> v;
   if (!k.historia) return v;
+  if (gOcena) {  // T-WYM-99: raz na ocenę i datę
+    przypnij(*gOcena, k.historia);
+    auto it = gOcena->noce.find(k.dzis);
+    if (it != gOcena->noce.end()) {
+      znane = it->second.second;
+      return it->second.first;
+    }
+  }
   std::map<std::string, const Noc*> wg;
   auto lepsza = [](const Noc* a, const Noc* b) {  // a pełniejszy niż b
     if (a->czesciowa != b->czesciowa) return !a->czesciowa;
@@ -143,6 +172,7 @@ std::vector<NocTrybu> nocePosortowane(const Kontekst& k, bool& znane) {
     if (!kv.second->ustawienia.empty()) ost = kv.second->ustawienia;
     v.push_back({kv.second, trybZUstawien(ost)});
   }
+  if (gOcena) gOcena->noce[k.dzis] = {v, znane};
   return v;
 }
 
@@ -270,9 +300,15 @@ static bool wyjatekTrybuNieznanego(const std::string& id) {
 std::vector<Wynik> ocen(const Zestaw& z, const Kontekst& k0, const OpcjeOceny& o) {
   struct Przywroc {
     const Sygnaly* s;
-    ~Przywroc() { gSygnaly = s; }
-  } przywroc{gSygnaly};
+    PamiecOceny* p;
+    ~Przywroc() {
+      gSygnaly = s;
+      gOcena = p;
+    }
+  } przywroc{gSygnaly, gOcena};
   gSygnaly = o.sygnaly;
+  PamiecOceny pamiecOceny;  // T-WYM-99: na czas tej oceny
+  gOcena = szybkosc::bezPamieci ? nullptr : &pamiecOceny;
   std::map<std::string, Wynik> wcz;
   Kontekst k = k0;
   if (!k.zestaw) k.zestaw = &z;
@@ -482,6 +518,89 @@ double mediana(std::vector<double> v) { return ::mediana(std::move(v)); }
 
 // ---------- reguly_pomoc.h ----------
 const Sygnaly* sygnalyOceny() { return gSygnaly; }
+
+// Strażnik kluczOceny(): liczba pól struktur wejścia. Zmiana liczby = nowe albo usunięte pole, które trzeba dopisać
+// do kluczOceny() (albo do listy pól pochodnych w jej komentarzu) i do testu mutacji w test/testy_szybciej_przycisk.cpp.
+static_assert(liczba_pol::policz<Kontekst>() == 11, "Kontekst: nowe pole, dopisz je do kluczOceny() (T-WYM-99)");
+static_assert(liczba_pol::policz<Sygnaly>() == 4, "Sygnaly: nowe pole, dopisz je do kluczOceny() (T-WYM-99)");
+static_assert(liczba_pol::policz<Odpowiedzi>() == 3, "Odpowiedzi: nowe pole, dopisz je do kluczOceny() (T-WYM-99)");
+static_assert(liczba_pol::policz<PamiecReguly>() == 6, "PamiecReguly: nowe pole, dopisz je do kluczOceny() (T-WYM-99)");
+
+uint64_t kluczOceny(const Kontekst& k, const Sygnaly* s, const std::string& spModel) {
+  // każda sekcja: znacznik obecności albo liczba elementów przed treścią (bez kolizji przesunięć między sekcjami)
+  auto liczba = [](uint64_t kl, size_t n) {
+    const uint32_t m = (uint32_t)n;
+    return skrotBajty(kl, &m, sizeof m);
+  };
+  auto logiczna = [](uint64_t kl, bool b) {
+    const unsigned char c = b ? 1 : 0;
+    return skrotBajty(kl, &c, 1);
+  };
+  uint64_t kl = skrotTekst(SKROT_POCZATEK, k.dzis);
+  kl = logiczna(kl, k.historia != nullptr);
+  if (k.historia) {
+    kl = liczba(kl, k.historia->size());
+    for (auto& noc : *k.historia) kl = skrotNocy(kl, noc);
+  }
+  kl = skrotTekst(kl, spModel);
+  const unsigned char tryb = (unsigned char)k.trybBiezacy;
+  kl = skrotBajty(kl, &tryb, 1);
+  kl = logiczna(kl, k.odpowiedzi != nullptr);
+  if (k.odpowiedzi) {
+    kl = liczba(kl, k.odpowiedzi->sennosc.size());
+    for (auto& kv : k.odpowiedzi->sennosc) kl = logiczna(skrotTekst(kl, kv.first), kv.second);
+    kl = liczba(kl, k.odpowiedzi->gorzej.size());
+    for (auto& kv : k.odpowiedzi->gorzej) kl = logiczna(skrotTekst(kl, kv.first), kv.second);
+    kl = liczba(kl, k.odpowiedzi->przerwaPlanowana.size());
+    for (auto& x : k.odpowiedzi->przerwaPlanowana) kl = skrotTekst(kl, x);
+  }
+  kl = logiczna(kl, k.pamiec != nullptr);
+  if (k.pamiec) {
+    kl = liczba(kl, k.pamiec->size());
+    for (auto& kv : *k.pamiec) {
+      kl = skrotTekst(kl, kv.first);
+      kl = skrotTekst(kl, kv.second.aktywnaOd);
+      kl = skrotTekst(kl, kv.second.ostatnio);
+      kl = skrotBajty(kl, &kv.second.licznik, sizeof kv.second.licznik);
+      kl = skrotTekst(kl, kv.second.stanWzorca);
+      kl = skrotTekst(kl, kv.second.wiem);
+      kl = skrotTekst(kl, kv.second.omowione);
+    }
+  }
+  kl = logiczna(kl, s != nullptr);
+  if (s) {
+    kl = liczba(kl, s->stan.size());
+    for (auto& kv : s->stan) kl = logiczna(skrotTekst(kl, kv.first), kv.second);
+    kl = liczba(kl, s->zmienne.size());
+    for (auto& kv : s->zmienne) kl = skrotTekst(skrotTekst(kl, kv.first), kv.second);
+    kl = liczba(kl, s->odczyty.size());
+    for (auto& kv : s->odczyty) kl = skrotBajty(skrotTekst(kl, kv.first), &kv.second, sizeof kv.second);
+    kl = liczba(kl, s->serie.size());
+    for (auto& kv : s->serie) {
+      kl = liczba(skrotTekst(kl, kv.first), kv.second.size());
+      if (!kv.second.empty()) kl = skrotBajty(kl, kv.second.data(), kv.second.size() * sizeof(double));
+    }
+  }
+  kl = logiczna(kl, k.wykluczoneNoce != nullptr);
+  if (k.wykluczoneNoce) {
+    kl = liczba(kl, k.wykluczoneNoce->size());
+    for (auto& x : *k.wykluczoneNoce) kl = skrotTekst(kl, x);
+  }
+  kl = skrotTekst(kl, k.poczatekLeczenia);
+  const uintptr_t z = reinterpret_cast<uintptr_t>(k.zestaw);
+  return skrotBajty(kl, &z, sizeof z);
+}
+
+HistoriaPos historiaPos(const Kontekst& k) {
+  if (!k.historia) return HistoriaPos();
+  if (!gOcena) return posortujHistorie(*k.historia);
+  przypnij(*gOcena, k.historia);
+  if (!gOcena->jestPos) {
+    gOcena->pos = posortujHistorie(*k.historia);
+    gOcena->jestPos = true;
+  }
+  return gOcena->pos;
+}
 
 const std::string* parametr(const WierszKatalogu& w, const char* nazwa) {
   auto it = w.parametry.find(nazwa);

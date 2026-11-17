@@ -2212,12 +2212,19 @@ int main(int argc, char** argv) {
     ustawBaterieEkranu(b);
     rysujK1(p, kb);
     zapisz(p, "belka-bateria-kabel");
-    {  // najciaśniejszy przypadek: ocena ograniczona z rombem przy `kabel`: data ustępuje, godzina zostaje
+    {  // ocena ograniczona z rombem na kablu: od 16.11.2026 sama ikona, środek ma więcej miejsca (do tego dnia
+       // najciaśniejszy przypadek, ze słowem `kabel`)
       DaneK1 kk = kb;
       kk.ocena = "ocena ograniczona";
       kk.romb = true;
       rysujK1(p, kk);
       zapisz(p, "belka-k1-ocena-ograniczona-romb-kabel");
+      // najciaśniejszy przypadek od 16.11.2026: ta sama belka przy `100%`: data ustępuje, godzina zostaje
+      BateriaEkranu b100;
+      b100.procent = 100;
+      ustawBaterieEkranu(b100);
+      rysujK1(p, kk);
+      zapisz(p, "belka-k1-ocena-ograniczona-romb-100");
     }
     ustawBaterieEkranu(BateriaEkranu());
     rysujK1(p, kb);

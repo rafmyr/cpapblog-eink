@@ -15,8 +15,13 @@ struct GFXcanvas1 {
 
 struct GxEPD2_750_GDEY075T7 {
   static const uint16_t HEIGHT = 480;
+  static const bool hasFastPartialUpdate = true;  // jak GxEPD2 1.6.9 src/gdey/GxEPD2_750_GDEY075T7.h
   GxEPD2_750_GDEY075T7(int, int, int, int) {}
   void selectSPI(SPIClass&, SPISettings) {}
+  // odświeżenie częściowe całej powierzchni (R-NF-25): obraz poprzedni (0x10), nowy (0x13), refresh okna
+  void writeImageToPrevious(const uint8_t*, int16_t, int16_t, int16_t, int16_t, bool, bool, bool) {}
+  void writeImage(const uint8_t*, int16_t, int16_t, int16_t, int16_t, bool, bool, bool) {}
+  void refresh(int16_t, int16_t, int16_t, int16_t) {}
 };
 
 template <typename Driver, uint16_t page_height>

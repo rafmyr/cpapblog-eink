@@ -123,6 +123,12 @@ std::vector<std::string> nieocenianeUspokojenia();
 Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone);
 // To samo z pamięcią ostatniego wyniku (panel woła to kilka razy w jednym wybudzeniu; liczenie idzie noc po nocy).
 const Stany& stanyZPamieci(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone);
+// Liczniki do testów szybkości (test/testy_szybciej_przycisk.cpp): `wywolan` = wywołania stanyZPamieci(),
+// `obliczen` = przebiegi liczStany() w nich (pamięć pusta albo inny klucz). Tylko rosną; panel ich nie czyta.
+struct LicznikiStanow {
+  unsigned long wywolan = 0, obliczen = 0;
+};
+LicznikiStanow& licznikiStanow();
 
 // ---------- porównanie tygodnia z normą (S2a, 5.4.2) ----------
 // Mediana z nocy z wartością w 7 dniach do `dzis` włącznie, porównana z pasmem P10–P90 normy:

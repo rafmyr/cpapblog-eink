@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -43,6 +44,7 @@
 #include "kokpit.h"
 #include "kolejka.h"
 #include "noc.h"
+#include "odswiezanie.h"  // rodzaj odświeżenia e-ink (R-NF-25)
 #include "otoczenie.h"
 #include "plan.h"
 #include "sprawy.h"
@@ -59,6 +61,7 @@
 #include "serwer_raportu.h"
 #include "sypialnia.h"
 #include "sypialnia_ekran.h"  // strona kokpitu „Sypialnia · 30 nocy” (ADR-0044)
+#include "szybkosc.h"  // T-WYM-99: przełącznik pamięci podręcznej (testy), punkty faz pomiaru
 #include "wspolne.h"
 // silnik reguł podpięty do ekranu dnia. CPAP_SILNIK_REGUL = 0 tylko do diagnozy (bez silnika:
 // ekran dnia, linie i przyciski jak przed BETĄ); testy i symulator mogą podać wyniki przez sprawy::zrodloTestowe.
@@ -369,6 +372,26 @@ class Przebieg {
   float tempStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaTemp) ? r.stopkaTemp : temp; }
   float wilgStopki() const { return stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaWilg) ? r.stopkaWilg : wilg; }
   bool ekranWlaczony = false;  // sterownik ekranu włączony dopiero przed pierwszym rysowaniem (wybudzenie pomiarowe bez)
+  // R-NF-25 (src/odswiezanie.h): rysowanie po akcji przycisku (pokazPoPrzycisku()) i czy ten przebieg programu już
+  // odświeżył e-ink (sterownik i adapter znają poprzedni obraz; po głębokim śnie i starcie jeszcze nie)
+  bool rysowaniePrzyciskiem = false;
+  bool obrazWTymPrzebiegu = false;
+  bool dzienNaPlotnie = false;  // rysujDzien() narysował ekran dnia w tej klatce (zerowane na starcie pokaz())
+  void pokazPoPrzycisku() {
+    rysowaniePrzyciskiem = true;
+    pokaz();
+    rysowaniePrzyciskiem = false;
+  }
+  // Pełne odświeżenie poza pokaz() (U-06, U-05 w trybie awaryjnym): licznik częściowych od zera.
+  void odswiezPelneAwaryjne() {
+    a.wyswietlacz.odswiezJako(Odswiezenie::PELNE);
+    obrazWTymPrzebiegu = true;
+    r.czesciowychZRzedu = 0;
+  }
+  int pelneCoTeraz() {
+    int n = ustawieniaB9().pelneCo;
+    return n < 0 ? odswiezanie::PELNE_CO_DOMYSLNIE : n;
+  }
   // Stan pobierania historii jednej sesji Wi-Fi (krok 2, 7.1 krok 10): pobranie i zaległe doby piszą do niego, a zapis
   // plików idzie dopiero po wyłączeniu Wi-Fi, przed rysowaniem (zapiszOdlozone()).
   StanHistAB sh;
@@ -1050,6 +1073,7 @@ class Przebieg {
     sypialniaWKokpicieB44(false);
     log("historia: %d nocy, czynniki: %d, dziennik ekranów: %d", (int)hist.size(), (int)czynniki.size(),
         (int)dziennik.size());
+    szybkosc::faza("historia");  // T-WYM-99: koniec odczytu danych z plików (obraz pomiarowy)
   }
   // stany odchylenia (4.6) i norma z wyłączeniami 4.4 (src/stany.h)
   const Stany& stany(const std::string& dzis) { return stanyZPamieci(histNormyB16(dzis), dzis, wykluczoneB16(dzis)); }  // z nocami okresów infekcji
@@ -1250,6 +1274,16 @@ class Przebieg {
     }
     return s;
   }
+  // T-WYM-99: ostatnia ocena silnikiem w tym wybudzeniu (RAM; po głębokim śnie pusta) z kluczem wejść.
+  struct PamiecSilnika {
+    bool jest = false;
+    uint64_t klucz = 0;
+    std::vector<reguly::Wynik> wyniki;
+    std::vector<std::string> log;  // wiersze `reguly: … nie oceniam` z tej oceny, w kolejności
+  } silnikPamiec_;
+  // Klucz wejść reguly::ocen(): reguly::kluczOceny() (src/reguly_pomoc.h; strażnik pól i test mutacji tam) z sygnałami
+  // tego wybudzenia i `sp_model`, od którego zależą historia do normy, stany i norma w Kontekst.
+  uint64_t kluczSilnikaB5(const reguly::Kontekst& kx) { return reguly::kluczOceny(kx, &b5.sygnaly, spModelB16()); }
   std::vector<reguly::Wynik> ocenSilnikiem(const std::string& dzis) {
     reguly::Odpowiedzi odp = sprawy::odpowiedziSilnika(odpowiedzi);
     b5.sygnaly = sygnalyB5(dzis);
@@ -1286,11 +1320,30 @@ class Przebieg {
     kx.pamiec = &b5.pamiec;
     kx.zestaw = &reguly::zestawWbudowany();
     kx.poczatekLeczenia = ustawieniaB9().poczatekLeczenia;  // R-SKI-08: karencja L-01 tylko od znanej daty
+    // T-WYM-99: te same wejścia co w poprzedniej ocenie tego wybudzenia = ten sam wynik (rodzaje warunków to czyste
+    // funkcje Kontekstu i sygnałów, src/reguly.h), więc bez ponownego przebiegu: kopia wyników i te same wiersze logu
+    // `reguly: … nie oceniam` w tym samym miejscu. Klucz obejmuje każde wejście oceny (kluczSilnikaB5()).
+    uint64_t klucz = kluczSilnikaB5(kx);
+    if (silnikPamiec_.jest && silnikPamiec_.klucz == klucz && !szybkosc::bezPamieci) {
+      for (auto& l : silnikPamiec_.log) log("%s", l.c_str());
+      return silnikPamiec_.wyniki;
+    }
+    std::vector<std::string> wiersze;
     reguly::OpcjeOceny op;
     op.sygnaly = &b5.sygnaly;
-    op.log = [this](const std::string& l) { log("%s", l.c_str()); };
+    op.log = [this, &wiersze](const std::string& l) {
+      log("%s", l.c_str());
+      wiersze.push_back(l);
+    };
     // wiersze odkryć poza dzienną oceną E/L/H (nie są sprawami pacjenta, src/odkrycia.h)
-    return reguly::ocen(odkrycia::bezOdkryc(reguly::zestawWbudowany()), kx, op);
+    std::vector<reguly::Wynik> w = reguly::ocen(odkrycia::bezOdkryc(reguly::zestawWbudowany()), kx, op);
+    szybkosc::przebiegiSilnika++;
+    silnikPamiec_.jest = true;
+    silnikPamiec_.klucz = klucz;
+    silnikPamiec_.wyniki = w;
+    silnikPamiec_.log = std::move(wiersze);
+    szybkosc::faza("reguly");
+    return w;
 #else
     return {};
 #endif
@@ -1434,6 +1487,7 @@ class Przebieg {
     b5.pytanie = kolejka::pytanieDnia(wp);
     pytanieWyjazduB15(dzis, wp);
     pytanieB16(dzis, e);  // S-K-30 (R5a) i `Wymieniona poduszka?` (R8), gdy nie ma pytania R0
+    szybkosc::faza("sprawy");  // T-WYM-99: koniec spraw, kolejki linii i pytań (obraz pomiarowy)
     return true;
   }
   // linie zdarzeń E z wyników, teksty z zestawu (atrapa testów albo wbudowany)
@@ -2175,6 +2229,7 @@ class Przebieg {
     // drugi zapis tego samego dnia nie nadpisuje stanu sprzed pierwszego (cofnięcie wraca do stanu sprzed dziś)
     if (model != dzis) a.nvs.ustawTekst("cpap", "sp_cof", ";" + staraMaska + ";" + model);
     a.nvs.ustawTekst("cpap", "sp_model", dzis);
+    spModelJest_ = false;  // T-WYM-99: następny odczyt z NVS (zapis mógł się nie udać)
     log("sprzęt: nowy model maski %s z formularza, norma M-07 od nowa (R-MAS-16)", dzis.c_str());
     b5.dzis.clear();
   }
@@ -2198,6 +2253,7 @@ class Przebieg {
     ustawieniaWczytane_ = true;
     if (model.empty()) a.nvs.usun("cpap", "sp_model");
     else a.nvs.ustawTekst("cpap", "sp_model", model);
+    spModelJest_ = false;  // T-WYM-99
     a.nvs.usun("cpap", "sp_cof");
     b5.dzis.clear();
     log(ok ? "sprzęt: nowy model maski cofnięty (R-MAS-19)" : "sprzęt: nowy model cofnięty, zapis dat nieudany (R-AW-05)");
@@ -2239,22 +2295,34 @@ class Przebieg {
   }
   // R-MAS-11 (jak R-NOR-26): historia do normy bez M-07 nocy sprzed nowego modelu maski; po 120 dniach [PRÓG] okno
   // normy (90 dni) i tak ich nie sięga, więc bez kopii.
-  // `sp_model` z przyszłości (zegar) ignorowany. Kopia raz na zmianę historii, nie w każdym stany().
+  // `sp_model` z przyszłości (zegar) ignorowany. Kopia raz na zmianę historii, nie w każdym stany(); klucz kopii:
+  // data modelu i skrót wszystkich pól historii (skrotNocy(), T-WYM-99; wcześniej suma wp95 i wmed).
   std::vector<Noc> histNormyB16_;
-  std::string kluczHistNormyB16_;
+  uint64_t kluczHistNormyB16_ = 0;
+  bool histNormyB16Jest_ = false;
+  // T-WYM-99: `cpap`/`sp_model` z NVS raz na wybudzenie (każde stany() go potrzebuje, a odczyt brakującego klucza
+  // na panelu kosztuje też wiersz błędu na porcie szeregowym); każdy zapis tego klucza w dyrygencie zeruje
+  // `spModelJest_`, więc następny odczyt idzie do NVS. Innych miejsc zapisu `sp_model` nie ma (grep po src/).
+  std::string spModel_;
+  bool spModelJest_ = false;
+  std::string spModelB16() {
+    if (!spModelJest_ || szybkosc::bezPamieci) {
+      spModel_ = a.nvs.tekst("cpap", "sp_model", "");
+      spModelJest_ = true;
+    }
+    return spModel_;
+  }
   const std::vector<Noc>& histNormyB16(const std::string& dzis) {
-    std::string m = a.nvs.tekst("cpap", "sp_model", "");
+    std::string m = spModelB16();
     if (!dataOk(m) || !dataOk(dzis) || m > dzis || dniMiedzy(m, dzis) > 120) return hist;
-    double s = 0;
-    for (auto& n : hist) s += (std::isnan(n.wp95) ? 0 : n.wp95) + (std::isnan(n.wmed) ? 0 : n.wmed) * 1e-3;
-    char b[64];
-    snprintf(b, sizeof b, "%u;%.6f", (unsigned)hist.size(), s);
-    std::string kl = m + "|" + b + "|" + (hist.empty() ? "" : hist.back().data);
-    if (kl != kluczHistNormyB16_) {
+    uint64_t kl = skrotTekst(SKROT_POCZATEK, m);
+    for (auto& n : hist) kl = skrotNocy(kl, n);
+    if (!histNormyB16Jest_ || kl != kluczHistNormyB16_ || szybkosc::bezPamieci) {
       histNormyB16_ = hist;
       for (auto& n : histNormyB16_)
         if (n.data < m) n.wmed = n.wp95 = NAN;
       kluczHistNormyB16_ = kl;
+      histNormyB16Jest_ = true;
     }
     return histNormyB16_;
   }
@@ -2308,7 +2376,7 @@ class Przebieg {
   // R-MAS-11: linia `Nowy model maski. Uczę się normy.` jednorazowo od następnego ranka (grupa „norma”, 7.5); pokazanie
   // liczy pamięć reguł (`pokaz~linia:R-MAS-11`, R-PIE-08), więc linia trwa do końca dnia pierwszego pokazania
   void liniaNowegoModeluB16(const std::string& dzis) {
-    std::string m = a.nvs.tekst("cpap", "sp_model", "");
+    std::string m = spModelB16();
     if (!dataOk(m) || !dataOk(dzis) || dzis <= m) return;
     auto i = b5.pamiec.find(sprawy::kluczPokazania("linia:R-MAS-11"));
     std::string ost = i == b5.pamiec.end() ? "" : i->second.ostatnio;
@@ -2539,7 +2607,7 @@ class Przebieg {
     we.liniaA = dd.liniaA;
     we.liniaOstrzezenie = dd.liniaOstrzezenie;
     we.liniaUwagi = !dd.linia.empty();
-    { int so = sekundaDzis(r.slotDziennyEp); we.slotOd = so >= 0 ? so / 60 : -1; }  // blok obrazka od startu slotu
+    uint32_t chwilaOceny = ep;  // R-KON-73: bezczynność wygaszacza liczona do chwili oceny (w drzemce: ostatniej)
     we.drzemka = drzemkaDzisB9(dzis);
     // R-KON-56: drzemka trwa → ten sam ekran co w ostatniej ocenie (minuta, czujnik i CO2 z niej), więc klatka bez zmian
     std::string zam = a.nvs.tekst("cpap", "b9_zam", "");
@@ -2557,6 +2625,7 @@ class Przebieg {
         we.przyLozku = f[2].empty() ? NAN : (float)liczbaRzecz(f[2].c_str());
         przyStopki = we.przyLozku;
         we.co2 = co2B17() ? liczbaCalk(f[3].c_str()) : -1;  // `co2=nie` w trakcie drzemki bez wariantu CO2
+        if (we.minuta >= 0 && we.minuta <= m) chwilaOceny = ep - (uint32_t)(m - we.minuta) * 60u;  // wygaszacz też bez zmian
         log("drzemka trwa (rop 1): ekran bez zmian (R-KON-56)");
       }
     } else {
@@ -2589,6 +2658,13 @@ class Przebieg {
       for (auto& l : wo.log) log("%s", l.c_str());
     }
     we.obrazekJest = !wo.plik.empty();
+    // wygaszacz (R-KON-73…R-KON-76): próg bezczynności od startu slotu albo ostatniego naciśnięcia (StanRtc::ekranOd),
+    // ocena tylko o zwykłych porach slotu (R-KON-42), bez osobnego wybudzenia; zasilanie bez wpływu (R-KON-77)
+    // R-KON-75: informacja po aktualizacji samodzielnej (R-KONF-61), która czeka na ekran slotu bez sprawy, zostaje na
+    // wierzchu: wygaszacz wtedy nie wchodzi
+    we.bezczynnosc = us.wygaszaczWlaczony() &&  // R-KON-77: `dzien.wygaszacz=nie` z telefonu
+                     poraWygaszacza(chwilaOceny, r.slotDziennyEp, r.ekranOd, us.wygaszaczMinSkuteczne()) &&
+                     !informacjaCzeka();
     WyborSlotu w = wybierzSlot(we);
     if (w.ekran == EkranSlotu::BRAK) return false;  // W4: ekran z rana (R-KON-54)
     float zaOknem = NAN;
@@ -2603,13 +2679,16 @@ class Przebieg {
     StopkaDzienna st = stopkaDzienna(noc, ubiegla, we.drzemka.minut, zaOknem, przyStopki);
     // R-KON-69: w miejscu wyniku nocy ikona baterii i `podłącz kabel`; nie przy aktywnym E-05 (o baterii mówi linia
     // uwagi) i nie bez procentu w rysowanej klatce
+    // (od decyzji 16.11.2026 22:08 stan baterii nie wpływa na wygaszacz: obrazek rysuje tę samą stopkę, R-KON-75)
     st.bateriaNiska = bateriaEkranu().niska && bateriaEkranu().procent >= 0 && !e05AktywneB5();
     if (w.ekran == EkranSlotu::SK38) {
       std::string dane, pw;
       ObrazPbm o;
       if (!a.pliki.czytaj(wo.plik.c_str(), dane) || !parsujPbm(dane, o, pw)) return false;
       if (wo.nowy) dopiszFormat("obrazki", zapiszWpisObrazka({dzis, wo.plik.substr(wo.plik.rfind('/') + 1), wo.pula}));
-      ustawIkoneAktualizacji(false);  // R-EKR-61: bez ikony na obrazku dnia
+      // R-EKR-61: bez ikony na obrazku dnia jako zastępstwie D5; na wygaszaczu ikona zostaje w stopce (ta sama stopka co
+      // na ekranach slotu, bez belki), bo wygaszacz stoi godzinami
+      if (!w.wygaszacz) ustawIkoneAktualizacji(false);
       rysujObrazekDnia(plotno(), o, st);
       log("slot dzienny: S-K-38 %s (pula %c)", wo.plik.c_str(), wo.pula);
     } else {
@@ -2648,6 +2727,7 @@ class Przebieg {
   // R-CZY-20: szczegół O-12 w K1 tylko z ekranu dnia, który go pokazał; stan w NVS `cpap`/`k1_odk`
   // (`data\ttytuł\tpowód`, "" = brak), bo ▶ zwykle budzi panel w nowym wybudzeniu (ADR-0022: zapis tylko przy zmianie)
   void rysujDzien() {
+    dzienNaPlotnie = true;  // R-NF-25: ekran dnia na płótnie zawsze pełnym odświeżeniem
     // element S-K-31 na ekranie dnia (◀ 2 s, R-MAS-01) zapisany po każdym rysowaniu, także po wcześniejszym wyjściu
     struct ZapisSk31 {
       Przebieg* p;
@@ -4053,6 +4133,15 @@ class Przebieg {
     zapiszInformacje(aktualizacja::Informacja());
     return aktualizacja::Informacja();
   }
+  // R-KON-75: czy informacja stanęłaby na ekranie slotu bez sprawy (te same warunki co informacjaZamiastDnia() poza
+  // samym ekranem); wtedy wygaszacz nie wchodzi, a informacja staje na ekranie pod nim
+  bool informacjaCzeka() {
+    aktualizacja::Informacja i = informacjaPoPorzadkach();
+    if (i.rodzaj == aktualizacja::RodzajInformacji::BRAK) return false;
+    if (!zegar() || slotNocny(minutaDoby()) || r.ab.rop == 1) return false;
+    if (bateriaEkranu().niska || znakiBelki().nieaktualne) return false;
+    return aktualizacja::informacjaAktualna(i, wlasnaWersja(), dzisiaj());
+  }
   bool informacjaZamiastDnia() {
     r.informacjaNaEkranie = 0;
     aktualizacja::Informacja i = informacjaPoPorzadkach();
@@ -5423,13 +5512,14 @@ class Przebieg {
 
   void pokaz() {
     zaOknemKlatki = NAN;  // ustawia je tylko slot dzienny
+    dzienNaPlotnie = false;  // ustawia rysujDzien() (R-NF-25)
     // R-EKR-66: bateria w belce z ostatnio wyświetlonej klatki, dopóki ta klatka stoi i stan „niska bateria” się nie
     // zmienił; świeży stan przy zmianie ekranu (klatkaOd = 0), po starcie i gdy klatka zmienia się z innego powodu
     BateriaEkranu batSwieza = bateriaTeraz();
     if (ekran() == Ekran::TEST) {
       // U-05 odświeża się zawsze i ma wiersz `Bateria` (R-KONF-41): belka pokazuje dokładnie to samo co wiersz,
       // czyli procent z pomiaru w tym wybudzeniu albo `–`
-      // (od 14.11.2026 także kabel: wiersz `na zasilaniu · {x}%`, belka `kabel`)
+      // (od 14.11.2026 także kabel: wiersz `na zasilaniu · {x}%`, w belce ikona kabla; od 16.11.2026 bez słowa `kabel`)
       batSwieza.procent = bateriaZOdczytu ? procentBat : -1;
     }
     const bool batZKlatki = !bateriaSwieza && r.klatkaOd != 0 && (r.klatkaBatFlagi & BAT_KLATKA_WAZNA) &&
@@ -5539,9 +5629,26 @@ class Przebieg {
       a.wyswietlacz.wlacz();
       ekranWlaczony = true;
     }
+    // R-NF-25: rodzaj odświeżenia (src/odswiezanie.h); adapter bez częściowego robi pełne i zwraca PELNE
+    odswiezanie::Wejscie wo;
+    wo.ekran = ekran();
+    wo.poPrzycisku = rysowaniePrzyciskiem;
+    wo.obrazZnany = obrazWTymPrzebiegu;
+    wo.zawszePelne = zawsze;
+    wo.naPlotnieDzien = dzienNaPlotnie;
+    if (dzienNaPlotnie && ekran() != Ekran::DZIEN)
+      log("e-ink: na płótnie ekran dnia zamiast ekranu %d, odświeżenie pełne (R-NF-25)", (int)ekran());
+    wo.pelneCo = pelneCoTeraz();
+    wo.czesciowychZRzedu = r.czesciowychZRzedu;
+    const Odswiezenie chciane = odswiezanie::rodzajOdswiezenia(wo);
     uint32_t t0 = ms();
-    a.wyswietlacz.odswiez();
+    const Odswiezenie wykonane = a.wyswietlacz.odswiezJako(chciane);
     odnow();
+    if (chciane == Odswiezenie::CZESCIOWE && wykonane != Odswiezenie::CZESCIOWE)
+      log("e-ink: odświeżenie częściowe niedostępne w sterowniku albo adapterze, pełne (R-NF-25)");
+    obrazWTymPrzebiegu = true;
+    r.czesciowychZRzedu = odswiezanie::licznikPo(wykonane, r.czesciowychZRzedu);
+    // skrót klatki ważny po obu rodzajach: częściowe odświeża całą powierzchnię, więc na ekranie jest ta sama klatka
     r.klatkaSkrot = skrot;
     r.klatkaOd = zegar() ? teraz() : 0;
     r.klatkaBatProc = (int8_t)batKlatki.procent;  // bateria tej klatki
@@ -5550,7 +5657,11 @@ class Przebieg {
     r.stopkaTemp = tempStopki();  // stopka tej klatki
     r.stopkaWilg = wilgStopki();
     r.stopkaZaOknem = zaOknemKlatki;
-    log("ekran %d narysowany w %lu ms", (int)r.ekran, (unsigned long)(ms() - t0));
+    if (wykonane == Odswiezenie::CZESCIOWE)
+      log("ekran %d narysowany w %lu ms (odświeżenie częściowe %d z %d, R-NF-25)", (int)r.ekran,
+          (unsigned long)(ms() - t0), (int)r.czesciowychZRzedu, wo.pelneCo);
+    else
+      log("ekran %d narysowany w %lu ms (odświeżenie pełne)", (int)r.ekran, (unsigned long)(ms() - t0));
   }
 
   // ---------- AirBridge od v2.2.0 ----------
@@ -7172,6 +7283,7 @@ class Przebieg {
   PoNacisnieciu obsluz(Przycisk p, bool dlugo, bool budzacy) {
     static const char* const N[] = {"-", "◀", "↻", "▶"};
     ostatniPrzycisk = std::string(N[(int)p]) + (dlugo ? " 2 s" : "");
+    szybkosc::faza("przycisk");  // T-WYM-99: początek obsługi naciśnięcia (obraz pomiarowy)
     // ADR-0045 (R-KOK-34, R-KOK-36): układ kokpitu z konfiguracji i strona sypialni przed silnikiem reguł, żeby
     // teksty z numerem strony (`Na kontroli: raport 2 / 3.`) liczyły się z bieżącego układu także po zapisie formularza
     // w tym samym wybudzeniu i przy przycisku w czuwaniu wybudzenia pomiarowego (bez wcześniejszego ustawienia)
@@ -7639,7 +7751,9 @@ class Przebieg {
       otworzOknoAlboZamknijSiec();
       otaDo = ms() + OKNO_SERWISOWE_MS;
     }
-    if (rysuj) pokaz();
+    // R-NF-25: po przycisku budzącym widok z przycisku (po głębokim śnie i tak pełne: obraz sterownika nieznany)
+    if (rysuj && w == PowodWybudzenia::PRZYCISK) pokazPoPrzycisku();
+    else if (rysuj) pokaz();
     else log("slot nocny: ekran bez zmian");
     if (pobranieRano) pobierzRanoPoPrzycisku();  // R-PRZ-22: po narysowaniu akcji przycisku
     if (!samosprawdzenie(rysuj)) return;
@@ -7717,7 +7831,7 @@ class Przebieg {
           otaDo = t0 + OKNO_SERWISOWE_MS;
         }
         // R-KON-37: w nocy naciśnięcie bez akcji nie przerysowuje ekranu
-        if (rysowacPoNacisnieciu(pn.zmiana, zegar(), minutaDoby())) pokaz();
+        if (rysowacPoNacisnieciu(pn.zmiana, zegar(), minutaDoby())) pokazPoPrzycisku();
         else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
         a.przyciski.dioda(false);
       } else if (nacisnieciaZKolejki()) {
@@ -7800,7 +7914,7 @@ class Przebieg {
     if (wykonane == 0 && pominiete == 0) return false;
     log("kolejka naciśnięć: %d wykonane, %d pominięte (ekran %d)", wykonane, pominiete, (int)ekran());
     if (wykonane > 0) {
-      if (rysowacPoNacisnieciu(zmiana, zegar(), minutaDoby())) pokaz();
+      if (rysowacPoNacisnieciu(zmiana, zegar(), minutaDoby())) pokazPoPrzycisku();
       else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
       a.przyciski.dioda(false);
     }
@@ -7820,7 +7934,7 @@ class Przebieg {
     ustawBaterieEkranu(BateriaEkranu());  // tryb awaryjny nie mierzy baterii: belka z `–`
     rysujEkranDanych(plotno(), Belka{"", ""}, tr);
     odnow();
-    a.wyswietlacz.odswiez();
+    odswiezPelneAwaryjne();
     r.klatkaOd = 0;  // rysowanie poza pokaz: skrót klatki nieważny
     odnow();
     log("tryb awaryjny: U-06 narysowany");
@@ -7847,7 +7961,7 @@ class Przebieg {
     ustawBaterieEkranu(BateriaEkranu());  // tryb awaryjny nie mierzy baterii: belka z `–`
     rysujTest(plotno(), d);
     odnow();
-    a.wyswietlacz.odswiez();
+    odswiezPelneAwaryjne();
     r.klatkaOd = 0;  // rysowanie poza pokaz: skrót klatki nieważny
     odnow();
   }

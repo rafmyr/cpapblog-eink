@@ -175,7 +175,26 @@ void walidujEkrany(const std::map<std::string, std::string>& m, Wynik& w) {
   nowaKolejnosc(m, "dk_", ID_DZIENNY, RODZAJOW_PRZESTAWNYCH, stara, nowa, bledy);
   for (int i = 0; i < RODZAJOW_PRZESTAWNYCH; i++) u.dzien.kolejnosc[i] = static_cast<RodzajDzienny>(nowa[i]);
   for (int i = 0; i < RODZAJOW_DZIENNYCH; i++) u.dzien.pokaz[i] = zaznaczone(m, (std::string("pokaz_") + ID_DZIENNY[i]).c_str());
+  {  // R-KON-77: wyłącznik samego wygaszacza (`dzien.wygaszacz`, domyślnie `tak` = brak wiersza) i jego próg
+    bool jestW = false, jestM = false;
+    std::string wg = wartosc(m, "wygaszacz", jestW);
+    if (jestW) {
+      if (wg == "tak") w.plik["dzien.wygaszacz"] = "";
+      else if (wg == "nie") w.plik["dzien.wygaszacz"] = "nie";
+      else bledy["wygaszacz"] = "Wybierz z listy.";
+    }
+    std::string mn = wartosc(m, "wygaszacz_min", jestM);
+    if (jestM && wg != "nie" && !bledy.count("wygaszacz")) {  // przy wyłączonym czas bez znaczenia: bez zmian
+      int n = 0;
+      if (mn.empty()) w.plik["dzien.wygaszacz_min"] = "";
+      else if (!indeksZTekstu(mn.c_str(), WYGASZACZ_MIN_DO + 1, n) || n < WYGASZACZ_MIN_OD)
+        bledy["wygaszacz_min"] = "Liczba minut od 30 do 720.";
+      else w.plik["dzien.wygaszacz_min"] = n == WYGASZACZ_MIN_DOMYSLNIE ? "" : std::to_string(n);
+    }
+  }
   if (!bledy.empty()) {  // R-KONF-18: zła wartość odrzucona, poprzedni układ zostaje
+    w.plik.erase("dzien.wygaszacz_min");
+    w.plik.erase("dzien.wygaszacz");
     for (auto& kv : bledy) w.bledy[kv.first] = kv.second;
     return;
   }
@@ -320,6 +339,8 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
   p.czynniki = ustawione ? kody(cz) : CZYNNIKI_DOMYSLNIE;
   p.uwagaOMasce = std::to_string(u.uwagaOMasce > 0 ? u.uwagaOMasce : UWAGA_O_MASCE_DOMYSLNIE);  // R-KONF-42
   p.ekrany = u.ekrany;  // ADR-0045: ten sam parser co panel
+  p.wygaszaczMin = std::to_string(u.wygaszaczMinSkuteczne());  // R-KON-74, R-KON-77
+  p.wygaszacz = u.wygaszaczWlaczony() ? "tak" : "nie";
   return p;
 }
 
@@ -547,7 +568,8 @@ int sekcjaPola(const std::string& k) {
     return 5;
   if (k.compare(0, 3, "cz_") == 0) return 6;
   if (k == "aktualizacja_auto" || k == "klucz_wydan" || k == "klucz_usun" || k == "haslo_okna") return 7;
-  if (k.compare(0, 3, "kk_") == 0 || k.compare(0, 3, "dk_") == 0 || k.compare(0, 6, "pokaz_") == 0 || k == "ekrany_start")
+  if (k.compare(0, 3, "kk_") == 0 || k.compare(0, 3, "dk_") == 0 || k.compare(0, 6, "pokaz_") == 0 || k == "ekrany_start" ||
+      k == "wygaszacz" || k == "wygaszacz_min")
     return 8;
   return -1;
 }
@@ -653,8 +675,14 @@ std::string sekcjaEkranow(const Pola& p, const std::map<std::string, std::string
        poleWyboru("pokaz_dzien_i_noc", d.pokazuj(RodzajDzienny::DZIEN_I_NOC), NAZWA_DZIENNEGO[4]) +
        "<p class=\"s\">zachód słońca, gdy nic nie czeka</p>" +
        poleWyboru("pokaz_obrazek", d.pokazuj(RodzajDzienny::OBRAZEK), NAZWA_DZIENNEGO[5]) +
-       "<p class=\"s\">pierwsze 2 h dnia. Bez ekranu dziennego zostaje ekran z rana.</p>" + blad(b, "ekrany_start") +
-       KONIEC_SEKCJI;
+       "<p class=\"s\">zamiast „Dzień i noc” i jako wygaszacz. Bez ekranu dziennego zostaje ekran z rana.</p>" +
+       // R-KON-77: wyłącznik samego wygaszacza (`dzien.wygaszacz`) i czas bezczynności obok; teksty krótkie, bo strona
+       // musi się zmieścić w REZERWACJA_STRONY także ze wszystkimi błędami
+       "<label for=\"wygaszacz\">Wygaszacz ekranu (ostrzeżeń nie zasłania)</label>" +
+       opcjeWyboru("wygaszacz", p.wygaszacz, {{"tak", "włączony"}, {"nie", "wyłączony"}}) + blad(b, "wygaszacz") +
+       "<label for=\"wygaszacz_min\">Wygaszacz po (minuty bez przycisku)</label>" +
+       pole("number", "wygaszacz_min", p.wygaszaczMin, " min=\"30\" max=\"720\" maxlength=\"3\" inputmode=\"numeric\"") +
+       blad(b, "wygaszacz_min") + blad(b, "ekrany_start") + KONIEC_SEKCJI;
   return s;
 }
 }  // namespace

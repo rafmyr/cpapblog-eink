@@ -142,7 +142,7 @@ R-NF-01,budżet sprzętu,parametr techniczny,"budżet energii i czasu panelu, be
 R-NF-06,budżet sprzętu,parametr techniczny,"budżet energii i czasu panelu, bez wpływu na ocenę nocy"
 "2.4|Karta microSD: opcjonalna, system plików",1 GB,parametr techniczny,"najmniejsza karta na kopię danych (rachunek: specyfikacja techniczna 9.1), bez wpływu na ocenę nocy"
 R-NF-09,budżet sprzętu,parametr techniczny,"budżet energii i czasu panelu, bez wpływu na ocenę nocy"
-R-NF-25,budżet sprzętu,parametr techniczny,"budżet energii i czasu panelu, bez wpływu na ocenę nocy"
+R-NF-25,"5 (pełne po tylu odświeżeniach częściowych z rzędu; klucz `eink.pelne_co` 0–20, 0 = częściowe wyłączone)",parametr techniczny,"rodzaj odświeżenia e-ink, bez wpływu na ocenę nocy; wartość obserwacja własna (16.11.2026), do oceny na egzemplarzu"
 R-NF-29,10 min,czas interfejsu,"okno serwisowe od ostatniego naciśnięcia na U-05 (ADR-0024, prototyp: 10 min)"
 R-NF-23,"1,5 m",wygląd ekranu,
 R-NF-26,"1,5 m",wygląd ekranu,

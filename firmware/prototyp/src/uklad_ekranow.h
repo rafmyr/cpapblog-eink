@@ -19,7 +19,9 @@
 #include "nawigacja.h"
 
 // Ekrany dzienne z przełącznikiem (7.2 część „Dzień”). Pierwsze RODZAJOW_PRZESTAWNYCH mają kolejność (D1…D4);
-// S-K-37 i S-K-38 zostają na swoich miejscach (D5 i pierwszy blok slotu, R-KON-50, zastępstwa R-KON-54).
+// S-K-37 i S-K-38 zostają na swoich miejscach: D5 i zastępstwo D5 (R-KON-54); od 16.11.2026 bez pierwszego bloku slotu
+// (R-KON-50 wycofane), a S-K-38 jest też wygaszaczem (R-KON-73). `obrazek` w `dzien.ukryte` ukrywa obie role; sam
+// wygaszacz wyłącza osobny klucz `dzien.wygaszacz=nie` (R-KON-77, src/slot_dzienny.h).
 enum class RodzajDzienny : unsigned char { WIETRZENIE = 0, JUTRO_RANO = 1, WYMIANA = 2, PYLEK = 3, DZIEN_I_NOC = 4,
                                            OBRAZEK = 5 };
 const int RODZAJOW_DZIENNYCH = 6;

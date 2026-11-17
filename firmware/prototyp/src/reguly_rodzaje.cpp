@@ -626,7 +626,8 @@ bool normaNocy(const Kontekst& k, const Norma& nn, const std::string& m, const s
 Norma normaDnia(const Kontekst& k, const std::string& data) {
   static const std::set<std::string> PUSTE;
   if (!k.historia) return Norma();
-  return liczNorme(*k.historia, data, k.wykluczoneNoce ? *k.wykluczoneNoce : PUSTE,
+  // historiaPos(): ta sama posortujHistorie(*k.historia) co w liczNorme(vector), w ocenie raz (T-WYM-99)
+  return liczNorme(historiaPos(k), data, k.wykluczoneNoce ? *k.wykluczoneNoce : PUSTE,
                    k.stany ? &k.stany->wyl : nullptr);
 }
 

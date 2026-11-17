@@ -2569,7 +2569,8 @@ static TekstyWybudzenia naU05(PanelP03& s) {
 
 // Belka na U-05 (spec 5.4.17, R-EKR-66, R-KONF-41): bateria w belce i wiersz `Bateria` pokazują to samo, zawsze
 // z pomiaru w tym wybudzeniu, nigdy stan z wcześniejszej klatki; bez pomiaru belka `–`, wiersz `brak odczytu`; na
-// kablu belka `kabel`, wiersz `na zasilaniu` (słowa zamiast kreski, decyzja 4 z 14.11.2026).
+// kablu w belce ikona kabla (do 16.11.2026 ze słowem `kabel`, od tego dnia sama ikona), wiersz `na zasilaniu` (słowa
+// zamiast kreski, decyzja 4 z 14.11.2026).
 // wymaganie: R-EKR-66
 static void testR_EKR_66_bateriaNaU05JakWiersz() {
   auto pasBelki = [](const std::vector<uint8_t>& k, const BateriaEkranu& b) {  // pas 0…43 równy belce U-05 ze stanem `b`
@@ -2619,7 +2620,8 @@ static void testR_EKR_66_bateriaNaU05JakWiersz() {
     SPRAWDZ(zawiera(t.linieTestu, "Bateria: brak odczytu"));
     SPRAWDZ(!s.p.ekran.klatki.empty() && pasBelki(s.p.ekran.klatki.back(), brak) && !pasBelki(s.p.ekran.klatki.back(), b70));
   }
-  {  // na kablu (od 14.11.2026): wiersz `na zasilaniu`, belka `kabel` (ta sama informacja w obu miejscach)
+  {  // na kablu (od 14.11.2026): wiersz `na zasilaniu`, w belce ikona kabla (do 16.11.2026 ze słowem `kabel`, od tego
+     // dnia sama ikona z kreską; ta sama informacja w obu miejscach)
     PanelP03 s;
     zNocami(s, 30);
     s.p.czujniki.zas = Zasilanie::ZEWNETRZNE;

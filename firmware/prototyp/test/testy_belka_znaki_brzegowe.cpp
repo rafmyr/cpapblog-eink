@@ -300,10 +300,11 @@ static void testKombinacjeBelki() {
   ustawBaterieEkranu(bat(78));
 }
 
-// RB: K1 z danymi nieaktualnymi przy kablu: czy ustępuje coś ważniejszego niż znak wersji (data dnia jest pusta,
+// RB: K1 z danymi nieaktualnymi przy najszerszym tekście baterii (`100%`; do 16.11.2026 przy kablu, słowo `kabel`,
+// od tego dnia na kablu sama ikona): czy ustępuje coś ważniejszego niż znak wersji (data dnia jest pusta,
 // więc nic). Sprawdzamy, czy na K1 przy nowej wersji znak znika bez żadnego śladu (stopka też bez ikony).
 static void testZnakWersjiK1Znika() {
-  ustawBaterieEkranu(bat(60, true));
+  ustawBaterieEkranu(bat(100));
   ZnakiBelki z;
   z.nowaWersja = true;
   ustawZnakiBelki(z);
@@ -321,7 +322,7 @@ static void testZnakWersjiK1Znika() {
     PlotnoR p;
     belka(p, b);
     bool wStopce = ikonaAktualizacjiWlaczona();
-    printf("(4) K1 `śr 28.08 · odczyt 08:08 ◆ · ocena ograniczona`, kabel, nowa wersja: znak na belce %d, w stopce %d\n",
+    printf("(4) K1 `śr 28.08 · odczyt 08:08 ◆ · ocena ograniczona`, 100%%, nowa wersja: znak na belce %d, w stopce %d\n",
            naBelce, wStopce);
     // na najciaśniejszej belce K1 znak
     // nowej wersji ustępuje (pole, romb i ocena nie ustępują), a stopka ekranu z belką nie ma ikony; ten sam stan

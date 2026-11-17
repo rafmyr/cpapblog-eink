@@ -3,6 +3,7 @@
 // i ocena z logiem i sygnałami. Rozszerzenie obok kontraktu src/reguly.h (bez jego zmiany).
 // Opis parametrów rodzajów rdzenia: komentarz na górze src/reguly.cpp.
 #pragma once
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -22,6 +23,18 @@ struct OpcjeOceny {
 std::vector<Wynik> ocen(const Zestaw& z, const Kontekst& k, const OpcjeOceny& o);
 // Sygnały bieżącej oceny (ważne tylko w czasie wywołania ocen(); poza nim nullptr).
 const Sygnaly* sygnalyOceny();
+// Historia kontekstu posortowana do liczNorme() (= posortujHistorie(*k.historia)); w czasie jednej oceny ocen()
+// liczona raz na historię (T-WYM-99: historia w ocenie jest stała), poza oceną za każdym razem. Pusta przy
+// k.historia == nullptr.
+HistoriaPos historiaPos(const Kontekst& k);
+// T-WYM-99: skrót wszystkich wejść ocen(z, k, o): historia (każde pole każdej nocy, skrotNocy()), data, tryb bieżący,
+// odpowiedzi, pamięć reguł (każde pole), noce wyłączone, początek leczenia, adres zestawu, sygnały `s` (każde pole;
+// nullptr = brak) i `spModel` (data nowego modelu maski z NVS, od której wołający liczy historię do normy). Poza
+// kluczem pola pochodne: `norma` i `stany` (liczone przez wołającego z historii, daty, nocy wyłączonych i `spModel`)
+// oraz `wczesniejsze` (ustawia ocen()). Ten sam klucz = ten sam wynik ocen() i te same wiersze logu. Nowe pole
+// w Kontekst, Sygnaly, Odpowiedzi albo PamiecReguly zatrzymuje kompilację src/reguly.cpp (liczba_pol.h), dopóki
+// nie trafi do klucza albo na listę pól pochodnych; mutacje pole po polu: test/testy_szybciej_przycisk.cpp.
+uint64_t kluczOceny(const Kontekst& k, const Sygnaly* s, const std::string& spModel);
 
 // Wartość parametru `nazwa` wiersza albo nullptr.
 const std::string* parametr(const WierszKatalogu& w, const char* nazwa);

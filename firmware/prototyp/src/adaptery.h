@@ -15,6 +15,7 @@
 #include "airbridge.h"
 #include "ekrany.h"
 #include "nawigacja.h"
+#include "odswiezanie.h"
 #include "start.h"
 #include "wybudzenie.h"
 
@@ -195,6 +196,14 @@ class Wyswietlacz {
   virtual void wlacz() = 0;            // inicjalizacja sterownika (epd.init)
   virtual Plotno& plotno() = 0;        // bufor, w który rysuje rdzeń (src/ekrany.h)
   virtual void odswiez() = 0;          // pełne odświeżenie z bufora i uśpienie sterownika
+  // Odświeżenie z bufora w podanym rodzaju (T-INT-27, R-NF-25) i uśpienie sterownika. Zwraca rodzaj naprawdę
+  // wykonany: adapter bez odświeżenia częściowego (sterownik bez szybkiego przebiegu, brak kopii poprzedniego obrazu,
+  // błąd) robi pełne i zwraca PELNE. Domyślnie zawsze pełne przez odswiez().
+  virtual Odswiezenie odswiezJako(Odswiezenie rodzaj) {
+    (void)rodzaj;
+    odswiez();
+    return Odswiezenie::PELNE;
+  }
   // Bufor płótna po rysowaniu: BAJTOW_KLATKI bajtów (800×480, 1 bit na piksel, wiersz po wierszu), do skrótu klatki.
   // Nie zmienia ekranu.
   virtual const uint8_t* bufor() = 0;

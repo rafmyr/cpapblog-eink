@@ -30,16 +30,18 @@
 #include <string>
 #include <vector>
 
+// Kolejność pól: teksty, potem pola 4-bajtowe, na końcu 1-bajtowe, żeby struktura nie miała wypełnienia
+// (T-WYM-99: src/noc.cpp sprawdza przy kompilacji, że sizeof(Noc) to suma pól z listy skrotNocy(), więc każde nowe
+// pole bez wpisu na liście zatrzymuje kompilację). Kolejność pól nie ma innego znaczenia (bez inicjalizacji pozycyjnej).
 struct Noc {
   std::string data;  // RRRR-MM-DD, data poranka (4.1)
-  bool wazna = false;
+  std::string ustawienia;  // "" = nieznane
+  std::string pna, srn;  // model i numer seryjny aparatu z `/api/status` w chwili pobrania nocy (R-NOR-25; plik `noce` w. 2)
+  // tryb nocy (`MOP` z raportu, bez tagu `mode` z `/api/status`, R-DANE-29; "" = nieznany; plik `noce` w. 2)
+  std::string tryb;
   int m01 = -1;      // minuty z maską, -1 = brak
   float ahi = NAN, cmed = NAN, cp95 = NAN, wmed = NAN, wp95 = NAN;
   float emed = NAN, ep95 = NAN, psmed = NAN, psp95 = NAN;  // EPAP (M-06), wsparcie PS (M-28), cmH2O
-  std::string ustawienia;  // "" = nieznane
-  char zrodlo = 'A';
-  bool czesciowa = false;  // `partial = true` (R-DANE-15): nieważna, do nadpisania kompletnym raportem
-  bool epapStr = false;    // emed/ep95 ze STR (`source = "str"`): bez normy i reguł (R-NOR-08)
   float oa = NAN, ca = NAN, h = NAN;  // M-03: na godzinę
   float csr = NAN;                    // M-09: minuty
   // (R1): chwila importu, czyli czas unix UTC pierwszego zapisu kompletnego rekordu tej nocy
@@ -47,10 +49,9 @@ struct Noc {
   uint32_t import = 0;
   // pola rekordu nocy z AirBridge, tylko w pliku `noce` wersji 2
   // (`/dane/noce/RRRR.csv`, pola `m13;m17;pna;srn;m08;mpa;mpi;ipc;eep;mns;mxs;ua;m10;m10p;eai;eax;ans;axs;epr;tryb`
-// po `import`). Noce z karty (import) i mają je puste.
+  // po `import`). Noce z karty (import) i mają je puste.
   float m13 = NAN;  // M-13 (4.3): oddechy na minutę, kanał `RespRate` raportu: `median` (Załącznik A); NAN = brak
   int m17 = -1;     // M-17 (4.3): zdjęcia maski = `session_count` − 1, najmniej 0 (fail-path R-DANE-27); -1 = brak
-  std::string pna, srn;  // model i numer seryjny aparatu z `/api/status` w chwili pobrania nocy (R-NOR-25)
   float m08 = NAN;  // M-08 (4.3): minuty dużego wycieku, `leak_high_seconds` / 60 (próg AirBridge 24 L/min, R-DANE-23)
   // Reguły L i H: ustawienia aparatu z `settings.fields[]` raportu dnia
   // (tagi `MPA`, `MPI`, `IPC`, `EEP`, `MNS`, `MXS`, cmH2O, 4.11 i M-21) tylko do odczytu w regułach, nigdy do pokazania
@@ -59,10 +60,8 @@ struct Noc {
   float ua = NAN;
   float m10 = NAN, m10p = NAN;
   // Ustawienia trybu ASVAuto (`EAI`, `EAX` min. i maks. EPAP, `ANS`, `AXS` min. i maks. PS,
-  // 4.11) i `EPR` (CPAP, AutoSet), tylko do odczytu jak wyżej; tryb nocy (`MOP` z raportu, bez tagu `mode` z
-  // `/api/status`, R-DANE-29; "" = nieznany)
+  // 4.11) i `EPR` (CPAP, AutoSet), tylko do odczytu jak wyżej
   float eai = NAN, eax = NAN, ans = NAN, axs = NAN, epr = NAN;
-  std::string tryb;
   // (R-KON-09): M-18 (4.3), start pierwszej sesji nocy z `sessions[].start_ms` raportu
   // AirBridge w czasie lokalnym panelu, w minutach od 12:00 dnia wieczoru (0…1439; 23:10 = 670, 00:30 = 750);
   // -1 = brak (noce z karty, `start_ms` = null). Tylko w pliku `noce` wersji 3 (pole `m18` na końcu).
@@ -72,6 +71,10 @@ struct Noc {
   // starsze rekordy). Tylko w pliku `noce` wersji 5 (pola `m14;m15` na końcu).
   float m14 = NAN;
   float m15 = NAN;
+  bool wazna = false;
+  char zrodlo = 'A';
+  bool czesciowa = false;  // `partial = true` (R-DANE-15): nieważna, do nadpisania kompletnym raportem
+  bool epapStr = false;    // emed/ep95 ze STR (`source = "str"`): bez normy i reguł (R-NOR-08)
 };
 // EPAP do normy, reguł i porównań (tylko z EDF, R-NOR-08); NAN dla EPAP docelowego urządzenia
 float epapMed(const Noc& n);
@@ -129,6 +132,16 @@ int m18ZChwili(long long epoch, const std::string& dataPoranka);
 bool parsujNocV2(const std::string& wiersz, Noc& r);
 // Treść rekordu do porównań (czy noc się zmieniła): pola zapiszNoc i pola (bez `import`), z M-18, M-14 i M-15.
 std::string trescNocy(const Noc& r);
+// Skrót 64-bitowy wszystkich pól rekordu (bajty liczb i tekstów z długością, bez formatowania), dopisany do `k`:
+// klucz pamięci podręcznej stanów i wyników silnika (T-WYM-99). Każda zmiana dowolnego pola zmienia skrót (z dokładnością
+// do kolizji 64-bitowej); różne bity tej samej wartości (NAN, -0) też, co daje najwyżej zbędne przeliczenie. Lista pól
+// i strażnik kompletności (sizeof(Noc) = suma pól z listy): src/noc.cpp.
+uint64_t skrotNocy(uint64_t k, const Noc& r);
+// Początek skrótu (stała FNV offset basis), dopisanie bajtów (słowa 8-bajtowe mieszane multiplikatywnie, reszta bajtami
+// jak FNV-1a) i tekstu (długość, potem treść); wspólne dla kluczy T-WYM-99. Nie kryptograficzne.
+const uint64_t SKROT_POCZATEK = 1469598103934665603ULL;
+uint64_t skrotBajty(uint64_t k, const void* d, size_t n);
+uint64_t skrotTekst(uint64_t k, const std::string& t);
 const Noc* nocZDnia(const std::vector<Noc>& hist, const std::string& data);
 const Noc* ostatniaNoc(const std::vector<Noc>& hist, const std::string& najpozniej);  // ostatni rekord ≤ data
 

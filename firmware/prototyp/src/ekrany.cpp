@@ -372,7 +372,8 @@ int polaBaterii(int procent) {
 }
 
 std::string tekstBaterii(const BateriaEkranu& b) {
-  if (b.kabel) return "kabel";
+  // na kablu sama ikona z kreską, bez tekstu (zmiana 2026-11-16, decyzja właściciela projektu: „usuń napis kabel przy ładowaniu”)
+  if (b.kabel) return std::string();
   if (b.procent < 0) return "–";
   return std::to_string(b.procent > 100 ? 100 : b.procent) + "%";
 }
@@ -383,7 +384,11 @@ bool bateriaNiska(int procent, bool kabel, bool bylaNiska) {
   return procent < (bylaNiska ? BATERIA_NISKA_KONIEC : BATERIA_NISKA);
 }
 
-std::string tekstNiskiejBaterii(const BateriaEkranu& b) { return tekstBaterii(b) + " · podłącz kabel"; }
+std::string tekstNiskiejBaterii(const BateriaEkranu& b) {
+  // od 16.11.2026 tekst baterii bywa pusty (na kablu); bez wiszącego ` · ` zostaje samo `podłącz kabel`
+  const std::string t = tekstBaterii(b);
+  return t.empty() ? std::string("podłącz kabel") : t + " · podłącz kabel";
+}
 
 int ikonaBaterii(Plotno& p, int x, int y, int pola, bool kabel, bool cz) {
   p.prostokat(x, y, BATERIA_W, BATERIA_H, !cz);  // wnętrze w kolorze tła
@@ -401,12 +406,15 @@ int ikonaBaterii(Plotno& p, int x, int y, int pola, bool kabel, bool cz) {
 }
 
 int szerPolaBaterii(const BateriaEkranu& b) {
-  return BATERIA_W + BATERIA_NOSEK_W + BATERIA_ODSTEP + szer(F_P22B, tekstBaterii(b));
+  const std::string t = tekstBaterii(b);
+  // bez tekstu (na kablu) pole to sama ikona z noskiem: bez odstępu, ikona dosunięta do prawego marginesu
+  return BATERIA_W + BATERIA_NOSEK_W + (t.empty() ? 0 : BATERIA_ODSTEP + szer(F_P22B, t));
 }
 
 int rysujBaterie(Plotno& p, int x, int baza, const BateriaEkranu& b, const std::string& t) {
   // dół obrysu 1 px nad linią bazową: obrys 18 px stoi na wysokości wersalików i cyfr P22B
   int xi = ikonaBaterii(p, x, baza - BATERIA_H, polaBaterii(b.procent), b.kabel);
+  if (t.empty()) return xi;  // na kablu: sama ikona, bez odstępu za noskiem
   return tekst(p, F_P22B, xi + BATERIA_ODSTEP, baza, t);
 }
 

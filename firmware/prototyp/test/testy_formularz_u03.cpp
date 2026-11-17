@@ -781,7 +781,9 @@ static void testR_KONF_59_uklad_strony() {
                                     "ekrany_start", "kk_start", "dk_start", "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia",
                                     "pokaz_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana", "dk_pylek",
                                     "pokaz_wietrzenie", "pokaz_jutro_rano", "pokaz_wymiana", "pokaz_pylek",
-                                    "pokaz_dzien_i_noc", "pokaz_obrazek"};
+                                    "pokaz_dzien_i_noc", "pokaz_obrazek",
+                                    // R-KON-77: wyłącznik wygaszacza i jego czas
+                                    "wygaszacz", "wygaszacz_min"};
   for (auto& poz : POZYCJE)
     if (poz.bit != CZ_NIC) nazwy.push_back(std::string("cz_") + poz.kod);
   for (auto& n : nazwy) {
@@ -932,9 +934,18 @@ static void testR_KONF_59_uklad_strony() {
                            "okres.maska", "nowy_model", "nowy_model_cofnij", "wymiana.filtr", "okres.filtr_tyg",
                            "uwaga_o_masce", "aktualizacja_auto", "klucz_wydan", "klucz_usun", "haslo_okna",
                            "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana",
-                           "dk_pylek"})
+                           "dk_pylek", "ekrany_start"})
     wszystkie[pole] = "Nowa sieć: wpisz jej hasło albo zaznacz „bez hasła”. Panel nie zna dzisiejszej daty.";
+  // także błędy przy polach wygaszacza (R-KON-74, R-KON-77) i najdłuższa wartość czasu (720);
+  // `bezWyg` = ta sama strona bez błędów przy polach wygaszacza (ile dokładają same błędy tych pól)
+  std::string bezWyg = formularz::strona(gr, "/u/ABCDEFGHIJKLMNOPQRSTUVWXYZ234567/", kom, wszystkie);
+  for (const char* pole : {"wygaszacz", "wygaszacz_min"})
+    wszystkie[pole] = "Nowa sieć: wpisz jej hasło albo zaznacz „bez hasła”. Panel nie zna dzisiejszej daty.";
+  gr.wygaszaczMin = "720";
   std::string sr = formularz::strona(gr, "/u/ABCDEFGHIJKLMNOPQRSTUVWXYZ234567/", kom, wszystkie);
+  printf("strona formularza, scenariusz brzegowy: z błędami przy polach wygaszacza %zu B, bez nich %zu B (błędy "
+         "dokładają %zu B), rezerwacja %zu B, zapas %ld B\n", sr.size(), bezWyg.size(), sr.size() - bezWyg.size(),
+         formularz::REZERWACJA_STRONY, (long)formularz::REZERWACJA_STRONY - (long)sr.size());
   SPRAWDZ(sr.size() <= formularz::REZERWACJA_STRONY);
   printf("rozmiar strony formularza (R-KONF-59): %zu B zwykła, %zu B wszystkie błędy, %zu B najgorszy realny (zapas %zu B), "
          "%zu B z przyciętym plikiem, %zu B scenariusz brzegowy (rezerwacja %zu B)\n",

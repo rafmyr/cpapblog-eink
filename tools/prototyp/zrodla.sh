@@ -41,6 +41,10 @@ ZRODLA+=("$FW/src/sekrety.cpp" "$FW/src/formularz.cpp" "$FW/src/ekrany_konfigura
 ZRODLA+=("$FW/src/miasta.cpp")
 # Aktualizacja firmware z wydań GitHub (ADR-0032, ADR-0038): rdzeń decyzji, wersji, opisu wydania i SHA-256
 ZRODLA+=("$FW/src/aktualizacja.cpp")
+# Rodzaj odświeżenia e-ink: pełne albo częściowe (src/odswiezanie.cpp), R-NF-25
+ZRODLA+=("$FW/src/odswiezanie.cpp")
+# Szybkość ścieżki „przycisk → rysowanie” (T-WYM-99): przełącznik pamięci podręcznej do testów i haczyk faz pomiaru
+ZRODLA+=("$FW/src/szybkosc.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -54,6 +58,8 @@ TESTY=("$FW/test/testy.cpp" "$FW/test/testy_wybudzenie.cpp" "$FW/test/testy_dyry
        "$FW/test/testy_kolejka_linii.cpp" "$FW/test/testy_kolejka_linii_brzegowe.cpp"
        "$FW/test/testy_karty_z_budzikiem.cpp" "$FW/test/testy_karty_z_budzikiem_brzegowe.cpp")
 TESTY+=("$FW/test/testy_slot_dzienny.cpp" "$FW/test/testy_slot_dzienny_dyrygent.cpp") # slot dzienny, obrazki dnia, S-K-01
+TESTY+=("$FW/test/testy_wygaszacz_brzegowe.cpp") # testy brzegowe wygaszacza ekranu (R-KON-73…R-KON-77)
+TESTY+=("$FW/test/testy_wygaszacz_brzegowe_2.cpp") # testy brzegowe wygaszacza, wariant W3 (R-KON-75)
 TESTY+=("$FW/test/testy_raport_a4.cpp") # raport A4, kod QR, serwer raportu, ściąga
 TESTY+=("$FW/test/testy_stany_nocy_sloty_wieczorne.cpp") # stany nocy 5.1.4, sloty wieczór i tydzień, rytm ekranu L, linie kolejki
 TESTY+=("$FW/test/testy_sprzet_infekcja_sk.cpp") # SPRZĘT, INFEKCJA, pozostałe S-K
@@ -68,6 +74,7 @@ TESTY+=("$FW/test/testy_poranek_szybciej.cpp") # szybszy wynik nocy rano: gęste
 TESTY+=("$FW/test/testy_poranek_brzegowe.cpp") # przypadki brzegowe szybszego wyniku nocy rano
 TESTY+=("$FW/test/testy_zasilanie_rytm.cpp") # częstsze sprawdzanie rano na zasilaniu zewnętrznym (R-DANE-63…65)
 TESTY+=("$FW/test/testy_belka.cpp") # belka informacyjna: pola, ustępowanie środka, bateria, ekrany bez belki (ADR-0043)
+TESTY+=("$FW/test/testy_belka_bez_kabla_brzegowe.cpp") # testy brzegowe belki: na kablu sama ikona (R-EKR-66, 16.11.2026)
 TESTY+=("$FW/test/testy_zegar_ntp.cpp") # zegar nowego panelu, NTP 3 próby i czas z AirBridge (R-AW-18, T-TEST-327)
 TESTY+=("$FW/test/testy_str_edf.cpp") # STR.edf: czytnik EDF, noce 'S', pierwszeństwo, STR w dyrygencie (ADR-0035)
 TESTY+=("$FW/test/testy_str_edf_brzegowe.cpp") # przypadki brzegowe STR.edf
@@ -77,7 +84,11 @@ TESTY+=("$FW/test/testy_portret.cpp") # Portret nocy: odcinki wobec tools/portre
 TESTY+=("$FW/test/testy_porownanie.cpp") # tryb porównawczy: noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv
 TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu porównawczego
 TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
+TESTY+=("$FW/test/testy_szybciej_przycisk.cpp") # szybsza zmiana ekranu po przycisku: liczniki i równoważność (T-WYM-99)
+TESTY+=("$FW/test/testy_szybciej_przycisk_brzegowe.cpp") # testy brzegowe T-WYM-99: mutacje kluczy, testy różnicowe z pamięcią i bez
 TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
+TESTY+=("$FW/test/testy_odswiezanie_czesciowe.cpp") # rodzaj odświeżenia e-ink: pełne i częściowe (R-NF-25)
+TESTY+=("$FW/test/testy_odswiezanie_czesciowe_brzegowe.cpp") # testy brzegowe R-NF-25: bez nowych odświeżeń wobec N = 0, licznik, kolejka, parser
 TESTY+=("$FW/test/testy_kolejnosc_portret.cpp" "$FW/test/testy_kolejnosc_slot_dyrygent.cpp") # ADR-0045 z dyrygentem: Portret ▶ na pierwszą stronę, dzien.ukryte w slocie dziennym
 INCLUDY=(-I"$FW/src" -I"$FW/include" -I"$FW/test/atrapy")
 # Flagi ostrzeżeń. Pełny zestaw dla rdzenia i podglądu.

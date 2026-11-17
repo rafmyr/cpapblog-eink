@@ -115,13 +115,13 @@ const int BATERIA_NISKA_KONIEC = 25;  // [PRÓG] stan „niska” kończy się o
 // żeby sama zmiana procentu nie odświeżała e-ink, R-EKR-66); bez ustawienia: procent nieznany.
 struct BateriaEkranu {
   int procent = -1;    // M-25 (0…100); -1 = nieznany (`–`)
-  bool kabel = false;  // panel na zasilaniu zewnętrznym (R-DANE-65): słowo `kabel` zamiast procentu
+  bool kabel = false;  // panel na zasilaniu zewnętrznym (R-DANE-65): sama ikona z kreską, bez procentu i bez tekstu
   bool niska = false;  // stan „niska bateria” (poniżej BATERIA_NISKA, z histerezą): stopka slotu dziennego
 };
 void ustawBaterieEkranu(const BateriaEkranu& b);
 BateriaEkranu bateriaEkranu();
 int polaBaterii(int procent);                       // 0…4 pól ikony; procent nieznany = 0
-std::string tekstBaterii(const BateriaEkranu& b);   // `78%`, `–` (nieznany) albo `kabel`
+std::string tekstBaterii(const BateriaEkranu& b);   // `78%`, `–` (nieznany), na kablu pusty (od 16.11.2026)
 // Stan „niska bateria” z histerezą: wchodzi poniżej BATERIA_NISKA, wychodzi od BATERIA_NISKA_KONIEC albo na kablu.
 // Procent nieznany (brak pomiaru w tym wybudzeniu) niczego nie zmienia: zostaje stan poprzedni, żeby chwilowy brak
 // odczytu nie przełączał stopki i nie odświeżał e-ink.
@@ -129,8 +129,9 @@ bool bateriaNiska(int procent, bool kabel, bool bylaNiska);  // procent nieznany
 // Ikona baterii z lewym górnym rogiem obrysu w (x, y); `pola` 0…4; `kabel`: bez pól, pionowa kreska w środku.
 // Zwraca x za noskiem. `czarny` = kolor kreski (na jasnym tle true).
 int ikonaBaterii(Plotno& p, int x, int y, int pola, bool kabel, bool czarny = true);
-int szerPolaBaterii(const BateriaEkranu& b);        // ikona z noskiem, odstęp i tekst
-// Ikona i tekst baterii od x w lewo do prawej, tekst P22B na linii bazowej `baza`; zwraca x za tekstem.
+int szerPolaBaterii(const BateriaEkranu& b);        // ikona z noskiem, odstęp i tekst; na kablu sama ikona
+// Ikona i tekst baterii od x w lewo do prawej, tekst P22B na linii bazowej `baza`; zwraca x za tekstem
+// (pusty tekst: bez odstępu, zwraca x za noskiem).
 int rysujBaterie(Plotno& p, int x, int baza, const BateriaEkranu& b, const std::string& tekst);
 // ---------- znaki stanu danych na belce (spec 5.4.17, R-EKR-67…R-EKR-69; decyzja właściciela 14.11.2026) ----------
 // „Aby człowiek nie musiał myśleć, czy dane są OK, tylko widział od razu.” Stan pokazany wyjątkiem: przy świeżych

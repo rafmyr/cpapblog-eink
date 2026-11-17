@@ -3,6 +3,7 @@
 #include "slot_dzienny.h"
 #include "noc_pliki.h"
 #include "miasta.h"
+#include "odswiezanie.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -760,6 +761,18 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
       ok = indeksZTekstu(v.c_str(), UWAGA_O_MASCE_MAX + 1, m) && m >= UWAGA_O_MASCE_MIN;
       if (ok) u.uwagaOMasce = m;
     }
+    if (k == "dzien.wygaszacz_min") {  // R-KON-74: 30–720 min, liczba całkowita; inaczej wiersz pominięty (domyślne 180)
+      ok = indeksZTekstu(v.c_str(), WYGASZACZ_MIN_DO + 1, m) && m >= WYGASZACZ_MIN_OD;
+      if (ok) u.wygaszaczMin = m;
+    }
+    if (k == "dzien.wygaszacz") {  // R-KON-77: tak|nie; inaczej wiersz pominięty (włączony)
+      ok = v == "tak" || v == "nie";
+      if (ok) u.wygaszacz = v == "tak" ? 1 : 0;
+    }
+    if (k == odswiezanie::KLUCZ_PELNE_CO) {  // R-NF-25: 0…20; inaczej wiersz pominięty, wartość domyślna
+      ok = odswiezanie::pelneCoZTekstu(v, m);
+      if (ok) u.pelneCo = m;
+    }
     if (k == "okres.maska") {
       ok = indeksZTekstu(v.c_str(), 61, m) && m > 0;
       if (ok) u.sprzet[EL_MASKA].okres = m;
@@ -915,8 +928,17 @@ const char* idEkranuSlotu(EkranSlotu e) {
   }
 }
 
-bool wBlokuObrazka(int minuta, int slotOd) {
-  return slotOd >= 0 && minuta >= slotOd && minuta < slotOd + OBRAZEK_BLOK_MIN;
+// R-KON-73, R-KON-74: bezczynność od późniejszej z chwil (start slotu, ostatnie naciśnięcie); bez startu slotu nigdy
+bool poraWygaszacza(uint32_t teraz, uint32_t slotEp, uint32_t nacisniecieEp, int progMin) {
+  if (slotEp == 0 || slotEp > teraz) return false;
+  if (progMin < WYGASZACZ_MIN_OD || progMin > WYGASZACZ_MIN_DO) progMin = WYGASZACZ_MIN_DOMYSLNIE;
+  // naciśnięcie „z przyszłości” (zepsuta pamięć RTC, korekta zegara wstecz) liczy się jak brak naciśnięcia, żeby nie
+  // wyłączyło wygaszacza na stałe
+  uint32_t od = slotEp;
+  if (nacisniecieEp <= teraz && nacisniecieEp > od) od = nacisniecieEp;
+  // w pełnych minutach: start slotu zapisuje się kilka sekund po pełnej godzinie (po pobraniu), a ocena budzi się równo
+  // o pełnej godzinie, więc porównanie co do sekundy przesuwałoby wygaszacz o całą godzinę (4 h zamiast 3 h)
+  return teraz / 60u - od / 60u >= (uint32_t)progMin;
 }
 
 WyborSlotu wybierzSlot(const WejscieSlotu& w) {
@@ -939,19 +961,19 @@ WyborSlotu wybierzSlot(const WejscieSlotu& w) {
     r.pylek = pylekDnia(*w.prognoza, w.dzis, godz, w.pylki);
   }
   const UkladDnia& u = w.uklad;
-  // R-KON-72: `Przewietrz teraz.` (wariant CO2, tylko przy włączonych ekranach CO2) zawsze zaraz po D0a, przed blokiem
-  // obrazka i przed listą D1…D4, bez przełącznika „Wietrzenie” (dotąd: R-KON-44, R-KON-50, okno „teraz” w R-KON-46)
+  // R-KON-72: `Przewietrz teraz.` (wariant CO2, tylko przy włączonych ekranach CO2) zawsze zaraz po D0a, przed listą
+  // D1…D4 i nigdy pod wygaszaczem (R-KON-75), bez przełącznika „Wietrzenie” (dotąd: R-KON-44, R-KON-50, okno „teraz” w R-KON-46)
   if (r.okno.wariant == Wietrzenie::CO2) {
     r.ekran = EkranSlotu::SK33;
     return r;
   }
+  // obrazek dnia S-K-38 w obu rolach (D5 i wygaszacz): jest plik, bez linii uwagi (R-KON-54), nie ukryty (R-KON-71)
   const bool obrazek = w.obrazekJest && !w.liniaUwagi && u.pokazuj(RodzajDzienny::OBRAZEK);
-  // w pierwszym bloku slotu S-K-38 przed zwykłymi S-K-33…S-K-37 (R-KON-50); przed nim
-  // tylko D0a i `Przewietrz teraz.` (wyżej), a z linią uwagi (R-KON-54) albo wyłączony (R-KON-71) obrazka nie ma
-  if (obrazek && wBlokuObrazka(w.minuta, w.slotOd)) {
-    r.ekran = EkranSlotu::SK38;
-    return r;
-  }
+  // wygaszacz (R-KON-73, R-KON-75, decyzja właściciela projektu 16.11.2026 22:08, wariant W3): po progu bezczynności (w.bezczynnosc,
+  // dyrygent daje false przy wyłączonym wygaszaczu, R-KON-77, i przy czekającej informacji po aktualizacji); także przy
+  // stanie „niska bateria” (stopka obrazka ostrzega tak samo, R-KON-69). Zasłania D5, ekran z rana i ekrany czysto
+  // informacyjne z D1…D4 (zaslania() niżej); ekrany z działaniem „teraz” zostają na wierzchu.
+  const bool wygaszacz = obrazek && w.bezczynnosc;
   const bool okno = r.okno.wariant != Wietrzenie::BRAK && u.pokazuj(RodzajDzienny::WIETRZENIE);
   const bool jutro = r.jutro.wariant != Jutro::BRAK && u.pokazuj(RodzajDzienny::JUTRO_RANO);
   // kolejność D1…D4 (R-KON-70); niepoprawna (nie permutacja) = domyślna
@@ -982,31 +1004,52 @@ WyborSlotu wybierzSlot(const WejscieSlotu& w) {
       kol[iw] = RodzajDzienny::JUTRO_RANO;
     }
   }
+  // R-KON-75 (W3): wygaszacz zasłania S-K-33 `Wietrz od …` (okno jeszcze się nie zaczęło) i `Dziś bez wietrzenia.`,
+  // S-K-34 i S-K-36; nie zasłania S-K-33 z oknem trwającym (`Wietrz do …`), z upałem (`Okna zamknięte …`, krok
+  // „zasłoń okna” teraz) ani S-K-35 (akcja ◀ 2 s). Zasłanianie dosłowne
+  //: gdy wygrałby ekran zasłaniany, wynikiem jest wygaszacz,
+  // bez sięgania po dalszych kandydatów; po progu wynik to ten sam ekran co bez wygaszacza albo S-K-38, nigdy trzeci.
+  // Dalszych kandydatów nie oceniamy, więc S-K-35 nie zużywa licznika `b9_sk35` za ekran, którego nie pokazano.
+  auto zaslania = [&](RodzajDzienny x) {
+    if (!wygaszacz) return false;
+    if (x == RodzajDzienny::WIETRZENIE)
+      return r.okno.wariant == Wietrzenie::POZNIEJ || r.okno.wariant == Wietrzenie::SMOG;
+    return x == RodzajDzienny::JUTRO_RANO || x == RodzajDzienny::PYLEK;
+  };
   for (RodzajDzienny x : kol) {
+    EkranSlotu e = EkranSlotu::BRAK;
     switch (x) {
       case RodzajDzienny::WIETRZENIE:
-        if (okno) { r.ekran = EkranSlotu::SK33; return r; }
+        if (okno) e = EkranSlotu::SK33;
         break;
       case RodzajDzienny::JUTRO_RANO:
-        if (jutro) { r.ekran = EkranSlotu::SK34; return r; }
+        if (jutro) e = EkranSlotu::SK34;
         break;
       case RodzajDzienny::WYMIANA:
         if (w.sprzet && u.pokazuj(RodzajDzienny::WYMIANA)) {
           r.wymiana = wymianaSprzetu(*w.sprzet, w.dzis, w.ostatnieSK35);
-          if (r.wymiana.element >= 0) { r.ekran = EkranSlotu::SK35; return r; }
+          if (r.wymiana.element >= 0) e = EkranSlotu::SK35;
         }
         break;
       case RodzajDzienny::PYLEK:
-        if (r.pylek.rodzaj >= 0 && u.pokazuj(RodzajDzienny::PYLEK)) { r.ekran = EkranSlotu::SK36; return r; }
+        if (r.pylek.rodzaj >= 0 && u.pokazuj(RodzajDzienny::PYLEK)) e = EkranSlotu::SK36;
         break;
       default: break;
     }
+    if (e == EkranSlotu::BRAK) continue;
+    if (zaslania(x)) break;  // zwycięzca zasłonięty: wygaszacz niżej (D5 i tak zasłonięty)
+    r.ekran = e;
+    return r;
   }
-  // D5 poza blokiem obrazka (R-KON-50): S-K-37, a bez współrzędnych miasta albo wyłączony zastępstwo S-K-38 (R-KON-54,
-  // R-KON-71); bez obu ekran z rana (BRAK)
+  // D5 jak przed 16.11.2026: S-K-37, a bez współrzędnych miasta albo wyłączony zastępstwo S-K-38 (R-KON-54, R-KON-71);
+  // bez obu ekran z rana (BRAK). Po progu bezczynności D5, ekran z rana i ekrany informacyjne D1…D4 zasłania wygaszacz. Bloku
+  // obrazka od startu slotu już nie ma (R-KON-50 wycofane 16.11.2026).
   if (w.wspolrzedne && u.pokazuj(RodzajDzienny::DZIEN_I_NOC)) r.slonce = dzienINoc(w.dzis, w.lat, w.lon);
-  bool sk37 = r.slonce.jest;
-  r.ekran = sk37 ? EkranSlotu::SK37 : obrazek ? EkranSlotu::SK38 : EkranSlotu::BRAK;
+  r.wygaszacz = wygaszacz;
+  r.ekran = wygaszacz        ? EkranSlotu::SK38
+            : r.slonce.jest ? EkranSlotu::SK37
+            : obrazek       ? EkranSlotu::SK38
+                            : EkranSlotu::BRAK;
   return r;
 }
 

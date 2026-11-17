@@ -26,7 +26,7 @@ Konsultacja ze specjalistą UX/UI: jedno stałe miejsce na „gdzie jestem” i 
 3. **Belka jest jasna na każdym ekranie**, także nad negatywem (S3, ekran L, S-K w tonie „problem”) i na karcie w tonie „problem”. Budzik nadal nigdy na czarnym tle (ADR-0009).
 4. **Karta z budzikiem dostaje belkę** z nazwą `Poranek`, datą i baterią. To zmienia granicę „ekran danych albo karta z budzikiem, bez mieszania” (ADR-0007) tylko o stan panelu: w belce karty nie ma danych terapii, a jedyny dopisek o nocy to `ocena ograniczona` albo `dane z {data}`, które karta miała już w dawnym nagłówku.
 5. **Slot dzienny i ekran nocny S9 bez belki**, jak dotąd. Jedyna zmiana: przy baterii poniżej 20% `[PRÓG]` stopka ekranu slotu dziennego pokazuje w miejscu wyniku nocy ikonę baterii i `{x}% · podłącz kabel` (R-KON-69). S9 bez zmian (ostrzeżenie E-05 jak dotąd).
-6. **Bateria bez kosztu energii.** Procent to M-25 z ostatniego odczytu napięcia, bez dodatkowych wybudzeń. Dopóki stoi ta sama klatka, belka rysuje stan baterii z tej klatki, więc zmiana procentu sama nie odświeża e-ink. Na zasilaniu zewnętrznym (R-DANE-65) słowo `kabel` zamiast procentu; procent nieznany: `–`.
+6. **Bateria bez kosztu energii.** Procent to M-25 z ostatniego odczytu napięcia, bez dodatkowych wybudzeń. Dopóki stoi ta sama klatka, belka rysuje stan baterii z tej klatki, więc zmiana procentu sama nie odświeża e-ink. Na zasilaniu zewnętrznym (R-DANE-65) słowo `kabel` zamiast procentu (od 16.11.2026 sama ikona z kreską, bez tekstu, niżej „Zmiana 2026-11-16”); procent nieznany: `–`.
 7. **Kolejność ustępowania środka** przy braku miejsca: dzień tygodnia, potem data (przy nocy ubiegłej wynika z nazwy ekranu), na końcu godzina odczytu; w teście wszystkich dat, godzin, ocen i stanów baterii godzina zostaje zawsze. `ocena częściowa`, `ocena ograniczona`, `dane z {data}`, `noc {data}` i romb nie ustępują nigdy (ADR-0029 pkt 7).
 8. **Jedno miejsce w kodzie:** `src/ekrany.cpp` `belka()`; wszystkie ekrany z niej korzystają, stałe geometrii nazwane w `src/ekrany.h`.
 
@@ -38,7 +38,7 @@ Konsultacja ze specjalistą UX/UI: jedno stałe miejsce na „gdzie jestem” i 
 - Karta w tonie „problem” nie ma czarnego paska nagłówka; ton niesie etykieta w czarnym polu. Biała ramka ekranu L zaczyna się pod belką.
 - Ekran U-05 ma belkę zamiast nagłówka z kanwy (kroje 24 i 22 px zamiast 20 px, linia na 41 zamiast 48).
 - Treść pod belką zostaje na swoich miejscach: tam, gdzie nagłówek kończył się linią na y 52, pod belką jest 10 px więcej wolnego miejsca; K2 bez zmian (linia była na y 44).
-- Procent w belce może być nieaktualny do następnego odświeżenia e-ink (najdłużej 24 h), a słowo `kabel` pojawia się przy następnym odświeżeniu. Przejście progu „niska bateria” dodaje najwyżej jedno odświeżenie.
+- Procent w belce może być nieaktualny do następnego odświeżenia e-ink (najdłużej 24 h), a słowo `kabel` (od 16.11.2026 ikona z kreską bez tekstu) pojawia się przy następnym odświeżeniu. Przejście progu „niska bateria” dodaje najwyżej jedno odświeżenie.
 - W K1 przy `ocena ograniczona` data ustępuje przy części dat, godzina zostaje zawsze.
 - Ekrany slotu wieczornego i tygodniowego mają nazwę `Wieczór`; ekran dnia trzymany do wieczora zostaje z nazwą `Poranek`.
 - Nowe pola w pamięci RTC: stan baterii ostatniej klatki i stan „niska bateria” (`StanRtc::klatkaBatProc`, `klatkaBatFlagi`, `bateriaNiska`).
@@ -63,7 +63,7 @@ Konsultacja ze specjalistą UX/UI: jedno stałe miejsce na „gdzie jestem” i 
 
 ## Zmiana 2026-11-14 (ekrany serwisowe)
 
-- U-05: środek belki `sprawdzono {DD.MM hh:mm}` (bez zegara pusty) zamiast `Ustawienia → Test sprzętu`; na kablu belka `kabel`, a wiersz `Bateria` `na zasilaniu · {x}%` (procent z pomiaru zostaje na ekranie, po przeglądzie; bez pomiaru sam `na zasilaniu`; do 14.11.2026 procent w obu miejscach); bez pomiaru belka `–`, wiersz `brak odczytu`. Zasada „belka i wiersz pokazują to samo” zostaje.
+- U-05: środek belki `sprawdzono {DD.MM hh:mm}` (bez zegara pusty) zamiast `Ustawienia → Test sprzętu`; na kablu belka `kabel` (od 16.11.2026 sama ikona z kreską), a wiersz `Bateria` `na zasilaniu · {x}%` (procent z pomiaru zostaje na ekranie, po przeglądzie; bez pomiaru sam `na zasilaniu`; do 14.11.2026 procent w obu miejscach); bez pomiaru belka `–`, wiersz `brak odczytu`. Zasada „belka i wiersz pokazują to samo” zostaje.
 - U-07: środek belki ze stanem (`jest nowa wersja`, `krok 1 z 4`, `gotowe`, `nie udało się` …), pkt 1 decyzji (środek mówi, czego dotyczy ekran).
 
 ## Zmiana 2026-11-14 (znaki stanu danych)
@@ -73,7 +73,7 @@ Decyzja 6 właściciela projektu 14.11.2026 („aby człowiek nie musiał myśle
 - **Dane nieaktualne (R-EKR-67):** na belkach ekranów o nocy (ekran dnia z kartą, pytaniami i potwierdzeniami, Portret, K1, K2) odwrócone pole `! dane z {data}` (bez historii `! brak danych`), biały tekst na czarnym, jedyne czarne pole belki. Próg z decyzji: „brak ostatniej nocy po zamknięciu okna porannego”, bez nowej liczby: koniec okna 11:00 [PRÓG] (R-DANE-19, R-DANE-20); przed 11:00 oczekiwana jest noc z wczoraj. Pole tylko bez udanego odczytu AirBridge po 11:00 dnia nocy oczekiwanej. Noc bez terapii przy działającym AirBridge (E-10) to nie dane nieaktualne: zostaje `dane z {data}` bez pola i linia E-10. Pkt 2 decyzji („belka jasna”) bez zmian: pole stoi na jasnej belce także nad negatywem.
 - **Pobieram (R-EKR-68):** (zmienione po przeglądzie, niżej) klepsydra 14 × 20 px i `pobieram` w środku, gdy panel pobiera noc zaraz po narysowaniu klatki (tylko R-PRZ-22); po pobraniu bez nowej nocy na ekranie dnia panel przerysowuje ekran bez klepsydry (jedno odświeżenie e-ink więcej na takie pobranie).
 - **Nowa wersja (R-EKR-69):** koło ze strzałką w dół w prawym polu przed baterią na każdym ekranie z belką poza U-07 i ekranem L z pilnością A albo B; zastępuje tekst `jest aktualizacja ·` na U-01 i ikonę w stopce na ekranach z belką (R-EKR-61: ikona w stopce zostaje na ekranach slotu dziennego bez belki). Pkt 1 decyzji (prawe pole: stan panelu) bez zmian.
-- **Ustępowanie (pkt 7):** pole, romb, ocena i godzina odczytu nie ustępują; przy braku miejsca kolejno słowo `pobieram`, środek według pkt 7, znak nowej wersji, klepsydra (tylko K1 z rombem albo oceną). Pole ma 6 px wcięcia i 10 px odstępu, żeby `! dane z 03.03` z `◆ · ocena ograniczona` zmieściło się w K1 przy kablu.
+- **Ustępowanie (pkt 7):** pole, romb, ocena i godzina odczytu nie ustępują; przy braku miejsca kolejno słowo `pobieram`, środek według pkt 7, znak nowej wersji, klepsydra (tylko K1 z rombem albo oceną). Pole ma 6 px wcięcia i 10 px odstępu, żeby `! dane z 03.03` z `◆ · ocena ograniczona` zmieściło się w K1 przy kablu (do 16.11.2026 najwęższy stan baterii; od zmiany 2026-11-16 najciaśniej jest przy `100%`, które zostawia środkowi 1 px więcej niż dawny `kabel`).
 - Konsekwencja: stan pokazany wyjątkiem, przy świeżych danych belka bez zmian; bez nowych pól w RTC i NVS.
 
 ## Zmiana 2026-11-14 (znaki stanu danych po przeglądzie)
@@ -82,3 +82,9 @@ Decyzja 6 właściciela projektu 14.11.2026 („aby człowiek nie musiał myśle
 - **Pobieram (wariant oszczędny):** żadnego odświeżenia e-ink tylko dla klepsydry, a klepsydra nie może zostać na e-inku po pobraniu. Odświeżenie po pobraniu po przycisku przychodzi tylko przy nowej nocy, czego panel przed pobraniem nie wie, więc dziś klepsydry nie widać w żadnym przebiegu; odświeżenia jak przed częścią C (◀ bez akcji 0, sześć ◀ co 125 s 0, ▶ → K1 1). Rysunek 18 × 22 px z prostą szyjką zostaje na przebieg z pewnym odświeżeniem po pobraniu.
 - **Portret:** przy polu nieaktualnych bez `noc na {dzień} {data}`.
 - **Strona „Sypialnia · 30 nocy” (ADR-0044):** znak nowej wersji tak, pole nieaktualnych nie (strona opisuje sypialnię). Znak wersji na ciasnej belce K1 ustępuje (zostaje).
+
+## Zmiana 2026-11-16 (decyzja właściciela projektu: „usuń napis kabel przy ładowaniu”)
+
+- Pkt 6: na zasilaniu zewnętrznym w prawym polu belki stoi sama ikona baterii w wersji „na kablu” (obrys bez pól, pionowa kreska w środku), bez procentu i bez słowa `kabel`. Ikona stoi przy prawym marginesie (x 772), bez odstępu za noskiem; tekst stanu z ` ·` i znak nowej wersji stoją tuż przed nią, a środek belki ma o tyle więcej miejsca (spec 5.4.17, R-EKR-66; `src/ekrany.cpp` `tekstBaterii()`, `szerPolaBaterii()`, `rysujBaterie()`).
+- Dotyczy też belki U-05: na kablu w belce sama ikona, wiersz `Bateria` bez zmian (`na zasilaniu · {x}%`, R-KONF-41).
+- Bez zmian: `{x}% · podłącz kabel` w stopce slotu dziennego przy niskiej baterii (R-KON-69; na kablu stan „niska bateria” nie występuje), procent przy pracy z baterii, `–` przy procencie nieznanym.

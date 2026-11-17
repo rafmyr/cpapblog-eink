@@ -125,6 +125,7 @@ class WyswietlaczEsp32 : public Wyswietlacz {
   void wlacz() override;
   Plotno& plotno() override;
   void odswiez() override;
+  Odswiezenie odswiezJako(Odswiezenie rodzaj) override;  // R-NF-25: pełne albo częściowe całej powierzchni
   const uint8_t* bufor() override;
 };
 

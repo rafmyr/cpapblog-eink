@@ -276,12 +276,13 @@ PrzebiegCisnienia przebiegCisnienia(const Kontekst& k, const std::string& m, dou
   std::vector<bool> ost5;
   NormaMetryki zamrozona;
   int spokojne = 0;
+  const HistoriaPos hp = historiaPos(k);  // T-WYM-99: posortowana raz, nie w każdej nocy (liczNorme(vector) sortuje)
   for (const Noc& n : *k.historia) {
     if (n.data > k.dzis) break;
     if (!n.wazna || !tejSamejRodziny(trybNocy(k, n), k.trybBiezacy)) continue;
     double v = metrykaE(n, m);
     if (std::isnan(v)) continue;
-    Norma nm = liczNorme(*k.historia, n.data, bezCzynnikow, &wyl);
+    Norma nm = liczNorme(hp, n.data, bezCzynnikow, &wyl);
     const NormaMetryki& biez = *normaMetryki(nm, m);
     const NormaMetryki& norma = p.aktywny ? zamrozona : biez;
     bool o = norma.jest() && v > norma.p90 && v - norma.med >= delta - 1e-6;

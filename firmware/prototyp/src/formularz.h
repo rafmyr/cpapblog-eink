@@ -60,6 +60,11 @@ struct Pola {
   std::string wersja;
   // sekcja „Ekrany” (ADR-0045, R-KONF-60): układ kokpitu i ekranów dziennych z pliku (parsujUstawieniaDnia)
   UkladEkranow ekrany;
+  // R-KON-77: „Wygaszacz ekranu” (klucz `dzien.wygaszacz`, pole `wygaszacz` tak|nie, domyślnie `tak`; jedyne miejsce
+  // wyłączenia samego wygaszacza) i próg bezczynności (klucz `dzien.wygaszacz_min`, pole `wygaszacz_min`, 30–720, 180).
+  // Pole „Obrazek dnia” (`pokaz_obrazek`, `obrazek` w `dzien.ukryte`) ukrywa obrazek w obu rolach.
+  std::string wygaszacz = "tak";
+  std::string wygaszaczMin = "180";
 };
 // Pola z `/konfiguracja.txt` i sekretów (stan przed formularzem). `zrodloOto` = panel ma lokalne źródło otoczenia.
 // `wymiana.filtr` w innej postaci niż RRRR-MM-DD = pole puste; `okres.*` dłuższe niż MAKS_OKRESU_Z_PLIKU bajtów
@@ -102,6 +107,10 @@ Wynik waliduj(const std::map<std::string, std::string>& pola, const sekrety::Dan
 // Sekcja „Ekrany” (ADR-0045, R-KONF-60; woła ją waliduj()): pola `ekrany_start`, `kk_start`, `dk_start`, `kk_{id}`,
 // `dk_{id}`, `pokaz_{id}` → w.plik[`kokpit.kolejnosc`, `kokpit.ukryte`, `dzien.kolejnosc`, `dzien.ukryte`] ("" = domyślne,
 // wiersz usuwany). Bez `ekrany_start` nic; zła wartość miejsca → błąd przy polu, układ bez zmian (R-KONF-18).
+// R-KON-77: pole `wygaszacz` (`tak` | `nie`) → `dzien.wygaszacz` (`tak` = wiersz usuwany; bez pola, np. strona sprzed
+// zmiany: bez zmian); zła wartość → błąd przy polu, sekcja bez zmian. Pole `wygaszacz_min` → `dzien.wygaszacz_min`
+// (180 = wiersz usuwany; puste = domyślne; liczba spoza 30–720 → błąd przy polu, poprzednia wartość zostaje; przy
+// `wygaszacz=nie` pole pominięte).
 void walidujEkrany(const std::map<std::string, std::string>& pola, Wynik& w);
 // Adres AirBridge: IPv4 z sieci prywatnej albo nazwa `.local`, opcjonalnie `:{port}` 1–65535 (5.6.4, R-KONF-40).
 bool adresAirBridgeOk(const std::string& a);
@@ -118,7 +127,9 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 // pierwszej zmiany pola; nazwy pól, walidacja i zapis bez zmian), wersja w nagłówku. Składana w jednym `std::string`
 // z rezerwacją REZERWACJA_STRONY bajtów: najgorszy realny przypadek (najdłuższe sekrety z samych znaków ucieczki,
 // prawdziwe błędy wszystkich pól, najdłuższy komunikat dyrygenta) mieści się w niej bez realokacji.
-const size_t REZERWACJA_STRONY = size_t{20} * 1024;  // od ADR-0045 (sekcja „Ekrany”) 20 KB, wcześniej 16 KB
+// Od 16.11.2026 (pola wygaszacza, R-KON-74, R-KON-77) 21 KB: scenariusz „wszystkie pola z błędem” miał przed nimi 24 B
+// zapasu wobec 20 KB, a dwa pola z etykietami dokładają ok. 0,5 KB; wcześniej od ADR-0045 (sekcja „Ekrany”) 20 KB, 16 KB.
+const size_t REZERWACJA_STRONY = size_t{21} * 1024;
 // Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
 const size_t MAKS_OKRESU_Z_PLIKU = 8;
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,

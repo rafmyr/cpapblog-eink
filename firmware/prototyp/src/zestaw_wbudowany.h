@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:bac68319f7afdc89b8a6beb35f9c4e8034d215c6ea02b1a09e11970e2bf29d37
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-ce1e6d59774f pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=c26cacf516fc skrot=sha256:5de381b45baa415d5b5d07f8ed18e8ad94075f37ec743859e97b605fd4408a04
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -384,7 +384,9 @@ S-K-35.co_ile;2;dni;wszystkie
 S-K-36.pylek;10;% górnych wartości sezonu;wszystkie
 R-KON-46.od_godziny;16:00;godzina;wszystkie
 R-KON-46.okno_wkrotce;60;min;wszystkie
-R-KON-50.blok_obrazka;120;min;wszystkie
+R-KON-74.bezczynnosc;180;min;wszystkie
+R-KON-74.zakres_min;30;min;wszystkie
+R-KON-74.zakres_max;720;min;wszystkie
 R-KON-60.zimno;5;°C;wszystkie
 R-KON-60.brzydka_zachmurzenie;90;%;wszystkie
 R-KON-60.brzydka_udzial;50;% godzin horyzontu;wszystkie
@@ -438,7 +440,7 @@ R-KON-68.co_dni;7;dni;wszystkie
 R-NOR-12.delta.M-28p;2;cmH2O;ASV,ASVAuto
 S-K-30.m06p;1.5;cmH2O;ASV,ASVAuto
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-ce1e6d59774f pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=c26cacf516fc skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -641,7 +643,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-3515d140d800 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a3d4763f940b skrot=sha256:13a0ee56a1c0de0d5e0b3784d03fcfad16a97cbb36957fe9e0a5e589cdf0be89
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-ce1e6d59774f pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=c26cacf516fc skrot=sha256:13a0ee56a1c0de0d5e0b3784d03fcfad16a97cbb36957fe9e0a5e589cdf0be89
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.

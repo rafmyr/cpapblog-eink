@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include "szybkosc.h"
 #include "wspolne.h"
 
 // 4.9: duży wyciek jak E-20 (M-08 ≥ 30 min [PRÓG E-20.minuty] albo ≥ 10% czasu terapii [PRÓG E-20.odsetek_czasu],
@@ -350,21 +351,26 @@ std::vector<std::string> nieocenianeUspokojenia() {
   return w;
 }
 
+LicznikiStanow& licznikiStanow() {
+  static LicznikiStanow l;
+  return l;
+}
+
 const Stany& stanyZPamieci(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone) {
+  licznikiStanow().wywolan++;
   static Stany pamiec;
   static uint64_t klucz = 0;
   static bool jest = false;
-  // skrót FNV-1a z pełnej treści (nadpisanie nocy, R-AW-03, też zmienia wynik) zamiast kopii całej historii w RAM
-  uint64_t k = 1469598103934665603ULL;
-  auto dopisz = [&k](const std::string& t) {
-    for (unsigned char c : t) { k ^= c; k *= 1099511628211ULL; }
-    k ^= 0xFF; k *= 1099511628211ULL;  // separator
-  };
-  dopisz(dzis);
-  for (auto& r : hist) dopisz(trescNocy(r));  // z polami M-08, M-17 (noc niepewna, stan M-17)
-  for (auto& w : wykluczone) dopisz(w);
-  if (!jest || k != klucz) {
+  // skrót FNV-1a ze wszystkich pól nocy (nadpisanie nocy, R-AW-03, też zmienia wynik) zamiast kopii całej historii
+  // w RAM; bajty pól bez formatowania do tekstu (T-WYM-99: formatowanie 366 nocy kosztowało na panelu ok. 160 ms
+  // przy każdym wywołaniu)
+  uint64_t k = skrotTekst(SKROT_POCZATEK, dzis);
+  for (auto& r : hist) k = skrotNocy(k, r);
+  k = skrotBajty(k, "|", 1);
+  for (auto& w : wykluczone) k = skrotTekst(k, w);
+  if (!jest || k != klucz || szybkosc::bezPamieci) {
     pamiec = liczStany(hist, dzis, wykluczone);
+    licznikiStanow().obliczen++;
     klucz = k;
     jest = true;
   }
