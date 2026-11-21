@@ -303,7 +303,30 @@ std::string ocenaK1JednaLinia(const WierszK1& w, int maxW);
 const int K1_X_LINII = 196, K1_ODSTEP_OCENY = 16;
 const int K1_XM = 554, K1_WL = 270;                 // zwykły K1: ocena od 570 (202 px)
 const int K1_XM_ODKRYCIE = 470, K1_WL_ODKRYCIE = 174;  // pas odkrycia: ocena od 486 (286 px)
+// R-NOR-28: odstęp objaśnienia znacznika normy tymczasowej od sąsiednich napisów (K1 nagłówki tabeli, K2 zdanie)
+const int K1_ODSTEP_OBJASNIENIA = 12, K2_ODSTEP_OBJASNIENIA = 26;
 void rysujK2(Plotno& p, const DaneK2& d);
+// ---------- znacznik normy tymczasowej „sprzed zmiany” (R-NOR-28, ADR-0048) ----------
+// JEDYNE miejsce formy znacznika na ekranach (K1, K2). Od 21.11.2026 (decyzja właściciela projektu 21.11.2026): kółko 16 px
+// z obrysem 2 px, wypełniane od godziny 12 zgodnie z ruchem wskazówek proporcjonalnie do nocy z nowymi ustawieniami
+// wobec progu (11 z 14 ≈ 3/4; 0 = puste, nigdy pełne), 1-bit. K1: za słowem oceny, K2: za pasmem w kolumnie `norma`;
+// bez legendy na K1 i K2 (R-KOK-17), objaśnienie na stronie „Co znaczą te liczby” (R-EKR-51, objasnienieKolkaLiczb()).
+// Zapas: wariant tekstowy (`*` i objaśnienie `* norma sprzed zmiany` na ekranie) przy kompilacji
+// z -DZNACZNIK_SPRZED_ZMIANY_TEKSTEM=1, domyślnie nieużywany.
+#ifndef ZNACZNIK_SPRZED_ZMIANY_TEKSTEM
+#define ZNACZNIK_SPRZED_ZMIANY_TEKSTEM 0
+#endif
+const int ZNACZNIK_KOLKO = 16, ZNACZNIK_KOLKO_OBRYS = 2, ZNACZNIK_ODSTEP = 6;
+double wypelnienieKolka(int nocy, int prog);  // część koła 0…(prog − 1) / prog; prog ≤ 1 = 0
+void rysujKolkoNocy(Plotno& p, int x, int baza, int nocy, int prog);  // kółko od x, środek na baza − 8
+int szerZnacznikaSprzedZmiany();                                       // szerokość znacznika w px
+// od x na linii bazowej tekstu wiersza; nocy z prog: ile nocy z nowymi ustawieniami z ilu; zwraca x za znacznikiem
+int rysujZnacznikSprzedZmiany(Plotno& p, int x, int baza, int nocy, int prog);
+// Wariant tekstowy: objaśnienie do prawej na xDo, w miejscu od xOd (pełne, potem krótkie); przy kółku zawsze ""
+// i false (bez legendy na K1 i K2)
+bool rysujObjasnienieSprzedZmiany(Plotno& p, int xOd, int xDo, int baza);
+std::string objasnienieSprzedZmiany(int maxW);
+std::string objasnienieKolkaLiczb();  // zdanie za kółkiem na stronie „Co znaczą te liczby” (`R-NOR-28.objasnienie`)
 // R-KOK-18: które wiersze K2 rysować jako jedną linię pod tabelą. Przyjmuje dane K2 i tablicę `zwin` na
 // DaneK2::WIERSZE pozycji; ustawia zwin[r] dla wierszy `pusty` w kolejności tabeli, dopóki linia
 // `brak danych: {nazwy}` mieści się w 744 px (22 px, 600); zwraca tę linię albo "" (nic do zwinięcia).

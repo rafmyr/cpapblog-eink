@@ -6,7 +6,7 @@
 
 namespace reguly {
 namespace wbudowany {
-static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-7203846308ba pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a653ef949884 skrot=sha256:fc4a7d59f3ac2b2d2f58c8280c56a4ad5315f17ed821e36940afa90fa2b225dc
+static const char PROGI[] = R"zestaw(#cpap-eink progi 1 zestaw=z-d9526dca2142 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4f59b4edb0ad skrot=sha256:fc4a7d59f3ac2b2d2f58c8280c56a4ad5315f17ed821e36940afa90fa2b225dc
 id_progu;wartosc;jednostka;tryb
 R-DANE-13.m01_min;4;h;wszystkie
 R-DANE-27.start_nocy;18:00;godzina;wszystkie
@@ -441,7 +441,7 @@ R-NOR-12.delta.M-28p;2;cmH2O;ASV,ASVAuto
 S-K-30.m06p;1.5;cmH2O;ASV,ASVAuto
 R-DANE-66.limit_mv;3950;mV;wszystkie
 )zestaw";
-static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-7203846308ba pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a653ef949884 skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
+static const char KATALOG[] = R"zestaw(#cpap-eink katalog 1 zestaw=z-d9526dca2142 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4f59b4edb0ad skrot=sha256:d20c6fb77da031f3aaaabea4c31afb8bdb4f6e4963a4ddb93dae083a5b80173d
 id_reguly;wariant;rodzaj;parametry;liczone_noce;okno;poziom;grupa;slot;tryby;wymaga_normy;w_rozruchu;wyklucza;wymaga;bramki;limit;teksty;stan;pilnosc
 E-01;;sygnal_komponentu;sygnal=brak_danych;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
 E-03;;sygnal_komponentu;sygnal=nieczytelny_raport;;;brak_danych;R1;rano;wszystkie;nie;tak;;;;;;zablokowana;
@@ -644,7 +644,7 @@ O-12;P.M-07;czynnik_nocy;czynnik=P,metryka=M-07,delta=R-NOR-12.delta.M-07,min=O-
 O-12;P.M-01;czynnik_nocy;czynnik=P,metryka=M-01,delta=R-NOR-12.delta.M-01,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 O-12;P.M-03ca;czynnik_nocy;czynnik=P,metryka=M-03ca,delta=R-NOR-12.delta.M-03,min=O-12.grupa_min,efektywna=O-12.efektywna_min,warstwa_min=R-CZY-24.warstwa_min,mala=R-CZY-21.mala_grupa,okno=R-CZY-24.okno_odpowiedzi,waga=R-CZY-24.waga_kontrolna,n=R-EKR-26.okno;wazne;;;R8;tydzien;wszystkie;nie;nie;;;;;O-12.tytul,O-12.tytul_skrot,O-12.tytul_ukryty,O-12.powod,O-12.powod_ukryty,O-12.przypadek,O-12.krok,O-12.krok_leki;aktywna;
 )zestaw";
-static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-7203846308ba pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=a653ef949884 skrot=sha256:13a0ee56a1c0de0d5e0b3784d03fcfad16a97cbb36957fe9e0a5e589cdf0be89
+static const char TEKSTY[] = R"zestaw(#cpap-eink teksty 1 zestaw=z-d9526dca2142 pochodzenie=wbudowany firmware=1.0.0..1.99.99 tryby=CPAP,AutoSet,ASV,ASVAuto zamrozenie=brak zrodlo=4f59b4edb0ad skrot=sha256:8a99c91d6c2c075bca693355a0fa55c93fdad66dfdce5daa4649ad6f5f5af095
 id_tekstu;rola;limit;tekst
 E-04.linia;linia;60;Noc {data} zapisana częściowo, liczby mogą być niepełne.
 E-05.krok;krok;60;→ Podłącz kabel USB-C.
@@ -835,6 +835,7 @@ R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
 R-INF-10.linia;linia;60;Gorączka? Skontaktuj się z lekarzem. Duszność: wezwij pomoc.
 R-KOK-24.krok;krok;60;→ Pasmo AHI wysokie. Obserwuj kolejne noce.
 R-KOK-24.krok_krotki;krok;60;→ Pasmo AHI wysokie.
+R-KOK-37.slowo;etykieta;12;niepewne
 R-KON-68.ahi;nazwa;17;AHI
 R-KON-68.czas;nazwa;17;czas z maską
 R-KON-68.linia;linia;60;Dobra zmiana: {wskaznik} {kierunek} niż zwykle od {n} nocy.
@@ -852,7 +853,11 @@ R-MAS-12.etykieta;etykieta;30;Sprzęt
 R-MAS-12.opis;powod;70;Wyciek spadł z {y} do {x} l/min od {data}.
 R-MAS-12.stopka;linia;60;Bez odpowiedzi do 11:00 = nie zapisuję wymiany.
 R-MAS-12.tytul;tytul;30;Wymieniona maska?
-R-NOR-14.linia;linia;60;Nowe ustawienia aparatu. Uczę się normy.
+R-NOR-14.linia;linia;60;Zmieniono ustawienia. Nowa norma za 14 nocy.
+R-NOR-28.objasnienie;etykieta;62;norma sprzed zmiany ustawień; kółko rośnie co noc, nowa po 14.
+R-NOR-28.objasnienie_krotkie;etykieta;16;* sprzed zmiany
+R-NOR-28.objasnienie_tekst;etykieta;24;* norma sprzed zmiany
+R-NOR-28.znacznik;etykieta;3;*
 S-K-03.etykieta;etykieta;30;Przed snem
 S-K-03.krok;krok;60;→ Owiń rurę otuliną.
 S-K-03.powod;powod;70;W sypialni {t} °C. W zimnej rurze para skrapla się w wodę.

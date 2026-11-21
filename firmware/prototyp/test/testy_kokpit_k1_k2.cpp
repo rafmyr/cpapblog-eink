@@ -252,7 +252,9 @@ static void testNoceNiepewne() {
   for (int i = 23; i < 30; i++) h[i].ahi = 9.0f;
   for (int i = 26; i < 30; i++) h[i].wmed = 31.0f;  // 4 noce niepewne (4.9: mediana wycieku > 30 L/min)
   SPRAWDZ(nocNiepewna(h[29]) && !nocNiepewna(h[25]));
-  ROWNE(slowo(h, "AHI"), "uczę się");  // bez niepewnych w oknie 7 zostają 3 noce
+  // bez niepewnych w oknie 7 zostają 3 noce; bez stanów (st = nullptr) R-KOK-37 nie działa (kontrfakt liczy
+  // liczStany()), więc `uczę się`; ze stanami `niepewne` (test/testy_k1_ahi_niepewne.cpp)
+  ROWNE(slowo(h, "AHI"), "uczę się");
   h[25].ahi = 9.0f;
   h[26].wmed = 4.0f;  // 4 noce pewne z 9,0
   ROWNE(slowo(h, "AHI"), "rośnie");
@@ -267,7 +269,7 @@ static void testNoceNiepewne() {
   h = okno(U_ASVAUTO);
   for (int i = 23; i < 30; i++) h[i].ahi = 2.5f;
   for (int i = 0; i < 10; i++) h[i].wmed = 31.0f;
-  ROWNE(slowo(h, "AHI"), "uczę się");
+  ROWNE(slowo(h, "AHI"), "uczę się");  // bez stanów jak dotąd (R-KOK-37 tylko ze stanami)
 }
 
 // ---------- R-KOK-15 i ADR-0030: wiersze K1 i K2 według trybu bieżącego ----------
@@ -410,9 +412,10 @@ static void testWyciekWidoczny() {
   bez.wp95 = NormaMetryki();
   d = budujK1(h, DZIS, bez, {});
   ROWNE(d.w[wiersz(d, "Wyciek")].slowo + " / " + d.w[wiersz(d, "Wyciek")].slowo2, "uczę się / wyciek widoczny");
-  // tylko wiersz `Wyciek`
+  // `wyciek widoczny` tylko w wierszu `Wyciek`; w AHI od 21.11.2026 `duży wyciek` (R-KOK-37: 7 ostatnich nocy z P95
+  // 17 L/min jest niepewnych, więc trend AHI bez nich nie powstaje)
   for (int i = 0; i < d.wierszy; i++)
-    if (std::string(d.w[i].nazwa) != "Wyciek") ROWNE(d.w[i].slowo2, "");
+    if (std::string(d.w[i].nazwa) != "Wyciek") ROWNE(d.w[i].slowo2, "");  // bez stanów bez R-KOK-37
 }
 
 // ---------- szerokości tekstów (SPEC-KOKPIT 3 i 4) ----------

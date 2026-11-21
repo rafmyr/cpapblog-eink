@@ -344,6 +344,82 @@ static void makiety(PlotnoPamiec& p) {
     rysujK1(p, kc);
     zapisz(p, "mak-k1-cpap");
   }
+  {  // ADR-0048 (R-NOR-28, decyzja właściciela projektu 21.11.2026): norma tymczasowa „sprzed zmiany” po zmianie ustawień, dane
+     // z liczNorme() i budujK1/K2: AutoSet, 20 nocy `6/11/2` (wyciek 7–10 L/min, ciśnienie 10), potem noce `6/12/2`
+     // (11–14 L/min, 9; bez nocy niepewnych, żeby wiersz AHI nie mieszał dwóch powodów); stany 3, 11 i 13 z 14 nocy z nowymi ustawieniami
+    for (int nowych : {3, 11, 13}) {
+      std::vector<Noc> h;
+      for (int i = 0; i < 21 + nowych; i++) {
+        bool nowe = i >= 20;
+        Noc n;
+        n.data = dodajDni("2026-10-01", i);
+        n.wazna = true;
+        n.m01 = 400 + (i % 3) * 10;
+        n.ahi = 1.0f + 0.1f * (float)(i % 5);
+        n.wp95 = (nowe ? 11.0f : 7.0f) + (float)(i % 4);  // po zmianie 11–14 L/min: poniżej progu nocy niepewnej (15)
+        n.cmed = nowe ? 9.0f : 10.0f;
+        n.cp95 = n.cmed + 1.0f + 0.1f * (float)(i % 5);
+        n.oa = 0.3f;
+        n.ca = 0.2f;
+        n.h = 0.5f;
+        n.m17 = 0;
+        n.tryb = "AutoSet";
+        n.ustawienia = nowe ? "AutoSet/6/12/2" : "AutoSet/6/11/2";
+        h.push_back(n);
+      }
+      std::string dzisNt = h.back().data;
+      Stany stNt = liczStany(h, dzisNt, {});
+      char nazwa[64];
+      DaneK1 nt1 = budujK1(h, dzisNt, stNt.norma, {}, &stNt);
+      nt1.ubiegla = true;
+      rysujK1(p, nt1);
+      std::snprintf(nazwa, sizeof nazwa, "norma-tymczasowa-k1-%02dz14", nowych);
+      zapisz(p, nazwa);
+      DaneK2 nt2 = budujK2(h, dzisNt, stNt.norma, {}, &stNt);
+      rysujK2(p, nt2);
+      std::snprintf(nazwa, sizeof nazwa, "norma-tymczasowa-k2-%02dz14", nowych);
+      zapisz(p, nazwa);
+      if (nowych == 11) {  // z pasem odkrycia: ocena w jednej linii, kółko za nią
+        DaneK1 nto = nt1;
+        nto.odkrycieTytul = "Po alkoholu: wyższe AHI";
+        nto.odkryciePowod = "AHI 4,1 / h po alkoholu, 1,8 / h bez. Z 6/41 nocy.";
+        rysujK1(p, nto);
+        zapisz(p, "norma-tymczasowa-k1-odkrycie-11z14");
+      }
+    }
+    {  // R-KOK-37 (decyzja właściciela projektu 21.11.2026): AHI z normą, ale w 7 ostatnich nocach 5 niepewnych (wyciek P95
+       // 20 L/min): zamiast `uczę się` słowo `niepewne` / `duży wyciek` ze znakiem `?`
+      std::vector<Noc> h;
+      for (int i = 0; i < 30; i++) {
+        bool niepewna = i >= 25;
+        Noc n;
+        n.data = dodajDni("2026-10-01", i);
+        n.wazna = true;
+        n.m01 = 400 + (i % 3) * 10;
+        n.ahi = 1.0f + 0.1f * (float)(i % 5);
+        n.wp95 = niepewna ? 20.0f + (float)(i % 3) : 8.0f + (float)(i % 4);
+        n.cmed = 9.0f;
+        n.cp95 = 10.0f + 0.1f * (float)(i % 5);
+        n.oa = 0.3f;
+        n.ca = 0.2f;
+        n.h = 0.5f;
+        n.m17 = 0;
+        n.tryb = "AutoSet";
+        n.ustawienia = "AutoSet/6/12/2";
+        h.push_back(n);
+      }
+      Stany stA = liczStany(h, h.back().data, {});
+      DaneK1 dA = budujK1(h, h.back().data, stA.norma, {}, &stA);
+      dA.ubiegla = true;
+      rysujK1(p, dA);
+      zapisz(p, "k1-ahi-niepewne");
+    }
+    // „Co znaczą te liczby” z objaśnieniem kółka (5.4.14): AutoSet i ASV z wierszem `Centralne` (8 linii)
+    podsumowanie::rysujLiczby(p, Belka{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::AUTOSET, true, true));
+    zapisz(p, "norma-tymczasowa-liczby-autoset");
+    podsumowanie::rysujLiczby(p, Belka{"Co znaczą te liczby", ""}, podsumowanie::budujLiczby(reguly::Tryb::ASV, true));
+    zapisz(p, "norma-tymczasowa-liczby-asv");
+  }
 
   DaneK2 k2;
   k2.zakres = "6–12.11";

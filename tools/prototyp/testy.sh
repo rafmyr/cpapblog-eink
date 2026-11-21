@@ -366,6 +366,36 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_sprzet_infekcja_sk_brzegow
 echo "testy (test/testy_alerty_odchylen.cpp: karty S-K-40…S-K-47, stany w kierunkach kart, linia „dobra zmiana”, ADR-0039)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_alerty_odchylen.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_alerty_odchylen"
 "$BUD/testy_alerty_odchylen"
+echo "testy (test/testy_norma_tymczasowa.cpp: norma tymczasowa „sprzed zmiany”, K1, K2, reguły bez zmian, ADR-0048)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_norma_tymczasowa.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_norma_tymczasowa"
+"$BUD/testy_norma_tymczasowa"  # blokuje
+# R-NOR-29 (ADR-0048, granica bezpieczeństwa): normę tymczasową czytają tylko liczenie normy (noc.*) i kokpit
+# (kokpit.*, ekrany.*); każde inne użycie w src/ (reguły, stany, karty, raport, dyrygent) przerywa testy
+if grep -lE 'sprzedZmiany|PasmoSprzedZmiany|NormaSprzedZmiany' "$FW"/src/*.cpp "$FW"/src/*.h \
+     | grep -vE '/src/(noc|kokpit|ekrany)\.(cpp|h)$'; then
+  echo "BŁĄD: norma tymczasowa poza src/noc.*, src/kokpit.*, src/ekrany.* (R-NOR-29)"; exit 1
+fi
+echo "  norma tymczasowa tylko w noc.*, kokpit.*, ekrany.*: ok"
+# norma kokpitu i kontrfakty R-KOK-37 w Stany czytają tylko stany.* (liczy) i kokpit.* (K1, K2)
+if grep -lE 'normaKokpitu|kokpitAhiZNiepewnymi|kokpitNoceNiepewne' "$FW"/src/*.cpp "$FW"/src/*.h \
+     | grep -vE '/src/(stany|kokpit)\.(cpp|h)$'; then
+  echo "BŁĄD: norma kokpitu poza src/stany.*, src/kokpit.* (R-NOR-29)"; exit 1
+fi
+echo "  norma kokpitu tylko w stany.*, kokpit.*: ok"
+echo "testy (test/testy_norma_tymczasowa_naiwna.cpp: naiwna R-NOR-27 na 30000 losowych historiach, norma właściwa bez zmian)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_norma_tymczasowa_naiwna.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_norma_tymczasowa_naiwna"
+"$BUD/testy_norma_tymczasowa_naiwna" 30000  # blokuje
+echo "testy (test/testy_k1_ahi_niepewne_scenariusze.cpp, test/testy_k1_ahi_niepewne_naiwna.cpp: tryb nocy, wymiana aparatu, naiwna R-KOK-37)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_k1_ahi_niepewne_scenariusze.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k1_ahi_niepewne_scenariusze"
+"$BUD/testy_k1_ahi_niepewne_scenariusze"  # blokuje
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_k1_ahi_niepewne_naiwna.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k1_ahi_niepewne_naiwna"
+"$BUD/testy_k1_ahi_niepewne_naiwna" 3000 0  # wejścia spójne, blokuje
+"$BUD/testy_k1_ahi_niepewne_naiwna" 3000 1  # wejścia jak w dyrygencie (okresy infekcji), blokuje
+echo "test różnicowy normy tymczasowej (tools/prototyp/norma_tymczasowa_roznicowy.sh: symulator 10 dni, różnice tylko K1, K2, LICZBY)"
+bash "$REPO/tools/prototyp/norma_tymczasowa_roznicowy.sh" "$BUD" "$BUD/norma-tymczasowa-roznicowy" 10  # blokuje
+echo "testy (test/testy_k1_ahi_niepewne.cpp: K1 AHI „niepewne” i „duży wyciek” zamiast „uczę się”, R-KOK-37)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_k1_ahi_niepewne.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k1_ahi_niepewne"
+"$BUD/testy_k1_ahi_niepewne"  # blokuje
 
 echo "testy (test/testy_ekrany_zdarzen_e.cpp: pełne ekrany zdarzeń E (S3), wybór 7.2, limit R-KON-14, „wiem” 7 dni, linia „Wciąż”, R-EKR-48, koniec slotu dziennego wobec okna wieczornego)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_ekrany_zdarzen_e.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ekrany_zdarzen_e"

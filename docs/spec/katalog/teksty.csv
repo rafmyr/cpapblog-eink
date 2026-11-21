@@ -234,6 +234,7 @@ S-K-18.krok_reguly;krok;;→ Część reguł nie działa: zobacz Test sprzętu.
 S-K-18.krok_obserwuj;krok;;→ Obserwuj kolejne noce.
 R-KOK-24.krok;krok;;→ Pasmo AHI wysokie. Obserwuj kolejne noce.
 R-KOK-24.krok_krotki;krok;;→ Pasmo AHI wysokie.
+R-KOK-37.slowo;etykieta;12;niepewne
 S-K-18.krok_dane;krok;;→ Część ocen jeszcze nie działa: za mało nocy.
 S-K-18.krok_dane_wyciek;krok;;→ Bezdechów nie oceniam: noce z wyciekiem.
 S-K-19.etykieta;etykieta;30;Twój tydzień
@@ -395,7 +396,11 @@ S2D.G18.warunek.tytul;tytul;90;Wyniki terapii bez zarzutu.
 S2D.G18.warunek.powod;powod;100;Teraz pozostaje tylko nie zepsuć dnia. Zacząłbym od porządnego śniadania.
 S2D.G18.neutralna.tytul;tytul;90;Śniadanie do łóżka brzmi luksusowo.
 S2D.G18.neutralna.powod;powod;100;Dopóki ktoś nie przypomni, kto będzie zmieniał pościel.
-R-NOR-14.linia;linia;60;Nowe ustawienia aparatu. Uczę się normy.
+R-NOR-14.linia;linia;60;Zmieniono ustawienia. Nowa norma za 14 nocy.
+R-NOR-28.objasnienie;etykieta;62;norma sprzed zmiany ustawień; kółko rośnie co noc, nowa po 14.
+R-NOR-28.znacznik;etykieta;3;*
+R-NOR-28.objasnienie_tekst;etykieta;24;* norma sprzed zmiany
+R-NOR-28.objasnienie_krotkie;etykieta;16;* sprzed zmiany
 R-DANE-29.linia_tryb;linia;60;Tryb aparatu {tryb}: ta wersja go nie ocenia.
 R-DANE-29.linia_nieznany;linia;60;Nie znam trybu aparatu: tej nocy nie oceniam.
 L-01.tytul_asv;tytul;30;Bezdechy mimo pełnego wsparcia

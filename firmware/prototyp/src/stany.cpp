@@ -138,7 +138,8 @@ struct Bieg {  // stan liczenia jednej metryki
 Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone) {
   Stany s;
   if (!dataOk(dzis)) {
-    s.norma = liczNorme(hist, dzis, wykluczone);
+    s.norma = liczNorme(hist, dzis, wykluczone);  // bez zegara i tak pusta
+    s.normaKokpitu = s.norma;
     return s;
   }
   // historia posortowana raz; norma każdej nocy z okna 90 dni (4.4), więc całość jest liniowa w liczbie nocy
@@ -157,6 +158,7 @@ Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std
     if (niepewna) {  // R-NOR-19
       s.wyl.ahi.insert(n->data);
       s.wyl.m03.insert(n->data);
+      if (n->data >= dodajDni(dzis, -120)) s.kokpitNoceNiepewne.insert(n->data);  // R-KOK-37 (okno 90 i 30 nocy)
     }
     // Od 11.11.2026: spadek czasu z maską (M-01 w dół) liczy 3 z 5 z nocy z terapią (M-01 ≥ 15 min,
     // 5.12.3), także krótszych niż 4 h; noc ważna (4.2) wymaga 4 h, więc sam spadek wypadałby z oceny. Norma M-01 i
@@ -305,7 +307,17 @@ Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std
     s.nocyNieczytelne = nieczytelne >= SKI24_NOCE;
     s.bezOcenZWycieku = wazne >= WYCIEK_MIN_NOCE && pewne < WYCIEK_MIN_NOCE;
   }
+  // reguły dostają normę właściwą; norma z normą tymczasową „sprzed zmiany” (R-NOR-27) osobno, tylko dla kokpitu
+  // (to samo okno 90 dni liczone drugi raz, tylko dla dzisiejszej normy; normy noc po nocy bez zmian)
   s.norma = liczNorme(hp, dzis, wykluczone, &s.wyl);
+  s.normaKokpitu = liczNorme(hp, dzis, wykluczone, &s.wyl, ZakresNormy::Z_TYMCZASOWA);
+  // R-KOK-37: czy norma AHI powstałaby z nocami niepewnymi, na tych samych wejściach co norma (historia
+  // po R-MAS-16, wykluczenia z okresami infekcji), żeby K1 nie liczył tego na historii surowej
+  if (!s.norma.ahi.jest()) {
+    WykluczeniaNormy zNiepewnymi = s.wyl;
+    for (const std::string& d : s.kokpitNoceNiepewne) zNiepewnymi.ahi.erase(d);
+    s.kokpitAhiZNiepewnymi = liczNorme(hp, dzis, wykluczone, &zNiepewnymi).ahi.jest();
+  }
   if (!noce.empty()) {
     s.ostatnia = noce.back()->data;
     s.ostatniaNiepewna = nocNiepewna(*noce.back());

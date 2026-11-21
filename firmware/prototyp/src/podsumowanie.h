@@ -63,6 +63,8 @@ struct DaneLiczb {
   std::string etykieta;
   std::vector<WierszLiczb> wiersze;
   std::string zdanie = "Co jest dobre dla ciebie, powie lekarz.";
+  // R-NOR-28 (ADR-0048): pod wierszami kółko normy tymczasowej (w połowie, 7 z 14) i to zdanie; "" = bez linii
+  std::string objasnienieKolka;
   std::string stopkaLewo = "◀ 7 nocy   ▶ ustawienia   ↻ ekran dnia";  // 5.5.7 „Stopki stron”
 };
 // `sprawy`: za tą stroną stoją „Otwarte sprawy” (▶ sprawy), inaczej U-01 (▶ ustawienia), R-KOK-22.

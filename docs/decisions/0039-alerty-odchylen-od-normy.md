@@ -30,3 +30,7 @@ Panel ma normę osobistą (ADR-0003, 4.4) i stan odchylenia (4.6: 3 z 5 nocy wa�
 - Pozycja w tabeli 7.2: nowa grupa R5e między R5d a R6; karta w tonie „informacja” ustępuje slotowi dziennemu jak R6…R9 i nie jest prośbą (7.4). Wymagania R-KON-64…R-KON-68 (spec 5.8.9, 5.8.13).
 - Δ według kompletu progów przyjętego 11.11.2026 (decyzja właściciela projektu; pochodzenie: przegląd literatury i obserwacja własna): M-28 ±1 cmH2O, M-28p +2, M-09 (% nocy) +5 pp, M-10 P95 ±0,15, M-14 i M-15 ±15% mediany normy, M-06p +1,5, M-31 +2 / h; dobra zmiana z Δ kierunku przeciwnego. Wszystkie `[PRÓG]`.
 - Decyzja właściciela projektu 11.11.2026 w tej samej zmianie: R-NOR-07 zeruje w trybach ASV i ASVAuto także normę M-13, M-14 i M-15, a zerowanie kończy stan odchylenia (inaczej po zmianie ustawień karty S-K-41…S-K-45 stałyby miesiącami).
+
+## Zmiana 2026-11-21
+
+Norma tymczasowa „sprzed zmiany” ([ADR-0048](0048-norma-tymczasowa-sprzed-zmiany.md), R-NOR-27) nie zasila kart S-K-40…S-K-47, stanów w ich kierunkach ani linii „dobra zmiana”: po zmianie ustawień metryki z R-NOR-07 (w ASV i ASVAuto także M-13, M-14, M-15) dalej nie mają normy dla tych reguł przez 14 nocy (R-NOR-29). Czy kiedyś mają: pytanie otwarte.

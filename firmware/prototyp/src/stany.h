@@ -61,7 +61,15 @@ struct OdchylenieNocy {  // 4.5 dla jednej nocy (z normą tej nocy)
 };
 
 struct Stany {
-  Norma norma;                 // norma dla nocy `dzis` z wyłączeniami 4.4
+  // norma dla nocy `dzis` z wyłączeniami 4.4, sama norma właściwa (bez normy tymczasowej): tę dostają reguły,
+  // karty, raport i ekrany dnia
+  Norma norma;
+  // Tylko dla kokpitu (K1, K2; src/kokpit.cpp): ta sama norma z normą tymczasową „sprzed zmiany” (R-NOR-27, ADR-0048)
+  // i kontrfakty R-KOK-37 liczone na tych samych wejściach co `norma` (historia z R-MAS-16, wykluczenia z okresami
+  // infekcji R-INF-05). Reguły ich nie czytają: tools/prototyp/testy.sh pilnuje plików, w których te nazwy stoją.
+  Norma normaKokpitu;
+  bool kokpitAhiZNiepewnymi = false;  // R-KOK-37: norma AHI pusta, a z nocami niepewnymi (R-NOR-19) by powstała
+  std::set<std::string> kokpitNoceNiepewne;  // R-KOK-37: noce niepewne (4.9) w historii stanów, ≤ `dzis`, ostatnie 120 dni
   WykluczeniaNormy wyl;        // noce wyłączone z normy (stany odchylenia, noce niepewne)
   StanMetryki m01, ahi, wp95, ep95;
   StanMetryki ca, m17;         // M-03ca (CA/h, zdrowotna) i M-17 (techniczna), dla E-33 i E-14

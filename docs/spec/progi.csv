@@ -396,7 +396,7 @@ O-04.tydzien,O-04,,7,noce,O-04: mediana z tylu ostatnich nocy ważnych (tydzień
 O-04.miesiac,O-04,,30,noce,O-04: mediana porównawcza z tylu ostatnich nocy ważnych (miesiąc),brak,spec 1.2,wszystkie,do kalibracji
 R-EKR-26.okno,R-EKR-26,§5.4.10,90,noce,"odkrycia z porównania grup (O-06…O-10) i O-12: grupy z tylu ostatnich nocy ważnych (propozycja; O-12, 9.3 „do 90 nocy”)",brak,spec 1.2,wszystkie,do kalibracji
 R-CZY-24.warstwa_min,R-CZY-24,,1,noce,"O-12: co najmniej tyle nocy z każdej warstwy w każdej grupie („noce z obu warstw w każdej grupie”, R-CZY-24)",brak,spec 1.2,wszystkie,definicja
-R-NOR-14.oczekiwanie,R-NOR-14,,14,dni,"linia `Nowe ustawienia aparatu. Uczę się normy.` czeka na pokazanie najwyżej tyle dni od pierwszej nocy z nowymi ustawieniami (stara zmiana w historii nie wraca po aktualizacji)","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
+R-NOR-14.oczekiwanie,R-NOR-14,,14,dni,"linia `Zmieniono ustawienia. Nowa norma za 14 nocy.` czeka na pokazanie najwyżej tyle dni od pierwszej nocy z nowymi ustawieniami (stara zmiana w historii nie wraca po aktualizacji)","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
 R-HUM-28.ahi_bardzo_niskie,R-HUM-28,,1,AHI/h,"warunek karty przerywnika `Bardzo niskie AHI` (G13): AHI ostatniej nocy poniżej tej wartości","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
 R-HUM-28.ahi_duzo_zdarzen,R-HUM-28,,10,AHI/h,"warunek karty przerywnika `Dużo zdarzeń` (G10): AHI ostatniej nocy co najmniej tyle","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji
 R-HUM-28.terapia_dluga,R-HUM-28,,7,h,"warunek karty przerywnika `Długi czas terapii` (G06, G16): M-01 ostatniej nocy co najmniej tyle","decyzja 05.11.2026",spec 1.2,wszystkie,do kalibracji

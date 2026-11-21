@@ -1080,12 +1080,81 @@ void rysujEkranDanych(Plotno& p, const Belka& n, const TrescEkranu& t) {
   stopkaDnia(p, t.stopkaLewo, t.stopkaPrawo);
 }
 
+// ---------- znacznik normy tymczasowej „sprzed zmiany” (R-NOR-28, ADR-0048) ----------
+namespace {
+std::string tekstSprzedZmiany(const char* id, const char* domysl) {
+  const reguly::Zestaw& z = reguly::zestawWbudowany();
+  auto t = z.teksty.find(id);
+  return t == z.teksty.end() ? std::string(domysl) : t->second.tekst;
+}
+}  // namespace
+
+double wypelnienieKolka(int nocy, int prog) {
+  if (prog <= 1) return 0;
+  // 13 z 14 = prawie pełne, nigdy pełne: przy `prog` nocach norma jest już właściwa i znacznika nie ma
+  int n = std::max(0, std::min(nocy, prog - 1));
+  return (double)n / prog;
+}
+
+void rysujKolkoNocy(Plotno& p, int x, int baza, int nocy, int prog) {
+  // pole ZNACZNIK_KOLKO × ZNACZNIK_KOLKO od x, środek na wysokości środka wersalika P22B (baza − 8)
+  const double r = ZNACZNIK_KOLKO / 2.0, cx = x + r, cy = baza - 8;
+  const double PELNY = 6.283185307179586;  // 2π
+  const double kat = wypelnienieKolka(nocy, prog) * PELNY;
+  const int y0 = (int)std::floor(cy - r);
+  for (int iy = 0; iy < ZNACZNIK_KOLKO; iy++)
+    for (int ix = 0; ix < ZNACZNIK_KOLKO; ix++) {
+      double dx = x + ix + 0.5 - cx, dy = y0 + iy + 0.5 - cy;
+      double d = std::sqrt(dx * dx + dy * dy);
+      if (d > r) continue;
+      if (d >= r - ZNACZNIK_KOLKO_OBRYS) {  // obrys 2 px
+        p.piksel(x + ix, y0 + iy, true);
+        continue;
+      }
+      if (d >= r - ZNACZNIK_KOLKO_OBRYS - 1) continue;  // 1 px światła między obrysem a wycinkiem
+      double a = std::atan2(dx, -dy);  // od godziny 12 zgodnie z ruchem wskazówek
+      if (a < 0) a += PELNY;
+      if (a < kat) p.piksel(x + ix, y0 + iy, true);
+    }
+}
+
+int szerZnacznikaSprzedZmiany() {
+  if (ZNACZNIK_SPRZED_ZMIANY_TEKSTEM) return szer(F_P22B, tekstSprzedZmiany("R-NOR-28.znacznik", "*"));
+  return ZNACZNIK_KOLKO;
+}
+
+int rysujZnacznikSprzedZmiany(Plotno& p, int x, int baza, int nocy, int prog) {
+  if (ZNACZNIK_SPRZED_ZMIANY_TEKSTEM) return tekst(p, F_P22B, x, baza, tekstSprzedZmiany("R-NOR-28.znacznik", "*"));
+  rysujKolkoNocy(p, x, baza, nocy, prog);
+  return x + ZNACZNIK_KOLKO;
+}
+
+std::string objasnienieSprzedZmiany(int maxW) {
+  if (!ZNACZNIK_SPRZED_ZMIANY_TEKSTEM) return "";  // kółko: bez legendy na K1 i K2 (R-KOK-17), objaśnienie w R-EKR-51
+  for (const std::string& t : {tekstSprzedZmiany("R-NOR-28.objasnienie_tekst", "* norma sprzed zmiany"),
+                               tekstSprzedZmiany("R-NOR-28.objasnienie_krotkie", "* sprzed zmiany")})
+    if (szer(F_P22B, t) <= maxW) return t;
+  return "";
+}
+
+bool rysujObjasnienieSprzedZmiany(Plotno& p, int xOd, int xDo, int baza) {
+  const std::string t = objasnienieSprzedZmiany(xDo - xOd);
+  if (t.empty()) return false;
+  tekstPrawo(p, F_P22B, xDo, baza, t);
+  return true;
+}
+
+std::string objasnienieKolkaLiczb() {
+  return tekstSprzedZmiany("R-NOR-28.objasnienie", "norma sprzed zmiany ustawień; kółko rośnie co noc, nowa po 14.");
+}
+
 // ---------- K1 (5.5.2, SPEC-KOKPIT 3) ----------
 std::string znakOcenyK1(const std::string& slowo) {
   if (slowo == "stabilnie") return "↔";
   if (slowo == "rośnie" || slowo == "wyżej niż zwykle") return "↑";
   if (slowo == "spada" || slowo == "niżej niż zwykle") return "↓";
   if (slowo == "uczę się") return "…";
+  if (slowo == slowoNiepewne()) return "?";  // R-KOK-37: niepewne (wyciek), nie strzałka trendu i nie „w porządku”
   return "";
 }
 
@@ -1107,6 +1176,11 @@ std::string ocenaK1JednaLinia(const WierszK1& w, int maxW) {
   // po kolei: pełna, bez dopisku, przy `stabilnie` sam znak przed dopiskiem (`↔ wyciek widoczny`), na końcu bez znaku
   std::vector<std::string> kandydaci = {zloz(tekstOcenyK1(w)), zloz(tekstOcenyK1(bez))};
   if (w.slowo == "stabilnie" && !w.slowo2.empty()) kandydaci.push_back(znakOcenyK1(w.slowo) + " " + w.slowo2);
+  // ADR-0048: znak i słowo bez dopisku i drugiej linii (`↑ rośnie`) przed wariantem bez znaku, żeby
+  // przy węższym miejscu (kółko normy tymczasowej za oceną) strzałka trendu nie znikała
+  // (nie przy stanie odchylenia: tam `od {n} nocy` zostaje ważniejsze niż znak, R-KOK-03)
+  if (!w.slowo2.empty() && w.slowo2.rfind("od ", 0) != 0 && !znakOcenyK1(w.slowo).empty())
+    kandydaci.push_back(tekstOcenyK1(bez));
   kandydaci.push_back(zloz(w.slowo));
   // stan odchylenia od wielu nocy (`wyżej niż zwykle od 120 nocy`, 298 px) nie mieści się w 286 px: krótsze słowo
   // ze znakiem (`↑ wyżej od 120 nocy`), żeby tekst nie doszedł do ramki wiersza
@@ -1173,9 +1247,17 @@ void rysujK1(Plotno& p, const DaneK1& d) {
   const int xo = xm + K1_ODSTEP_OCENY;
   const int wciecie = szer(F_P22B, "↔ ");  // druga linia oceny pod słowem, nie pod znakiem
   const int yKol = top - 6;  // nagłówki kolumn: noc u góry, mediana 30 nocy niżej (T2)
-  tekst(p, F_P22B, X, yKol, "Ostatnie 30 nocy");
+  const int xKoniecTytulu = tekst(p, F_P22B, X, yKol, "Ostatnie 30 nocy");
   tekstPrawo(p, F_P22B, xm, yKol, "mediana");
-  tekst(p, F_P22B, xo, yKol, "ocena");
+  const int xKoniecOceny = tekst(p, F_P22B, xo, yKol, "ocena");
+  // R-NOR-28: objaśnienie znacznika normy tymczasowej raz na ekranie, w linii nagłówków: zwykły K1 między
+  // `Ostatnie 30 nocy` a `mediana`, K1 z pasem odkrycia (węższa linia 30 nocy) za `ocena` do prawego marginesu
+  bool tymczasowa = false;
+  for (int i = 0; i < d.wierszy; i++) tymczasowa = tymczasowa || d.w[i].sprzedZmiany;
+  if (tymczasowa) {
+    if (!jednaLinia) rysujObjasnienieSprzedZmiany(p, xKoniecTytulu + K1_ODSTEP_OBJASNIENIA, xm - szer(F_P22B, "mediana") - K1_ODSTEP_OBJASNIENIA, yKol);
+    else rysujObjasnienieSprzedZmiany(p, xKoniecOceny + K1_ODSTEP_OBJASNIENIA, XP, yKol);
+  }
   for (int i = 0; i < d.wierszy; i++) {  // 4 wiersze w CPAP i AutoSet, 5 w ASV (R-KOK-15)
     const WierszK1& w = d.w[i];
     int y = top + i * hw, sr = y + hw / 2;
@@ -1185,8 +1267,11 @@ void rysujK1(Plotno& p, const DaneK1& d) {
     int hl = hw >= 50 ? 32 : hw - 14;  // linia trendu niższa przy niższym wierszu
     linia30(p, K1_X_LINII, sr - hl / 2, wl, hl, w.linia, 3, false);
     tekstPrawo(p, F_P28B, xm, sr + 10, w.mediana);
+    // R-NOR-28: znacznik normy tymczasowej za słowem oceny (słowo zostaje, R-KOK-17), z odstępem ZNACZNIK_ODSTEP
+    const int zn = w.sprzedZmiany ? ZNACZNIK_ODSTEP + szerZnacznikaSprzedZmiany() : 0;
     if (jednaLinia) {
-      tekst(p, F_P22B, xo, sr + 8, ocenaK1JednaLinia(w, XP - xo));
+      int xk = tekst(p, F_P22B, xo, sr + 8, ocenaK1JednaLinia(w, XP - xo - zn));
+      if (w.sprzedZmiany) rysujZnacznikSprzedZmiany(p, xk + ZNACZNIK_ODSTEP, sr + 8, w.nocyNowych, w.progNocy);
       continue;
     }
     // znak w stałej kolumnie (szerokość `↔ `), słowo i druga linia pod sobą: słowa wierszy stoją w jednym pionie
@@ -1196,7 +1281,8 @@ void rysujK1(Plotno& p, const DaneK1& d) {
     // T3: `↑ wyżej niż zwykle` / `od {n} nocy` w 2 liniach; przy wierszu 46…49 px o 1 px ciaśniej
     const int y1 = w.slowo2.empty() ? sr + 8 : y + (hw >= 50 ? 20 : 19);
     if (!znak.empty()) tekst(p, F_P22B, xo, y1, znak);
-    tekst(p, F_P22B, xs, y1, slowa);
+    int xk = tekst(p, F_P22B, xs, y1, slowa);
+    if (w.sprzedZmiany) rysujZnacznikSprzedZmiany(p, xk + ZNACZNIK_ODSTEP, y1, w.nocyNowych, w.progNocy);
     if (!w.slowo2.empty()) tekst(p, F_P22B, xs, y + hw - (hw >= 50 ? 7 : 6), w.slowo2);
   }
   stopkaAkcji(p, "", stopkaK1(d.jestNoc, d.stopkaWstecz, d.sprawyWCiagu, d.profilPubliczny));
@@ -1206,7 +1292,11 @@ void rysujK1(Plotno& p, const DaneK1& d) {
 void rysujK2(Plotno& p, const DaneK2& d) {
   p.prostokat(0, 0, 800, 480, false);
   belka(p, belkaK2(d));  // `7 nocy 2 / 3`, zakres dat i godzina odczytu (R-KOK-26)
-  tekst(p, F_SB24, X, 68, d.zdanie);
+  const int xKoniecZdania = tekst(p, F_SB24, X, 68, d.zdanie);
+  // R-NOR-28: objaśnienie znacznika normy tymczasowej raz na ekranie, w linii zdania do prawego marginesu
+  bool tymczasowa = false;
+  for (int r = 0; r < d.wierszy; r++) tymczasowa = tymczasowa || d.w[r].sprzedZmiany;
+  if (tymczasowa) rysujObjasnienieSprzedZmiany(p, xKoniecZdania + K2_ODSTEP_OBJASNIENIA, XP, 68);
   // tabela na marginesach 20 px: etykieta 20–164, 7 nocy co 68 px od 168, norma do prawej na 780; bez kolumny 30 nocy
   const int TX = 20, TXP = 780, xKol = 168, krok = 68, top = 119, h = 28;
   for (int i = 0; i < 7; i++) {
@@ -1262,7 +1352,11 @@ void rysujK2(Plotno& p, const DaneK2& d) {
         tekstPrawo(p, F_P22B, x1 - 5, b, k.tekst);
       }
     }
-    tekstPrawo(p, F_P22B, TXP, b, w.norma);
+    // R-NOR-28: pasmo normy tymczasowej ze znacznikiem za nim, oba do prawej krawędzi kolumny
+    const int zn = w.sprzedZmiany ? szerZnacznikaSprzedZmiany() : 0;
+    const int odst = w.sprzedZmiany && !ZNACZNIK_SPRZED_ZMIANY_TEKSTEM ? ZNACZNIK_ODSTEP : 0;
+    tekstPrawo(p, F_P22B, TXP - zn - odst, b, w.norma);
+    if (w.sprzedZmiany) rysujZnacznikSprzedZmiany(p, TXP - zn, b, w.nocyNowych, w.progNocy);
     y += h;
   }
   // pionowe linie 1 px: przed ostatnią nocą (wyróżnienie bez znaczenia kolorystycznego) i przed normą

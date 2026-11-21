@@ -2380,7 +2380,7 @@ class Przebieg {
     std::stable_sort(v.begin(), v.end(), [](const Noc* x, const Noc* y) { return x->data < y->data; });
     return v;
   }
-  // R-NOR-14: `Nowe ustawienia aparatu. Uczę się normy.` jednorazowo dla zmiany ustawień (R-NOR-07) między nocami ważnymi
+  // R-NOR-14: `Zmieniono ustawienia. Nowa norma za 14 nocy.` jednorazowo dla zmiany ustawień (R-NOR-07) między nocami ważnymi
   // w trybie obsługiwanym; brak odczytu nie jest zmianą (R-NOR-15), noc spoza wydania nie liczy się (R-DANE-29). Bez
   // wartości we wszystkich trybach (ADR-0002, spec R-NOR-14 i 4.11). Linia czeka do pokazania, najdłużej 14 dni od pierwszej nocy
   // z nowymi ustawieniami [PRÓG: rozruch metryki trwa 14 nocy], żeby stara zmiana w historii nie wracała po aktualizacji.

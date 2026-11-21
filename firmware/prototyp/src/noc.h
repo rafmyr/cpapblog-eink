@@ -171,6 +171,12 @@ int nocyBezDanychZRzedu(const std::string& dzis, const std::string& dataOdczytu,
 // jak ostatnie znane wcześniej; noc przed pierwszymi znanymi ustawieniami nie pasuje do znanych. Bez żadnych znanych
 // ustawień w historii: bez filtra. Mniej niż 14 takich nocy = brak normy tej metryki (rozruch metryki, R-NOR-11).
 // Czas z maską i AHI bez tego filtra. M-10 i M-11 nie ma w danych prototypu.
+// R-NOR-27 (ADR-0048): przy ZakresNormy::Z_TYMCZASOWA z tych samych nocy okna (te same wyłączenia: R-NOR-08, R-NOR-09,
+// R-NOR-19, R-CZY-05), ale ze znanymi ustawieniami innymi niż najnowsza noc i w tym samym trybie co ona,
+// liczy normę tymczasową „sprzed zmiany” (Norma::sprzedZmiany, 30 najnowszych takich nocy); ma ją tylko metryka bez
+// normy właściwej. Bez znanych ustawień w historii: brak normy tymczasowej. Domyślnie (WLASCIWA) pola zostają puste:
+// liczy ją tylko norma kokpitu w liczStany() (osobne pole Stany, src/stany.h), którą czytają K1 i K2; Stany::norma (reguły, karty,
+// raport, ekrany dnia) i normy liczone noc po nocy są liczone bez niej.
 // Wyłączenia per sygnał (4.4): noce w stanie odchylenia danej metryki (R-NOR-09) i noce niepewne z normy AHI
 // (R-NOR-19) podaje WykluczeniaNormy; liczy je src/stany.cpp (liczStany), które woła liczNorme noc po nocy.
 struct WykluczeniaNormy {
@@ -190,6 +196,29 @@ struct NormaMetryki {
   bool jest() const { return n >= 14; }
 };
 
+// ---------- norma tymczasowa „sprzed zmiany” (R-NOR-27…R-NOR-29, ADR-0048) ----------
+// TYLKO do pokazania porównania na ekranach kokpitu (K1, K2), nigdy do reguł, stanów, alertów, kart S-K, wzorców L,
+// hipotez H, R-KON-30, linii „dobra zmiana” ani raportu (R-NOR-29). Celowo osobny typ, nie NormaMetryki: nie ma
+// jest(), więc nie da się go podać do kodu, który przyjmuje normę właściwą (normaMetryki() reguł, odchylenieWNocy(),
+// porownajTydzien()), a dostęp do niego jest tylko przez pole Norma::sprzedZmiany (tools/prototyp/testy.sh pilnuje
+// listy plików, które go czytają).
+struct PasmoSprzedZmiany {
+  int nocy = 0;        // noce ważne z ustawieniami innymi niż najnowsza noc, z wartością metryki (≤ 30)
+  int nocyNowych = 0;  // noce ważne z ustawieniami najnowszej nocy z wartością metryki (= NormaMetryki::n właściwej)
+  double med = NAN, p10 = NAN, p90 = NAN;  // jak w normie właściwej (mediana, P10, P90); NAN, gdy pokaz() = false
+  // R-NOR-27: norma właściwa jest pusta (nocyNowych < 14 [PRÓG R-NOR-10]) i jest co najmniej 14 nocy sprzed zmiany
+  bool pokaz() const { return nocyNowych < 14 && nocy >= 14; }
+};
+struct NormaSprzedZmiany {
+  static const int PROG_NOCY = 14;  // [PRÓG] ten sam co R-NOR-10: liczba nocy z nowymi ustawieniami do normy właściwej
+  // tylko metryki zależne od ustawień, które K1 i K2 pokazują z normą (R-NOR-28): M-05 (K1 `Ciśnienie`), M-05p (K2
+  // `Ciśnienie P95`), M-07 P95 (K1 `Wyciek`, K2 `Wyciek l/min`), M-06 (K1 `EPAP`), M-06p (K2 `EPAP P95`), M-28 (K1
+  // `Wsparcie`, K2 `Wsparcie PS`); M-28p, M-10 P95, M-13, M-14, M-15 nie mają na K1 i K2 kolumny normy
+  PasmoSprzedZmiany cmed, cp95, wp95, emed, ep95, psmed;
+};
+// Czy liczNorme() liczy także normę tymczasową (R-NOR-27); osobny typ zamiast bool, żeby wywołanie było czytelne
+enum class ZakresNormy : unsigned char { WLASCIWA, Z_TYMCZASOWA };
+
 struct Norma {
   bool zegar = false;
   int n = 0, zKarty = 0;  // liczba nocy w normie czasu z maską i ile z nich z karty
@@ -205,10 +234,13 @@ struct Norma {
   // najnowszej nocy (R-NOR-07; 4.4: 14 nocy bez oceny po zmianie, R-KON-30)
   NormaMetryki m10p;
   std::string ustawienia;                 // ustawienia, z których liczone są normy ciśnienia i wycieku ("" = bez filtra)
+  // R-NOR-27: norma tymczasowa „sprzed zmiany” metryk zależnych od ustawień, tylko do pokazania (R-NOR-29); reguły,
+  // stany i raport jej nie czytają
+  NormaSprzedZmiany sprzedZmiany;
 };
 
 Norma liczNorme(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone,
-                 const WykluczeniaNormy* wm = nullptr);
+                 const WykluczeniaNormy* wm = nullptr, ZakresNormy zakres = ZakresNormy::WLASCIWA);
 // To samo na historii posortowanej raz (stany.cpp liczy normę noc po nocy): koszt jednej normy to okno 90 dni.
 struct HistoriaPos {
   std::vector<const Noc*> noce;         // po dacie rosnąco
@@ -216,7 +248,7 @@ struct HistoriaPos {
 };
 HistoriaPos posortujHistorie(const std::vector<Noc>& hist);
 Norma liczNorme(const HistoriaPos& h, const std::string& dzis, const std::set<std::string>& wykluczone,
-                 const WykluczeniaNormy* wm = nullptr);
+                 const WykluczeniaNormy* wm = nullptr, ZakresNormy zakres = ZakresNormy::WLASCIWA);
 double mediana(std::vector<double> v);              // NAN dla pustego
 double percentyl(std::vector<double> v, int proc);  // najbliższa ranga; NAN dla pustego
 

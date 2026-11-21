@@ -98,6 +98,11 @@ TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe.cpp") # testy brzegowe ADR-0047: 
 TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp") # testy brzegowe ADR-0047, część 2: lista katalogu i nowy rok, usterki nośnika na obu ścieżkach
 TESTY+=("$FW/test/testy_kabel_ladowanie_brzegowe.cpp") # testy brzegowe: limit ładowania × czekanie na kablu, losowo na dwóch ścieżkach
 TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
+TESTY+=("$FW/test/testy_norma_tymczasowa.cpp") # norma tymczasowa „sprzed zmiany” po zmianie ustawień: liczenie, K1, K2, reguły bez zmian (ADR-0048)
+TESTY+=("$FW/test/testy_norma_tymczasowa_naiwna.cpp") # naiwna implementacja R-NOR-27 na losowych historiach (ADR-0048)
+TESTY+=("$FW/test/testy_k1_ahi_niepewne.cpp") # K1: AHI `niepewne` / `duży wyciek` zamiast `uczę się` przy nocach niepewnych (R-KOK-37)
+TESTY+=("$FW/test/testy_k1_ahi_niepewne_scenariusze.cpp") # scenariusze normy tymczasowej i R-KOK-37
+TESTY+=("$FW/test/testy_k1_ahi_niepewne_naiwna.cpp") # naiwna R-KOK-37 na losowych historiach, wejścia jak w dyrygencie
 TESTY+=("$FW/test/testy_odswiezanie_czesciowe.cpp") # rodzaj odświeżenia e-ink: pełne i częściowe (R-NF-25)
 TESTY+=("$FW/test/testy_odswiezanie_czesciowe_brzegowe.cpp") # testy brzegowe R-NF-25: bez nowych odświeżeń wobec N = 0, licznik, kolejka, parser
 TESTY+=("$FW/test/testy_kolejnosc_portret.cpp" "$FW/test/testy_kolejnosc_slot_dyrygent.cpp") # ADR-0045 z dyrygentem: Portret ▶ na pierwszą stronę, dzien.ukryte w slocie dziennym

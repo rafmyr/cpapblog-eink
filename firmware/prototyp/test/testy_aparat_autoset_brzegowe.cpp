@@ -304,9 +304,9 @@ static void liniaTrybu(const std::string& repo) {
   if (sc.empty()) return;
   SPRAWDZ(sc.find("ta wersja go nie ocenia") != std::string::npos);
   SPRAWDZ(sc.find("Nie znam trybu aparatu") != std::string::npos);
-  // R-NOR-14: linii `Nowe ustawienia…` też nie ma w żadnym trybie, więc fałszywego „Nowe ustawienia” nie będzie (trzyma), ale
-  // po poprawce zmiana ustawień przejdzie bez słowa na ekranie
-  SPRAWDZ(sc.find("Nowe ustawienia") != std::string::npos);
+  // R-NOR-14: linia zmiany ustawień jest w zestawie we wszystkich trybach (od 21.11.2026: `Zmieniono ustawienia.
+  // Nowa norma za 14 nocy.`, wcześniej `Nowe ustawienia aparatu. Uczę się normy.`)
+  SPRAWDZ(sc.find("Zmieniono ustawienia. Nowa norma za 14 nocy.") != std::string::npos);
 }
 
 // ---------- `W konfiguracja.txt` ----------
@@ -485,27 +485,27 @@ static void liniaZmianyIserii() {
   for (int i = 0; i < 16; i++) {
     noc(i, ustAutoSet("6", "14", "3"));
     rano(i);
-    SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia aparatu"));
+    SPRAWDZ(!ekranMa(s.p, "Zmieniono ustawienia"));
   }
   noc(16, ustAutoSet("6", "18", "3"));
   rano(16);
-  SPRAWDZ(ekranMa(s.p, "Nowe ustawienia aparatu. Uczę się normy."));
+  SPRAWDZ(ekranMa(s.p, "Zmieniono ustawienia. Nowa norma za 14 nocy."));
   SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia: "));  // bez wartości (ADR-0002)
   noc(17, ustAutoSet("6", "18", "3"));
   rano(17);
-  SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia aparatu"));  // raz dla tej zmiany
+  SPRAWDZ(!ekranMa(s.p, "Zmieniono ustawienia"));  // raz dla tej zmiany
   // nocy bez odczytu ustawień nie traktuje jako zmiany (R-NOR-15)
   noc(18, "");
   rano(18);
-  SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia aparatu"));
+  SPRAWDZ(!ekranMa(s.p, "Zmieniono ustawienia"));
   noc(19, ustAutoSet("6", "18", "3"));
   rano(19);
-  SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia aparatu"));
+  SPRAWDZ(!ekranMa(s.p, "Zmieniono ustawienia"));
   // R-DANE-29: trzy noce VAuto → jedna linia trybu, bez linii `Nowe ustawienia`; noc w trybie obsługiwanym kończy serię
   for (int i = 20; i < 23; i++) {
     noc(i, pole("MOP", "VAuto"));
     rano(i);
-    SPRAWDZ(!ekranMa(s.p, "Nowe ustawienia aparatu"));
+    SPRAWDZ(!ekranMa(s.p, "Zmieniono ustawienia"));
     SPRAWDZ(ekranMa(s.p, "Tryb aparatu VAuto: ta wersja go nie ocenia.") == (i == 20));
   }
 }

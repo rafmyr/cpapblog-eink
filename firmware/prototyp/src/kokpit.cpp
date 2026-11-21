@@ -54,6 +54,28 @@ const NormaMetryki* normaMetryki(const Norma& nm, Metryka m) {
   }
 }
 
+// R-NOR-28: norma tymczasowa „sprzed zmiany” metryki wiersza (tylko do pokazania, R-NOR-29); nullptr = metryka
+// niezależna od ustawień (R-NOR-07) albo bez wiersza normy
+const PasmoSprzedZmiany* pasmoSprzedZmiany(const Norma& nm, Metryka m) {
+  switch (m) {
+    case M_CMED: return &nm.sprzedZmiany.cmed;
+    case M_CP95: return &nm.sprzedZmiany.cp95;
+    case M_WP95: return &nm.sprzedZmiany.wp95;
+    case M_EMED: return &nm.sprzedZmiany.emed;
+    case M_EP95: return &nm.sprzedZmiany.ep95;
+    case M_PSMED: return &nm.sprzedZmiany.psmed;
+    default: return nullptr;
+  }
+}
+
+// R-NOR-28: czy wiersz pokazuje normę tymczasową: bez normy właściwej (`nm`) i z normą tymczasową do pokazania
+// (`nk`: Stany::normaKokpitu, a bez stanów `nm`)
+bool zNormaSprzedZmiany(const Norma& nm, const Norma& nk, Metryka m) {
+  const NormaMetryki* w = normaMetryki(nm, m);
+  const PasmoSprzedZmiany* t = pasmoSprzedZmiany(nk, m);
+  return w && !w->jest() && t && t->pokaz();
+}
+
 // wartość zaokrąglona tak jak na ekranie (format niżej): minuty, całe L/min, jedno miejsce po przecinku
 double zaokr(Metryka m, double v) {
   if (m == M_M01 || m == M_WP95 || m == M_M17 || m == M_M13) return std::floor(v + 0.5 + 1e-4);
@@ -174,16 +196,20 @@ Linia30 linia(const std::vector<Noc>& hist, const std::string& koniec, Metryka m
 }
 
 // R-KOK-16: słowo trendu z linii 30 nocy (te same noce); "" = za mało nocy w którymś oknie albo metryka bez Δ.
+// zNiepewnymi (R-KOK-37): AHI z nocami niepewnymi, tylko do sprawdzenia, czy `uczę się` wynika wyłącznie z R-NOR-19
 std::string slowoTrendu(const std::vector<Noc>& hist, const std::string& koniec, const Linia30& l, Metryka m,
-                        const TrybyOkna& tr) {
+                        const TrybyOkna& tr, const std::set<std::string>* doliczNiepewne = nullptr) {
   double delta = deltaTrendu(m);
   if (std::isnan(delta)) return "";  // M-28 bez Δ: bez reguły trendu, więc bez słowa
   std::vector<double> stare, nowe;
   for (int i = 0; i < 30; i++) {
     if (!l.ma[i] || tr.noc[i] == T_OBCY) continue;  // R-DANE-29: noc w trybie spoza wydania bez oceny
     if (m == M_AHI) {  // R-NOR-19: noc niepewna poza AHI jak w normie
-      const Noc* n = nocZDnia(hist, dodajDni(koniec, i - 29));
-      if (n && nocNiepewna(*n)) continue;
+      const std::string d = dodajDni(koniec, i - 29);
+      const Noc* n = nocZDnia(hist, d);
+      // R-KOK-37: kontrfakt z nocami niepewnymi tylko z tymi, które są niepewne także w historii stanów (noce
+      // sprzed nowego modelu maski bez wycieku w historii normy, R-MAS-16, nie liczą się jako niepewne)
+      if (n && nocNiepewna(*n) && !(doliczNiepewne && doliczNiepewne->count(d))) continue;
     }
     (i >= 23 ? nowe : stare).push_back(l.v[i]);
   }
@@ -195,6 +221,14 @@ std::string slowoTrendu(const std::vector<Noc>& hist, const std::string& koniec,
 }
 
 }  // namespace
+
+const char* const SLOWO_NIEPEWNE = "niepewne";
+
+std::string slowoNiepewne() {
+  const reguly::Zestaw& z = reguly::zestawWbudowany();
+  auto t = z.teksty.find("R-KOK-37.slowo");
+  return t == z.teksty.end() ? std::string(SLOWO_NIEPEWNE) : t->second.tekst;
+}
 
 reguly::Tryb trybBiezacy(const std::vector<Noc>& hist, const std::string& koniec) {
   switch (trybyOkna(hist, koniec).biezacy) {
@@ -226,6 +260,9 @@ std::string dopisekTrenduK1(const std::string& nazwaWiersza, const std::string& 
 DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norma& nm,
                const std::vector<WpisCzynnikow>& cz, const Stany* st, const std::string& trybStatusu) {
   DaneK1 d;
+  // R-NOR-28: norma tymczasowa z normy kokpitu w stanach (reguły dostają Stany::norma bez niej); bez stanów
+  // (testy, podglądy) z `nm`
+  const Norma& nk = st && st->normaKokpitu.zegar ? st->normaKokpitu : nm;
   const Noc* ost = ostatniaNoc(hist, dzis);
   std::string koniec = ost ? ost->data : dzis;
   d.ubiegla = ost && ost->data == dzis;
@@ -273,17 +310,37 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
     double med = mediana(v);
     w.mediana = format(m, med);
     if (normaMetryki(nm, m)->jest()) w.linia.medNormy = normaMetryki(nm, m)->med;  // przerywana
+    // R-NOR-28: bez normy właściwej przerywana mediana z normy tymczasowej „sprzed zmiany”, ze znacznikiem
+    const bool tymczasowa = zNormaSprzedZmiany(nm, nk, m);
+    if (tymczasowa) {
+      w.linia.medNormy = pasmoSprzedZmiany(nk, m)->med;
+      w.sprzedZmiany = true;
+      w.nocyNowych = pasmoSprzedZmiany(nk, m)->nocyNowych;
+    }
     // bez jednostki przy medianie (jak pozostałe wiersze): `l/min` stoi w opisie liczby nad trendem, a w 30 px
     // nie mieści się obok linii 30 nocy
     const StanMetryki* sm = stanMetryki(st, m);
-    if (!normaMetryki(nm, m)->jest()) {
+    // R-KOK-37: AHI bez normy tylko przez noce niepewne: `niepewne` / `duży wyciek` zamiast `uczę się`
+    // stan odchylenia AHI (R-KOK-03) ma pierwszeństwo: ten wiersz nie dostaje `niepewne`, tylko jak dotąd
+    // kontrfakt z liczStany() na tych samych wejściach co norma (okresy infekcji, nowy model maski)
+    if (m == M_AHI && !(sm && sm->aktywny) && st && st->kokpitAhiZNiepewnymi) {
+      w.slowo = slowoNiepewne();
+      w.slowo2 = OPIS_DUZY_WYCIEK;
+    } else if (!normaMetryki(nm, m)->jest() && !tymczasowa) {
       w.slowo = "uczę się";  // R-KOK-05
-    } else if (sm && sm->aktywny) {  // R-KOK-03: stan odchylenia ma pierwszeństwo przed trendem
+    } else if (!tymczasowa && sm && sm->aktywny) {  // R-KOK-03: stan odchylenia ma pierwszeństwo przed trendem;
+      // R-NOR-29: przy normie tymczasowej stanu nie ma (stany liczy tylko norma właściwa), więc i ramki
       w.stan = true;
       w.slowo = std::string(sm->wyzej ? "wyżej" : "niżej") + " niż zwykle";  // T3: w 2 liniach
       w.slowo2 = "od " + std::to_string(sm->nocy) + " nocy";
     } else {
       w.slowo = slowoTrendu(hist, koniec, w.linia, m, tr);  // R-KOK-16
+      // R-KOK-37: za mało nocy w oknie tylko przez pominięte noce niepewne AHI (z nimi trend by powstał):
+      // `niepewne` / `duży wyciek`, bez dopisku `lepiej` / `gorzej` (ADR-0029 pkt 7: to nie jest dobry wynik)
+      if (w.slowo.empty() && m == M_AHI && st && !slowoTrendu(hist, koniec, w.linia, m, tr, &st->kokpitNoceNiepewne).empty()) {
+        w.slowo = slowoNiepewne();
+        w.slowo2 = OPIS_DUZY_WYCIEK;
+      }
       // za mało nocy w oknie 7 albo 23: `uczę się`; metryka bez Δ (M-28): kolumna oceny pusta
       if (w.slowo.empty() && !std::isnan(deltaTrendu(m))) w.slowo = "uczę się";
       w.dopisek = dopisekTrenduK1(w.nazwa, w.slowo);  // R-KOK-25
@@ -309,6 +366,9 @@ DaneK1 budujK1(const std::vector<Noc>& hist, const std::string& dzis, const Norm
 DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norma& nm,
                const std::vector<WpisCzynnikow>& cz, const Stany* st, const std::string& trybStatusu) {
   DaneK2 d;
+  // R-NOR-28: norma tymczasowa z normy kokpitu w stanach (reguły dostają Stany::norma bez niej); bez stanów
+  // (testy, podglądy) z `nm`
+  const Norma& nk = st && st->normaKokpitu.zegar ? st->normaKokpitu : nm;
   const Noc* ost = ostatniaNoc(hist, dzis);
   std::string koniec = ost ? ost->data : dzis;
   if (!dataOk(koniec)) {  // bez zegara i bez nocy: pusta tabela
@@ -384,6 +444,13 @@ DaneK2 budujK2(const std::vector<Noc>& hist, const std::string& dzis, const Norm
     if (!nr) nr = &BEZ_NORMY;  // M-13: normy panel nie liczy, kolumna `norma` `–` (nie `uczę się`, bo jej nie przybędzie)
     w.norma = nr->jest() ? format(def[r].m, nr->p10) + "–" + format(def[r].m, nr->p90)
                          : std::string(normaMetryki(nm, def[r].m) ? "uczę się" : "–");
+    // R-NOR-28: bez normy właściwej pasmo normy tymczasowej „sprzed zmiany”; bez ramek (nr->jest() dalej false)
+    if (zNormaSprzedZmiany(nm, nk, def[r].m)) {
+      const PasmoSprzedZmiany* t = pasmoSprzedZmiany(nk, def[r].m);
+      w.norma = format(def[r].m, t->p10) + "–" + format(def[r].m, t->p90);
+      w.sprzedZmiany = true;
+      w.nocyNowych = t->nocyNowych;
+    }
     const StanMetryki* sm = stanMetryki(st, def[r].m);
     w.stan = nr->jest() && sm && sm->aktywny;  // R-KOK-09 (bez normy bez ramki, R-KOK-05)
     for (int i = 0; i < 7; i++) {

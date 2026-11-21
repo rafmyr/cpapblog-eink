@@ -391,6 +391,19 @@ static NormaMetryki zbierz(const std::vector<double>& v) {
   return m;
 }
 
+// R-NOR-27: norma tymczasowa jednej metryki z wartości sprzed zmiany; mediana i pasmo tylko, gdy ma być pokazana
+// (norma właściwa pusta i co najmniej 14 nocy sprzed zmiany), żeby liczby nie leżały w strukturze bez potrzeby
+static PasmoSprzedZmiany pasmoSprzedZmiany(const std::vector<double>& v, const NormaMetryki& wlasciwa) {
+  PasmoSprzedZmiany p;
+  p.nocy = (int)v.size();
+  p.nocyNowych = wlasciwa.n;
+  if (!p.pokaz()) return p;
+  p.med = mediana(v);
+  p.p10 = percentyl(v, 10);
+  p.p90 = percentyl(v, 90);
+  return p;
+}
+
 HistoriaPos posortujHistorie(const std::vector<Noc>& hist) {
   static const std::string pusty;
   HistoriaPos h;
@@ -408,7 +421,7 @@ HistoriaPos posortujHistorie(const std::vector<Noc>& hist) {
 }
 
 Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<std::string>& wykluczone,
-                 const WykluczeniaNormy* wm) {
+                 const WykluczeniaNormy* wm, ZakresNormy zakres) {
   Norma nm;
   if (!dataOk(dzis)) return nm;
   nm.zegar = true;
@@ -426,7 +439,23 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
     std::string t = trybNocy(*hp.noce[poDzis - 1]);
     oddechZUstawien = t == "ASV" || t == "ASVAuto";
   }
+  // R-NOR-27: tryb nocy (pole `tryb`, potem pierwszy człon ustawień nocy, potem przeniesionych, R-NOR-15)
+  auto trybZ = [&](size_t i) {
+    std::string t = trybNocy(*hp.noce[i]);
+    if (t.empty()) t = hp.ust[i]->substr(0, hp.ust[i]->find('/'));
+    return t;
+  };
+#ifdef NORMA_BEZ_TYMCZASOWEJ  // tylko test różnicowy (tools/prototyp/norma_tymczasowa_roznicowy.sh): wymuszony brak
+  (void)zakres;
+  const bool tymczasowa = false;
+#else
+  const bool tymczasowa = zakres == ZakresNormy::Z_TYMCZASOWA && poDzis > 0;
+#endif
+  const std::string trybNajnowszej = tymczasowa ? trybZ(poDzis - 1) : std::string();
   std::vector<double> m01, ahi, cmed, cp95, wp95, emed, ep95, psmed, psp95, oa, ca, hh, m17, m13, m14, m15, csrp, m10p;
+  // R-NOR-27 (ADR-0048): wartości z nocy z ustawieniami innymi niż najnowsza noc (norma tymczasowa „sprzed zmiany”,
+  // tylko do pokazania, R-NOR-29); te same wyłączenia i ten sam limit 30 najnowszych co norma właściwa
+  std::vector<double> tCmed, tCp95, tWp95, tEmed, tEp95, tPsmed;
   auto dodaj = [](std::vector<double>& v, float x) { if (!std::isnan(x) && v.size() < 30) v.push_back(x); };
   auto bez = [&](const std::set<std::string> WykluczeniaNormy::*pole, const std::string& d) {
     return wm && (wm->*pole).count(d);
@@ -450,13 +479,26 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
     // M-13, M-14, M-15 bez wyłączeń ponad 4.4 (tabela sygnałów 4.4); noce stanu odchylenia poza normą (R-NOR-09,
     // ADR-0039); w ASV i ASVAuto tylko z nocy z ustawieniami najnowszej nocy (R-NOR-07 od 11.11.2026)
     bool inneUst = !nm.ustawienia.empty() && *hp.ust[i] != nm.ustawienia;
+    // R-NOR-27: do normy tymczasowej tylko noce ze znanymi (albo przeniesionymi, R-NOR-15) ustawieniami innymi niż
+    // najnowsza noc; noc sprzed pierwszych znanych ustawień (ust "") nie wiadomo, czy jest „sprzed zmiany”; noc w innym
+    // trybie (CPAP → AutoSet, AutoSet → ASV) K1 i K2 nie pokazują jako porównywalnej, więc też nie
     bool oddech = !(oddechZUstawien && inneUst);
     if (oddech && !bez(&WykluczeniaNormy::m13, r->data)) dodaj(m13, r->m13);
     if (oddech && !bez(&WykluczeniaNormy::m14, r->data)) dodaj(m14, r->m14);
     if (oddech && !bez(&WykluczeniaNormy::m15, r->data)) dodaj(m15, r->m15);
     if (r->m01 > 0 && !std::isnan(r->csr) && !bez(&WykluczeniaNormy::csr, r->data))
       dodaj(csrp, r->csr / (float)r->m01 * 100.0f);  // CSR% = M-09 / M-01
-    if (!nm.ustawienia.empty() && *hp.ust[i] != nm.ustawienia) continue;  // R-NOR-07: inne ustawienia
+    if (inneUst) {  // R-NOR-07: inne ustawienia, poza normą właściwą
+      if (tymczasowa && !hp.ust[i]->empty() && trybZ(i) == trybNajnowszej) {  // R-NOR-27: norma tymczasowa
+        dodaj(tCmed, r->cmed);
+        if (!bez(&WykluczeniaNormy::cp95, r->data)) dodaj(tCp95, r->cp95);
+        if (!bez(&WykluczeniaNormy::wp95, r->data)) dodaj(tWp95, r->wp95);
+        dodaj(tEmed, epapMed(*r));
+        if (!bez(&WykluczeniaNormy::ep95, r->data)) dodaj(tEp95, epapP95(*r));
+        if (!bez(&WykluczeniaNormy::ps, r->data)) dodaj(tPsmed, r->psmed);
+      }
+      continue;
+    }
     dodaj(cmed, r->cmed);
     if (!bez(&WykluczeniaNormy::cp95, r->data)) dodaj(cp95, r->cp95);
     if (!bez(&WykluczeniaNormy::wp95, r->data)) dodaj(wp95, r->wp95);
@@ -485,12 +527,20 @@ Norma liczNorme(const HistoriaPos& hp, const std::string& dzis, const std::set<s
   nm.m15 = zbierz(m15);
   nm.csrp = zbierz(csrp);
   nm.m10p = zbierz(m10p);
+  if (!tymczasowa) return nm;
+  NormaSprzedZmiany& t = nm.sprzedZmiany;  // R-NOR-27: po normie właściwej, bo zależy od jej liczby nocy
+  t.cmed = pasmoSprzedZmiany(tCmed, nm.cmed);
+  t.cp95 = pasmoSprzedZmiany(tCp95, nm.cp95);
+  t.wp95 = pasmoSprzedZmiany(tWp95, nm.wp95);
+  t.emed = pasmoSprzedZmiany(tEmed, nm.emed);
+  t.ep95 = pasmoSprzedZmiany(tEp95, nm.ep95);
+  t.psmed = pasmoSprzedZmiany(tPsmed, nm.psmed);
   return nm;
 }
 
 Norma liczNorme(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone,
-                 const WykluczeniaNormy* wm) {
-  return liczNorme(posortujHistorie(hist), dzis, wykluczone, wm);
+                 const WykluczeniaNormy* wm, ZakresNormy zakres) {
+  return liczNorme(posortujHistorie(hist), dzis, wykluczone, wm, zakres);
 }
 
 Odchylenie odchylenieWNocy(const Noc& n, const Norma& nm) {

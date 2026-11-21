@@ -1053,12 +1053,18 @@ static void testUstawienia() {
   // czas z maską i AHI bez filtra ustawień: 30 ostatnich nocy przed dziś (18 z nowymi, 12 ze starymi ustawieniami)
   SPRAWDZ(nm.m01.n == 30 && nm.ahi.n == 30 && nm.ahi.med == 1.0);
   // świeża zmiana (10 nocy przed dziś z nowymi ustawieniami): normy ciśnienia i PS puste, czas i AHI są
-  Norma nr = liczNorme(h, dodajDni(dzis, -8), {});
+  // norma tymczasowa tylko na żądanie (jak końcowa Stany::norma); norma właściwa ta sama
+  Norma nr = liczNorme(h, dodajDni(dzis, -8), {}, nullptr, ZakresNormy::Z_TYMCZASOWA);
   SPRAWDZ(nr.psmed.n == 10 && !nr.psmed.jest() && !nr.emed.jest() && !nr.wp95.jest() && nr.m01.jest() && nr.ahi.jest());
   DaneK2 k2 = budujK2(h, dodajDni(dzis, -8), nr, {});
-  ROWNE(k2.w[8].norma, "uczę się");  // R-KOK-05
-  ROWNE(k2.w[6].norma, "uczę się");  // wyciek P95 też (R-NOR-07)
-  ROWNE(budujK1(h, dodajDni(dzis, -8), nr, {}).w[3].slowo, "uczę się");
+  // Zmiana 2026-11-21 (ADR-0048, R-NOR-28): przy ponad 14 nocach sprzed zmiany K2 i K1 pokazują normę tymczasową
+  // „sprzed zmiany” ze znacznikiem zamiast `uczę się` (wcześniej tu: `uczę się`, R-KOK-05); norma właściwa dalej pusta
+  ROWNE(k2.w[8].norma, "4,0–4,0");  // PS: pasmo nocy sprzed zmiany
+  SPRAWDZ(k2.w[8].sprzedZmiany);
+  ROWNE(k2.w[6].norma, "10–10");  // wyciek P95 też (R-NOR-07)
+  SPRAWDZ(k2.w[6].sprzedZmiany);
+  DaneK1 k1 = budujK1(h, dodajDni(dzis, -8), nr, {});
+  SPRAWDZ(k1.w[3].slowo != "uczę się" && k1.w[3].sprzedZmiany && !k1.w[3].stan);
   // dzień przed zmianą: najnowsza noc ma stare ustawienia → norma z nocy ze starymi
   Norma ns = liczNorme(h, dodajDni(dzis, -19), {});
   SPRAWDZ(ns.ustawienia == u4 && ns.psmed.jest() && ns.psmed.med == 4.0);
@@ -2099,8 +2105,10 @@ static void testStany() {
   SPRAWDZ(k1.w[4].stan);
   ROWNE(k1.w[4].slowo + " / " + k1.w[4].slowo2, "wyżej niż zwykle / od 9 nocy");  // T3: 2 linie
   // wariant C: 11 nocy z P95 30 ≥ 15 L/min jest niepewnych, więc wypadają z normy AHI (R-NOR-19)
-  // i wiersz AHI uczy się od nowa; bez negatywu jak wcześniej
-  ROWNE(k1.w[0].slowo, "uczę się");
+  // i wiersz AHI uczy się od nowa; bez negatywu jak wcześniej. Zmiana 2026-11-21 (R-KOK-37, decyzja właściciela projektu 21.11.2026): brak
+  // normy AHI wynika tu tylko z nocy niepewnych, więc słowo `niepewne` / `duży wyciek` zamiast `uczę się`
+  ROWNE(k1.w[0].slowo, "niepewne");
+  ROWNE(k1.w[0].slowo2, "duży wyciek");
   SPRAWDZ(!k1.w[0].stan);
   DaneK2 k2 = budujK2(h6, dodajDni(d0, 11), s9.norma, {}, &s9);
   SPRAWDZ(k2.w[6].stan && !k2.w[0].stan && !k2.w[7].stan);

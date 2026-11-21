@@ -255,6 +255,7 @@ DaneLiczb budujLiczby(reguly::Tryb tryb, bool centralne, bool sprawy, bool sypia
   d.wiersze.push_back({"Wyciek:", " powietrze, które ucieka obok maski."});
   d.wiersze.push_back({"Obturacyjne:", " bezdechy z zamkniętym gardłem."});
   if (centralne) d.wiersze.push_back({"Centralne:", " bezdechy bez próby wdechu."});
+  d.objasnienieKolka = objasnienieKolkaLiczb();  // R-NOR-28: znacznik K1 i K2 bez legendy na nich (R-KOK-17)
   return d;
 }
 
@@ -264,11 +265,18 @@ void rysujLiczby(Plotno& p, const Belka& n, const DaneLiczb& d) {
   t.krok = d.zdanie;
   t.stopkaLewo = d.stopkaLewo;
   rysujEkranDanych(p, n, t);
-  int krok = d.wiersze.size() > 6 ? 38 : 44;
+  // R-NOR-28: linia kółka liczy się jak wiersz; przy 8 liniach ciaśniej (33 px), żeby ostatnia stała nad zdaniem na 410
+  size_t linie = d.wiersze.size() + (d.objasnienieKolka.empty() ? 0 : 1);
+  int krok = linie > 7 ? 33 : linie > 6 ? 38 : 44;
   for (size_t i = 0; i < d.wiersze.size(); i++) {
     int y = 133 + (int)i * krok;
     int x = tekst(p, F_P24B, X, y, d.wiersze[i].nazwa);
     tekst(p, F_P22B, x, y, d.wiersze[i].opis);
+  }
+  if (!d.objasnienieKolka.empty()) {
+    int y = 133 + (int)d.wiersze.size() * krok;
+    int x = rysujZnacznikSprzedZmiany(p, X, y, 7, 14);  // kółko w połowie: przykład, nie stan panelu
+    tekst(p, F_P22B, x + ZNACZNIK_ODSTEP, y, d.objasnienieKolka);
   }
 }
 

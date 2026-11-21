@@ -16,7 +16,11 @@
 // mediana i słowo oceny, w K2 komórka nocy w innym trybie to `–` (fail-path R-KOK-15).
 //
 // Słowa oceny K1 (5.5.2, R-KOK-16) i oznaczenia K2 (5.5.3) ze stanów odchylenia (src/stany.h, 4.6), kolejność:
-// 1. metryka bez normy: `uczę się`, bez ramek (R-KOK-05);
+// 0. (R-KOK-37, 21.11.2026) AHI bez słowa tylko przez noce niepewne (bez normy albo za mało nocy trendu, a z nocami
+//    niepewnymi byłoby dość): `niepewne` / `duży wyciek` w 2 liniach, znak `?`, bez dopisku i ramki;
+// 1. metryka bez normy: `uczę się`, bez ramek (R-KOK-05); od 21.11.2026 (ADR-0048, R-NOR-28) metryka zależna od
+//    ustawień bez normy właściwej, ale z normą tymczasową „sprzed zmiany” (Norma::sprzedZmiany, R-NOR-27): słowo trendu
+//    jak w pkt 3, przerywana mediana i pasmo K2 z normy tymczasowej, znacznik `sprzedZmiany`, bez ramek i bez stanu;
 // 2. metryka w stanie odchylenia: wiersz K1 w ramce ze słowem `wyżej niż zwykle` / `od {n} nocy` albo
 //    `niżej niż zwykle` / `od {n} nocy` w 2 liniach (R-KOK-03, T3), etykieta wiersza K2 w ramce (R-KOK-09);
 // 3. trend (R-KOK-16, wariant A): mediana ostatnich 7 nocy okna 30 nocy wobec mediany
@@ -64,12 +68,22 @@ struct WierszK1 {
   // (dopisekTrenduK1); "" = bez dopisku (pozostałe wiersze i słowa)
   std::string dopisek;
   bool stan = false;    // R-KOK-03: metryka w stanie odchylenia, wiersz w ramce
+  // R-NOR-28 (ADR-0048): metryka bez normy właściwej porównana z normą tymczasową „sprzed zmiany” (R-NOR-27): słowo
+  // jak przy normie właściwej (trend), przerywana mediana z normy tymczasowej, nigdy ramka ani stan; znacznik rysuje
+  // jedno miejsce w src/ekrany.cpp (rysujZnacznikSprzedZmiany()). nocyNowych z progNocy: ile nocy z nowymi
+  // ustawieniami panel już zebrał (np. 11 z 14), dla wariantu znacznika z licznikiem (do decyzji właściciela projektu)
+  bool sprzedZmiany = false;
+  int nocyNowych = 0, progNocy = NormaSprzedZmiany::PROG_NOCY;
 };
 
 // R-KOK-25: `lepiej` / `gorzej` dla słowa trendu wiersza K1; tylko `AHI` i `Wyciek` (mniej = lepiej), inne wiersze ""
 std::string dopisekTrenduK1(const std::string& nazwaWiersza, const std::string& slowo);
 // R-KOK-27: opis liczby wycieku ostatniej nocy, gdy noc jest niepewna przez wyciek (4.9): przyczyna `ocena ograniczona`
 extern const char* const OPIS_DUZY_WYCIEK;
+// R-KOK-37: słowo oceny AHI w K1, gdy `uczę się` wynikałoby wyłącznie z pominięcia nocy niepewnych (R-NOR-19): w drugiej
+// linii OPIS_DUZY_WYCIEK (ten sam słownik co R-KOK-27 i `ocena ograniczona`, R-KOK-21); znak `?` (src/ekrany.cpp)
+extern const char* const SLOWO_NIEPEWNE;
+std::string slowoNiepewne();  // tekst `R-KOK-37.slowo` z zestawu (zapas: SLOWO_NIEPEWNE); ten sam w K1 i w znaku `?`
 
 struct DaneK1 {
   // Noc w środku belki (src/ekrany.h belkaK1()): data ostatniej zapisanej nocy (`12.11`, "" = brak nocy) i skrót
@@ -114,6 +128,11 @@ struct WierszK2 {
   KomorkaK2 k[7];
   std::string norma = "–";
   bool stan = false;  // R-KOK-09: metryka w stanie odchylenia, etykieta wiersza w ramce
+  // R-NOR-28 (ADR-0048): `norma` to pasmo P10–P90 normy tymczasowej „sprzed zmiany” (R-NOR-27), bez ramek komórek
+  // i etykiety; znacznik przy paśmie i objaśnienie w linii zdania rysuje src/ekrany.cpp (jedno miejsce). nocyNowych
+  // z progNocy jak w WierszK1
+  bool sprzedZmiany = false;
+  int nocyNowych = 0, progNocy = NormaSprzedZmiany::PROG_NOCY;
   // R-KOK-18: nazwa metryki w linii `brak danych: …` pod tabelą (małymi literami, bez jednostki, np. `oddechy`)
   const char* nazwaBraku = "";
   // R-KOK-18: wiersz bez żadnej wartości w 7 nocach, bez stanu odchylenia i bez pasma normy, w tygodniu,

@@ -358,6 +358,9 @@ R-NOR-07,M-28p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,M-14,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,M-15,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,R-NOR-27,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,R-NOR-28,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
+R-NOR-07,R-NOR-29,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,E-36,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-07
 R-NOR-07,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,S-K-19,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
@@ -375,6 +378,9 @@ R-NOR-08,E-36,E,tak,5.2.3 Wymagania,katalog+wymaganie,weryfikacja R-NOR-08
 R-NOR-09,R-NOR-06,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-09
 R-NOR-10,R-NOR-09,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-10,R-NOR-22,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-NOR-27,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-NOR-28,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
+R-NOR-10,R-NOR-29,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-10,R-CZY-05,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-10,R-NOR-11,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-11,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-11
@@ -437,6 +443,37 @@ R-NOR-26,R-NOR-18,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
 R-NOR-26,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
 R-NOR-26,S-K-31,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
 R-NOR-26,L-09,L,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-26
+R-NOR-27,M-05,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-05p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-06,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-06p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-07,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-28,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-28p,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-10,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-11,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-13,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-14,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,M-15,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-15,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-10,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-01,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-08,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-09,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-NOR-19,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,R-CZY-05,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-28,R-NOR-27,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-28,R-KOK-16,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-28,R-KOK-17,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-28,R-KOK-05,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-29,R-NOR-28,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,R-KON-30,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,R-KON-68,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,R-NOR-11,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,R-NOR-27,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,E-21,E,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,S-K-17,S-K,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
 R-NOR-15,M-21,M,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
 R-NOR-15,R-NOR-07,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
 R-NOR-15,R-NOR-18,R,nie,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-15
@@ -937,6 +974,8 @@ R-KOK-01,M-05,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
 R-KOK-01,M-07,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
 R-KOK-01,M-06,M,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-01
 R-KOK-02,R-DANE-07,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-02
+R-KOK-05,R-NOR-27,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-05
+R-KOK-05,R-NOR-28,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-05
 R-KOK-06,R-KOK-15,R,nie,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-06
 R-KOK-07,E-30,E,tak,5.5.5 Wymagania,katalog+wymaganie,weryfikacja R-KOK-07
 R-KOK-07,S-K-10,S-K,tak,5.5.5 Wymagania,wymaganie,weryfikacja R-KOK-07
@@ -1042,6 +1081,14 @@ R-KOK-35,R-PRZ-04,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-
 R-KOK-36,R-KOK-23,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
 R-KOK-36,R-KOK-30,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
 R-KOK-36,U-01,U,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
+R-KOK-37,R-NOR-19,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-KOK-05,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-KOK-16,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-KOK-25,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-MAS-16,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-INF-05,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-KOK-21,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,R-KOK-27,R,nie,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
 R-PRZ-02,R-PRZ-18,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
 R-PRZ-02,R-KOK-29,R,nie,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
 R-PRZ-02,U-01,U,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
@@ -2602,10 +2649,18 @@ R-DANE-52,K2,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-52; przypad
 R-DANE-32,K2,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-32; przypadki 7.8: 59
 R-DANE-07,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-07
 R-DANE-12,K1,kokpit,tak,5.1.2 Wymagania,wymaganie,weryfikacja R-DANE-12
+R-NOR-07,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-07,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-07
 R-NOR-10,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-10,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-10
 R-NOR-20,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-20; przypadki 7.8: 21
+R-NOR-27,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-27,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-27
+R-NOR-28,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-28,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-28,„Co znaczą te liczby”,nazwany,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-28
+R-NOR-29,K1,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
+R-NOR-29,K2,kokpit,tak,5.2.3 Wymagania,wymaganie,weryfikacja R-NOR-29
 R-AW-02,K1,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-02
 R-AW-16,S6,stan,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-16
 R-AW-17,K2,kokpit,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
@@ -2815,6 +2870,8 @@ R-KOK-35,„Sypialnia · 30 nocy”,nazwany,tak,"5.5.9 Kolejność i widocznoś�
 R-KOK-36,K1,kokpit,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
 R-KOK-36,K2,kokpit,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
 R-KOK-36,„Otwarte sprawy”,nazwany,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-36
+R-KOK-37,K1,kokpit,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
+R-KOK-37,pytanie „gorzej”,nazwany,tak,"5.5.9 Kolejność i widoczność stron z telefonu (ADR-0045, od 14.11.2026)",wymaganie,weryfikacja R-KOK-37
 R-PRZ-02,K1,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
 R-PRZ-02,K2,kokpit,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
 R-PRZ-02,„Sprzęt”,nazwany,tak,5.6.7 Wymagania,wymaganie,weryfikacja R-PRZ-02
