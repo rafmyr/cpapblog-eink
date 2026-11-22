@@ -24,8 +24,10 @@ const int BAJTY_TOKENU = 16;                 // 128 bitów (T-NF-27)
 // `maxlength` po 30 znaków dwubajtowych) ma 3 984 B, czyli przy 4 KB zapasu prawie nie było (test
 // testy_kolejnosc_ekranow.cpp); teoretyczny (pola z `maxlength` znakami dwubajtowymi) 5 706 B, w rachunku przegląd
 // (także listy i daty dwubajtowo) 7 202 B. Koszt: do 8 KB ciała i tyle argumentów WebServer na stercie w chwili
-// zapisu (strona odpowiedzi powstaje później).
-const size_t MAKS_CIALA_POST = size_t{8} * 1024;
+// zapisu (strona odpowiedzi powstaje później). Od sekcji „Dobry start” (ADR-0049, 22.11.2026) 10 KB: jej pola dokładają
+// do realnego najgorszego przypadku ok. 270 B (4 2xx B), a 8 KB nie dawało już 2× zapasu; koszt: do 2 KB więcej
+// sterty w chwili zapisu.
+const size_t MAKS_CIALA_POST = size_t{10} * 1024;
 
 // Token z 16 bajtów: 26 znaków [0-9a-hjkmnp-tv-z].
 std::string token(const uint8_t bajty[BAJTY_TOKENU]);

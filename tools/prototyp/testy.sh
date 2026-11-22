@@ -41,6 +41,7 @@ BUD="$FW/.pio/testy"
 PODGLAD="${1:-/tmp/cpap-eink-podglad}"
 mkdir -p "$BUD" "$PODGLAD"
 source "$REPO/tools/prototyp/zrodla.sh"
+sprawdz_liste_testow  # każdy test/testy*.cpp w TESTY (sanitizery i pokrycie), inaczej przerwanie (set -e)
 FLAGI=(-std=c++17 -O1 "${INCLUDY[@]}")
 JOBY="$(nproc 2>/dev/null || echo 2)"
 
@@ -72,6 +73,9 @@ for z in "$FW/src/main.cpp" "$FW/src/adaptery_esp32.cpp"; do
   # obraz pomiarowy `e1001_pomiar` (wiersze POMIAR, historia w NVS; R-NF-25)
   g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DPOMIAR_CZASU=1 -DARDUINO_ATRAPA -I"$FW/test/atrapy/arduino" \
     -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$z"
+  # wyłącznik wysyłki obrazu blokiem (EPD_WYSYLKA_BLOKIEM=0: dotychczasowa droga przez GxEPD2, 22.11.2026)
+  g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DPOMIAR_CZASU=1 -DEPD_WYSYLKA_BLOKIEM=0 -DARDUINO_ATRAPA \
+    -I"$FW/test/atrapy/arduino" -I"$FW/test/atrapy" -I"$FW/src" -I"$FW/include" "$z"
 done
 # obraz wydania bez sekretów (tools/wydanie/): main.cpp bez secrets.h
 g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DBEZ_SEKRETOW -DWERSJA_WYDANIA='"9.9.9"' -DARDUINO_ATRAPA \
@@ -165,10 +169,10 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zdarzenia_e.cpp" "$
 echo "testy przypadków brzegowych: zdarzenia E (test/testy_zdarzenia_e_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zdarzenia_e_brzegowe.cpp" "${OBIEKTY[@]}" ${ROD_E_OBJ[@]+"${ROD_E_OBJ[@]}"} \
   -o "$BUD/testy_zdarzenia_e_brzegowe"
-"$BUD/testy_zdarzenia_e_brzegowe" || echo " są otwarte przypadki (wyżej)"
+uruchom_test_rdzenia "$BUD/testy_zdarzenia_e_brzegowe" "${PODGLAD%/}"  # nie blokuje (TESTY_NIEBLOKUJACE)
 echo "testy (test/testy_wzorce_l_hipotezy_h.cpp: katalog L/H wobec spec, stany wzorca L, „wiem”, „Omówione”, info(), wzorce L z zestawu wbudowanego, dyrygent z ekranem L-03)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wzorce_l_hipotezy_h.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wzorce_l_hipotezy_h"
-"$BUD/testy_wzorce_l_hipotezy_h" "$REPO"
+uruchom_test_rdzenia "$BUD/testy_wzorce_l_hipotezy_h" "${PODGLAD%/}"  # argument: katalog repozytorium
 echo "testy przypadków brzegowych: wzorce L i hipotezy H (test/testy_wzorce_l_hipotezy_h_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wzorce_l_hipotezy_h_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wzorce_l_hipotezy_h_brzegowe"
 "$BUD/testy_wzorce_l_hipotezy_h_brzegowe"
@@ -299,11 +303,10 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_slot_dzienny_brzego
 echo "testy (test/testy_raport_a4.cpp: raport A4, PDF, kod QR, serwer raportu, ściąga, ▶ na ekranie L i w K2)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_raport_a4.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_raport_a4"
 RAPORT_DIR="${PODGLAD%/}-raport"
-"$BUD/testy_raport_a4" "$RAPORT_DIR"
+uruchom_test_rdzenia "$BUD/testy_raport_a4" "${PODGLAD%/}"  # katalog "$RAPORT_DIR"
 echo "testy przypadków brzegowych: raport A4, serwer raportu, kod QR (test/testy_raport_a4_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_raport_a4_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_raport_a4_brzegowe"
-mkdir -p "${PODGLAD%/}-raport-a4"
-"$BUD/testy_raport_a4_brzegowe" "${PODGLAD%/}-raport-a4"  # po poprawkach wszystkie zielone, więc blokuje
+uruchom_test_rdzenia "$BUD/testy_raport_a4_brzegowe" "${PODGLAD%/}"  # katalog ${PODGLAD%/}-raport-a4; blokuje
 echo "składnia gniazda serwera raportu ESP32 (src/serwer_raportu_esp32.cpp) z atrapą WebServer.h"
 g++ -std=gnu++17 -fsyntax-only "${OSTRZEZENIA[@]}" -DARDUINO_ATRAPA -I"$FW/test/atrapy/arduino" -I"$FW/test/atrapy" \
   -I"$FW/src" -I"$FW/include" "$FW/src/serwer_raportu_esp32.cpp"
@@ -339,7 +342,7 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_ekrany_co2.cpp" "${
 
 echo "testy (test/testy_przerywniki_s2d.cpp: przerywniki S2d z tekstami autora projektu, karta z warunkiem i neutralna, krok zamienny przy braku danych)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_przerywniki_s2d.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_przerywniki_s2d"
-"$BUD/testy_przerywniki_s2d" "$REPO"
+uruchom_test_rdzenia "$BUD/testy_przerywniki_s2d" "${PODGLAD%/}"
 
 echo "testy przypadków brzegowych: przerywniki S2d (test/testy_przerywniki_s2d_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_przerywniki_s2d_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_przerywniki_s2d_brzegowe"
@@ -384,13 +387,12 @@ fi
 echo "  norma kokpitu tylko w stany.*, kokpit.*: ok"
 echo "testy (test/testy_norma_tymczasowa_naiwna.cpp: naiwna R-NOR-27 na 30000 losowych historiach, norma właściwa bez zmian)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_norma_tymczasowa_naiwna.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_norma_tymczasowa_naiwna"
-"$BUD/testy_norma_tymczasowa_naiwna" 30000  # blokuje
+uruchom_test_rdzenia "$BUD/testy_norma_tymczasowa_naiwna" "${PODGLAD%/}"  # 30000 historii, blokuje
 echo "testy (test/testy_k1_ahi_niepewne_scenariusze.cpp, test/testy_k1_ahi_niepewne_naiwna.cpp: tryb nocy, wymiana aparatu, naiwna R-KOK-37)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_k1_ahi_niepewne_scenariusze.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k1_ahi_niepewne_scenariusze"
 "$BUD/testy_k1_ahi_niepewne_scenariusze"  # blokuje
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_k1_ahi_niepewne_naiwna.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_k1_ahi_niepewne_naiwna"
-"$BUD/testy_k1_ahi_niepewne_naiwna" 3000 0  # wejścia spójne, blokuje
-"$BUD/testy_k1_ahi_niepewne_naiwna" 3000 1  # wejścia jak w dyrygencie (okresy infekcji), blokuje
+uruchom_test_rdzenia "$BUD/testy_k1_ahi_niepewne_naiwna" "${PODGLAD%/}"  # 3000 0 (wejścia spójne) i 3000 1 (jak w dyrygencie), blokuje
 echo "test różnicowy normy tymczasowej (tools/prototyp/norma_tymczasowa_roznicowy.sh: symulator 10 dni, różnice tylko K1, K2, LICZBY)"
 bash "$REPO/tools/prototyp/norma_tymczasowa_roznicowy.sh" "$BUD" "$BUD/norma-tymczasowa-roznicowy" 10  # blokuje
 echo "testy (test/testy_k1_ahi_niepewne.cpp: K1 AHI „niepewne” i „duży wyciek” zamiast „uczę się”, R-KOK-37)"
@@ -406,7 +408,7 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_trend_ps_podpisy_osi.cpp" 
 
 echo "testy przypadków brzegowych: podpisy osi S3, ocena częściowa, trend PS, tytuły L-07 i O-09 (test/testy_trend_ps_podpisy_osi_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_trend_ps_podpisy_osi_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_trend_ps_podpisy_osi_brzegowe"
-"$BUD/testy_trend_ps_podpisy_osi_brzegowe" "$REPO"  # wszystkie zielone, więc blokuje
+uruchom_test_rdzenia "$BUD/testy_trend_ps_podpisy_osi_brzegowe" "${PODGLAD%/}"  # blokuje
 "$BUD/testy_trend_ps_podpisy_osi"
 
 echo "testy (test/testy_profil_publiczny.cpp: profil publiczny w /konfiguracja.txt, teksty 5.4.14 na ekranach dnia, R-EKR-51 z fail-path)"
@@ -423,12 +425,11 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_profil_publiczny_brzegowe.
 
 echo "testy przypadków brzegowych: ekrany zdarzeń E, linia Wciąż (test/testy_ekrany_zdarzen_e_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_ekrany_zdarzen_e_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ekrany_zdarzen_e_brzegowe"
-mkdir -p "${PODGLAD%/}-ekrany-zdarzen-e"
-"$BUD/testy_ekrany_zdarzen_e_brzegowe" "${PODGLAD%/}-ekrany-zdarzen-e"  # wszystkie zielone, więc blokuje
+uruchom_test_rdzenia "$BUD/testy_ekrany_zdarzen_e_brzegowe" "${PODGLAD%/}"  # katalog ${PODGLAD%/}-ekrany-zdarzen-e; blokuje
 
 echo "testy przypadków brzegowych: aparat AirSense AutoSet, raport z Załącznika A (test/testy_aparat_autoset_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_aparat_autoset_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aparat_autoset_brzegowe"
-"$BUD/testy_aparat_autoset_brzegowe" "$REPO"  # po poprawkach wszystkie zielone, więc blokuje
+uruchom_test_rdzenia "$BUD/testy_aparat_autoset_brzegowe" "${PODGLAD%/}"  # blokuje
 
 echo "testy (test/testy_zegar_ntp.cpp: zegar nowego panelu, NTP 3 próby, czas z AirBridge, R-AW-18; T-TEST-327)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_zegar_ntp.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_zegar_ntp"
@@ -455,6 +456,9 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_sprzet_maska_filtr.
 echo "testy (test/testy_nawigacja.cpp: nowa nawigacja, ciąg stron n / 3 (ADR-0041), ↻ ekran dnia, przytrzymanie = zapis, „Omówione” tylko ▶)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_nawigacja.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_nawigacja"
 "$BUD/testy_nawigacja"
+echo "testy szybkich naciśnięć (test/testy_kolejka_szybkie.cpp: R-PRZ-20, kolejka z czasu liczenia strony i rysowania na modelu próbkowania przycisków; czuwanie, głęboki sen, kabel; zacięty, przytrzymanie, skrót)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejka_szybkie.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejka_szybkie"
+"$BUD/testy_kolejka_szybkie"
 echo "testy przypadków brzegowych: mapa nawigacji 5.6.2 tabelarycznie (test/testy_nawigacja_mapa_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_nawigacja_mapa_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_nawigacja_mapa_brzegowe"
 "$BUD/testy_nawigacja_mapa_brzegowe"
@@ -474,13 +478,28 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_kabel_bez_snu.cpp" "${OBIE
 "$BUD/testy_kabel_bez_snu"
 echo "testy brzegowe czekania na kablu (test/testy_kabel_bez_snu_brzegowe.cpp: ADR-0047, przejściowy błąd odczytu a PlikiZPamiecia, wyłącznik w czuwaniu, losowe sekwencje głęboki sen ≡ czekanie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_bez_snu_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu_brzegowe"
-"$BUD/testy_kabel_bez_snu_brzegowe"  # blokuje przy błędzie (PlikiZPamiecia nie pamięta nieudanego odczytu ani braku pliku)
+"$BUD/testy_kabel_bez_snu_brzegowe"  # blokuje przy błędzie (PlikiZPamiecia nie pamięta nieudanego odczytu ani braku pliku; od 22.11.2026: odczyt nieudany ≠ plik pusty)
+echo "testy odczytu nieudanego i dopisania nieudanego (test/testy_odczyt_nieudany.cpp: T-WYM-19, T-TEST-515: plik jest, odczyt się nie udał → bez zapisu do końca wybudzenia; brak pliku jak dotąd; nieudane dopisanie w logu)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA[@]}" "$FW/test/testy_odczyt_nieudany.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odczyt_nieudany"
+"$BUD/testy_odczyt_nieudany"  # blokuje przy błędzie
+echo "testy brzegowe odczytu nieudanego (test/testy_odczyt_nieudany_brzegowe.cpp: semantyka LittleFS.exists() = open(), niepełna lista katalogu, pusty pierwszy wiersz)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odczyt_nieudany_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odczyt_nieudany_brzegowe"
+"$BUD/testy_odczyt_nieudany_brzegowe"  # blokuje (T-TEST-515)
+echo "testy brzegowe odczytu nieudanego, część 2 (test/testy_odczyt_nieudany_brzegowe_2.cpp: bez usterek nośnika żadnej odmowy, dwa lata i przełom roku na obu ścieżkach ADR-0047, doba bez sieci)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odczyt_nieudany_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odczyt_nieudany_brzegowe_2"
+"$BUD/testy_odczyt_nieudany_brzegowe_2" | grep -v '^PLIK '  # blokuje (pipefail); wiersze PLIK do porównania z origin/main
 echo "testy brzegowe czekania na kablu, część 2 (test/testy_kabel_bez_snu_brzegowe_2.cpp: ADR-0047 zmiana 2026-11-17, lista katalogu z ukośnikiem a nowy rok, częściowe listuj(), usterki nośnika na obu ścieżkach, naciśnięcie już puszczone)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu_brzegowe_2"
-"$BUD/testy_kabel_bez_snu_brzegowe_2"  # blokuje przy błędzie (PlikiZPamiecia bez pamięci listuj() i pierwszyWiersz(), próg przytrzymania jak po głębokim śnie)
 echo "testy brzegowe limitu ładowania z czekaniem na kablu (test/testy_kabel_ladowanie_brzegowe.cpp: ADR-0046 × ADR-0047, losowe sekwencje na dwóch ścieżkach z resetem układu, błędami I2C i NVS; przywrócenie po wyłączeniu w czekaniu; formularz zachowuje kabel_bez_snu; nieczytelna konfiguracja: limit bez zmian, głęboki sen; KL_ZIARNA=n)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_ladowanie_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_ladowanie_brzegowe"
 "$BUD/testy_kabel_ladowanie_brzegowe"  # blokuje przy błędzie, także nieczytelna konfiguracja: ani zdjęcie limitu, ani czekanie
+"$BUD/testy_kabel_bez_snu_brzegowe_2"  # blokuje przy błędzie (PlikiZPamiecia bez pamięci listuj() i pierwszyWiersz(), próg przytrzymania jak po głębokim śnie)
+echo "testy źródła otoczenia po czekaniu na kablu (test/testy_otoczenie_zegar_kabel.cpp: T-TEST-519, ADR-0047 zmiana 2026-11-22, zegar rdzenia od końca czekania a zegar adaptera od startu programu, ZadanieHttp::budzetCialaMs)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_otoczenie_zegar_kabel.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_otoczenie_zegar_kabel"
+"$BUD/testy_otoczenie_zegar_kabel"
+echo "testy brzegowe źródła otoczenia po czekaniu (test/testy_otoczenie_zegar_kabel_brzegowe.cpp: budzetCialaMinal() i przebiegi po czekaniu przy przepełnieniu millis(), budżet po przepełnieniu)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_otoczenie_zegar_kabel_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_otoczenie_zegar_kabel_brzegowe"
+"$BUD/testy_otoczenie_zegar_kabel_brzegowe"  # blokuje przy błędzie
 echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
 "$BUD/testy_kolejnosc_portret"
@@ -539,10 +558,31 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_scalenie_u01_stopka
 "$BUD/testy_scalenie_u01_stopka"
 echo "testy brzegowe ekranów serwisowych (test/testy_ekrany_serwisowe_brzegowe.cpp: U-05 werdykt i wiersze, U-07, „Co nowego”, U-01 kafelek; 0 usterek)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_ekrany_serwisowe_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_ekrany_serwisowe_brzegowe"
-(cd "$FW" && "$BUD/testy_ekrany_serwisowe_brzegowe")  # czyta src/dyrygent.cpp (przypadek [i]); blokuje przy usterce
+uruchom_test_rdzenia "$BUD/testy_ekrany_serwisowe_brzegowe" "${PODGLAD%/}"  # w katalogu $FW (czyta src/dyrygent.cpp); blokuje
 echo "testy brzegowe znaków belki (test/testy_belka_znaki_brzegowe.cpp: dane nieaktualne, klepsydra, znak wersji, U-05 pobieram; 0 błędów)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_belka_znaki_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka_znaki_brzegowe"
 "$BUD/testy_belka_znaki_brzegowe"  # blokuje przy błędzie
 echo "testy brzegowe belki bez napisu kabel (test/testy_belka_bez_kabla_brzegowe.cpp: ikona na kablu na każdej belce i ekranie, liczby ze spec 5.4.17, kabel ↔ bateria w dyrygencie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_belka_bez_kabla_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_belka_bez_kabla_brzegowe"
 "$BUD/testy_belka_bez_kabla_brzegowe"  # blokuje przy błędzie
+echo "testy programu „Dobry start” (test/testy_dobry_start.cpp: R-DS-01…R-DS-53 w silniku, scenariusze 60 dób, ADR-0049)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_dobry_start.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start"
+"$BUD/testy_dobry_start"  # blokuje przy błędzie
+echo "testy przypadków brzegowych „Dobry start” (test/testy_dobry_start_brzegowe.cpp: dyrygent na atrapach, S-K-48 w bloku i wieczorem, restart, rysunek, strony formularza)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_dobry_start_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_brzegowe"
+"$BUD/testy_dobry_start_brzegowe"  # blokuje przy błędzie
+echo "testy brzegowe „Dobry start”, część 2 (test/testy_dobry_start_brzegowe_2.cpp: przykłady R-DS w silniku, fail-path pliku porad i stanu, formularz; CZERWONE = przypadki dawnych usterek)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_dobry_start_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_brzegowe_2"
+"$BUD/testy_dobry_start_brzegowe_2"  # blokuje przy błędzie i przy przypadku CZERWONYM
+echo "testy brzegowe „Dobry start” z dyrygentem (test/testy_dobry_start_brzegowe_dyrygent.cpp: uszkodzony plik stanu, wyłączenie i ponowne włączenie)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_dobry_start_brzegowe_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_brzegowe_dyrygent"
+"$BUD/testy_dobry_start_brzegowe_dyrygent"  # blokuje przy błędzie i przy przypadku CZERWONYM
+echo "testy brzegowe szybkich naciśnięć (test/testy_kolejka_szybkie_brzegowe.cpp: serie losowe wobec „każde osobno” z regułą „z kolejki tylko nawigacja”, pytanie tak/nie z kolejki i z czasu rysowania, przepełnienie, skrót, progi, trzy szybkie w kokpicie z danymi)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejka_szybkie_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejka_szybkie_brzegowe"
+"$BUD/testy_kolejka_szybkie_brzegowe"  # blokuje przy błędzie
+echo "testy wysyłki obrazu e-ink blokiem (test/testy_wysylka_obrazu.cpp: bajt w bajt jak pętla GxEPD2 1.6.9 w drodze częściowej i pełnej, czyszczenie pamięci, kawałki; T-KOMP-17)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wysylka_obrazu.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wysylka_obrazu"
+"$BUD/testy_wysylka_obrazu"  # blokuje przy błędzie
+echo "testy brzegowe wysyłki obrazu (test/testy_wysylka_obrazu_brzegowe.cpp: długości 0…48 000, wzorce bitów, wyrównanie kawałków, strażnik bufora)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_wysylka_obrazu_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_wysylka_obrazu_brzegowe"
+"$BUD/testy_wysylka_obrazu_brzegowe"  # blokuje przy błędzie

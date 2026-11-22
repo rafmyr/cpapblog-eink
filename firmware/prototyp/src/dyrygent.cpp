@@ -87,6 +87,9 @@ void zarejestrujRodzajeE();  // src/rodzaje_e.cpp: rodzaje warunków zdarzeń E 
 namespace {
 
 const bool Z_PROPOZYCJAMI = HUMOR_PROPOZYCJE != 0;
+// dopisek odpowiedzi formularza, gdy /konfiguracja.txt jest, a odczyt się nie udał (pola pliku bez zapisu)
+const char* const KONFIGURACJA_NIECZYTELNA_P605 =
+    " Nie udało się odczytać ustawień w pamięci panelu, więc pól pliku nie zapisano. Spróbuj ponownie.";
 
 // Budżet czasu wybudzenia (README „Budżet czasu wybudzenia”) [stałe prototypu].
 const uint32_t LIMIT_WIFI_MS = 20000;
@@ -436,6 +439,10 @@ class Przebieg {
   bool porWczytany = false, porZm = false;
   std::map<long, NocAB> porNoce;     // noce z raportu JSON tego wybudzenia czekające na porównanie (doba → noc)
   bool przyciskWCzuwaniu = false;    // czuwanie po rysowaniu obsłużyło przycisk: bez porównania na końcu
+  // R-PRZ-20 (zmiana 2026-11-22): chwila (ms()) końca ostatniego odświeżenia ekranu w tym przebiegu; przycisk
+  // wciśnięty przed nią trafił na ekran, którego w chwili wciśnięcia nie było widać
+  uint32_t koniecRysowaniaMs = 0;
+  bool rysowanoWPrzebiegu = false;
   std::string abPna, abSrn;    // `pna` i `srn` z `/api/status` tego wybudzenia ("" = brak odczytu)
   // wiersze plików nocy nieczytelne dla parsujNocV2, po ścieżce pliku; zapiszHistorie je oddaje
   std::map<std::string, std::vector<std::string>> nieczytelneNoce;
@@ -571,7 +578,9 @@ class Przebieg {
       std::string rok = mag.sciezkaRoku(nazwa, "0000") == s ? "" : s.substr(s.size() - 8, 4);
       if (!odRoku.empty() && !rok.empty() && rok < odRoku) continue;
       OdczytPliku o = mag.czytaj(nazwa, s);
-      if (o.stan == StanPliku::BRAK || o.stan == StanPliku::USZKODZONY) continue;
+      // NIECZYTELNY (T-WYM-19): plik jest, odczyt się nie udał; dane jak przy braku pliku, a magazyn nie
+      // zapisze tej ścieżki do końca wybudzenia (historia na nośniku zostaje nietknięta)
+      if (o.stan == StanPliku::BRAK || o.stan == StanPliku::USZKODZONY || o.stan == StanPliku::NIECZYTELNY) continue;
       wersjePlikow.insert(o.wersja);
       std::vector<std::string> v;
       v.reserve(o.wiersze.size());
@@ -597,8 +606,13 @@ class Przebieg {
     skrotPliku[sciezka] = sk;
     return true;
   }
+  // Dopisanie wiersza (dziennik wybudzeń, humor, obrazki). Wynik sprawdzony; nieudane dopisanie (błąd nośnika,
+  // plik tylko do odczytu, czekający na migrację albo nieczytelny w tym wybudzeniu) daje wiersz w logu
+  // z nazwą pliku. Udane bez zmian (bez wiersza).
   void dopiszFormat(const char* nazwa, const std::string& wiersz) {
-    if (fsOk() && !bezZapisu.count(nazwa)) mag.dopisz(nazwa, mag.sciezkaRoku(nazwa, ""), wiersz);
+    if (!fsOk() || bezZapisu.count(nazwa)) return;
+    std::string s = mag.sciezkaRoku(nazwa, "");
+    if (!mag.dopisz(nazwa, s, wiersz)) log("zapis %s: dopisanie wiersza nieudane", nazwaPliku(s).c_str());
   }
   template <typename T, typename F>
   std::vector<std::string> wierszeZ(const std::vector<T>& v, F f) {
@@ -688,13 +702,19 @@ class Przebieg {
     dopiszFormat("humor", zapiszHumor(w));
   }
 
-  // Wszystkie pliki z pamięci jeszcze raz (po migracji w miejscu, która odrzuciła wcześniejszy zapis, T-WYM-55).
+  // Wszystkie pliki z pamięci jeszcze raz (po migracji w miejscu, która odrzuciła wcześniejszy zapis, T-WYM-55, i przed
+  // restartem po aktualizacji). Czynniki i dziennik humoru tylko, gdy ich plik jest w tym wybudzeniu wczytany
+  // (albo zapisany); plik, którego przy odczycie nie było, a potem powstał przez dopisanie, albo którego nie ma wcale,
+  // zostaje nietknięty (dawniej: odmowa z mylącym wierszem logu albo pusty plik czynników przed restartem).
+  // Noce i sypialnia jak dotąd: zapis tylko roku, który się zmienił (skrót w zapiszFormat()).
   void zapiszWszystko() {
     sortuj();
     zapiszHistorie();
-    zapiszCzynniki();
+    if (mag.wczytanyWTymWybudzeniu(mag.sciezkaRoku("czynniki", ""))) zapiszCzynniki();
     zapiszSypialnieNoce();
-    if (!bezZapisu.count("humor")) mag.zapisz("humor", mag.sciezkaRoku("humor", ""), wierszeZ(dziennik, zapiszHumor));
+    std::string sciezkaHumoru = mag.sciezkaRoku("humor", "");
+    if (!bezZapisu.count("humor") && mag.wczytanyWTymWybudzeniu(sciezkaHumoru))
+      mag.zapisz("humor", sciezkaHumoru, wierszeZ(dziennik, zapiszHumor));
     if (shWczytany) {
       sh.pomZm = sh.probyZm = true;
       zapiszStanHist(sh);
@@ -1833,7 +1853,7 @@ class Przebieg {
       bool przeczytany = fsOk() && a.pliki.czytaj("/konfiguracja.txt", t);
       // nieznane: bez pamięci plików albo plik jest, a odczyt zawiódł; inaczej niż domyślne traktuje to tylko
       // `kabel_bez_snu` (kabelBezSnuUstawienie()), reszta ustawień zostaje domyślna jak dotąd
-      ustawieniaZnane_ = przeczytany || (fsOk() && !a.pliki.istnieje("/konfiguracja.txt"));
+      ustawieniaZnane_ = przeczytany || (fsOk() && !mag.naNosniku("/konfiguracja.txt"));
       if (przeczytany) {
         ustawieniaB9_ = parsujUstawieniaDnia(t);
         for (auto& b : ustawieniaB9_.bledy) log("konfiguracja: pominięty wiersz '%s'", b.c_str());
@@ -2200,6 +2220,7 @@ class Przebieg {
         if (etap == 1 && t.id != "S-K-05") break;  // W1: S-K-05 przed S-K-02 i S-K-01
         if (pokazB16(t, d, n, dzis)) return true;
       }
+      if (etap == 2 && rysujPoradeWieczoremB49(d, dzis, e.typ)) return true;  // W3b: porada dnia (ADR-0049)
       if (etap == 2) {  // W4: ekran z rana zostaje (problem poranny z dziennika)
         const WpisHumoru* x = sk::wpisDzis(dziennik, dzis, false);
         if (x)
@@ -2240,7 +2261,7 @@ class Przebieg {
     std::string dzis = dzisiaj();
     if (!dataOk(dzis) || element < 0 || element >= EL_N) return false;
     std::string t;
-    if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
+    if (!konfiguracjaDoZapisu(t, "sprzęt")) return false;
     std::string nowa = sprzet::zapiszWymiane(t, element, dzis);
     bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
     if (ok) log("sprzęt: wymiana %s %s (R-MAS-01)", NAZWY_ELEMENTU[element], dzis.c_str());
@@ -2284,7 +2305,7 @@ class Przebieg {
     std::string maska = j == std::string::npos ? "" : c.substr(i + 1, j - i - 1);
     std::string model = j == std::string::npos ? "" : c.substr(j + 1);
     std::string t;
-    if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
+    if (!konfiguracjaDoZapisu(t, "sprzęt")) return false;  // `sp_model` i `sp_cof` bez zmian
     std::string nowa = sprzet::przywrocWymiane(t, EL_MASKA, maska);
     bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
     ustawieniaB9_ = parsujUstawieniaDnia(nowa);
@@ -2306,7 +2327,7 @@ class Przebieg {
     int el = sc == std::string::npos ? -1 : liczbaCalk(w.substr(0, sc).c_str());
     if (el >= 0 && el < EL_N) {
       std::string t;
-      if (fsOk()) a.pliki.czytaj("/konfiguracja.txt", t);
+      if (!konfiguracjaDoZapisu(t, "sprzęt")) return;  // `sp_cofw` zostaje do ponownej próby
       std::string nowa = sprzet::przywrocWymiane(t, el, w.substr(sc + 1));
       if (fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa)) log("sprzęt: wymiana %s cofnięta (R-MAS-01)", NAZWY_ELEMENTU[el]);
       else log("sprzęt: zapis cofnięcia nieudany, daty do restartu (R-AW-05)");
@@ -2380,17 +2401,22 @@ class Przebieg {
     std::stable_sort(v.begin(), v.end(), [](const Noc* x, const Noc* y) { return x->data < y->data; });
     return v;
   }
-  // R-NOR-14: `Zmieniono ustawienia. Nowa norma za 14 nocy.` jednorazowo dla zmiany ustawień (R-NOR-07) między nocami ważnymi
-  // w trybie obsługiwanym; brak odczytu nie jest zmianą (R-NOR-15), noc spoza wydania nie liczy się (R-DANE-29). Bez
-  // wartości we wszystkich trybach (ADR-0002, spec R-NOR-14 i 4.11). Linia czeka do pokazania, najdłużej 14 dni od pierwszej nocy
-  // z nowymi ustawieniami [PRÓG: rozruch metryki trwa 14 nocy], żeby stara zmiana w historii nie wracała po aktualizacji.
-  void liniaZmianyUstawienB21(const std::string& dzis) {
+  // data poranka pierwszej nocy z nowymi ustawieniami (R-NOR-07, ta sama chwila co linia R-NOR-14); "" = brak zmiany
+  std::string dataZmianyUstawienB21(const std::string& dzis) {
     std::string ost, zmiana;
     for (const Noc* n : nocePosortowaneB21(dzis)) {
       if (!n->wazna || n->czesciowa || n->ustawienia.empty()) continue;
       if (!ost.empty() && n->ustawienia != ost) zmiana = n->data;
       ost = n->ustawienia;
     }
+    return zmiana;
+  }
+  // R-NOR-14: `Zmieniono ustawienia. Nowa norma za 14 nocy.` jednorazowo dla zmiany ustawień (R-NOR-07) między nocami ważnymi
+  // w trybie obsługiwanym; brak odczytu nie jest zmianą (R-NOR-15), noc spoza wydania nie liczy się (R-DANE-29). Bez
+  // wartości we wszystkich trybach (ADR-0002, spec R-NOR-14 i 4.11). Linia czeka do pokazania, najdłużej 14 dni od pierwszej nocy
+  // z nowymi ustawieniami [PRÓG: rozruch metryki trwa 14 nocy], żeby stara zmiana w historii nie wracała po aktualizacji.
+  void liniaZmianyUstawienB21(const std::string& dzis) {
+    std::string zmiana = dataZmianyUstawienB21(dzis);
     if (zmiana.empty() || !dataOk(dzis) || dniMiedzy(zmiana, dzis) > 14 /* R-NOR-14.oczekiwanie [PRÓG] */) return;
     if (!liniaJednorazowaCzeka("R-NOR-14", zmiana, dzis)) return;
     b5.linieE.push_back({"R-NOR-14", "norma", sk::tekst("R-NOR-14.linia")});
@@ -2622,6 +2648,8 @@ class Przebieg {
       }
       return m >= 300 && rysujOdkrycieB15(typ, dd);
     }
+    // ADR-0049: porada dnia wybierana przy pierwszej ocenie slotu dziennego, także w dobie z D0 (wtedy na wieczór)
+    dobry_start::WyborPorady porada = poradaDniaB49(dzis, typ, dd);
     if (zostajeRano(typ, false)) return false;  // D0
     const Noc* noc = nocZDnia(hist, dzis);
     bool ubiegla = noc != nullptr;
@@ -2706,6 +2734,9 @@ class Przebieg {
                      poraWygaszacza(chwilaOceny, r.slotDziennyEp, r.ekranOd, us.wygaszaczMinSkuteczne()) &&
                      !informacjaCzeka();
     WyborSlotu w = wybierzSlot(we);
+    // D0b (R-DS-03, R-DS-20): S-K-48 w bloku po ekranach z działaniem teraz; wygaszacz porady nie zasłania
+    if (porada.porada && !porada.tylkoWieczor && blokPoradyB49() && !dzialanieTerazB49(w))
+      return rysujPoradeB49(dd, dzis, porada, false);
     if (w.ekran == EkranSlotu::BRAK) return false;  // W4: ekran z rana (R-KON-54)
     float zaOknem = NAN;
     if (we.prognoza) {
@@ -2919,6 +2950,8 @@ class Przebieg {
       if (e.typ == "S5") {
         liniaPilnaB5(d, dzis);  // S5: tylko linia grupy 0 (przypadek 1 z 7.8), bez ekranu L i pytań
       } else if (silnikDzis(dzis, zapT, e08T, awT)) {
+        // W3b (R-DS-04): wieczorem w dobie z ekranem L albo problemem porannym (bez W0) porada zamiast ekranu z rana
+        if (!b5.pytanie.jest && sprawaB5(b5.kluczEkranu) && rysujPoradeWieczoremB49(d, dzis, e.typ)) return;
         if (rysujDzienB5(d, n, dzis, e)) {
           // ekran L, S3 albo problem poranny (R2–R5d): Portret jako strona pod ▶ przed K1 (R-POR-24); pytanie R0 nie
           r.portretStrona = !b5.pytanie.jest && portretRanoDostepny(dzis) && sekundaDzis(r.slotDziennyEp) < 0 ? 1 : 0;
@@ -4139,6 +4172,310 @@ class Przebieg {
   // ekranem dnia jest ekran slotu dziennego bez sprawy (dzienBezSprawy; decyzja 12 z 15.11.2026: rano zawsze wynik
   // nocy), poza slotem nocnym i terapią, bez niskiej baterii i bez nieaktualnych danych; w klatce, która i tak się rysuje.
   bool dzienBezSprawy = false;  // ostatni rysujDzienB15Wewn(): ekran slotu dziennego bez sprawy (rysujKontekstB9())
+
+  // ---------- program „Dobry start” (ADR-0049, spec 5.8.14, src/dobry_start.h): S-K-48 „Porada dnia” ----------
+  // Stan w `/dane/dobry_start.csv` (format `dobry_start` w magazynie), wczytany raz na przebieg i zapisywany tylko przy
+  // zmianie. Program wyłączony i bez pliku: nic nie jest czytane ani pisane, wybór ekranów bez zmian (R-DS-01).
+  dobry_start::Stan ds_;
+  bool dsWczytany_ = false;
+  std::vector<std::string> dsWiersze_;
+  const dobry_start::Katalog& katalogB49() {
+    const dobry_start::Katalog& kp = dobry_start::katalogWbudowany();
+    static bool zalogowany = false;
+    if (!zalogowany) {
+      zalogowany = true;
+      if (!kp.jest()) log("porady: brak pliku porad (zapas wbudowany nieczytelny), program czeka (R-DS-36)");
+      for (auto& x : kp.log) log("porady: pominięty wiersz %s (R-DS-37)", x.c_str());
+    }
+    return kp;
+  }
+  bool wczytajB49() {  // false: program wyłączony i pliku nie ma (nic do zrobienia)
+    if (dsWczytany_) return true;
+    if (!fsOk()) return false;
+    OdczytPliku o = mag.czytaj("dobry_start", "/dane/dobry_start.csv");
+    // NIECZYTELNY: jak brak pliku; magazyn nie zapisze stanu do końca wybudzenia, plik zostaje nietknięty
+    if ((o.stan == StanPliku::BRAK || o.stan == StanPliku::NIECZYTELNY) && !ustawieniaB9().start.program) return false;
+    dsWczytany_ = true;
+    if (o.stan == StanPliku::DOBRY || o.stan == StanPliku::NOWSZY) dsWiersze_ = o.wiersze;
+    std::vector<std::string> w = dsWiersze_;
+    if (o.stan == StanPliku::USZKODZONY) {
+      // R-DS-43: magazyn odłożył plik jako `.uszkodzony` (bez kompletnego `.tmp`); stan z jego czytelnych wierszy
+      // (start, kolejka, wpisy P), a bez wiersza kolejki kolejka z wpisów P (stanZWierszy())
+      std::string t;
+      if (a.pliki.czytaj("/dane/dobry_start.csv.uszkodzony", t)) {
+        size_t p = 0;
+        while (p < t.size()) {
+          size_t kl = t.find('\n', p);
+          std::string l = t.substr(p, kl == std::string::npos ? std::string::npos : kl - p);
+          p = kl == std::string::npos ? t.size() : kl + 1;
+          if (!l.empty() && l.back() == '\r') l.pop_back();
+          if (l.empty() || l[0] == '#' || l == dobry_start::POLA_PLIKU) continue;
+          w.push_back(l);
+        }
+      }
+      log("dobry start: /dane/dobry_start.csv uszkodzony, stan z odłożonego pliku (%u wierszy, R-DS-43)", (unsigned)w.size());
+    }
+    ds_ = dobry_start::stanZWierszy(w, katalogB49());
+    for (auto& b : ds_.bledy) log("%s", b.c_str());
+    return true;
+  }
+  // true = stan na nośniku (bez zmian albo zapisany); wynik do komunikatu ankiety
+  bool zapiszB49() {
+    std::vector<std::string> w = dobry_start::wierszeStanu(ds_);
+    if (w == dsWiersze_) return true;
+    if (zapiszFormat("dobry_start", "/dane/dobry_start.csv", w)) {
+      dsWiersze_ = w;
+      return true;
+    }
+    log("dobry start: zapis /dane/dobry_start.csv nieudany");
+    return false;
+  }
+  // Tokeny aktywnych reguł z oceny poranka (warunki porad wyzwalanych, kolumna `warunek` pliku porad): wyniki silnika
+  // E, L (`{id}` dla wiersza bez wariantu, `{id}/{wariant}`), ekrany S-K rano i przy starcie slotu (`S-K-xx`,
+  // `S-K-xx/{wariant}`, `S-K-xx/problem`), noc niepewna (4.9), M-20 = 7, pierwsza noc z nowymi ustawieniami (M-21),
+  // infekcja zaczęta odpowiedzią „tak” na S-K-30 i ekran dnia rano (`ekran/{typ}`). Nic nie jest liczone drugi raz.
+  std::set<std::string> tokenyRegulB49(const std::string& dzis, const std::string& typ, DaneDnia& dd) {
+    std::set<std::string> t;
+    for (auto& x : b5.wyniki)
+      if (x.oceniona && x.spelniona && x.stan != reguly::StanReguly::ZABLOKOWANA)
+        t.insert(x.wariant.empty() ? x.id : x.id + "/" + x.wariant);
+    sk::Wejscie w = wejscieB16(dzis, dd);
+    for (auto& x : sk::rano(w)) {
+      if (x.doLogu) continue;
+      t.insert(x.id);
+      if (!x.wariant.empty()) t.insert(x.id + "/" + x.wariant);
+      if (x.problem) t.insert(x.id + "/problem");
+    }
+    for (auto& x : sk::wieczor(w))  // S-K-03, S-K-04: warunek przy ocenie startu slotu dziennego
+      if (!x.doLogu) t.insert(x.id);
+    if (w.okresInfekcji) t.insert("S-K-30/tak");
+    if (stany(dzis).ostatniaNiepewna) t.insert("noc_niepewna");
+    t.insert("M-20/" + std::to_string(seria(hist, dzis)));
+    if (dataZmianyUstawienB21(dzis) == dzis) t.insert("M-21");
+    if (!typ.empty()) t.insert("ekran/" + typ);
+    return t;
+  }
+  // Porada dnia (raz na dobę; kolejne wywołania tej doby dają to samo). `typ` = ekran dnia rano.
+  dobry_start::WyborPorady poradaDniaB49(const std::string& dzis, const std::string& typ, DaneDnia& dd) {
+    dobry_start::WyborPorady w;
+    if (!dataOk(dzis) || !wczytajB49()) return w;
+    const dobry_start::Katalog& kp = katalogB49();
+    dobry_start::Doba d;
+    d.dzis = dzis;
+    bool juz = ds_.wDzis == dzis;
+    for (auto& x : ds_.p) juz = juz || x.data == dzis;
+    if (!juz && ustawieniaB9().start.program) {  // tokeny tylko przy nowym wyborze
+      reguly::Tryb tr = trybHist();
+      d.tryb = tr == reguly::Tryb::CPAP ? dobry_start::Tryb::CPAP
+               : tr == reguly::Tryb::AUTOSET ? dobry_start::Tryb::AUTOSET
+               : (tr == reguly::Tryb::ASV || tr == reguly::Tryb::ASVAUTO) ? dobry_start::Tryb::ASV
+                                                                           : dobry_start::Tryb::NIEZNANY;
+      d.bezNocy = hist.empty();
+      const Noc* n = nocZDnia(hist, dzis);
+      d.nocZTerapia = n && n->m01 >= NOC_Z_TERAPIA_MIN;
+      d.tokeny = tokenyRegulB49(dzis, typ, dd);
+      const sprawy::SprawaL* l = sprawaB5(b5.kluczEkranu);
+      bool lAB = l && l->jestL() && (l->pilnosc == reguly::Pilnosc::A || l->pilnosc == reguly::Pilnosc::B);
+      sk::Wejscie wk = wejscieB16(dzis, dd);
+      d.d0 = zostajeRano(typ, false) || l != nullptr || sk::problemNaEkranieRano(sk::rano(wk));
+      d.w0 = typ == "S5" || lAB;
+    }
+    w = dobry_start::wybierz(kp, ds_, ustawieniaB9().start, d);
+    for (auto& x : w.log) log("%s", x.c_str());
+    zapiszB49();
+    return w;
+  }
+  // Blok porady: pierwsze BLOK_MIN [PRÓG] minut od startu slotu dziennego (R-DS-03).
+  bool blokPoradyB49() {
+    if (!r.slotDziennyEp || !zegar()) return false;
+    uint32_t t = teraz();
+    return t >= r.slotDziennyEp && (t - r.slotDziennyEp) / 60u < (uint32_t)dobry_start::BLOK_MIN;
+  }
+  // Ekrany z działaniem teraz wygrywają z poradą także w bloku (R-DS-03): S-K-39 (D0a), `Przewietrz teraz.`,
+  // trwające okno `Wietrz do …`, upał `Okna zamknięte …`, S-K-35.
+  static bool dzialanieTerazB49(const WyborSlotu& w) {
+    if (w.ekran == EkranSlotu::SK39 || w.ekran == EkranSlotu::SK35) return true;
+    return w.ekran == EkranSlotu::SK33 &&
+           (w.okno.wariant == Wietrzenie::CO2 || w.okno.wariant == Wietrzenie::TRWA ||
+            w.okno.wariant == Wietrzenie::UPAL_DO || w.okno.wariant == Wietrzenie::UPAL_CALY_DZIEN);
+  }
+  // Stopka dzienna S-K-48 (R-KON-51), jak na ekranach slotu dziennego; na karcie tylko temperatury.
+  StopkaDzienna stopkaPoradyB49(const std::string& dzis, bool karta) {
+    const Noc* noc = nocZDnia(hist, dzis);
+    bool ubiegla = noc != nullptr;
+    if (!noc && !hist.empty()) noc = &hist.back();
+    float zaOknem = NAN;
+    uint32_t ep = teraz();
+    const Prognoza& pr = prognozaB9();
+    if (prognozaWazna(pr, ep)) {
+      const GodzinaPrognozy* g = pr.godzina(dzis, minutaDoby() / 60);
+      if (g) zaOknem = g->temp;
+    }
+    if (std::isnan(zaOknem) && r.oto.pogoda && swiezy(r.oto.tsPogody, ep, OTO_SWIEZOSC_POGODY_S)) zaOknem = r.oto.temp;
+    if (stopkaZPamieci && r.klatkaOd && !std::isnan(r.stopkaZaOknem)) zaOknem = r.stopkaZaOknem;
+    zaOknemKlatki = zaOknem;
+    StopkaDzienna st = stopkaDzienna(noc, ubiegla, drzemkaDzisB9(dzis).minut, zaOknem, tempStopki());
+    st.bateriaNiska = bateriaEkranu().niska && bateriaEkranu().procent >= 0 && !e05AktywneB5();
+    if (karta) st.lewo.clear();  // karta nie miesza danych terapii (ADR-0007, ADR-0043 pkt 4)
+    return st;
+  }
+  // R-DS-53: `{prog:id}` w tekście porady = bieżąca wartość progu z zestawu; `S-K-10.uwaga_o_masce` = ustawienie
+  // „Uwaga o masce od” (R-KONF-42), bez wiersza wartość progu.
+  std::string progiPoradyB49(const std::string& t) {
+    return dobry_start::podstawProgi(t, [this](const std::string& id) -> std::string {
+      if (id == "S-K-10.uwaga_o_masce" && ustawieniaB9().uwagaOMasce > 0) return std::to_string(ustawieniaB9().uwagaOMasce);
+      const reguly::Prog* p = reguly::zestawWbudowany().prog(id, trybHist());
+      if (!p) return "";
+      if (!p->tekst.empty()) return p->tekst;
+      return std::fabs(p->wartosc - std::round(p->wartosc)) < 1e-9 ? calkowita(p->wartosc) : przecinek1(p->wartosc);
+    });
+  }
+  // Rysuje S-K-48 i zapisuje pokazanie (R-DS-10). Karta tylko przy poradzie z `ekran=karta`, gdy humor i limity kart
+  // pozwalają (R-DS-16, R-DS-17, R-DS-24); inaczej ekran danych z tym samym tekstem.
+  bool rysujPoradeB49(DaneDnia& dd, const std::string& dzis, const dobry_start::WyborPorady& w, bool wieczor) {
+    if (!w.porada) return false;
+    const dobry_start::Katalog& kp = katalogB49();
+    DanePorady dp;
+    dp.o = dobry_start::opis(kp, ds_, w);
+    for (std::string* t : {&dp.o.tytul, &dp.o.tresc, &dp.o.krok}) *t = progiPoradyB49(*t);
+    dp.belka = Belka(dobry_start::NAZWA_BELKI, dp.o.srodekBelki);
+    dp.linia = dd.linia;
+    dp.liniaA = dd.liniaA;
+    dp.liniaOstrzezenie = dd.liniaOstrzezenie;
+    if (w.porada->karta && !w.telefon) {
+      Wybor wb;
+      const WpisHumoru* wp = nullptr;
+      for (auto& x : dziennik)
+        if (x.data == dzis && x.typ == "DS" && x.klucz == w.porada->id) wp = &x;
+      if (wp) {
+        wb.tryb = wp->tryb;
+        wb.scena = wp->scena;
+      } else {
+        EkranDnia ed = ekranKarty("DS", w.porada->id, dzis, dziennik, dp.o.krok);
+        KontekstHumoru kh;
+        kh.dzis = dzis;
+        kh.humor = humorB32();
+        kh.liniaUwagi = !dd.linia.empty();  // R-HUM-17
+        kh.zPropozycjami = Z_PROPOZYCJAMI;
+        kh.sceny = sceny();
+        wb = wybierzTryb(ed, true, dziennik, kh);
+        dopiszDziennik({dzis, "DS", ed.klucz, wb.tryb, wb.scena, wb.zdanie});
+        log("porada dnia %s: %s", w.porada->id.c_str(), wb.tryb == 'K' ? "karta" : wb.dlaczego);
+      }
+      if (wb.tryb == 'K' && dd.linia.empty() && scenaJest(wb.scena)) dp.scena = wb.scena;
+    }
+    dp.stopka = stopkaPoradyB49(dzis, !dp.scena.empty());
+    rysujPorade(plotno(), dp);
+    dobry_start::zapiszPokazanie(kp, ds_, w, dzis, wieczor, w.telefon);
+    zapiszB49();
+    log("porada dnia: S-K-48 %s (%s%s)", w.porada->id.c_str(), wieczor ? "wieczór" : "blok dzienny",
+        w.telefon ? ", na telefonie" : "");
+    dzienOdswiezalny = false;
+    dzienBezSprawy = dd.linia.empty();  // R-DS-23: informacja po aktualizacji samodzielnej na miejscu porady
+    r.dzienTryb = 0;
+    return true;
+  }
+  // Slot wieczorny, pozycja W3b (R-DS-21): po W0…W3, do 23:30; poradę dnia narysowaną w bloku albo w bloku
+  // nienarysowaną. Przy W0 (S5, L z pilnością A albo B) porady nie ma (R-DS-04).
+  bool rysujPoradeWieczoremB49(DaneDnia& dd, const std::string& dzis, const std::string& typ) {
+    if (!zegar() || dzis.empty() || !ustawieniaB9().start.program) return false;
+    int m = minutaDoby();
+    if (!slot_wieczorny::wOknie(slot_wieczorny::oknoZHistorii(hist, dzis), m)) return false;
+    dobry_start::WyborPorady w = poradaDniaB49(dzis, typ, dd);
+    if (!w.porada) return false;
+    const sprawy::SprawaL* l = sprawaB5(b5.kluczEkranu);
+    if (typ == "S5" || (l && l->jestL() && (l->pilnosc == reguly::Pilnosc::A || l->pilnosc == reguly::Pilnosc::B)))
+      return false;
+    return rysujPoradeB49(dd, dzis, w, true);
+  }
+  // Formularz U-03, sekcja „Dobry start” (R-DS-31): nagłówek, pytanie „dalej czy od nowa”, czekająca ankieta.
+  void ustawStartFormularzaB49(formularz::Pola& pf) {
+    const dobry_start::Katalog& kp = katalogB49();
+    pf.startBezPorad = !kp.jest();
+    pf.startMiejsc = kp.miejsc;
+    pf.startPonadIle = kp.ponadIle;
+    if (!wczytajB49()) return;  // wyłączony i bez pliku: „wyłączony”
+    std::string dzis = dzisiaj();
+    pf.startNaglowek = dobry_start::naglowekSekcji(kp, ds_, pf.start, dzis);
+    pf.startZatrzymanyNa = ds_.stan == "zatrzymany" ? ds_.kolejka : 0;
+    pf.startAnkietaCzeka = pf.start.program && dobry_start::ankietaCzeka(ds_, dzis);
+  }
+  // R-DS-33: poprzedni stan w `/dane/dobry_start.poprzedni.csv` (jedna kopia), nowy program od najbliższej doby.
+  // kopia jest w całości stanem z tego wybudzenia (dsWiersze_) i zastępuje poprzednią kopię, której panel nigdy
+  // nie czyta; magazyn zapisuje ją bez ochrony (Magazyn::nadpisywanyWCalosci()), która odrzucała drugie „od nowa”.
+  void odNowaB49() {
+    if (!wczytajB49()) return;
+    if (!dsWiersze_.empty() && fsOk() && !mag.zapisz("dobry_start", SCIEZKA_KOPII_DOBREGO_STARTU, dsWiersze_))
+      log("dobry start: kopia /dane/dobry_start.poprzedni.csv nieudana");
+    ds_ = dobry_start::nowyStan(ustawieniaB9().start, katalogB49());
+    std::string dzis = dzisiaj();
+    if (dataOk(dzis)) ds_.odNowa = dzis;  // R-DS-33: dziś bez nowej porady, nowy program od jutra
+    zapiszB49();
+    log("dobry start: od nowa (R-DS-33)");
+  }
+  static std::string progiPoradyStatB49(const std::string& t, void* kx) {
+    return static_cast<Przebieg*>(kx)->progiPoradyB49(t);
+  }
+  dobry_start::Tryb trybPoradB49() {
+    reguly::Tryb tr = trybHist();
+    return tr == reguly::Tryb::CPAP ? dobry_start::Tryb::CPAP
+           : tr == reguly::Tryb::AUTOSET ? dobry_start::Tryb::AUTOSET
+           : (tr == reguly::Tryb::ASV || tr == reguly::Tryb::ASVAUTO) ? dobry_start::Tryb::ASV
+                                                                       : dobry_start::Tryb::NIEZNANY;
+  }
+  // Podstrony formularza: ankieta (zapis odpowiedzi tylko w pamięci panelu, R-DS-30), wszystkie porady, od nowa.
+  std::string podstronaB49(const formularz::Odpowiedz& fo, bool post) {
+    const dobry_start::Katalog& kp = katalogB49();
+    const dobry_start::Ustawienia& u = ustawieniaB9().start;
+    std::string akcja = frm.sesja.sciezka(), dzis = dzisiaj();
+    wczytajB49();
+    if (fo.podstrona == "odnowa") {
+      if (post && fo.pola.count("tak")) {
+        dsWczytany_ = true;  // od nowa także bez pliku
+        odNowaB49();
+        return stronaP07("Program zacznie się od nowa od najbliższego dnia.");
+      }
+      return formularz::stronaOdNowa(akcja);
+    }
+    if (fo.podstrona == "porady")
+      return formularz::stronaPorad(kp, ds_, u, trybPoradB49(), fo.zakladka, akcja, &Przebieg::progiPoradyStatB49, this);
+    std::string kom;
+    if (post && dataOk(dzis)) {
+      dsWczytany_ = true;
+      auto odp = formularz::odpowiedziAnkiety(kp, fo.pola);
+      std::map<std::string, std::string> klucze;  // pytanie startowe (DS-Q02) = klucz `start.nawilzacz` (8.1)
+      for (auto& x : odp) {
+        const dobry_start::Pytanie* q = kp.pytanieId(x.first);
+        if (q && !q->klucz.empty() && x.second.size() == 1 && x.second[0] >= 1 && x.second[0] <= (int)q->wartosci.size())
+          klucze[q->klucz] = formularz::wartoscDoPliku(q->klucz, q->wartosci[(size_t)x.second[0] - 1]);
+      }
+      dobry_start::zapiszAnkiete(kp, ds_, dzis, odp);
+      bool stanOk = zapiszB49(), konfOk = true;
+      std::string stara;
+      if (!klucze.empty()) {
+        konfOk = konfiguracjaDoZapisu(stara, "dobry start");
+        std::string nowa = konfOk ? formularz::scal(stara, klucze) : stara;
+        if (konfOk && nowa != stara) {
+          konfOk = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
+          if (konfOk) {
+            ustawieniaB9_ = parsujUstawieniaDnia(nowa);
+            ustawieniaWczytane_ = true;
+            ustawieniaZnane_ = true;
+          }
+        }
+      }
+      // „zapisana” tylko po udanym zapisie stanu programu i kluczy `start.*`; inaczej komunikat o błędzie
+      if (stanOk && konfOk) {
+        log("dobry start: ankieta zapisana (%u pytań, tylko w pamięci panelu)", (unsigned)odp.size());
+        kom = formularz::TEKST_ANKIETA_ZAPISANA;
+      } else {
+        log("dobry start: ankieta NIE zapisana (stan programu %s, ustawienia %s)", stanOk ? "ok" : "błąd",
+            konfOk ? "ok" : "błąd");
+        kom = formularz::TEKST_ANKIETA_NIEZAPISANA;
+      }
+    }
+    return formularz::stronaAnkiety(kp, ds_, ustawieniaB9().start, dzis, akcja, kom);
+  }
   aktualizacja::Informacja informacja() {
     return aktualizacja::odczytInformacji(a.nvs.tekst(aktualizacja::PRZESTRZEN, aktualizacja::KLUCZ_INFORMACJI, ""));
   }
@@ -4302,7 +4639,20 @@ class Przebieg {
     if (!fsOk()) return false;
     if (a.pliki.czytaj("/konfiguracja.txt", t)) return true;
     t.clear();
-    return !a.pliki.istnieje("/konfiguracja.txt");
+    return !mag.naNosniku("/konfiguracja.txt");  // istnienie bez otwierania pliku
+  }
+  // (zmiana 2026-11-22): stara treść /konfiguracja.txt przed zapisem zmienionej (formularz U-03 i U-02, ankieta
+  // „Dobry start”, wymiana sprzętu i cofnięcia). false = plik jest, a odczyt się nie udał: bez zapisu, bo scalenie
+  // z pustą treścią zgubiłoby wiersze spoza zmiany (np. `kabel_bez_snu`, `eink.pelne_co`, `noc_zrodlo`); wiersz w logu
+  // z `kto`. Bez zamontowanej pamięci plików true z pustą treścią, jak dotąd (zapis i tak się nie uda, wartość
+  // w pamięci do restartu, R-AW-05).
+  bool konfiguracjaDoZapisu(std::string& t, const char* kto) {
+    t.clear();
+    if (!fsOk() || a.pliki.czytaj("/konfiguracja.txt", t)) return true;
+    t.clear();
+    if (!mag.naNosniku("/konfiguracja.txt")) return true;
+    log("%s: /konfiguracja.txt nieczytelna, bez zapisu, ustawienia bez zmian", kto);
+    return false;
   }
   // ADR-0046 (R-DANE-66…R-DANE-68): limit ładowania baterii na kablu z `ladowanie_limit=tak`. Bez pamięci plików
   // albo przy nieudanym odczycie istniejącego /konfiguracja.txt ustawienie jest nieznane, więc w tym przebiegu nic się
@@ -4364,6 +4714,7 @@ class Przebieg {
     pf.kluczWydan = tokenWydan();  // tylko „ustawiony”, nigdy wartość (R-NF-36)
     pf.hasloOkna = sekrety::hasloOknaUstawione(a.nvs);
     pf.wersja = wersjaWydania(a.uruchomienie.wersja());  // R-KONF-59: ta sama wersja co na U-01
+    ustawStartFormularzaB49(pf);  // ADR-0049: nagłówek i stan sekcji „Dobry start”
     return formularz::strona(pf, frm.sesja.sciezka(), komunikat, frm.bledy);
   }
   // Nowe dane AirBridge w bieżącej sieci: `GET /api/status` z logowaniem przed zapisem (5.6.5 krok 3, R-KONF-37).
@@ -4391,9 +4742,15 @@ class Przebieg {
   std::string zapiszFormularzP07(const std::map<std::string, std::string>& pola) {
     formularz::Wynik w = formularz::waliduj(pola, sekretyTeraz(), dzisiaj());
     frm.bledy = w.bledy;
-    std::string stara = konfiguracjaPliku(), nowa = formularz::scal(stara, w.plik), dopisek;
+    std::string stara, dopisek;
+    // plik jest, a odczyt się nie udał: pola pliku bez zapisu (scalenie z pustą treścią zgubiłoby wiersze spoza
+    // formularza), nowy model maski bez zerowania normy, cofnięcie bez zmian; sekrety, klucz wydań i hasło okna (NVS)
+    // jak zwykle
+    bool czytelna = konfiguracjaDoZapisu(stara, "formularz");
+    std::string nowa = czytelna ? formularz::scal(stara, w.plik) : stara;
     std::string staraMaska = ustawieniaB9().sprzet[EL_MASKA].wymieniono;  // R-MAS-19: stan sprzed nowego modelu
-    bool plikOk = true;
+    bool plikOk = czytelna;
+    if (!czytelna) dopisek = KONFIGURACJA_NIECZYTELNA_P605;
     if (nowa != stara) {
       bool ok = fsOk() && a.pliki.zapiszAtomowo("/konfiguracja.txt", nowa);
       plikOk = ok;
@@ -4406,6 +4763,7 @@ class Przebieg {
     }
     if (w.nowyModelMaski) nowyModelZFormularzaB16(plikOk, staraMaska);  // R-MAS-16
     if (w.cofnijNowyModel) cofnijNowyModelZFormularzaB16();         // R-MAS-19
+    if (w.startOdNowa) odNowaB49();                                  // R-DS-32, R-DS-33
     // sekcja „Aktualizacje”: token wydań i hasło okna serwisowego do NVS `sekrety` (ADR-0038 pkt 4)
     if (!w.kluczWydan.empty() || w.usunKlucz) {
       bool ok = sekrety::zapiszKluczWydan(a.nvs, w.usunKlucz && w.kluczWydan.empty() ? "" : w.kluczWydan);
@@ -4489,9 +4847,17 @@ class Przebieg {
       return;
     }
     serwer::gniazdo()->obsluzZadania([this](const serwer::GniazdoHttp::Zadanie& z) {
-      formularz::Odpowiedz fo =
-          frm.sesja.obsluz(z.metoda, z.sciezka, z.cialo, ms(), z.metoda == "GET" ? stronaP07("") : std::string());
-      if (fo.zapis) fo.cialo = stronaP07(zapiszFormularzP07(fo.pola));
+      // podstrona po samej ścieżce (bez `?…`): `/u/{tok}/?x=/porady` to strona główna
+      std::string sc = z.sciezka.substr(0, z.sciezka.find('?'));
+      auto konczy = [&](const char* x) {
+        size_t n = strlen(x);
+        return sc.size() >= n && sc.compare(sc.size() - n, n, x) == 0;
+      };
+      bool pod = konczy("/ankieta") || konczy("/porady") || konczy("/odnowa");
+      formularz::Odpowiedz fo = frm.sesja.obsluz(z.metoda, z.sciezka, z.cialo, ms(),
+                                                 z.metoda == "GET" && !pod ? stronaP07("") : std::string());
+      if (fo.kod == 200 && !fo.podstrona.empty()) fo.cialo = podstronaB49(fo, z.metoda == "POST");  // ADR-0049
+      else if (fo.zapis) fo.cialo = stronaP07(zapiszFormularzP07(fo.pola));
       serwer::Odpowiedz o;
       o.kod = fo.kod;
       o.typ = fo.typ;
@@ -4613,7 +4979,12 @@ class Przebieg {
   }
   // Pola pliku konfiguracji z formularza (wspólne z U-03); zwraca dopisek przy błędzie zapisu.
   std::string zapiszPlikFormularzaP07(const formularz::Wynik& w) {
-    std::string stara = konfiguracjaPliku(), nowa = formularz::scal(stara, w.plik);
+    std::string stara;
+    if (!konfiguracjaDoZapisu(stara, "formularz")) {  // bez zapisu pól pliku i bez nowego modelu maski
+      if (w.nowyModelMaski) nowyModelZFormularzaB16(false, ustawieniaB9().sprzet[EL_MASKA].wymieniono);
+      return KONFIGURACJA_NIECZYTELNA_P605;
+    }
+    std::string nowa = formularz::scal(stara, w.plik);
     std::string staraMaska = ustawieniaB9().sprzet[EL_MASKA].wymieniono;  // R-MAS-19
     if (nowa == stara) {
       if (w.nowyModelMaski) nowyModelZFormularzaB16(true, staraMaska);  // R-MAS-16: data maski już dzisiejsza
@@ -5734,6 +6105,8 @@ class Przebieg {
           (unsigned long)(ms() - t0), (int)r.czesciowychZRzedu, wo.pelneCo);
     else
       log("ekran %d narysowany w %lu ms (odświeżenie pełne)", (int)r.ekran, (unsigned long)(ms() - t0));
+    koniecRysowaniaMs = ms();
+    rysowanoWPrzebiegu = true;
   }
 
   // ---------- AirBridge od v2.2.0 ----------
@@ -7031,10 +7404,15 @@ class Przebieg {
     if (!k.otoToken.empty()) z.naglowki.emplace_back("X-Token", k.otoToken);
     z.maksBajtow = OTO_MAX_BAJTOW;
     z.cialoTylko200 = true;
-    z.koniecMs = koniecMs;
     z.przerwij = [this]() { return abPrzerwij(); };
     odnow();
     uint32_t t0 = ms();
+    // termin `koniecMs` (zegar rdzenia) do adaptera jako czas, który ZOSTAŁ: zegar adaptera ma po czekaniu na kablu
+    // inną podstawę (ADR-0047, zmiana 2026-11-22); po terminie 1 ms (0 znaczy „bez końca czasu”). Gałąź „po
+    // terminie” jest w praktyce nieosiągalna: ponowicOtoczenie() ponawia tylko przy
+    // co najmniej 5000 ms do terminu, a przed ponowieniem jest 2000 ms przerwy; zostaje jako zabezpieczenie
+    int32_t zostalo = (int32_t)(koniecMs - t0);
+    z.budzetCialaMs = zostalo > 0 ? (uint32_t)zostalo : 1u;
     OdpowiedzHttp o = a.siec.get(z);
     odnow();
     int kod = o.kod;
@@ -7352,18 +7730,28 @@ class Przebieg {
 
   // Naciśnięcie. Ponowienie pobrania (↻ na S5) idzie tu, przed zmianą ekranu, jak w prototypie;
   // pobranie na ekranie testu zostaje dla wołającego (PoNacisnieciu::pobranie).
-  PoNacisnieciu obsluz(Przycisk p, bool dlugo, bool budzacy) {
-    static const char* const N[] = {"-", "◀", "↻", "▶"};
-    ostatniPrzycisk = std::string(N[(int)p]) + (dlugo ? " 2 s" : "");
-    szybkosc::faza("przycisk");  // T-WYM-99: początek obsługi naciśnięcia (obraz pomiarowy)
+  // Przejście, które obsluz() wykona dla naciśnięcia `p` na bieżącym ekranie, z kontekstem nawigacji i skutkami
+  // ubocznymi do wykonania (start slotu dziennego, zamknięcie informacji po aktualizacji), bez ich wykonania. To samo
+  // liczenie dla obsluz() i dla sprawdzenia naciśnięcia z kolejki (R-PRZ-20, zmiana 2026-11-22).
+  struct PlanNacisniecia {
+    std::string dzis;
+    KontekstNaw kn;
+    Przejscie pr{Ekran::DZIEN, Akcja::NIC};
+    bool startSlotu = false;    // R-KON-41: naciśnięcie zaczyna slot dzienny
+    bool naInformacji = false;  // R-KONF-61: naciśnięcie zamyka informację po aktualizacji samodzielnej (zapis NVS)
+  };
+  PlanNacisniecia planNacisniecia(Przycisk p, bool dlugo) {
+    PlanNacisniecia w;
     // ADR-0045 (R-KOK-34, R-KOK-36): układ kokpitu z konfiguracji i strona sypialni przed silnikiem reguł, żeby
     // teksty z numerem strony (`Na kontroli: raport 2 / 3.`) liczyły się z bieżącego układu także po zapisie formularza
     // w tym samym wybudzeniu i przy przycisku w czuwaniu wybudzenia pomiarowego (bez wcześniejszego ustawienia)
     sypialniaWKokpicieB44();
     DecyzjaNocy dn = nocTeraz(false);
-    std::string dzis = dzisiaj();
-    KontekstNaw kn = kontekstNawigacji(ekran(), dn, s5Teraz(), s10Teraz(), zaproszenieTeraz(),
-                                       ostatniaNoc(hist, dzis.empty() ? "9999-99-99" : dzis) != nullptr);
+    w.dzis = dzisiaj();
+    const std::string& dzis = w.dzis;
+    w.kn = kontekstNawigacji(ekran(), dn, s5Teraz(), s10Teraz(), zaproszenieTeraz(),
+                             ostatniaNoc(hist, dzis.empty() ? "9999-99-99" : dzis) != nullptr);
+    KontekstNaw& kn = w.kn;
     Ekran przed = ekran();
     if (!dzis.empty() && silnikDzis(dzis)) {  // odmiany ekranu dnia i „Otwarte sprawy”
       const sprawy::SprawaL* e = sprawaB5(b5.kluczEkranu);
@@ -7405,21 +7793,48 @@ class Przebieg {
                                 sekundaDzis(r.slotDziennyEp) < 0;
     // R-KONF-61: przycisk na informacji po aktualizacji samodzielnej nie uruchamia niczego z ekranu, którego
     // nie było widać, także startu slotu dziennego (informacja stoi tylko w slocie, ale stan RTC mógł zniknąć)
-    const bool naInformacji = przed == Ekran::DZIEN && r.informacjaNaEkranie;
-    if (!naInformacji && startSlotuPrzyciskiem(wejsciePlanu(0), przed) && !portretWToku(dzis) && !otwieraPortret) {
-      r.nacisniecieRanoEp = r.slotDziennyEp = teraz();
-      log("slot dzienny: start naciśnięciem (R-KON-41)");
-    }
-    Przejscie pr;
-    if (!przejsciePortretu(przed, p, dlugo, kn, pr)) pr = nacisniecie(przed, p, dlugo, kn);
+    w.naInformacji = przed == Ekran::DZIEN && r.informacjaNaEkranie;
+    // przejście przed startem slotu: przejsciePortretu() czyta chwilę startu slotu, ale tylko gdy otwieraPortret
+    // (a wtedy slot i tak nie startuje), więc kolejność nie zmienia wyniku
+    w.startSlotu =
+        !w.naInformacji && startSlotuPrzyciskiem(wejsciePlanu(0), przed) && !portretWToku(dzis) && !otwieraPortret;
+    if (!przejsciePortretu(przed, p, dlugo, kn, w.pr)) w.pr = nacisniecie(przed, p, dlugo, kn);
     // R-KONF-61: przycisk na informacji po aktualizacji samodzielnej zamyka ją; krótkie ▶ otwiera pierwszą stronę
     // kokpitu (jak ▶ na ekranie slotu dziennego pod nią), ◀, ↻ i przytrzymania tylko pokazują ekran dnia (bez
     // akcji ekranu, którego nie było widać)
+    if (w.naInformacji)
+      w.pr = dlugo || p != Przycisk::PRAWY ? Przejscie{Ekran::DZIEN, Akcja::NIC}
+                                           : Przejscie{pierwszaStronaKokpitu(kn), Akcja::NIC};
+    return w;
+  }
+
+  // R-PRZ-20 (zmiana 2026-11-22): naciśnięcie z czasu liczenia albo rysowania (z kolejki, albo wciśnięte przed
+  // końcem rysowania) wolno wykonać tylko jako czystą nawigację: przejście policzone tak jak w obsluz(), bez startu
+  // slotu, bez zamknięcia informacji i bez akcji z konsekwencją (czystaNawigacja(), src/nawigacja.h). Stan Portretu
+  // (`k1ZPortretu`, który przejsciePortretu() ustawia) wraca do stanu sprzed sprawdzenia.
+  bool samaNawigacja(Przycisk p) {
+    uint8_t k1 = r.k1ZPortretu;
+    PlanNacisniecia pl = planNacisniecia(p, false);
+    r.k1ZPortretu = k1;
+    return !pl.startSlotu && !pl.naInformacji && czystaNawigacja(ekran(), pl.pr);
+  }
+
+  PoNacisnieciu obsluz(Przycisk p, bool dlugo, bool budzacy) {
+    static const char* const N[] = {"-", "◀", "↻", "▶"};
+    ostatniPrzycisk = std::string(N[(int)p]) + (dlugo ? " 2 s" : "");
+    szybkosc::faza("przycisk");  // T-WYM-99: początek obsługi naciśnięcia (obraz pomiarowy)
+    PlanNacisniecia pl = planNacisniecia(p, dlugo);
+    const std::string& dzis = pl.dzis;
+    Ekran przed = ekran();
+    const bool naInformacji = pl.naInformacji;
+    if (pl.startSlotu) {
+      r.nacisniecieRanoEp = r.slotDziennyEp = teraz();
+      log("slot dzienny: start naciśnięciem (R-KON-41)");
+    }
+    Przejscie pr = pl.pr;
     if (naInformacji) {
       r.informacjaNaEkranie = 0;
       zapiszInformacje(aktualizacja::Informacja());
-      pr = dlugo || p != Przycisk::PRAWY ? Przejscie{Ekran::DZIEN, Akcja::NIC}
-                                         : Przejscie{pierwszaStronaKokpitu(kn), Akcja::NIC};
       log("informacja po aktualizacji samodzielnej zamknięta przyciskiem %s (R-KONF-61)", ostatniPrzycisk.c_str());
     }
     // sieć panelu w nocy (slot nocny albo aparat pracuje, `rop` = 1) bez buzzera
@@ -8001,21 +8416,43 @@ class Przebieg {
         otaDo = t0 + OKNO_SERWISOWE_MS;
         pokaz();
       }
-      Przycisk p = wcisniety();
-      if (p != Przycisk::BRAK) {
+      // R-PRZ-20 (zmiana 2026-11-22, usterka z panelu: trzy szybkie ▶ dawały dwa ekrany): najpierw naciśnięcia już
+      // puszczone (z kolejki, starsze), potem przycisk trzymany teraz, więc kolejność naciśnięć zostaje
+      const bool zKolejki = nacisnieciaZKolejki();
+      Przycisk p = zKolejki ? Przycisk::BRAK : wcisniety();
+      if (zKolejki) {
+        tryb = PowodWybudzenia::PRZYCISK;
+        przyciskWCzuwaniu = true;
+        t0 = ms();
+      } else if (p != Przycisk::BRAK) {
+        // to naciśnięcie obsłużone z odczytu stanu: ono jedno nie wraca z kolejki (także zacięte, R-PRZ-09); naciśnięcia
+        // z czasu liczenia strony i rysowania zostają w kolejce na następny obieg (dawniej wyczyscKolejke() je kasowało)
+        a.przyciski.obsluzoneZeStanu((int)p);
+        // przytrzymanie od chwili wciśnięcia (adapter), nie od odczytu; wciśnięty przed końcem
+        // ostatniego rysowania trafił na ekran, którego nie widział: tylko czysta nawigacja, przytrzymanie odrzucone
+        uint32_t od = ms(), odAdaptera = 0;
+        bool zRysowania = false;
+        if (a.przyciski.wcisnietyOd((int)p, odAdaptera)) {
+          od = odAdaptera;
+          zRysowania = rysowanoWPrzebiegu && (int32_t)(koniecRysowaniaMs - odAdaptera) > 0;
+        }
         PowodWybudzenia przed = tryb;
         if (tryb != PowodWybudzenia::PRZYCISK) log("przycisk wciśnięty przed snem: obsługa jak przycisk budzący");
         tryb = PowodWybudzenia::PRZYCISK;
         przyciskWCzuwaniu = true;
         a.przyciski.dioda(true);
         bool dlugo = false;
-        int skrot = przytrzymanieLubSkrot(p, ms(), dlugo);
+        int skrot = przytrzymanieLubSkrot(p, od, dlugo);
         if (skrot == 1) p = Przycisk::PRAWY;
+        // skrót ◀ + ▶ (R-PRZ-21) działa na każdym ekranie, więc bez tej reguły
+        const bool pominieteZRysowania = zRysowania && skrot == 0 && (dlugo || !samaNawigacja(p));
+        if (pominieteZRysowania)
+          log("naciśnięcie %s%s z czasu rysowania na ekranie %d to nie sama nawigacja: pominięte (R-PRZ-20)",
+              p == Przycisk::LEWY ? "◀" : p == Przycisk::SRODEK ? "↻" : "▶", dlugo ? " 2 s" : "", (int)ekran());
         PoNacisnieciu pn;
-        if (skrot != 2) pn = obsluz(p, dlugo, false);
+        if (skrot != 2 && !pominieteZRysowania) pn = obsluz(p, dlugo, false);
         if (koniecPoRestarcie) return;  // instalacja z U-07 zakończona restartem
         czekajNaPuszczenie();  // zacięty przycisk nie blokuje snu (U4)
-        a.przyciski.wyczyscKolejke();  // to naciśnięcie obsłużone z odczytu stanu: nie wraca z kolejki
         // trzymany co najmniej ZACIECIE_MS: zacięcie, nie naciśnięcie, więc bez czuwania 20 s
         if (zaciete & (1u << (int)p)) tryb = przed;
         t0 = ms();
@@ -8025,14 +8462,12 @@ class Przebieg {
           otworzOknoAlboZamknijSiec();
           otaDo = t0 + OKNO_SERWISOWE_MS;
         }
-        // R-KON-37: w nocy naciśnięcie bez akcji nie przerysowuje ekranu
-        if (rysowacPoNacisnieciu(pn.zmiana, zegar(), minutaDoby())) pokazPoPrzycisku();
-        else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
+        // R-KON-37: w nocy naciśnięcie bez akcji nie przerysowuje ekranu; pominieteZRysowania: ekran zostaje
+        if (!pominieteZRysowania) {
+          if (rysowacPoNacisnieciu(pn.zmiana, zegar(), minutaDoby())) pokazPoPrzycisku();
+          else log("slot nocny: naciśnięcie bez akcji, ekran bez zmian");
+        }
         a.przyciski.dioda(false);
-      } else if (nacisnieciaZKolejki()) {
-        tryb = PowodWybudzenia::PRZYCISK;
-        przyciskWCzuwaniu = true;
-        t0 = ms();
       }
       bool oknoOta = otaAktywne && ekran() == Ekran::TEST;
       uint32_t limit = czuwanieMs(tryb, oknoOta);
@@ -8062,6 +8497,10 @@ class Przebieg {
       czekaj(krokPrzytrzymania(od, ms()));  // próbka w ms progu (R-PRZ-08)
     }
     uint32_t odOba = ms();
+    // R-PRZ-21: oba naciśnięcia skrótu obsłużone tutaj, żadne nie wraca z kolejki jako ◀ albo ▶ (zmiana 2026-11-22:
+    // dawniej drugie z nich przy wybudzeniu wracało z kolejki w czuwaniu)
+    a.przyciski.obsluzoneZeStanu((int)Przycisk::LEWY);
+    a.przyciski.obsluzoneZeStanu((int)Przycisk::PRAWY);
     while ((a.przyciski.wcisniete() & oba) == oba) {
       odnow();
       if (ms() - odOba >= PROG_PRZYTRZYMANIA_MS) {
@@ -8078,7 +8517,7 @@ class Przebieg {
   }
 
   // Kolejka naciśnięć (spec 5.6.1): naciśnięcia z czasu rysowania po kolei, ekran rysowany raz, na końcu. Tylko
-  // nawigacja (zKolejkiWolno); pierwsze naciśnięcie poza nią kończy kolejkę i odrzuca resztę, bo ekranu, na który
+  // nawigacja (samaNawigacja(): po skutku); pierwsze naciśnięcie poza nią kończy kolejkę i odrzuca resztę, bo ekranu, na który
   // trafiłoby, nikt jeszcze nie widział. Zwraca true, gdy było co najmniej jedno naciśnięcie z kolejki.
   bool nacisnieciaZKolejki() {
     int nr = 0;
@@ -8088,8 +8527,12 @@ class Przebieg {
     while (a.przyciski.zKolejki(nr, trwalo)) {
       if (nr < (int)Przycisk::LEWY || nr > (int)Przycisk::PRAWY) continue;
       Przycisk q = (Przycisk)nr;
-      bool dlugo = przytrzymaniePuszczone(trwalo);  // ≥ próg, jak po głębokim śnie (R-PRZ-08, zmiana 2026-11-17)
-      if (!zKolejkiWolno(ekran(), dlugo)) {
+      bool dlugo = przytrzymaniePuszczone(trwalo);  // ≥ próg, jak po głębokim śnie (R-PRZ-08 2026-11-17)
+      // tylko czysta nawigacja (przejście stron, powrót na ekran dnia); pytanie tak/nie, S5, potwierdzenia,
+      // przytrzymania i ekrany poza ciągiem stron kończą kolejkę
+      if (dlugo || !samaNawigacja(q)) {
+        log("kolejka naciśnięć: %s%s na ekranie %d to nie sama nawigacja, reszta pominięta (R-PRZ-20)",
+            q == Przycisk::LEWY ? "◀" : q == Przycisk::SRODEK ? "↻" : "▶", dlugo ? " 2 s" : "", (int)ekran());
         pominiete = 1;
         while (a.przyciski.zKolejki(nr, trwalo)) pominiete++;
         break;

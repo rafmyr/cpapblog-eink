@@ -137,10 +137,18 @@ struct ZadanieHttp {
   std::vector<std::pair<std::string, std::string>> naglowki;  // np. Authorization, X-Token
   uint32_t limitMs = 15000;                                 // połączenie i odpowiedź
   size_t maksBajtow = 0;                                    // 0 = bez limitu; powyżej → wynik zaDuzo
-  uint32_t koniecMs = 0;                                    // 0 = bez; zegar procesora końca odczytu ciała
+  // 0 = bez; ile ms od wejścia w Siec::get() wolno czytać ciało (koniec odczytu, wynik zaDlugo). Względnie, nie
+  // chwila bezwzględna: Zegar::ms() rdzenia po czekaniu na kablu liczy od końca czekania, a zegar adaptera
+  // (millis()) od startu programu (ADR-0047, zmiana 2026-11-22); adapter mierzy start i postęp na swoim zegarze.
+  uint32_t budzetCialaMs = 0;
   std::function<bool()> przerwij;                           // pusty = bez; true = przerwać odczyt ciała (przycisk)
   bool cialoTylko200 = false;                               // ciało tylko przy 200 (źródło otoczenia)
 };
+// Koniec odczytu ciała w jednej podstawie czasu: `startMs` (wejście w get()) i `terazMs` z tego samego zegara
+// (adapter: millis(); atrapa: zegar surowy). Wspólne dla adaptera ESP32 i atrapy sieci.
+inline bool budzetCialaMinal(uint32_t budzetMs, uint32_t startMs, uint32_t terazMs) {
+  return budzetMs != 0 && terazMs - startMs >= budzetMs;
+}
 struct OdpowiedzHttp {
   int kod = 0;                 // kod HTTP albo ujemny błąd połączenia (jak HTTPClient)
   std::string cialo;
@@ -148,7 +156,7 @@ struct OdpowiedzHttp {
   int contentLength = -1;      // -1 = brak nagłówka
   int wynikZapisu = 0;         // wynik writeToStream(): bajty albo ujemny błąd (cialoKompletne(), T-WYM-26)
   bool zaDuzo = false;         // ciało dłuższe niż maksBajtow
-  bool zaDlugo = false;        // minął koniecMs w trakcie odczytu ciała
+  bool zaDlugo = false;        // minął budzetCialaMs w trakcie odczytu ciała
   bool przerwane = false;      // przerwij() zwróciło true
   uint32_t ms = 0;             // czas żądania
 };
@@ -250,6 +258,18 @@ class Przyciski {
   // Kolejka od nowa: naciśnięcie obsłużone już z odczytu stanu nie wraca z kolejki; przycisk trzymany w tej chwili
   // nie trafi do niej po puszczeniu.
   virtual void wyczyscKolejke() {}
+  // R-PRZ-20 (zmiana 2026-11-22): rdzeń właśnie odczytał ze stanu wciśnięty przycisk `przycisk` (jak `(int)Przycisk`)
+  // i obsłuży to naciśnięcie sam: ono jedno nie trafia do kolejki (ani teraz, ani po puszczeniu, także zacięte).
+  // Reszta kolejki i naciśnięcia innych przycisków zostają. Wołać w chwili odczytu stanu, gdy przycisk jest wciśnięty.
+  virtual void obsluzoneZeStanu(int przycisk) { (void)przycisk; }
+  // R-PRZ-20, R-PRZ-08 (zmiana 2026-11-22): chwila wciśnięcia przycisku `przycisk`, który jest teraz
+  // wciśnięty, w ms zegara rdzenia (Zegar::ms()). false = nie wciśnięty albo chwila nieznana (np. przycisk budzący,
+  // wciśnięty przed startem programu); rdzeń liczy wtedy od chwili odczytu, jak dawniej. Domyślnie false.
+  virtual bool wcisnietyOd(int przycisk, uint32_t& odMs) {
+    (void)przycisk;
+    (void)odMs;
+    return false;
+  }
   // true: adapter piszczy sam w chwili naciśnięcia (raz), także w czasie rysowania; rdzeń dokłada wtedy tylko drugi
   // pisk przytrzymania i pisk przycisku, który obudził panel (R-PRZ-20). Domyślnie false: piszczy rdzeń.
   virtual bool piskPrzyNacisnieciu() const { return false; }

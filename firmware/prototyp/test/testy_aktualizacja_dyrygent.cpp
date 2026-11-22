@@ -723,6 +723,47 @@ static void testR_NF_33_brakWydanIBezKlucza() {
   SPRAWDZ(!wLogu(q, "ikona aktualizacji") && q.wydania.zadania.empty());
 }
 
+// ---------- przed restartem po aktualizacji bez przepisywania plików
+// niewczytanych w tym wybudzeniu: bez odmowy w logu, czynniki i dziennik humoru nietknięte ----------
+static void testBezPrzepisaniaPrzedRestartem() {
+  Panel p;
+  zToken(p);
+  p.wydania.ustaw("1.0.1", obrazTestowy(), ukladWkompilowany());
+  const std::string hum = "/dane/humor.csv", czy = "/dane/czynniki.csv";
+  przyciskiem(p, ep(2026, 11, 10, 9, 0), Ekran::USTAWIENIA, B_SRODEK, 2500);  // ↻ 2 s: „jest nowsza”
+  wybudz(p);
+  SPRAWDZ(u07(p) == std::to_string((int)aktualizacja::StanU07::NOWSZA));
+  bool humorPrzed = p.pliki.pliki.count(hum) > 0, czynnikiPrzed = p.pliki.pliki.count(czy) > 0;
+  std::string tHum = humorPrzed ? p.pliki.pliki[hum] : "", tCzy = czynnikiPrzed ? p.pliki.pliki[czy] : "";
+  przyciskiem(p, ep(2026, 11, 10, 9, 1), Ekran::AKTUALIZACJA, B_PRAWY, 200);  // ▶ instaluj
+  wybudz(p);
+  SPRAWDZ(p.wydania.slotStartowyZmieniony && p.wydania.restartow == 1);
+  SPRAWDZ(!wLogu(p, "nie był w tym wybudzeniu przeczytany"));  // bez odmowy (dawniej humor.csv)
+  SPRAWDZ(p.d.ile("pliki.zapisz " + czy) == 0);                 // czynniki bez przepisania
+  SPRAWDZ((p.pliki.pliki.count(czy) > 0) == czynnikiPrzed && (!czynnikiPrzed || p.pliki.pliki[czy] == tCzy));
+  // dziennik humoru: najwyżej dopisane wiersze tego wybudzenia, początek pliku bajt w bajt
+  bool humorOk = !p.pliki.pliki.count(hum) || p.pliki.pliki[hum].compare(0, tHum.size(), tHum) == 0;
+  SPRAWDZ(humorOk);
+  printf("przed restartem po aktualizacji: odmów %d, przepisań czynników %d, humor %s (plik przed: %s)\n",
+         wLogu(p, "nie był w tym wybudzeniu przeczytany") ? 1 : 0, p.d.ile("pliki.zapisz " + czy),
+         humorOk ? "nietknięty poza dopisaniem" : "PRZEPISANY", humorPrzed ? "był" : "nie było");
+  // automat w porannym wybudzeniu z nocą: dziennik humoru powstaje przez dopisanie w tym samym wybudzeniu (przy
+  // odczycie go nie było), więc przed restartem nie jest przepisywany (dawniej odmowa dla humor.csv)
+  Panel* q = panelAutomatu(true);
+  airbridge(*q, nrDnia("2026-11-09"));
+  zegarem(*q, ep(2026, 11, 10, 7, 0));
+  wybudz(*q);
+  SPRAWDZ(q->wydania.slotStartowyZmieniony && q->wydania.restartow == 1);
+  SPRAWDZ(!wLogu(*q, "nie był w tym wybudzeniu przeczytany"));
+  // humor: jedyny zapis atomowy to utworzenie pliku przez pierwsze dopisanie (Magazyn::dopisz(), plik nowy)
+  SPRAWDZ(q->d.ile("pliki.zapisz " + hum) <= 1 && q->d.ile("pliki.zapisz " + czy) == 0);
+  SPRAWDZ(!q->pliki.pliki.count(czy));
+  printf("automat: humor.csv %s, zapisów atomowych humoru %d (utworzenie), czynników %d, odmów %d\n",
+         q->pliki.pliki.count(hum) ? "dopisany" : "brak", q->d.ile("pliki.zapisz " + hum),
+         q->d.ile("pliki.zapisz " + czy), wLogu(*q, "nie był w tym wybudzeniu przeczytany") ? 1 : 0);
+  delete q;
+}
+
 int main() {
   testR_KONF_56_coNowegoZWydania();
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
@@ -739,6 +780,7 @@ int main() {
   testR_KONF_45_sprawaABNaEkranie();
   testR_KONF_44_wersjaZPytania();
   testR_NF_33_brakWydanIBezKlucza();
+  testBezPrzepisaniaPrzedRestartem();
   printf("testy_aktualizacja_dyrygent: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

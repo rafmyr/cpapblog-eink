@@ -58,3 +58,5 @@ Ograniczenia, które trzeba zachować:
 - **„Otwarte sprawy” i „Co znaczą te liczby” jako osobne pozycje do przestawiania:** rozdzielają objaśnienie i sprawy od liczb, których dotyczą; „Otwarte sprawy” nie mogą być wyłączone.
 - **Strzałki jako przyciski wysyłające formularz bez JavaScriptu:** każde przesunięcie zapisuje też inne niezapisane pola i przeładowuje stronę; pole „miejsce” robi to samo bez tych skutków.
 - **Przestawianie S-K-37 i S-K-38 na liście:** S-K-37 jest kandydatem prawie zawsze, więc postawiony wyżej zasłaniałby resztę (to samo co wyłączenie reszty); obrazek ma regułę czasu (od 16.11.2026 wygaszacz, R-KON-73) i regułę zastępstwa (R-KON-54), nie miejsce na liście.
+
+**Zmiana 2026-11-22 ([ADR-0049](0049-dobry-start.md), wdrożenie):** porady dnia S-K-48 nie ma na liście „Ekrany” i nie da się jej przestawić ani ukryć: nazwa `porada` w `dzien.kolejnosc` i `dzien.ukryte` jest nazwą nieznaną (pominięta z wpisem w logu, pkt 4); poradę wyłącza tylko `start.program=nie` w sekcji „Dobry start” (R-DS-22). Test: `test/testy_dobry_start_brzegowe.cpp` (`dzien.ukryte=porada` → S-K-48 dalej).

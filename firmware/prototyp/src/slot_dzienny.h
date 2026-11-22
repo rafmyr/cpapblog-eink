@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include "dobranoc.h"  // hhmm(): 1421 → "23:41"
+#include "dobry_start.h"
 #include "noc.h"
 #include "uklad_ekranow.h"
 
@@ -292,6 +293,8 @@ struct UstawieniaDnia {
   // awaryjny: głęboki sen jak przed 16.11.2026; 1 = `tak`. Bez pola w formularzu U-03.
   int kabelBezSnu = -1;
   bool kabelBezSnuWlaczone() const { return kabelBezSnu != 0; }
+  // ADR-0049: `start.program`, `start.dzien`, `start.nawilzacz`, `start.objawy`, `start.ponad` (src/dobry_start.h)
+  dobry_start::Ustawienia start;
   std::vector<std::string> bledy;
   UstawieniaDnia();
 };

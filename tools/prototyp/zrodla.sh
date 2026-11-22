@@ -49,6 +49,12 @@ ZRODLA+=("$FW/src/odswiezanie.cpp")
 ZRODLA+=("$FW/src/szybkosc.cpp")
 # Czekanie na zasilaniu zewnętrznym zamiast głębokiego snu i pamięć plików między przebiegami (ADR-0047)
 ZRODLA+=("$FW/src/czekanie.cpp" "$FW/src/pliki_pamiec.cpp")
+# Próbkowanie przycisków i kolejka naciśnięć: rdzeń wspólny dla adaptera ESP32 i atrapy (R-PRZ-20)
+ZRODLA+=("$FW/src/przyciski_probki.cpp")
+# Program „Dobry start”: porady, stan programu, wybór porady dnia, ankieta (src/dobry_start.cpp), ADR-0049
+ZRODLA+=("$FW/src/dobry_start.cpp")
+# Wysyłka obrazu do sterownika e-ink kawałkami z odwróceniem bitów (src/wysylka_obrazu.cpp, T-KOMP-17, 22.11.2026)
+ZRODLA+=("$FW/src/wysylka_obrazu.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -96,6 +102,11 @@ TESTY+=("$FW/test/testy_szybciej_przycisk_brzegowe.cpp") # testy brzegowe T-WYM-
 TESTY+=("$FW/test/testy_kabel_bez_snu.cpp") # czekanie na kablu zamiast głębokiego snu: równoważność, liczniki, awarie (ADR-0047)
 TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe.cpp") # testy brzegowe ADR-0047: usterka odczytu a pamięć plików, losowe sekwencje
 TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp") # testy brzegowe ADR-0047, część 2: lista katalogu i nowy rok, usterki nośnika na obu ścieżkach
+TESTY+=("$FW/test/testy_otoczenie_zegar_kabel.cpp") # źródło otoczenia po czekaniu na kablu: dwie podstawy czasu, budżet odczytu ciała względny (T-TEST-519)
+TESTY+=("$FW/test/testy_otoczenie_zegar_kabel_brzegowe.cpp") # testy brzegowe: otoczenie po czekaniu przy przepełnieniu millis() (T-TEST-519)
+TESTY+=("$FW/test/testy_odczyt_nieudany.cpp") # T-WYM-19: odczyt nieudany ≠ plik pusty; nieudane dopisanie w logu
+TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe_2.cpp") # testy brzegowe odczytu nieudanego, część 2: legalne zapisy bez odmów, dwa lata, przełom roku
+TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe.cpp") # testy brzegowe odczytu nieudanego: semantyka panelu (LittleFS.exists() = open())
 TESTY+=("$FW/test/testy_kabel_ladowanie_brzegowe.cpp") # testy brzegowe: limit ładowania × czekanie na kablu, losowo na dwóch ścieżkach
 TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
 TESTY+=("$FW/test/testy_norma_tymczasowa.cpp") # norma tymczasowa „sprzed zmiany” po zmianie ustawień: liczenie, K1, K2, reguły bez zmian (ADR-0048)
@@ -120,6 +131,8 @@ TESTY+=("$FW/test/testy_przerywniki_s2d_brzegowe.cpp") # przypadki brzegowe: prz
 TESTY+=("$FW/test/testy_parsowanie_liczb.cpp") # liczbaCalk/Dluga/Rzecz równoważne atoi/atol/atof (clang-tidy cert-err34-c)
 TESTY+=("$FW/test/testy_sprzet_maska_filtr.cpp") # SPRZĘT tylko maska i filtr, migracja dat, filtr w tygodniach, formularz bez rury i komory
 TESTY+=("$FW/test/testy_nawigacja.cpp") # nowa nawigacja (▶ dalej, ◀ wstecz, ↻ ekran dnia, przytrzymanie = zapis, strony n / 3, ADR-0041)
+TESTY+=("$FW/test/testy_kolejka_szybkie.cpp") # szybkie naciśnięcia: kolejka z czasu liczenia i rysowania na modelu próbkowania (R-PRZ-20, T-TEST-516)
+TESTY+=("$FW/test/testy_kolejka_szybkie_brzegowe.cpp") # testy brzegowe szybkich naciśnięć: serie losowe, pytanie tak/nie z kolejki i z czasu rysowania
 TESTY+=("$FW/test/testy_nawigacja_mapa_brzegowe.cpp") # przypadki brzegowe: mapa nawigacji 5.6.2 tabelarycznie
 TESTY+=("$FW/test/testy_sypialnia_30.cpp") # strona kokpitu „Sypialnia · 30 nocy” (R-KOK-29…R-KOK-33, ADR-0044)
 TESTY+=("$FW/test/testy_formularz_u03.cpp") # formularz U-03 uzupełniony (miasto, CO2, humor, dźwięk, cisza, podpowiedź, czynniki)
@@ -133,3 +146,88 @@ TESTY+=("$FW/test/testy_slot_ustawienia_sprzet.cpp") # wykres slotu dziennego pr
 TESTY+=("$FW/test/testy_zaproszenie_linia_uwagi.cpp") # linia zaproszenia według ekranu dnia, droga do „Sprzętu”, linia uwagi
 TESTY+=("$FW/test/testy_kokpit_karty_przekroj.cpp") # K2 we wszystkich trybach i brakach, krok S-K-35, stopka karty, pusty ekran spraw, E-23
 TESTY+=("$FW/test/testy_siec_panelu_u02_brzegowe.cpp") # przypadki brzegowe: sieć panelu U-02
+TESTY+=("$FW/test/testy_dobry_start.cpp" "$FW/test/testy_dobry_start_brzegowe.cpp") # program „Dobry start” (ADR-0049): silnik, dyrygent, ekran S-K-48, formularz
+TESTY+=("$FW/test/testy_dobry_start_brzegowe_2.cpp" "$FW/test/testy_dobry_start_brzegowe_dyrygent.cpp") # testy brzegowe „Dobry start”, część 2 i z dyrygentem
+TESTY+=("$FW/test/testy_wysylka_obrazu.cpp") # obraz do sterownika e-ink blokiem: bajt w bajt jak pętla GxEPD2 1.6.9, kawałki
+TESTY+=("$FW/test/testy_wysylka_obrazu_brzegowe.cpp") # testy brzegowe: długości brzegowe, wzorce, wyrównanie, strażnik bufora
+# Programy testów, które do 22.11.2026 były tylko w testy.sh, bez sanitizerów i pokrycia:
+# od 22.11.2026 każdy test/testy*.cpp jest w TESTY, a sprawdz_liste_testow() przerywa testy.sh, sanitizery i pokrycie,
+# gdy pojawi się program spoza listy.
+TESTY+=("$FW/test/testy_belka_znaki_brzegowe.cpp") # testy brzegowe znaków belki
+TESTY+=("$FW/test/testy_ekrany_co2.cpp" "$FW/test/testy_ekrany_co2_brzegowe.cpp") # ekrany CO2, przerywniki S2d G01–G18
+TESTY+=("$FW/test/testy_ekrany_serwisowe_brzegowe.cpp") # U-05, U-07, „Co nowego”, U-01 (czyta src/dyrygent.cpp: katalog $FW)
+TESTY+=("$FW/test/testy_karta_po_aktualizacji.cpp" "$FW/test/testy_karta_po_aktualizacji_brzegowe.cpp") # R-KONF-61
+TESTY+=("$FW/test/testy_karta_po_aktualizacji_portret.cpp" "$FW/test/testy_karta_po_aktualizacji_pytanie.cpp")
+TESTY+=("$FW/test/testy_karta_po_aktualizacji_slot.cpp" "$FW/test/testy_karta_slot_brzegowe.cpp")
+TESTY+=("$FW/test/testy_kokpit_k1_k2.cpp" "$FW/test/testy_kokpit_k1_k2_brzegowe.cpp") # K1 i K2 według trybu (R-KOK-16)
+TESTY+=("$FW/test/testy_kolejnosc_przyciskow_stopki.cpp") # kolejność podpisów ◀ ▶ ↻ w stopkach
+TESTY+=("$FW/test/testy_przerywniki_s2d.cpp") # przerywniki S2d (argument: katalog repozytorium)
+TESTY+=("$FW/test/testy_raport_a4_brzegowe.cpp") # raport A4, serwer raportu, kod QR (argument: katalog na pliki)
+TESTY+=("$FW/test/testy_rekord_nocy_brzegowe.cpp") # rekord nocy, wersja 4 pliku nocy
+TESTY+=("$FW/test/testy_slot_dzienny_brzegowe.cpp") # slot dzienny i obrazki dnia
+TESTY+=("$FW/test/testy_stany_nocy_sloty_wieczorne_brzegowe.cpp") # stany nocy, sloty wieczorny i tygodniowy
+TESTY+=("$FW/test/testy_styki_modulow_brzegowe.cpp") # styki modułów (linie OCZEKUJE nie blokują)
+TESTY+=("$FW/test/testy_trend_ps_podpisy_osi.cpp" "$FW/test/testy_trend_ps_podpisy_osi_brzegowe.cpp") # podpisy osi S3, trend PS
+TESTY+=("$FW/test/testy_wieczor_bez_wifi_obrazki.cpp" "$FW/test/testy_wieczor_bez_wifi_obrazki_brzegowe.cpp") # ocena wieczorna bez Wi-Fi
+TESTY+=("$FW/test/testy_wzorce_l_hipotezy_h.cpp" "$FW/test/testy_wzorce_l_hipotezy_h_brzegowe.cpp") # katalog L/H wobec spec
+TESTY+=("$FW/test/testy_zdarzenia_e.cpp" "$FW/test/testy_zdarzenia_e_brzegowe.cpp") # zdarzenia E (brzegowe nie blokują, jak w testy.sh)
+TESTY+=("$FW/test/testy_zrzut_konfiguracja_brzegowe.cpp") # konfiguracja w zrzucie Z
+
+# Testy, których wynik ≠ 0 tylko wypisuje otwarte przypadki (tak samo w testy.sh); zgłoszenia sanitizera i tak
+# przerywają bramkę (grep wyniku w tools/jakosc/sprawdz.sh).
+TESTY_NIEBLOKUJACE=(testy_zdarzenia_e_brzegowe)
+
+# Uruchomienie programu testu rdzenia z jego argumentami i katalogiem roboczym: JEDNO źródło argumentów dla
+# tools/prototyp/testy.sh i tools/jakosc/sprawdz.sh (sanitizery, pokrycie; od 22.11.2026).
+# $1 program, $2 przedrostek katalogów na pliki wyjściowe testów (testy.sh: katalog podglądu bez ukośnika na końcu;
+# sprawdz.sh: katalog roboczy bramki). Wymaga REPO i FW. Zwraca kod wyjścia programu (0 dla TESTY_NIEBLOKUJACE).
+# Programy z danymi z narzędzi Pythona (testy_str_edf, testy_noc_pliki, testy_portret) testy.sh uruchamia sam
+# z katalogiem danych; tu (sanitizery, pokrycie) biegną bez niego i części z danymi pomijają, jak przed tą zmianą.
+uruchom_test_rdzenia() {
+  local prog="$1" wyj="$2" n kod=0 b
+  n="$(basename "$prog")"
+  case "$n" in
+    testy_wzorce_l_hipotezy_h|testy_przerywniki_s2d|testy_trend_ps_podpisy_osi_brzegowe|testy_aparat_autoset_brzegowe)
+      "$prog" "$REPO" || kod=$? ;;
+    testy_raport_a4)
+      "$prog" "$wyj-raport" || kod=$? ;;
+    testy_raport_a4_brzegowe)
+      mkdir -p "$wyj-raport-a4"
+      "$prog" "$wyj-raport-a4" || kod=$? ;;
+    testy_ekrany_zdarzen_e_brzegowe)
+      mkdir -p "$wyj-ekrany-zdarzen-e"
+      "$prog" "$wyj-ekrany-zdarzen-e" || kod=$? ;;
+    testy_ekrany_serwisowe_brzegowe)
+      (cd "$FW" && "$prog") || kod=$? ;;  # czyta src/dyrygent.cpp (przypadek [i])
+    testy_norma_tymczasowa_naiwna)
+      "$prog" 30000 || kod=$? ;;
+    testy_k1_ahi_niepewne_naiwna)
+      "$prog" 3000 0 || kod=$?   # wejścia spójne
+      [ "$kod" = 0 ] && { "$prog" 3000 1 || kod=$?; } ;;  # wejścia jak w dyrygencie (okresy infekcji)
+    *)
+      "$prog" || kod=$? ;;
+  esac
+  for b in "${TESTY_NIEBLOKUJACE[@]}"; do
+    if [ "$b" = "$n" ]; then
+      [ "$kod" = 0 ] || echo " są otwarte przypadki (wyżej)"
+      return 0
+    fi
+  done
+  return "$kod"
+}
+
+# Każdy program test/testy*.cpp jest w TESTY, żeby nowy test nie wypadł z sanitizerów i pokrycia (do 22.11.2026 28
+# programów było tylko w testy.sh). Woła testy.sh na starcie i sprawdz.sh przed sanitizerami i pokryciem.
+sprawdz_liste_testow() {
+  local t x jest braki=()
+  for t in "$FW"/test/testy*.cpp; do
+    jest=0
+    for x in "${TESTY[@]}"; do [ "$x" = "$t" ] && jest=1 && break; done
+    [ "$jest" = 1 ] || braki+=("${t#"$FW"/}")
+  done
+  if [ "${#braki[@]}" -gt 0 ]; then
+    echo "BŁĄD: programy testów spoza listy TESTY w tools/prototyp/zrodla.sh (bez sanitizerów i pokrycia): ${braki[*]}" >&2
+    return 1
+  fi
+  return 0
+}

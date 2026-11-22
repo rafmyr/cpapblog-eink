@@ -921,6 +921,13 @@ static void trescKarty(Plotno& p, const std::string& et, const std::string& tytu
   if (!krok.empty()) tekst(p, F_P22B, XK, 412, krok);
 }
 
+bool rysujScene(Plotno& p, const std::string& id, int xPrawy, int yDol) {
+  const SceneBudzika* s = scena(id);
+  if (!s) return false;
+  p.bitmapa(s->bmp, xPrawy - s->w, yDol - s->h, s->w, s->h);
+  return true;
+}
+
 // Stopka karty (od 10.11.2026 bez zdania budzika, ADR-0009 „Zmiana 2026-11-10”): jak stopka ekranu danych (stopkaDnia,
 // znika bez treści po obu stronach), lewo z t.stopkaLewo (pogoda albo podpowiedź ekranu danych tego samego ekranu,
 // R-EKR-10, albo podpis akcji), prawo bez zmian (`przy łóżku …` albo akcja). Pogodę z lewej wywołujący skraca

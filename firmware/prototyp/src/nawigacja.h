@@ -188,6 +188,13 @@ struct Przejscie {
 };
 
 Przejscie nacisniecie(Ekran e, Przycisk p, bool przytrzymanie, const KontekstNaw& k);
+// R-PRZ-20 (zmiana 2026-11-22): czy przejście `pr` z ekranu `przed` to czysta nawigacja, czyli
+// jedyne, co wolno wykonać z naciśnięcia z czasu liczenia albo rysowania (kolejka, wciśnięcie przed końcem rysowania):
+// oba ekrany na ekranie dnia, stronie kokpitu (z numerem i bez) albo stronie Portretu, akcja NIC, POKAZ albo zmiana
+// karty „Otwartych spraw”. Wszystko inne (odpowiedź na pytanie tak/nie, ponowienie pobrania i pomiar baterii na S5,
+// „wiem”, „Omówione”, zapis, cofnięcie, sieć panelu, formularz, raport, aktualizacja) = false. Start slotu dziennego
+// i zamknięcie informacji po aktualizacji sprawdza dyrygent (Przebieg::samaNawigacja()).
+bool czystaNawigacja(Ekran przed, const Przejscie& pr);
 
 // Slot nocny 23:30–05:00 (R-PRZ-18): ekrany otwarte przyciskiem nie wracają same.
 bool slotNocny(int minutaDoby);

@@ -141,7 +141,9 @@ def test_zestaw_wbudowany_w_repo_aktualny():
                               os.path.join(REPO, "docs", "spec", "katalog"),
                               os.path.join(REPO, "docs", "spec", "specyfikacja-funkcjonalna.md"))
     zestaw = "z-" + hashlib.sha256("".join(cial).encode("utf-8")).hexdigest()[:12]
-    pliki = buduj_zestaw.z_naglowkami(cial, zestaw, "wbudowany", "1.0.0", "1.99.99", "brak", zrodlo)
+    # porady „Dobry start” (ADR-0049) w tym samym pliku, poza identyfikatorem zestawu
+    por = buduj_zestaw.porady.buduj_porady(os.path.join(REPO, "docs", "spec", "katalog")) or []
+    pliki = buduj_zestaw.z_naglowkami(cial + por, zestaw, "wbudowany", "1.0.0", "1.99.99", "brak", zrodlo)
     assert buduj_zestaw.naglowek_cpp(pliki) == jest, "zestaw_wbudowany.h nieaktualny: python3 tools/zestaw/buduj_zestaw.py"
 
 

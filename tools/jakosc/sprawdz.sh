@@ -63,14 +63,19 @@ krok_sanitizery() {
   echo "== sanitizery: ASan + UBSan na testach rdzenia"
   local kat="$BUD/asan" fl=(-std=c++17 -O1 -g -fsanitize=address,undefined,float-cast-overflow -fno-omit-frame-pointer
                             -fno-sanitize-recover=all "${INCLUDY[@]}")
+  sprawdz_liste_testow || return 1  # każdy test/testy*.cpp w TESTY (zrodla.sh)
   kompiluj_rdzen "$kat" "${fl[@]}"
   mapfile -t ob < <(obiekty "$kat")
-  local t n
-  for t in "${TESTY[@]}"; do  # programy testów rdzenia z zrodla.sh
+  local t n wycieki=1
+  # macOS: LeakSanitizer nie działa (ASan przerywa przy detect_leaks=1), a libasan z GCC z Homebrew zawiesza się przy
+  # starcie programu (gcc 15) albo jej nie ma (gcc 12); lokalnie g++ = clang++ na PATH (22.11.2026). CI (Linux) bez zmian.
+  [ "$(uname -s)" = Darwin ] && wycieki=0
+  for t in "${TESTY[@]}"; do  # programy testów rdzenia z zrodla.sh, argumenty jak w testy.sh (uruchom_test_rdzenia)
     n="$(basename "$t" .cpp)"
     g++ "${fl[@]}" "$t" "${ob[@]}" -o "$kat/$n"
-    ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:abort_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
-      "$kat/$n" > "$kat/wynik-$n.txt" 2>&1 || { tail -40 "$kat/wynik-$n.txt"; echo "  BŁĄD: sanitizery albo $n"; return 1; }
+    ASAN_OPTIONS=detect_leaks=$wycieki:halt_on_error=1:abort_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+      uruchom_test_rdzenia "$kat/$n" "$kat/wyjscie" > "$kat/wynik-$n.txt" 2>&1 \
+      || { tail -40 "$kat/wynik-$n.txt"; echo "  BŁĄD: sanitizery albo $n"; return 1; }
     if grep -qE 'runtime error|AddressSanitizer|LeakSanitizer' "$kat/wynik-$n.txt"; then
       grep -E 'runtime error|Sanitizer' "$kat/wynik-$n.txt" | head -20; echo "  BŁĄD: zgłoszenie sanitizera ($n)"; return 1
     fi
@@ -99,6 +104,7 @@ krok_tidy() {
 krok_pokrycie() {
   echo "== pokrycie linii rdzenia (gcov)"
   local kat="$BUD/pokrycie" fl=(-std=c++17 -O0 --coverage "${INCLUDY[@]}")
+  sprawdz_liste_testow || return 1  # każdy test/testy*.cpp w TESTY (zrodla.sh)
   kompiluj_rdzen "$kat" "${fl[@]}"
   rm -f "$kat"/testy*.gcda "$kat"/testy*.gcno
   mapfile -t ob < <(obiekty "$kat")
@@ -106,7 +112,8 @@ krok_pokrycie() {
   for t in "${TESTY[@]}"; do  # liczniki .gcda rdzenia sumują się ze wszystkich programów testów
     n="$(basename "$t" .cpp)"
     g++ "${fl[@]}" "$t" "${ob[@]}" -o "$kat/$n"
-    (cd "$kat" && "./$n" > "wynik-$n.txt") || { tail -20 "$kat/wynik-$n.txt"; echo "  BŁĄD: $n z --coverage"; return 1; }
+    (cd "$kat" && uruchom_test_rdzenia "$kat/$n" "$kat/wyjscie" > "wynik-$n.txt") \
+      || { tail -20 "$kat/wynik-$n.txt"; echo "  BŁĄD: $n z --coverage"; return 1; }
     gcda+=("$kat/$n-$n.gcda")
   done
   # także jednostki testów: linie z nagłówków src/*.h wykonane tylko w kodzie testów

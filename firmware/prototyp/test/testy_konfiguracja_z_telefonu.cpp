@@ -210,7 +210,7 @@ static void formularzStrona() {
   SPRAWDZ(zawiera(h, "Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc."));
   SPRAWDZ(zawiera(h, "method=\"post\" action=\"/u/abc/\""));
   SPRAWDZ(zawiera(h, "value=\"publiczny\" selected"));
-  SPRAWDZ(h.size() < 16000);  // pamięć serwera panelu (od ADR-0045 z sekcją „Ekrany”: 14,4 KB; było < 12000)
+  SPRAWDZ(h.size() < 18000);  // pamięć serwera panelu (z sekcją „Dobry start” ADR-0049; od ADR-0045 z sekcją „Ekrany”: 14,4 KB, < 16000; było < 12000)
 }
 
 static void formularzCialo() {
@@ -835,6 +835,41 @@ static void nowyModelDyrygent() {
     SPRAWDZ(t.log("nowy model maski bez zerowania normy"));
     g.odp.clear();
   }
+  {  // (T-TEST-515): /konfiguracja.txt jest, a odczyt się nie udaje: POST bez zapisu pliku (dawniej plik z samymi
+     // polami formularza, bez `kabel_bez_snu`, `eink.pelne_co`, `noc_zrodlo`), komunikat dla telefonu, bez `sp_model`
+    PanelP07 t;
+    const std::string stara = "noc_zrodlo=json\nkabel_bez_snu=nie\neink.pelne_co=3\nwymiana.maska=2026-08-01\n";
+    t.p.pliki.pliki["/konfiguracja.txt"] = stara;
+    t.zegarem(9, 0);
+    t.p.pliki.nieczytelne.insert("/konfiguracja.txt");
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    g.doWyslania = {zad("POST", sc, "profil=publiczny&nowy_model=1")};
+    t.nacisnij(Przycisk::PRAWY, true, 9, 3);
+    SPRAWDZ(t.p.pliki.pliki["/konfiguracja.txt"] == stara);
+    SPRAWDZ(t.log("formularz: /konfiguracja.txt nieczytelna, bez zapisu"));
+    SPRAWDZ(!t.log("formularz: /konfiguracja.txt zapisany"));
+    SPRAWDZ(!t.p.nvs.teksty.count("cpap/sp_model"));
+    SPRAWDZ(g.odp.size() == 1 && zawiera(g.odp[0].cialo, "Nie udało się odczytać ustawień"));
+    g.odp.clear();
+    // U-02 (zapiszPlikFormularzaP07) z tą samą usterką: plik bez zmian
+    g.doWyslania = {zad("POST", sc, "profil=publiczny")};
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    skrypt(t, {}, 9, 30);
+    SPRAWDZ(t.p.pliki.pliki["/konfiguracja.txt"] == stara);
+    SPRAWDZ(t.log("formularz: /konfiguracja.txt nieczytelna, bez zapisu"));
+    SPRAWDZ(g.odp.size() == 1 && zawiera(g.odp[0].cialo, "Nie udało się odczytać ustawień"));
+    g.odp.clear();
+    // nośnik znów sprawny: ten sam POST zapisuje pole i zostawia wiersze spoza formularza
+    t.p.pliki.nieczytelne.clear();
+    g.doWyslania = {zad("POST", sc, "profil=publiczny")};
+    t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+    t.nacisnij(Przycisk::PRAWY, true, 10, 0);
+    SPRAWDZ(zawiera(t.p.pliki.pliki["/konfiguracja.txt"], "profil=publiczny"));
+    SPRAWDZ(zawiera(t.p.pliki.pliki["/konfiguracja.txt"], "kabel_bez_snu=nie"));
+    printf("formularz przy nieczytelnej /konfiguracja.txt: plik %s\n",
+           zawiera(t.p.pliki.pliki["/konfiguracja.txt"], "eink.pelne_co=3") ? "zachowany" : "ZMIENIONY");
+    g.odp.clear();
+  }
   {  // U-02 (sieć panelu, zapiszPlikFormularzaP07): ten sam zapis nowego modelu
     PanelP07 t;
     t.p.pliki.pliki["/konfiguracja.txt"] = "wymiana.maska=2026-08-01\n";
@@ -846,6 +881,43 @@ static void nowyModelDyrygent() {
     SPRAWDZ(zawiera(t.p.pliki.tresc("/konfiguracja.txt"), "wymiana.maska=2026-11-05"));
     g.odp.clear();
   }
+  serwer::ustawGniazdo(przed);
+}
+
+// (22.11.2026, T-TEST-515): ankieta „Dobry start” z telefonu nie potwierdza
+// zapisu, gdy /dane/dobry_start.csv albo /konfiguracja.txt jest nieczytelny (zapis odrzucony).
+static void ankietaDyrygent() {
+  GniazdoFormularza g;
+  serwer::GniazdoHttp* przed = serwer::gniazdo();
+  serwer::ustawGniazdo(&g);
+  const std::string sc = "/u/" + tokenAtrapy() + "/";
+  const std::string an = sc + "ankieta";
+  PanelP07 t;
+  t.p.pliki.pliki["/konfiguracja.txt"] = "noc_zrodlo=json\nstart.program=tak\n";
+  t.zegarem(9, 0);
+  // zwykły zapis: plik stanu programu powstaje, komunikat „Zapisano”
+  t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+  g.doWyslania = {zad("POST", an, "ankieta_DS-Q03=1&q_DS-Q03=2")};
+  t.nacisnij(Przycisk::PRAWY, true, 9, 3);
+  bool zapisana = g.odp.size() == 1 && zawiera(g.odp[0].cialo, formularz::TEKST_ANKIETA_ZAPISANA);
+  SPRAWDZ(zapisana);
+  SPRAWDZ(t.p.pliki.pliki.count("/dane/dobry_start.csv") == 1);
+  g.odp.clear();
+  // plik stanu programu nieczytelny: odpowiedź nie trafia do pliku, telefon dostaje komunikat o błędzie
+  const std::string stan = t.p.pliki.pliki["/dane/dobry_start.csv"];
+  t.p.pliki.nieczytelne.insert("/dane/dobry_start.csv");
+  t.p.start.stan.ekran = (uint8_t)Ekran::USTAWIENIA;
+  g.doWyslania = {zad("POST", an, "ankieta_DS-Q03=1&q_DS-Q03=3")};
+  t.nacisnij(Przycisk::PRAWY, true, 9, 30);
+  bool niezapisana = g.odp.size() == 1 && zawiera(g.odp[0].cialo, formularz::TEKST_ANKIETA_NIEZAPISANA) &&
+                     !zawiera(g.odp[0].cialo, formularz::TEKST_ANKIETA_ZAPISANA);
+  SPRAWDZ(niezapisana);
+  SPRAWDZ(t.p.pliki.pliki["/dane/dobry_start.csv"] == stan);
+  SPRAWDZ(t.log("dobry start: ankieta NIE zapisana"));
+  t.p.pliki.nieczytelne.clear();
+  g.odp.clear();
+  printf("ankieta: zwykły zapis %s, przy nieczytelnym pliku stanu %s\n", zapisana ? "„Zapisano”" : "BEZ potwierdzenia",
+         niezapisana ? "komunikat o błędzie, plik bez zmian" : "FAŁSZYWE „Zapisano”");
   serwer::ustawGniazdo(przed);
 }
 
@@ -861,6 +933,7 @@ int main() {
   siecPaneluMapa();
   siecPaneluDyrygent();
   nowyModelDyrygent();
+  ankietaDyrygent();
   printf("testy_konfiguracja_z_telefonu: %d ok, %d błędów\n", ok, zle);
   return zle ? 1 : 0;
 }

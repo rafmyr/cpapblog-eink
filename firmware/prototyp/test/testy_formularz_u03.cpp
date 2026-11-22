@@ -553,7 +553,8 @@ static void testStrona(bool zapisz) {
   // rozmiar strony (pamięć panelu): strona jest składana raz i wysyłana w jednym kawałku, bez żadnego zewnętrznego zasobu
   printf("rozmiar strony formularza: %zu B bez źródła CO2, %zu B ze źródłem CO2, %zu B z błędami i komunikatem\n", sb.size(),
          sz.size(), se.size());
-  SPRAWDZ(sb.size() < 16 * 1024 && sz.size() < 16 * 1024 && se.size() < 16 * 1024);
+  // 18 KB od sekcji „Dobry start” (ADR-0049, 22.11.2026: teksty pól ze spec 5.6.6 dokładają ok. 1,9 KB); wcześniej 16 KB
+  SPRAWDZ(sb.size() < 18 * 1024 && sz.size() < 18 * 1024 && se.size() < 18 * 1024);
   if (zapisz) {
     std::ofstream o("/tmp/b32/formularz.html", std::ios::binary);
     o << formularz::strona(formularz::zPliku("humor=oszczedny\ncisza=23:00-07:00\nmiasto=Gdańsk\nraport.czynniki=AK\n", ob, true),
@@ -683,7 +684,8 @@ static void testR_KONF_59_uklad_strony() {
   p.wersja = "1.0.0";
   std::string s = formularz::strona(p, "/u/abc/", "", {});
   // dziewięć sekcji zwijanych (od ADR-0045 także „Ekrany”), każda zamknięta przy pełnej konfiguracji bez błędów
-  SPRAWDZ(ile(s, "<details") == 9 && ile(s, "</details>") == 9 && ile(s, "<summary>") == 9 && !zawiera(s, "<details open>"));
+  // 10 sekcji od „Dobry start” (ADR-0049)
+  SPRAWDZ(ile(s, "<details") == 10 && ile(s, "</details>") == 10 && ile(s, "<summary>") == 10 && !zawiera(s, "<details open>"));
   SPRAWDZ(!zawiera(s, "<fieldset") && !zawiera(s, "<legend"));
   // bieżąca wartość w nagłówku sekcji
   SPRAWDZ(zawiera(s, "<summary><b>Sieć domowa</b><span>Dom-2.4GHz</span></summary>"));
@@ -753,7 +755,7 @@ static void testR_KONF_59_uklad_strony() {
     SPRAWDZ(dobrze);
   }
   // błąd pola spoza znanych sekcji: wszystkie sekcje otwarte (błąd nie może zostać ukryty)
-  SPRAWDZ(ile(formularz::strona(p, "/u/abc/", "", {{"nieznane", "x"}}), "<details open>") == 9);
+  SPRAWDZ(ile(formularz::strona(p, "/u/abc/", "", {{"nieznane", "x"}}), "<details open>") == 10);
   // data filtra z pliku w innej postaci niż RRRR-MM-DD = pole puste (jak po oczyszczeniu przez przeglądarkę), poprawna
   // data bez zmian; zła wartość okresu przycięta do MAKS_OKRESU_Z_PLIKU bajtów bez rozcinania znaku, poprawna bez zmian
   SPRAWDZ(formularz::zPliku("wymiana.filtr=2026-9-1\n", ob).wymiana[1].empty());
@@ -784,7 +786,9 @@ static void testR_KONF_59_uklad_strony() {
                                     "pokaz_wietrzenie", "pokaz_jutro_rano", "pokaz_wymiana", "pokaz_pylek",
                                     "pokaz_dzien_i_noc", "pokaz_obrazek",
                                     // R-KON-77: wyłącznik wygaszacza i jego czas
-                                    "wygaszacz", "wygaszacz_min"};
+                                    "wygaszacz", "wygaszacz_min",
+                                    // sekcja „Dobry start” (ADR-0049, R-DS-31)
+                                    "start_program", "start_dzien", "start_nawilzacz", "start_objawy", "start_ponad"};
   for (auto& poz : POZYCJE)
     if (poz.bit != CZ_NIC) nazwy.push_back(std::string("cz_") + poz.kod);
   for (auto& n : nazwy) {
@@ -936,7 +940,8 @@ static void testR_KONF_59_uklad_strony() {
                            "okres.maska", "nowy_model", "nowy_model_cofnij", "wymiana.filtr", "okres.filtr_tyg",
                            "uwaga_o_masce", "aktualizacja_auto", "klucz_wydan", "klucz_usun", "haslo_okna",
                            "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana",
-                           "dk_pylek", "ekrany_start"})
+                           "dk_pylek", "ekrany_start", "start_program", "start_dzien", "start_nawilzacz", "start_objawy",
+                           "start_ponad"})
     wszystkie[pole] = "Nowa sieć: wpisz jej hasło albo zaznacz „bez hasła”. Panel nie zna dzisiejszej daty.";
   // także błędy przy polach wygaszacza (R-KON-74, R-KON-77) i najdłuższa wartość czasu (720);
   // `bezWyg` = ta sama strona bez błędów przy polach wygaszacza (ile dokładają same błędy tych pól)

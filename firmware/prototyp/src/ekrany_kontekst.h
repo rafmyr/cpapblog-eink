@@ -28,3 +28,24 @@ void rysujEkranKontekstu(Plotno& p, const Belka& n, const TrescKontekstu& k, con
 std::string godzinaOsiSlotu(int g);
 // Nagłówek ekranów slotu dziennego: `wt 03.11`.
 std::string naglowekSlotu(const std::string& dzis);
+
+// ---------- S-K-48 „Porada dnia” programu „Dobry start” (ADR-0049, spec 5.8.14.3.3) ----------
+// Ekran danych z belką (`Dobry start`, środek z OpisPorady, prawe pole jak na innych belkach), etykieta P22B na y 78,
+// pasek tygodni (porady planu) z prawej, tytuł SB44 w 1 linii na y 142, treść P24S do 5 linii po 34 px od y 192,
+// krok P24B na y 408, stopka dzienna (R-KON-51). Karta (`karta` i scena): treść P22B do 4 linii po 30 px w 490 px,
+// krok P22B, budzik z prawym dolnym rogiem w (774, 425), stopka tylko z temperaturami (`stopka.lewo` puste).
+// Z linią uwagi (7.5): linia pod belką, bez etykiety i paska, tytuł i treść przy linii 60 px o 12 px niżej (R-DS-18).
+// Przy „tylko na telefonie” OpisPorady ma tytuł `Nowa porada na telefonie.` bez treści i kroku (R-DS-50).
+struct DanePorady {
+  Belka belka;
+  dobry_start::OpisPorady o;
+  std::string scena;  // "" = ekran danych; inaczej karta z tą sceną
+  StopkaDzienna stopka;
+  std::string linia;
+  bool liniaA = false, liniaOstrzezenie = false;
+};
+const int PORADA_X = 28, PORADA_KOLUMNA = 748, PORADA_KOLUMNA_KARTY = 490;
+const int PORADA_LINIE = 5, PORADA_LINIE_KARTY = 4;
+const int PORADA_TYTUL_Y = 142, PORADA_TRESC_Y = 192;  // linie bazowe tytułu i pierwszej linii treści (spec 5.8.14.5)
+const int PORADA_PASEK_PRAWO = 774, PORADA_PASEK_Y = 62, PORADA_PASEK_W = 20, PORADA_PASEK_H = 13, PORADA_PASEK_KROK = 26;
+void rysujPorade(Plotno& p, const DanePorady& d);

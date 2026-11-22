@@ -35,7 +35,7 @@ class GniazdoEsp32 : public serwer::GniazdoHttp {
     f_ = nullptr;
   }
   // formularz konfiguracji (GET strona, POST zapis). Ciało POST składane z argumentów WebServer (bez `plain`),
-  // najwyżej serwer::MAKS_CIALA_POST (8 KB [PRÓG]); hasła z ciała nie trafiają do logu (adapter niczego nie wypisuje).
+  // najwyżej serwer::MAKS_CIALA_POST (10 KB [PRÓG]); hasła z ciała nie trafiają do logu (adapter niczego nie wypisuje).
   void obsluzZadania(const std::function<serwer::Odpowiedz(const Zadanie&)>& f) override {
     if (!s_) return;
     fz_ = &f;

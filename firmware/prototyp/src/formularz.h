@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "dobry_start.h"
 #include "sekrety.h"
 #include "serwer_raportu.h"
 #include "uklad_ekranow.h"
@@ -67,6 +68,14 @@ struct Pola {
   // Pole „Obrazek dnia” (`pokaz_obrazek`, `obrazek` w `dzien.ukryte`) ukrywa obrazek w obu rolach.
   std::string wygaszacz = "tak";
   std::string wygaszaczMin = "180";
+  // sekcja „Dobry start” (ADR-0049, R-DS-31): wartości kluczy `start.*` z pliku (ten sam parser co panel); nagłówek,
+  // stan programu i liczby z pliku porad ustawia wołający (dyrygent, ustawStartFormularza())
+  dobry_start::Ustawienia start;
+  std::string startNaglowek = "wyłączony";
+  int startZatrzymanyNa = 0;     // > 0: program zatrzymany na tym miejscu (pytanie „dalej czy od nowa”, R-DS-32)
+  bool startAnkietaCzeka = false;
+  bool startBezPorad = false;    // brak pliku porad (R-DS-36)
+  int startMiejsc = 0, startPonadIle = 0;  // z pliku porad (0 = brak)
 };
 // Pola z `/konfiguracja.txt` i sekretów (stan przed formularzem). `zrodloOto` = panel ma lokalne źródło otoczenia.
 // `wymiana.filtr` w innej postaci niż RRRR-MM-DD = pole puste; `okres.*` dłuższe niż MAKS_OKRESU_Z_PLIKU bajtów
@@ -102,6 +111,8 @@ struct Wynik {
   bool nowyModelMaski = false;
   // R-MAS-19: pole `Cofnij nowy model z dziś` zaznaczone; wołający przywraca datę maski i `sp_model` sprzed dziś
   bool cofnijNowyModel = false;
+  // R-DS-32, R-DS-33: przy ponownym włączeniu wybrano `od nowa`; wołający zachowuje kopię stanu i zaczyna od nowa
+  bool startOdNowa = false;
   bool ok() const { return bledy.empty(); }
 };
 // `dzis` RRRR-MM-DD: daty wymiany z przyszłości odrzucone (R-KONF-34). `obecne` = sekrety przed formularzem.
@@ -133,13 +144,36 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 // polu, także przy `ladowanie_limit`, `wygaszacz`, `wygaszacz_min`, czas 720) ma 21 749 B, najgorszy realny przypadek
 // 19 574 B (zmierzone w test/testy_formularz_u03.cpp); 23 KB daje zapas co najmniej 1 KB także w scenariuszu
 // brzegowym (1 803 B), jak dla przypadku realnego. Pole `ladowanie_limit` (ADR-0046) dokłada w tym scenariuszu
-// 535 B, pola wygaszacza (R-KON-74, R-KON-77) 681 B. Wcześniej 21 KB (wygaszacz), od ADR-0045
-// (sekcja „Ekrany”) 20 KB, przedtem 16 KB.
-const size_t REZERWACJA_STRONY = size_t{23} * 1024;
+// 535 B, pola wygaszacza (R-KON-74, R-KON-77) 681 B. Wcześniej: 22 KB (ADR-0046) albo 21 KB (wygaszacz) na osobnych
+// gałęziach, od ADR-0045 (sekcja „Ekrany”) 20 KB, przedtem 16 KB
+// Od sekcji „Dobry start” (ADR-0049, 22.11.2026) 26 KB: pięć pól z tekstami ze spec 5.6.6 i błędy przy nich dokładają
+// ok. 2,4 KB w scenariuszu brzegowym (test/testy_formularz_u03.cpp podaje zmierzony rozmiar i zapas).
+const size_t REZERWACJA_STRONY = size_t{26} * 1024;
 // Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
 const size_t MAKS_OKRESU_Z_PLIKU = 8;
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,
                    const std::map<std::string, std::string>& bledy);
+
+// ---------- program „Dobry start”: strony pod tym samym adresem formularza (R-DS-25, R-DS-33, R-DS-35, 8.2, 8.3) ----------
+// `/u/{token}/ankieta` (GET strona, POST zapis), `/u/{token}/porady?t={n}` (GET), `/u/{token}/odnowa` (GET
+// potwierdzenie, POST `tak=1`). Strony bez zewnętrznych zasobów i bez skryptu; nic nie wychodzi poza panel (ADR-0001).
+const size_t MAKS_STRONY_PORAD = size_t{8} * 1024;  // R-DS-35 [PRÓG]: jedna strona „Wszystkie porady”
+// Wartość klucza `start.*` do zapisu w `/konfiguracja.txt` (formularz i pytanie startowe ankiety, ta sama konwencja):
+// wartość domyślna pola (np. `start.nawilzacz=nie_wiem`) = "" (wiersz usunięty, R-KONF-20), inna bez zmian.
+std::string wartoscDoPliku(const std::string& klucz, const std::string& v);
+std::string stronaAnkiety(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
+                          const std::string& dzis, const std::string& akcja, const std::string& komunikat);
+// Odpowiedzi z ciała POST: pole `q_{id}` (jedna odpowiedź, numer od 1) albo `q_{id}_{k}` (wiele).
+std::vector<std::pair<std::string, std::vector<int>>> odpowiedziAnkiety(const dobry_start::Katalog& k,
+                                                                        const std::map<std::string, std::string>& m);
+// Zakładka `t`: 1…T tygodnie planu, T+1 `Po nocy`, T+2 `Z ankiety`, T+3 `Ponad program`; `podstaw` = wartości
+// znaczników `{prog:id}` (R-DS-53). Zła zakładka = tydzień 1.
+std::string stronaPorad(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
+                        dobry_start::Tryb tryb, int t, const std::string& akcja,
+                        std::string (*podstaw)(const std::string&, void*), void* kontekst);
+std::string stronaOdNowa(const std::string& akcja);
+extern const char* const TEKST_ANKIETA_ZAPISANA;  // `Zapisano. Porady do twoich odpowiedzi pojawią się …`
+extern const char* const TEKST_ANKIETA_NIEZAPISANA;  // zapis stanu programu albo ustawień nieudany
 
 // Odpowiedź sesji formularza: strona albo zapis do wykonania przez wołającego (dyrygent).
 struct Odpowiedz {
@@ -148,6 +182,9 @@ struct Odpowiedz {
   std::string cialo = "Nie ma takiej strony.";
   bool zapis = false;                          // POST z ważnym tokenem: wołający waliduje `pola`, zapisuje, buduje stronę
   std::map<std::string, std::string> pola;     // ciało POST
+  // ADR-0049: podstrona programu „Dobry start” (`ankieta`, `porady`, `odnowa`; "" = formularz) i zakładka `t`
+  std::string podstrona;
+  int zakladka = 1;
 };
 
 // Sesja serwera formularza: token 128 bitów, 15 min, 404 bez ważnego tokenu, wyłączenie po 5 złych żądaniach

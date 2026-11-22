@@ -9,4 +9,5 @@ struct SPISettings {
 struct SPIClass {
   explicit SPIClass(int) {}
   void begin(int, int, int, int) {}
+  void writeBytes(const uint8_t*, uint32_t) {}  // Arduino ESP32 3.x libraries/SPI/src/SPI.h
 };

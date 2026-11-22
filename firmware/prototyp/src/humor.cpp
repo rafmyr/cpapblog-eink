@@ -363,6 +363,9 @@ const std::vector<TypKarty>& typyKart() {
       {"SK31", R::JEDEN_NA_DWA_PROBLEM, false, true, "zuzycie", {"S01", "P05"}}, // K11
       {"S5", R::PIERWSZY_BRAK, false, false, "brak_danych", {"B04"}},           // K16: lupa, budzik szuka zgubionej nocy
       {"S10", R::ZAWSZE, true, false, "synchronizacja", {"B05"}},               // K23: noc w drodze (R-EKR-57)
+      // S-K-48: karty tygodnia programu „Dobry start” i karta siedmiu nocy (porady z `ekran=karta`, ADR-0049 pkt 4);
+      // sceny podsumowania tygodnia (jak S-K-18); zdania budzika na karcie nie ma (od 10.11.2026), pula tylko do R-HUM-27
+      {"DS", R::ZAWSZE, false, false, "tydzien", {"M06", "D03", "D06"}},
   };
   return t;
 }

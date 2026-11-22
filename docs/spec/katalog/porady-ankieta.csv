@@ -1,0 +1,5 @@
+id;kiedy;typ;pytanie;odpowiedzi;od_tygodnia;wylaczna;klucz;wartosci
+DS-Q02;start;jedna;Czy twój aparat ma komorę na wodę (nawilżacz)?;tak | nie | nie wiem;0;;start.nawilzacz;tak|nie|nie_wiem
+DS-Q03;co tydzień i po 3. nocy;jedna;Jak ci się śpi z maską w ostatnich dniach?;dobrze | tak sobie | źle;1;;;
+DS-Q04;co tydzień i po 3. nocy;wiele;Co przeszkadza? Zaznacz wszystko, co pasuje.;powietrze ucieka spod maski | suchy nos albo usta | zatkany nos, katar | powietrze w brzuchu, wzdęcia | odparzenia albo ślady na twarzy | uczucie zamknięcia w masce | zdejmuję maskę przez sen | hałas aparatu albo maski | woda w rurze | nic z tych rzeczy;1;10;;
+DS-Q05;co tydzień (od 2. tygodnia);jedna;Jak się czujesz w dzień w porównaniu z czasem przed terapią?;lepiej | tak samo | gorzej;2;;;

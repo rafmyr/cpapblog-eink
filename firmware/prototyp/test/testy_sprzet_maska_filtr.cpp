@@ -135,8 +135,17 @@ static void formularzBezRuryIKomory() {
   SPRAWDZ(h.find("Filtr: okres wymiany (tygodnie, puste = domyślny)") != std::string::npos);
   SPRAWDZ(h.find("Maska: okres wymiany (miesiące, puste = domyślny)") != std::string::npos);
   SPRAWDZ(h.find("name=\"okres.filtr_tyg\"") != std::string::npos);
+  // sekcja „Dobry start” (ADR-0049, spec 5.6.6) opisuje nawilżacz jako „komorę na wodę”: to nie pole sprzętu,
+  // więc słowa sprawdzane są w stronie bez tej sekcji
+  std::string bezStartu = h;
+  size_t ds = h.find(">Dobry start<");
+  SPRAWDZ(ds != std::string::npos);
+  if (ds != std::string::npos) {
+    size_t za = h.find("<details", ds);
+    bezStartu = h.substr(0, ds) + (za == std::string::npos ? std::string() : h.substr(za));
+  }
   for (const char* x : {"Rura", "rura", "Komora", "komora", "Poduszka", "poduszka", "poduszki", "pianka"})
-    SPRAWDZ(h.find(x) == std::string::npos);
+    SPRAWDZ(bezStartu.find(x) == std::string::npos);
   // zapis: pole filtra usuwa stary wiersz `okres.filtr`, data maski usuwa stary wiersz poduszki
   formularz::Wynik w = formularz::waliduj({{"wymiana.maska", "2026-05-01"}, {"okres.filtr_tyg", "6"}}, s, "2026-11-05");
   SPRAWDZ(w.ok() && w.plik["okres.filtr_tyg"] == "6" && w.plik.count("okres.filtr") && w.plik["okres.filtr"].empty());

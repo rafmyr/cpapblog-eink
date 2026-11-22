@@ -37,6 +37,7 @@
 #include "portret.h"
 #include "portret_ekran.h"
 #include "sypialnia_ekran.h"
+#include "dobry_start.h"
 
 struct PlotnoPamiec : Plotno {
   std::vector<uint8_t> px = std::vector<uint8_t>(800 * 480, 0);
@@ -1404,6 +1405,53 @@ static void podgladSypialni(PlotnoPamiec& p, const std::string& dzis) {
   ustawSypialnieWKokpicie(false);
 }
 
+// S-K-48 „Porada dnia” programu „Dobry start” (ADR-0049, spec 5.8.14): ekran danych planu (pasek tygodni), z danych,
+// z ankiety, „ponad program”, karta tygodnia z budzikiem, z linią uwagi, „tylko na telefonie” i każda porada z pliku
+// (`porada-{ID}`), żeby przegląd długości był na prawdziwych krojach i ikonach przycisków (R-DS-39, R-DS-52).
+static void podgladPorad(PlotnoPamiec& p) {
+  const dobry_start::Katalog& k = dobry_start::katalogWbudowany();
+  dobry_start::Stan s = dobry_start::nowyStan(dobry_start::Ustawienia(), k);
+  s.start = "2026-12-01";
+  auto jedna = [&](const dobry_start::Porada& x, dobry_start::Zrodlo z, const std::string& nazwa, const std::string& linia,
+                   bool telefon) {
+    dobry_start::WyborPorady w;
+    w.porada = &x;
+    w.zrodlo = z;
+    w.dataNocy = "2026-12-03";
+    w.telefon = telefon;
+    w.ponadIle = k.ponadIle;
+    DanePorady d;
+    d.o = dobry_start::opis(k, s, w);
+    for (std::string* t : {&d.o.tytul, &d.o.tresc, &d.o.krok})  // R-DS-53: wartości domyślne progów
+      *t = dobry_start::podstawProgi(*t, [](const std::string& id) -> std::string {
+        const reguly::Prog* pr = reguly::zestawWbudowany().prog(id, reguly::Tryb::NIEZNANY);
+        return pr ? calkowita(pr->wartosc) : "";
+      });
+    d.belka = Belka(dobry_start::NAZWA_BELKI, d.o.srodekBelki);
+    d.linia = linia;
+    d.liniaOstrzezenie = !linia.empty();
+    bool karta = x.karta && !telefon && linia.empty();
+    if (karta) d.scena = "M06";
+    d.stopka = StopkaDzienna{karta ? "" : "noc 6 h 38 · AHI 1,1 · wyciek 4", "za oknem 3° · przy łóżku 20°"};
+    rysujPorade(p, d);
+    zapisz(p, nazwa.c_str());
+  };
+  for (auto& x : k.porady) {
+    dobry_start::Zrodlo z = x.rodzaj == dobry_start::Rodzaj::PLAN       ? dobry_start::Zrodlo::PLAN
+                            : x.rodzaj == dobry_start::Rodzaj::ZDARZENIE ? dobry_start::Zrodlo::DANE
+                            : x.rodzaj == dobry_start::Rodzaj::ANKIETA   ? dobry_start::Zrodlo::ANKIETA
+                                                                         : dobry_start::Zrodlo::PONAD;
+    jedna(x, z, "porada-" + x.id, "", false);
+  }
+  const dobry_start::Porada* plan = dobry_start::wariantMiejsca(k, 18, dobry_start::Tryb::CPAP, -1);
+  if (plan) jedna(*plan, dobry_start::Zrodlo::PLAN, "sk48-plan-z-linia-uwagi", "Bateria 15%. Podłącz kabel.", false);
+  for (auto& x : k.porady)
+    if (x.ma(dobry_start::FL_OBJAW) && x.rodzaj == dobry_start::Rodzaj::ZDARZENIE) {
+      jedna(x, dobry_start::Zrodlo::DANE, "sk48-tylko-na-telefonie", "", true);
+      break;
+    }
+}
+
 int main(int argc, char** argv) {
   kat = argc > 1 ? argv[1] : ".";
   const std::string dzis = "2026-11-12";
@@ -2441,5 +2489,6 @@ int main(int argc, char** argv) {
     ustawZnakiBelki(ZnakiBelki());
     ustawBaterieEkranu(b78);
   }
+  podgladPorad(p);  // S-K-48 „Porada dnia” (ADR-0049)
   return 0;
 }

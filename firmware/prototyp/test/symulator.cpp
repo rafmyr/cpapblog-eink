@@ -375,6 +375,7 @@ const char* const ZNACZNIK_WIECZORU = "ekran wieczorny ";
 const char* const ZNACZNIK_ODKRYCIA = "ekran dnia: odkrycie ";  // S1 z odkryciem O
 const char* const ZNACZNIK_PODSUMOWANIA = "ekran dnia: S";      // S7, S8
 const char* const ZNACZNIK_SK = "ekran S-K-";                   // ekrany S-K (src/dyrygent.cpp pokazB16)
+const char* const ZNACZNIK_PORADY = "porada dnia: S-K-48 ";     // S-K-48 programu „Dobry start” (rysujPoradeB49)
 std::string typZDziennika(Pliki& pl, const std::string& dzien) {
   std::string t, typ;
   if (!pl.czytaj("/dane/humor.csv", t)) return "";
@@ -434,6 +435,10 @@ std::string nazwaEkranu(const Klatka& k, const std::vector<std::string>& log, Pl
   for (size_t i = k.logDo; i > k.logOd; i--) {
     const std::string& l = log[i - 1];
     if (l.compare(0, strlen(ZNACZNIK_NOCNY), ZNACZNIK_NOCNY) == 0) return "Dobranoc";
+    if (l.compare(0, strlen(ZNACZNIK_PORADY), ZNACZNIK_PORADY) == 0) {  // S-K-48 „Porada dnia” (ADR-0049)
+      size_t a = strlen(ZNACZNIK_PORADY), b = l.find(' ', a);
+      return "dzien-SK48-" + l.substr(a, b == std::string::npos ? std::string::npos : b - a);
+    }
     // ekrany z wierszy dyrygenta (src/dyrygent.cpp: rysujDzienB5, slot dzienny, ekran wieczorny)
     for (const char* z : {ZNACZNIK_PYTANIA, ZNACZNIK_WZORCA, ZNACZNIK_ZDARZENIA, ZNACZNIK_SLOTU, ZNACZNIK_WIECZORU,
                           ZNACZNIK_ODKRYCIA, ZNACZNIK_PODSUMOWANIA, ZNACZNIK_SK}) {

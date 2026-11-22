@@ -163,6 +163,7 @@ void setup() {
                 (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024),
                 (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024),
                 (unsigned)(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024));
+  logZajetosciNvs();  // `nvs start: …` (src/adaptery_esp32.h)
   static ZegarEsp32 zegar;
   static NvsEsp32 nvs;
   static PlikiEsp32 pliki;

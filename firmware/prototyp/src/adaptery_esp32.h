@@ -145,6 +145,8 @@ class PrzyciskiEsp32 : public Przyciski {
   void dioda(bool swieci) override;
   bool zKolejki(int& przycisk, uint32_t& trwaloMs) override;
   void wyczyscKolejke() override;
+  void obsluzoneZeStanu(int przycisk) override;
+  bool wcisnietyOd(int przycisk, uint32_t& odMs) override;
   bool piskPrzyNacisnieciu() const override { return true; }
 };
 
@@ -228,6 +230,9 @@ class DiagnostykaEsp32 : public Diagnostyka {
 void przygotujPanel();
 // Pierwsza czynność programu po wybudzeniu przyciskiem: krótki pisk, zanim ruszy reszta startu (R-PRZ-20, Z1).
 void piskBudzenia();
+// Wiersz `nvs start: …` w logu startu (obok `pamiec start`): realna zajętość partycji `nvs` z nvs_get_stats(), czyli
+// wpisy zajęte, wolne (z nich dostępne do zapisu) i wszystkie oraz liczba przestrzeni. Tylko odczyt.
+void logZajetosciNvs();
 // Awaryjny sen, gdy dyrygent wróci (na panelu tylko po nieudanym powrocie do poprzedniej wersji): 30 min albo
 // przycisk, bez pętli bez snu.
 void snAwaryjny();

@@ -236,8 +236,8 @@ def font_c(nazwa, kroje, mapy, px, prog, tylko=None):
     return "\n".join(out), brak, len(bajty)
 
 
-def bity_c(nazwa, opis, im):
-    """Obraz 1-bit (0 = czarny) → tablica C, wiersze dopełnione do bajtu, bit 1 = czarny."""
+def bajty_obrazu(im):
+    """Obraz 1-bit (0 = czarny) → bajty wierszami, wiersze dopełnione do bajtu, bit 1 = czarny."""
     w, h = im.size
     px = im.load()
     bajty = []
@@ -249,6 +249,13 @@ def bity_c(nazwa, opis, im):
                 czarny = x < w and px[x, y] == 0
                 b = (b << 1) | (1 if czarny else 0)
             bajty.append(b)
+    return bajty
+
+
+def bity_c(nazwa, opis, im):
+    """Obraz 1-bit (0 = czarny) → tablica C, wiersze dopełnione do bajtu, bit 1 = czarny."""
+    w, h = im.size
+    bajty = bajty_obrazu(im)
     out = [f"// {opis}, bit 1 = czarny"]
     out.append(f"const uint16_t {nazwa}_W = {w}, {nazwa}_H = {h};")
     out.append(f"const uint8_t {nazwa}[] PROGMEM = {{")
@@ -291,10 +298,15 @@ def sprite(p, bw, bh, lustro):
 def obrazy_h():
     sc = sceny()
     czesci, bajty = [LICENCJA_OBRAZY, NAGLOWEK], 0
+    # treść bitmapy karty → nazwa tablicy; scena nocna o tej samej treści i wymiarach nie dostaje drugiej kopii
+    # w pamięci flash (miejsce-i-nvs 22.11.2026: A1-W12, A1-G14, A1-G11 = karty W12, G14, G11, razem ok. 15 KB)
+    karty = {}
     for n, p in sc.items():
         c, b = obraz_c(n, p)
         czesci.append(c)
         bajty += b
+        im = Image.open(p).convert("1")
+        karty.setdefault((im.size, bytes(bajty_obrazu(im))), f"BUDZIK_{n}")
     czesci.append("struct SceneBudzika { const char* id; const uint8_t* bmp; uint16_t w, h; };")
     czesci.append("static const SceneBudzika SCENY[] = {")
     for n in sc:
@@ -303,15 +315,27 @@ def obrazy_h():
     czesci.append(f"static const int SCENY_N = {len(sc)};")
     # ekran nocny „Dobranoc”: osobna tabela poza rotacją ekranu dnia (sceny() i R-HUM-11 jej nie widzą)
     bajty_nocy = 0
+    tablica_nocy = {}
     for war, n, bw, bh, lustro in SCENY_NOCY:
         p = zrodlo_sceny(n)
         opis = f"ekran nocny {war}: scena {n} z assets/budzik/zrodlo/{os.path.basename(p)}, ramka {bw}x{bh}"
-        c, b = bity_c(f"NOC_{war}_{n}", opis + (", lustro" if lustro else ""), sprite(p, bw, bh, lustro))
+        opis += ", lustro" if lustro else ""
+        nazwa = f"NOC_{war}_{n}"
+        im = sprite(p, bw, bh, lustro)
+        wspolna = karty.get((im.size, bytes(bajty_obrazu(im))))
+        if wspolna:
+            w, h = im.size
+            czesci.append(f"// {opis}: bit w bit jak {wspolna}, bez drugiej kopii\n"
+                          f"const uint16_t {nazwa}_W = {w}, {nazwa}_H = {h};")
+            tablica_nocy[(war, n)] = wspolna
+            continue
+        c, b = bity_c(nazwa, opis, im)
         czesci.append(c)
         bajty_nocy += b
+        tablica_nocy[(war, n)] = nazwa
     czesci.append("static const SceneBudzika SCENY_NOCY[] = {")
     for war, n, *_ in SCENY_NOCY:
-        czesci.append(f'  {{"{war}-{n}", NOC_{war}_{n}, NOC_{war}_{n}_W, NOC_{war}_{n}_H}},')
+        czesci.append(f'  {{"{war}-{n}", {tablica_nocy[(war, n)]}, NOC_{war}_{n}_W, NOC_{war}_{n}_H}},')
     czesci.append("};")
     czesci.append(f"static const int SCENY_NOCY_N = {len(SCENY_NOCY)};")
     open(os.path.join(WYJ, "obrazy.h"), "w").write("\n".join(czesci) + "\n")

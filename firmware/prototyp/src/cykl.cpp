@@ -65,7 +65,8 @@ DecyzjaDnia decyzjaDnia(const WejscieDnia& w, const std::vector<WpisHumoru>& log
     d.zapisz = false;
     // slot nocny: ostatni ekran dnia z dziennika (ten, który stał wieczorem), bez nowego wpisu
     for (auto& x : log)
-      if (x.typ != "S11" && (!d.wpis || x.data >= d.wpis->data)) d.wpis = &x;  // Portret tylko rano (R-POR-20)
+      // Portret tylko rano (R-POR-20); porada „Dobry start” (DS, ADR-0049) tylko w slocie dziennym i wieczornym
+      if (x.typ != "S11" && x.typ != "DS" && (!d.wpis || x.data >= d.wpis->data)) d.wpis = &x;
     if (d.wpis) {
       d.e.typ = d.wpis->typ;
       d.e.klucz = d.wpis->klucz;

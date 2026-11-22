@@ -149,6 +149,8 @@ static const Oczekiwany FORMATY[] = {
     {"porownanie", "/dane/porownanie.csv", "", RodzajZapisu::PRZEPISANIE, "data;werdykt;rozjazd;pominiete;przyczyna"},
     // przebieg ostatniej nocy do Portretu nocy (src/portret.h, T-DANE-38), bez pliku prototypu
     {"portret", "/dane/portret.csv", "", RodzajZapisu::PRZEPISANIE, "data;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki"},
+    // program „Dobry start” (src/dobry_start.h, ADR-0049), bez pliku prototypu
+    {"dobry_start", "/dane/dobry_start.csv", "", RodzajZapisu::PRZEPISANIE, "rodzaj;a;b;c;d;e;f"},
 };
 static std::string sciezkaRoku(const std::string& wzor, const std::string& rok) {
   std::string s = wzor;
@@ -260,6 +262,7 @@ static std::string wierszFormatu(const std::string& nazwa, int i) {
   if (nazwa == "odpowiedzi") return d + ";sennosc;" + (i % 2 ? "tak" : "nie");
   if (nazwa == "porownanie") return d + (i % 2 ? ";rozjazd;m05=14.60~14.00;m28:pliki;" : ";brak;;;brak czasu");
   if (nazwa == "portret") return d + ";O;" + std::to_string(660 + 5 * i) + ";5;6;0;0;0;70;;";  // Portret nocy (T-DANE-38)
+  if (nazwa == "dobry_start") return "P;" + d + ";DS-D0" + std::to_string(i % 9 + 1) + ";plan;;dzien;panel";  // ADR-0049
   return std::to_string(nrDnia(d)) + ";2;" + std::to_string(ep(2026, 10, 1, 7, 0)) + ";0";  // proby
 }
 
@@ -312,7 +315,7 @@ static void montowana(AtrapaPlikow& pl) {
 // `#cpap-eink {nazwa} 1`, drugi nazwy pól, przy przepisywanych na końcu `#koniec 1`.
 static void testT_WYM_50_naglowkiPlikow() {
   const std::vector<FormatPliku>& r = rejestrFormatow();
-  ROWNE_L(r.size(), 13);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`, `portret`
+  ROWNE_L(r.size(), 14);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`, `portret`, `dobry_start`
   for (auto& e : FORMATY) {
     const FormatPliku* f = formatPliku(r, e.nazwa);
     SPRAWDZ(f != nullptr);
@@ -690,7 +693,7 @@ static void testT_WYM_55_migracjaPozostalych() {
 // przez firmware znający wersję 1 → te same wartości pól wspólnych (stan NOWSZY), a znający wersję 2 → całe wiersze.
 static void testT_WYM_57_poleTylkoNaKoncu() {
   const std::vector<FormatPliku>& r = rejestrFormatow();
-  ROWNE_L(r.size(), 13);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`, `portret`
+  ROWNE_L(r.size(), 14);  // 7 formatów + `reguly` + `odpowiedzi` + `prognoza`, `obrazki`, `porownanie`, `portret`, `dobry_start`
   for (auto& f : r) {
     std::vector<FormatPliku> rej;
     SPRAWDZ(rejestrV2(rej, f.nazwa));

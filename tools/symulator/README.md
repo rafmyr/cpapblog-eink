@@ -141,6 +141,10 @@ python3 tools/symulator/symuluj.py --dane "<katalog-zrzutu>" --od 2026-11-04T05:
 
 Co robi który przycisk na którym ekranie: tabela w [`firmware/prototyp/README.md`](../../firmware/prototyp/README.md#przyciski-mapa-562-ze-specyfikacji).
 
+## Program „Dobry start” (od 22.11.2026)
+
+Z wierszem `start.program=tak` w `konfiguracja.txt` zrzutu symulator rysuje poradę dnia S-K-48: klatki `…-dzien-SK48-{ID porady}.pbm` w pierwszych 180 min slotu dziennego i wieczorem, stan programu w `/dane/dobry_start.csv` atrapy pamięci (ADR-0049, spec 5.8.14).
+
 ## Pozostałe opcje
 
 | Opcja | Co robi |

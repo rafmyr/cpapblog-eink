@@ -228,3 +228,26 @@ R-NF-45,"planowy restart po 20 h w oknie 02:00–04:00, najpóźniej 48 h albo 1
 R-NOR-27,14 nocy,powtórzenie,"= R-NOR-10.min_noce: noce z nowymi ustawieniami do normy właściwej i noce sprzed zmiany do normy tymczasowej (ADR-0048)"
 R-NOR-28,14 nocy,powtórzenie,"= R-NOR-10.min_noce: mianownik wypełnienia kółka normy tymczasowej (ADR-0048)"
 R-KOK-37,14 nocy,powtórzenie,"= R-NOR-10.min_noce: noce, które z nocami niepewnymi dopełniłyby normę AHI (R-KOK-37)"
+§5.8.14.1,180 min,czas interfejsu,Dobry start: blok porady od startu slotu dziennego (= R-DS-03)
+5.8.14.2|porada zaległa,2 dni,czas interfejsu,= R-DS-06 (porada zaległa czeka najwyżej 2 dni)
+5.8.14.2|blok dzienny,180 min,czas interfejsu,= R-DS-03
+5.8.14.4.3|ekran z rana trzymany na cały dzień (D0:,3 doby,czas interfejsu,= R-DS-04
+§5.8.14.5,2 dni,czas interfejsu,= R-DS-06
+§5.8.14.6,7 dni; 2 razy; 2 / 7 dni; 1 / 7 dni,czas interfejsu,"= R-DS-07, R-DS-08"
+§5.8.14.7,7 dni,czas interfejsu,= R-DS-26
+§5.8.14.8.3,8 KB,parametr techniczny,"= R-DS-35 (strona „Wszystkie porady”, formularz::MAKS_STRONY_PORAD)"
+5.8.14.9.2|Z,2 dni,czas interfejsu,= R-DS-06
+§5.8.14.9.2,8 KB,parametr techniczny,szacunek rozmiaru /dane/dobry_start.csv w programie
+§5.8.14.10,brak liczby,opis,wszystkie [PRÓG] programu w tabeli 5.8.14.11
+R-DS-03,180 min,czas interfejsu,długość bloku porady od startu slotu dziennego (dobry_start::BLOK_MIN); zasady v2 pkt 2
+R-DS-04,3 doby,czas interfejsu,od tylu kolejnych dób z D0 porada planu stoi wieczorem (D0_DOBY)
+R-DS-06,2 dni,czas interfejsu,porada zaległa czeka najwyżej tyle dni (ZALEGLA_DNI)
+R-DS-07,2 / 7 dni; 28 dób; 1 / 7 dni,czas interfejsu,"limit porad wyzwalanych (LIMIT_POCZATEK, LIMIT_GRANICA, LIMIT_POZNIEJ); zasady v2 pkt 3.4"
+R-DS-08,7 dni; 2 razy,czas interfejsu,"ta sama porada wyzwalana raz na 7 dni i 2 razy w programie (OKNO_DNI, RAZY_W_PROGRAMIE)"
+R-DS-11,7 dni,powtórzenie,porada przerwy wraca co tyle dni (= R-DS-08); 2 noce = E-10.noce_problem
+R-DS-12,56 dób,czas interfejsu,najpóźniejszy koniec planu od dnia włączenia plus dni przerwy (KONIEC_DOBA); zasady v2 pkt 5
+R-DS-26,3 noce; 7 dni,czas interfejsu,"tygodnie ankiety (ANKIETA_NOCE, ANKIETA_CO_DNI)"
+R-DS-44,11:00,czas interfejsu,= R-KON-41 (start slotu dziennego bez nocy)
+R-DS-47,7 nocy,czas interfejsu,"= R-EKR-16 (seria S2b), token M-20/7"
+§5.8.14.11,brak liczby,opis,tabela progów programu „Dobry start”
+7.2|D0b,180 min,czas interfejsu,= R-DS-03

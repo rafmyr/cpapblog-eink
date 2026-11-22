@@ -5,6 +5,7 @@
 #include "aktualizacja.h"
 #include "szybkosc.h"
 #include "czekanie.h"  // ADR-0047: KAWALEK_CZEKANIA_S
+#include "wysylka_obrazu.h"  // obraz do sterownika e-ink blokiem (SterownikBlokiem)
 #include "certyfikaty_github.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -15,6 +16,8 @@
 #include <Preferences.h>
 #include <nvs.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <cerrno>
 #include <LittleFS.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -48,6 +51,17 @@
 #define EPD_DC 11
 #define EPD_RES 12
 #define EPD_BUSY 13
+// Zegar SPI ekranu w Hz. Od 22.11.2026 8 MHz (pomiar na panelu 22.11.2026: częściowe 1,33 s wobec 1,66 s
+// przy 2 MHz, bez artefaktów; jeden egzemplarz, temperatura pokojowa). Cofnięcie bez zmiany kodu:
+// -DEPD_SPI_HZ=2000000.
+#ifndef EPD_SPI_HZ
+#define EPD_SPI_HZ 8000000
+#endif
+// Wysyłka obrazu do sterownika jednym blokiem SPI (klasa SterownikBlokiem niżej, od 22.11.2026). Wyłącznik do
+// porównania na panelu i cofnięcia bez zmiany kodu: -DEPD_WYSYLKA_BLOKIEM=0 (droga przez GxEPD2 bajt po bajcie).
+#ifndef EPD_WYSYLKA_BLOKIEM
+#define EPD_WYSYLKA_BLOKIEM 1
+#endif
 // Według oznaczeń na obudowie: zielony = ↻, `>` = ▶, `<` = ◀, tak samo jak podpisy
 // w stopce (inne przypisanie sprawiało, że przycisk podpisany w stopce jako ▶ wracał na ekran dnia).
 #define KEY_SRODEK 3  // KEY0, zielony: ↻
@@ -101,6 +115,18 @@ void przygotujPanel() {
   digitalWrite(LED, LOW);
   setenv("TZ", STREFA, 1);  // zegar RTC chodzi w śnie, strefa nie: ustawiamy zawsze
   tzset();
+}
+
+void logZajetosciNvs() {
+  nvs_stats_t s{};
+  const esp_err_t e = nvs_get_stats(nullptr, &s);  // domyślna partycja `nvs` (firmware/partycje-e1001.csv)
+  if (e != ESP_OK) {
+    Serial.printf("nvs start: odczyt zajetosci nieudany (blad 0x%x)\n", (unsigned)e);
+    return;
+  }
+  Serial.printf("nvs start: wpisy zajete %u, wolne %u (dostepne %u), wszystkie %u, przestrzenie %u\n",
+                (unsigned)s.used_entries, (unsigned)s.free_entries, (unsigned)s.available_entries,
+                (unsigned)s.total_entries, (unsigned)s.namespace_count);
 }
 
 void snAwaryjny() {
@@ -237,13 +263,28 @@ bool PlikiEsp32::zamontuj() {
   montowane_ = LittleFS.begin(false);  // bez formatowania: nieudane montowanie nie kasuje historii
   return montowane_;
 }
-bool PlikiEsp32::istnieje(const char* n) { return montowane_ && LittleFS.exists(n); }
+// (22.11.2026): w arduino-esp32 3.x `LittleFS.exists()` to `VFSImpl::exists()` = próba
+// otwarcia pliku do odczytu (`VFSFileImpl` z `fopen(…, "r")`, libraries/FS/src/vfs_api.cpp), więc plik, który chwilowo
+// się nie otwiera (brak pamięci na bufor przy Wi-Fi i TLS, limit otwartych plików, błąd nośnika), wyglądał jak brak
+// pliku. Istnienie z `stat()` na pełnej ścieżce VFS (`LittleFS.mountpoint()` + nazwa, FS::mountpoint() z FS.h; przy
+// `LittleFS.begin(false)` ścieżka bazowa `/littlefs`): bez przydziału `FILE` i bufora, także dla katalogów.
+static bool statVfs(const char* nazwa, struct stat& st) {
+  const char* mp = LittleFS.mountpoint();
+  if (!mp || !nazwa) return false;
+  std::string p = std::string(mp) + nazwa;
+  return ::stat(p.c_str(), &st) == 0;
+}
+static bool istniejeVfs(const char* nazwa) {
+  struct stat st;
+  return statVfs(nazwa, st);
+}
+bool PlikiEsp32::istnieje(const char* n) { return montowane_ && istniejeVfs(n); }
 
 bool PlikiEsp32::czytajWiersze(const char* nazwa, std::vector<std::string>& w) {
   w.clear();
   if (!montowane_) return false;
   String tmp = String(nazwa) + ".tmp";
-  if (!LittleFS.exists(nazwa) && LittleFS.exists(tmp)) LittleFS.rename(tmp, nazwa);
+  if (!istniejeVfs(nazwa) && istniejeVfs(tmp.c_str())) LittleFS.rename(tmp, nazwa);
   File f = LittleFS.open(nazwa, "r");
   if (!f) return false;
   while (f.available()) {
@@ -292,17 +333,43 @@ bool PlikiEsp32::dopiszWiersz(const char* nazwa, const std::string& wiersz) {
   if (!montowane_) return false;
   utworzKatalogi(nazwa);
   bool nowaLinia = false;  // urwany ostatni wiersz (np. zanik zasilania w trakcie zapisu) nie skleja się z nowym
+  // rozmiar przed dopisaniem tylko z udanego stat() albo open("r"); bez niego wynik z write() bez porównania
+  // rozmiaru na flash (bez fałszywej porażki udanego dopisania)
+  bool rozmiarZnany = false;
+  size_t przed = 0;
+  struct stat st;
+  errno = 0;
+  if (statVfs(nazwa, st)) {
+    przed = (size_t)st.st_size;
+    rozmiarZnany = true;
+  } else if (errno == ENOENT) {
+    rozmiarZnany = true;  // pliku nie ma: przed dopisaniem 0 B
+  }
   File r = LittleFS.open(nazwa, "r");
   if (r) {
     size_t n = r.size();
+    przed = n;
+    rozmiarZnany = true;
     if (n && r.seek((uint32_t)(n - 1)) && r.read() != '\n') nowaLinia = true;
     r.close();
   }
   File f = LittleFS.open(nazwa, "a");
-  if (!f) return false;
-  if (nowaLinia) f.print("\n");
-  f.print((wiersz + "\n").c_str());
+  if (!f) {
+    Serial.printf("dopisanie %s: nie da się otworzyć pliku\n", nazwa);
+    return false;
+  }
+  // liczba bajtów sprawdzona jak w zapisz() (wcześniej true bez sprawdzenia wyniku print())
+  std::string t = (nowaLinia ? "\n" : "") + wiersz + "\n";
+  size_t zapisane = f.write((const uint8_t*)t.data(), t.size());
   f.close();
+  if (zapisane == t.size() && rozmiarZnany) {  // brak miejsca może wyjść dopiero przy zrzucie bufora w close()
+    size_t naFlash = rozmiarNaFlash(nazwa);
+    if (naFlash != przed + t.size()) zapisane = naFlash == SIZE_MAX || naFlash < przed ? 0 : naFlash - przed;
+  }
+  if (zapisane != t.size()) {
+    Serial.printf("dopisanie %s: zapisano %u z %u bajtów\n", nazwa, (unsigned)zapisane, (unsigned)t.size());
+    return false;
+  }
   return true;
 }
 
@@ -310,8 +377,12 @@ bool PlikiEsp32::pierwszyWiersz(const char* nazwa, std::string& wiersz) {
   if (!montowane_) return false;
   File f = LittleFS.open(nazwa, "r");
   if (!f) return false;
+  size_t rozmiar = f.size();
   String l = f.readStringUntil('\n');
   f.close();
+  // readStringUntil() przy błędzie odczytu daje "" bez sygnału błędu; pusty wynik przy niepustym pliku to
+  // odczyt niepewny (false), wołający potwierdza go pełnym czytaj() (Magazyn::dopisz())
+  if (l.length() == 0 && rozmiar > 0) return false;
   wiersz = l.c_str();
   return true;
 }
@@ -320,7 +391,7 @@ bool PlikiEsp32::usun(const char* n) { return montowane_ && LittleFS.remove(n); 
 bool PlikiEsp32::zmienNazwe(const char* z, const char* na) {
   if (!montowane_) return false;
   if (LittleFS.rename(z, na)) return true;  // littlefs: rename nadpisuje cel atomowo
-  if (!LittleFS.exists(z) || !LittleFS.exists(na)) return false;
+  if (!istniejeVfs(z) || !istniejeVfs(na)) return false;
   LittleFS.remove(na);  // zapasowo, jak zapiszAtomowo(): gdyby rename nie nadpisał celu
   return LittleFS.rename(z, na);
 }
@@ -340,13 +411,15 @@ static void utworzKatalogi(const char* nazwa) {
   std::string s = nazwa;
   for (size_t i = s.find('/', 1); i != std::string::npos; i = s.find('/', i + 1)) {
     std::string k = s.substr(0, i);
-    if (!LittleFS.exists(k.c_str())) LittleFS.mkdir(k.c_str());
+    if (!istniejeVfs(k.c_str())) LittleFS.mkdir(k.c_str());
   }
 }
 
 bool PlikiEsp32::czytaj(const char* nazwa, std::string& tresc) {
   tresc.clear();
-  if (!montowane_ || !LittleFS.exists(nazwa)) return false;
+  // bez wstępnego exists() (to też otwarcie pliku); od razu open. false = pliku nie ma albo odczyt się nie
+  // udał; rozstrzyga istnieje() (stat()), które nie zależy od otwarcia pliku
+  if (!montowane_) return false;
   File f = LittleFS.open(nazwa, "r");
   if (!f) return false;
   if (f.isDirectory()) {
@@ -388,7 +461,7 @@ size_t PlikiEsp32::zapisz(const char* nazwa, const std::string& tresc) {
 
 bool PlikiEsp32::listuj(const char* katalog, std::vector<std::string>& nazwy) {
   nazwy.clear();
-  if (!montowane_ || !LittleFS.exists(katalog)) return false;
+  if (!montowane_ || !istniejeVfs(katalog)) return false;
   File d = LittleFS.open(katalog, "r");
   if (!d) return false;
   if (!d.isDirectory()) {
@@ -615,20 +688,23 @@ bool SiecEsp32::czasZSieci(uint32_t limitMs) {
 }
 
 // Ciało odpowiedzi prosto do std::string z limitem rozmiaru, końcem czasu i przerwaniem: po przekroczeniu
-// write() zwraca 0, co kończy writeToStream() błędem zapisu.
+// write() zwraca 0, co kończy writeToStream() błędem zapisu. Koniec czasu: budzetCialaMs od `startMs` (millis() przy
+// wejściu w get()), oba na zegarze adaptera; bez czasu rdzenia (Zegar::ms() po czekaniu na kablu ma inną podstawę,
+// ADR-0047, zmiana 2026-11-22).
 struct DoNapisu : Stream {
   std::string& s;
   const ZadanieHttp& z;
+  const uint32_t startMs;
   bool zaDuzo = false, zaDlugo = false, przerwane = false;
-  DoNapisu(std::string& t, const ZadanieHttp& zad) : s(t), z(zad) {}
+  DoNapisu(std::string& t, const ZadanieHttp& zad, uint32_t start) : s(t), z(zad), startMs(start) {}
   bool stop() {
-    if (z.koniecMs && (int32_t)((uint32_t)millis() - z.koniecMs) >= 0) zaDlugo = true;
+    if (budzetCialaMinal(z.budzetCialaMs, startMs, (uint32_t)millis())) zaDlugo = true;
     if (!zaDlugo && z.przerwij && z.przerwij()) przerwane = true;
     return zaDlugo || przerwane;
   }
   size_t write(uint8_t c) override { return write(&c, 1); }
   size_t write(const uint8_t* b, size_t n) override {
-    if ((z.koniecMs || z.przerwij) && stop()) return 0;
+    if ((z.budzetCialaMs || z.przerwij) && stop()) return 0;
     if (z.maksBajtow && s.size() + n > z.maksBajtow) {
       zaDuzo = true;
       return 0;
@@ -665,7 +741,7 @@ OdpowiedzHttp SiecEsp32::get(const ZadanieHttp& z) {
       o.zaDuzo = true;  // bez czytania ciała
     } else {
       if (o.contentLength > 0) o.cialo.reserve((size_t)o.contentLength);
-      DoNapisu cel(o.cialo, z);
+      DoNapisu cel(o.cialo, z, t0);
       o.wynikZapisu = http.writeToStream(&cel);
       o.zaDuzo = cel.zaDuzo;
       o.zaDlugo = cel.zaDlugo;
@@ -743,19 +819,29 @@ volatile int64_t ostatniePuszczenieUs = 0;  // ostatnie puszczenie po poprzednim
 uint32_t wlaczenieMs = 0;                   // czas ostatniego WyswietlaczEsp32::wlacz() (0 = sterownik już włączony)
 uint32_t numer = 0;                         // numer rysowania w tym wybudzeniu
 // Historia wierszy w pamięci NVS (przestrzeń `pomiar`): pomiar nie zależy od tego, czy kabel był podłączony w chwili
-// rysowania (mostek USB potrafi zniknąć z komputera, 16.11.2026). Najstarsze wiersze wypadają powyżej 3500 znaków.
+// rysowania (mostek USB potrafi zniknąć z komputera, 16.11.2026). Najstarsze wiersze wypadają powyżej HISTORIA_MAX.
+// Napis NVS musi zmieścić się w jednej stronie (126 wpisów po 32 B): 1500 znaków + znak końca = 1 wpis nagłówka
+// + 47 wpisów danych = 48 wpisów (przy wierszu POMIAR ok. 320 znaków ok. 4 ostatnie rysowania). Wcześniej
+// 3500 znaków = 111 wpisów, czyli strona z najwyżej 15 innymi wpisami, i `nvs_set_str fail: h NOT_ENOUGH_SPACE`
+// na panelu 22.11.2026.
+const size_t HISTORIA_MAX = 1500;
+bool bladZapisuZgloszony = false;  // wiersz o nieudanym zapisie raz na start programu, bez zalewania portu
 void historiaDopisz(const char* wiersz) {
   Preferences p;
   if (!p.begin("pomiar", false)) return;
   String h = p.getString("h", "");
   h += wiersz;
   h += '\n';
-  while (h.length() > 3500) {
+  while (h.length() > HISTORIA_MAX) {
     int i = h.indexOf('\n');
     if (i < 0) { h = ""; break; }
     h.remove(0, i + 1);
   }
-  p.putString("h", h);
+  // putString() zwraca liczbę zapisanych znaków, 0 przy błędzie (pusty napis tylko po wierszu dłuższym niż limit)
+  if (p.putString("h", h) == 0 && h.length() > 0 && !bladZapisuZgloszony) {
+    bladZapisuZgloszony = true;
+    Serial.printf("POMIAR historia: zapis do NVS nieudany (%u znakow), wiersze tylko na porcie\n", (unsigned)h.length());
+  }
   p.end();
 }
 // Punkty faz liczenia przed rysowaniem (T-WYM-99, haczyk szybkosc::faza() z rdzenia). Wewnątrz mierzonego odcinka
@@ -803,8 +889,177 @@ void pomiarHistoria() {
 
 // ---------- ekran e-ink ----------
 static SPIClass hspi(HSPI);
-static GxEPD2_BW<GxEPD2_750_GDEY075T7, GxEPD2_750_GDEY075T7::HEIGHT> epd(
-    GxEPD2_750_GDEY075T7(EPD_CS, EPD_DC, EPD_RES, EPD_BUSY));
+#if EPD_WYSYLKA_BLOKIEM
+// Sterownik GDEY075T7 (UC8179) z wysyłką obrazu CAŁEJ powierzchni 800×480 jednym blokiem SPI (`SPIClass::writeBytes`,
+// kawałki po wysylka_obrazu::KAWALEK_B w jednej transakcji z CS niskim) zamiast bajt po bajcie (`_transfer(bajt)`
+// w GxEPD2). Komendy i dane DOKŁADNIE jak w GxEPD2 1.6.9 (platformio.ini: `zinggjm/GxEPD2 @ 1.6.9`),
+// src/gdey/GxEPD2_750_GDEY075T7.cpp, dla x = 0, y = 0, w = 800, h = 480, invert = true, mirror_y = false, pgm = false:
+// `_writeImage()` (z `writeScreenBuffer()` przy `_initial_write`), `_Init_Part()`, `_InitDisplay()`, `_PowerOn()`,
+// `_setPartialRamArea()`. Te funkcje są w bibliotece prywatne (nie da się ich wywołać z klasy pochodnej), więc są tu
+// przepisane 1:1 na chronionych `_writeCommand`, `_writeData`, `_startTransfer`, `_endTransfer`, `_reset`,
+// `_waitWhileBusy` i polach stanu `_initial_write`, `_initial_refresh`, `_using_partial_mode`, `_power_is_on`,
+// `_hibernating`. Odświeżenie, wyłączenie zasilania i uśpienie zostają w bibliotece (`refresh()`, `powerOff()`,
+// `hibernate()` są publiczne). Zmiana wersji GxEPD2 = przegląd tej klasy (stałe pilnuje static_assert niżej).
+class SterownikBlokiem : public GxEPD2_750_GDEY075T7 {
+ public:
+  SterownikBlokiem(int16_t cs, int16_t dc, int16_t rst, int16_t busy) : GxEPD2_750_GDEY075T7(cs, dc, rst, busy) {}
+
+  // ≡ GxEPD2 `writeImageToPrevious(obraz, 0, 0, 800, 480, true, false, false)` (komenda 0x10) albo
+  // `writeImage(…)` / `writeImageForFullRefresh(…)` z tymi samymi argumentami (0x13). `obraz`: 48 000 B, 1 = czarny.
+  void obrazCalyOdwrocony(uint8_t komenda, const uint8_t* obraz) {
+    if (_initial_write) czyscPamiec();  // = writeScreenBuffer(), `_writeImage()` l. 1
+    delay(1);                           // jak biblioteka (yield przed strażnikiem zadania)
+    if (!_using_partial_mode) initPart();
+    _writeCommand(0x91);  // partial in
+    obszarCaly();
+    _writeCommand(komenda);
+#if POMIAR_CZASU
+    const int64_t t0 = esp_timer_get_time();
+#endif
+    _startTransfer();
+    wysylka_obrazu::wyslijOdwrocone(obraz, BAJTOW, kawalek, sizeof kawalek, piszSpi, _pSPIx);
+    _endTransfer();
+#if POMIAR_CZASU
+    pomDaneUs += esp_timer_get_time() - t0;
+#endif
+    _writeCommand(0x92);  // partial out
+    delay(1);
+  }
+
+#if POMIAR_CZASU
+  // Obraz pomiarowy: czasy w µs od pomiarZeruj() (pola `e_…` wiersza POMIAR, WyswietlaczEsp32::odswiezJako()).
+  // pomDaneUs: same dane obrazu (od `_startTransfer()` do `_endTransfer()`, bez komend 0x91/0x90/komenda/0x92);
+  // pomInitUs: initPart() w całości (reset przy `_hibernating`, `_InitDisplay`, E0/E5, `_PowerOn` z czekaniem na
+  // BUSY); pomCzyscUs: czyszczenie pamięci sterownika (dwie komendy z danymi 48 000 B, bez initPart()).
+  int64_t pomDaneUs = 0, pomInitUs = 0, pomCzyscUs = 0;
+  void pomiarZeruj() { pomDaneUs = pomInitUs = pomCzyscUs = 0; }
+#endif
+
+ private:
+  static constexpr size_t BAJTOW = size_t(WIDTH) * size_t(HEIGHT) / 8;
+  // kawałek roboczy w pamięci wewnętrznej (512 B, nie 48 KB); wyrównany do 4 B, bo `spiWriteNL()` czyta słowami
+  alignas(4) static uint8_t kawalek[wysylka_obrazu::KAWALEK_B];
+
+  static void piszSpi(void* spi, const uint8_t* dane, size_t dl) {
+    static_cast<SPIClass*>(spi)->writeBytes(dane, static_cast<uint32_t>(dl));
+  }
+  // ≡ GxEPD2 `_writeScreenBuffer(komenda, wartosc)`
+  void pamiecWartoscia(uint8_t komenda, uint8_t wartosc) {
+#if POMIAR_CZASU
+    const int64_t t0 = esp_timer_get_time();
+#endif
+    _writeCommand(komenda);
+    _startTransfer();
+    wysylka_obrazu::wyslijWartosc(wartosc, BAJTOW, kawalek, sizeof kawalek, piszSpi, _pSPIx);
+    _endTransfer();
+#if POMIAR_CZASU
+    pomCzyscUs += esp_timer_get_time() - t0;
+#endif
+  }
+  // ≡ GxEPD2 `writeScreenBuffer(0xFF)`: pierwszy zapis po `init()` czyści pamięć „nowego” i (przy pierwszym
+  // odświeżeniu) „poprzedniego” obrazu sterownika
+  void czyscPamiec() {
+    if (!_using_partial_mode) initPart();
+    pamiecWartoscia(0x13, 0xFF);                         // set current
+    if (_initial_refresh) pamiecWartoscia(0x10, 0x00);   // set previous
+    _initial_write = false;
+  }
+  // ≡ GxEPD2 `_setPartialRamArea(0, 0, 800, 480)`
+  void obszarCaly() {
+    const uint16_t x = 0, y = 0, xe = uint16_t((x + WIDTH - 1) | 0x0007), ye = uint16_t(y + HEIGHT - 1);
+    _writeCommand(0x90);  // partial window
+    _writeData(uint8_t(x / 256));
+    _writeData(uint8_t(x % 256));
+    _writeData(uint8_t(xe / 256));
+    _writeData(uint8_t(xe % 256));
+    _writeData(uint8_t(y / 256));
+    _writeData(uint8_t(y % 256));
+    _writeData(uint8_t(ye / 256));
+    _writeData(uint8_t(ye % 256));
+    _writeData(0x01);
+  }
+  // ≡ GxEPD2 `_PowerOn()`
+  void powerOn() {
+    if (!_power_is_on) {
+      _writeCommand(0x04);
+      _waitWhileBusy("_PowerOn", power_on_time);
+    }
+    _power_is_on = true;
+  }
+  // ≡ GxEPD2 `_InitDisplay()`
+  void initDisplay() {
+    if (_hibernating) _reset();
+    _writeCommand(0x00);  // PANEL SETTING
+    _writeData(0x1f);
+    _writeCommand(0x01);  // POWER SETTING
+    _writeData(0x07);
+    _writeData(0x07);
+    _writeData(0x3f);
+    _writeData(0x3f);
+    _writeData(0x09);
+    _writeCommand(0x06);  // Booster Soft Start
+    _writeData(0x17);
+    _writeData(0x17);
+    _writeData(0x28);
+    _writeData(0x17);
+    _writeCommand(0x61);  // tres
+    _writeData(uint8_t(WIDTH / 256));
+    _writeData(uint8_t(WIDTH % 256));
+    _writeData(uint8_t(HEIGHT / 256));
+    _writeData(uint8_t(HEIGHT % 256));
+    _writeCommand(0x15);  // DUSPI
+    _writeData(0x00);
+    _writeCommand(0x50);  // VCOM AND DATA INTERVAL SETTING
+    _writeData(0x29);
+    _writeData(0x07);
+    _writeCommand(0x60);  // TCON SETTING
+    _writeData(0x22);
+    _writeCommand(0xE3);  // PWS
+    _writeData(0x22);
+  }
+  // ≡ GxEPD2 `_Init_Part()` w gałęzi `hasFastPartialUpdate && useFastPartialUpdateFromOTP` (jedynej w 1.6.9 dla
+  // tego panelu, static_assert niżej)
+  void initPart() {
+#if POMIAR_CZASU
+    const int64_t t0 = esp_timer_get_time();
+#endif
+    initDisplay();
+    _writeCommand(0xE0);  // Cascade Setting (CCSET)
+    _writeData(0x02);     // TSFIX
+    _writeCommand(0xE5);  // Force Temperature (TSSET)
+    _writeData(0x6E);     // 110
+    powerOn();
+    _using_partial_mode = true;
+#if POMIAR_CZASU
+    pomInitUs += esp_timer_get_time() - t0;
+#endif
+  }
+};
+alignas(4) uint8_t SterownikBlokiem::kawalek[wysylka_obrazu::KAWALEK_B];
+// stałe GxEPD2 1.6.9, na których opiera się przepisana sekwencja (inna wersja biblioteki = przegląd klasy)
+static_assert(SterownikBlokiem::WIDTH == 800 && SterownikBlokiem::HEIGHT == 480, "GxEPD2: inny rozmiar panelu");
+static_assert(SterownikBlokiem::hasFastPartialUpdate && SterownikBlokiem::useFastPartialUpdateFromOTP,
+              "GxEPD2: inna gałąź _Init_Part()");
+static_assert(SterownikBlokiem::power_on_time == 140, "GxEPD2: inny czas _PowerOn()");
+static_assert(size_t(SterownikBlokiem::WIDTH) * SterownikBlokiem::HEIGHT / 8 == BAJTOW_KLATKI, "rozmiar klatki");
+using SterownikEkranu = SterownikBlokiem;
+#else
+using SterownikEkranu = GxEPD2_750_GDEY075T7;  // dotychczasowa droga przez GxEPD2 bajt po bajcie
+#endif
+#if EPD_WYSYLKA_BLOKIEM
+// Od 22.11.2026: przy wysyłce blokiem bufor strony GxEPD2_BW (48 000 B w pamięci wewnętrznej)
+// nie był do niczego używany, więc zamiast GxEPD2_BW sam sterownik. Te same wywołania sterownika co w GxEPD2_BW 1.6.9:
+// `init(uint32_t)` = `epd2.init(serial_diag_bitrate)` (reszta to stan okna i strony GxEPD2_BW, w tej drodze
+// nieużywany), `hibernate()` = `epd2.hibernate()`; miejsca wywołań (`epd.init`, `epd.epd2.…`, `epd.hibernate`) bez zmian.
+struct EkranBezBufora {
+  SterownikEkranu epd2;
+  void init(uint32_t serial_diag_bitrate) { epd2.init(serial_diag_bitrate); }
+  void hibernate() { epd2.hibernate(); }
+};
+static EkranBezBufora epd{SterownikEkranu(EPD_CS, EPD_DC, EPD_RES, EPD_BUSY)};
+#else
+static GxEPD2_BW<SterownikEkranu, SterownikEkranu::HEIGHT> epd(SterownikEkranu(EPD_CS, EPD_DC, EPD_RES, EPD_BUSY));
+#endif
 static GFXcanvas1 kanwa(800, 480);  // 1 = czarny
 
 struct PlotnoGFX : Plotno {
@@ -868,7 +1123,9 @@ void WyswietlaczEsp32::wlacz() {
   uint32_t p0 = (uint32_t)millis();
 #endif
   hspi.begin(EPD_SCK, -1, EPD_MOSI, -1);
-  epd.epd2.selectSPI(hspi, SPISettings(2000000, MSBFIRST, SPI_MODE0));
+  // Zegar SPI ekranu EPD_SPI_HZ: od 22.11.2026 8 MHz (do 22.11.2026 2 MHz; częściowe 1,66 → 1,33 s na panelu,
+  // obraz pomiarowy 22.11.2026), cofnięcie flagą budowy -DEPD_SPI_HZ=2000000.
+  epd.epd2.selectSPI(hspi, SPISettings(EPD_SPI_HZ, MSBFIRST, SPI_MODE0));
   epd.init(0);
 #if POMIAR_CZASU
   pomiar::wlaczenieMs = (uint32_t)millis() - p0;
@@ -928,20 +1185,89 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
                          poprzedniZnany && poprzedniObraz != nullptr;
   if (rodzaj == Odswiezenie::CZESCIOWE && !czesciowe)
     Serial.println("e-ink: odświeżenie częściowe niemożliwe (sterownik albo brak poprzedniego obrazu), pełne");
+#if POMIAR_CZASU
+  // Pola `e_…` wiersza POMIAR (rozpisanie `obraz_ms`, 22.11.2026), w µs; -1 = nie dotyczy albo nie do zmierzenia
+  // w tej drodze (opis pól: firmware/prototyp/README.md, „Pomiar czasu zmiany ekranu”).
+  int64_t ePop = -1, eNow = -1, eIni = -1, eCzy = -1, eRys = -1, eOds = -1, eWyl = -1;
+#if EPD_WYSYLKA_BLOKIEM
+  epd.epd2.pomiarZeruj();
+#endif
+#endif
   if (czesciowe) {
     // cała powierzchnia szybkim przebiegiem bez błysku (GxEPD2: _Init_Part() z tablicą z OTP, `refresh(x, y, w, h)`);
     // invert: kanwa ma 1 = czarny, sterownik 1 = biały
+#if EPD_WYSYLKA_BLOKIEM
+    epd.epd2.obrazCalyOdwrocony(0x10, poprzedniObraz);     // ≡ writeImageToPrevious(…, true, false, false)
+#if POMIAR_CZASU
+    ePop = epd.epd2.pomDaneUs;
+#endif
+    epd.epd2.obrazCalyOdwrocony(0x13, kanwa.getBuffer());  // ≡ writeImage(…, true, false, false)
+#if POMIAR_CZASU
+    eNow = epd.epd2.pomDaneUs - ePop;
+#endif
+#else
+#if POMIAR_CZASU
+    // droga przez bibliotekę: całe wywołania (z inicjalizacją, czyszczeniem pamięci i komendami w środku)
+    const int64_t w0 = esp_timer_get_time();
+#endif
     epd.epd2.writeImageToPrevious(poprzedniObraz, 0, 0, 800, 480, true, false, false);
+#if POMIAR_CZASU
+    const int64_t w1 = esp_timer_get_time();
+    ePop = w1 - w0;
+#endif
     epd.epd2.writeImage(kanwa.getBuffer(), 0, 0, 800, 480, true, false, false);
+#if POMIAR_CZASU
+    eNow = esp_timer_get_time() - w1;
+#endif
+#endif
+#if POMIAR_CZASU
+    const int64_t r0 = esp_timer_get_time();
+#endif
     epd.epd2.refresh(0, 0, 800, 480);
+#if POMIAR_CZASU
+    eOds = esp_timer_get_time() - r0;
+#endif
   } else {
+#if EPD_WYSYLKA_BLOKIEM
+    // ≡ stronicowanie GxEPD2_BW przy jednej stronie (`_pages == 1`, pełne okno, `GxEPD2_BW::nextPage()`):
+    // `writeImageForFullRefresh(bufor biblioteki)`, `refresh(false)`, `writeImageAgain()` (u tego sterownika pusta:
+    // N2OCP, sterownik sam kopiuje nowy obraz do poprzedniego), `powerOff()`. Bufor biblioteki po
+    // `fillScreen(GxEPD_WHITE)` i `drawBitmap(kanwa, GxEPD_BLACK)` to bajt w bajt `~kanwa`, więc wysyłamy kanwę
+    // z odwróceniem bez przepisywania 384 000 pikseli do drugiego bufora (test/testy_wysylka_obrazu.cpp).
+    epd.epd2.obrazCalyOdwrocony(0x13, kanwa.getBuffer());
+#if POMIAR_CZASU
+    eNow = epd.epd2.pomDaneUs;
+    const int64_t r0 = esp_timer_get_time();
+#endif
+    epd.epd2.refresh(false);
+#if POMIAR_CZASU
+    const int64_t r1 = esp_timer_get_time();
+    eOds = r1 - r0;
+#endif
+    epd.epd2.powerOff();
+#if POMIAR_CZASU
+    eWyl = esp_timer_get_time() - r1;
+#endif
+#else
+#if POMIAR_CZASU
+    const int64_t d0 = esp_timer_get_time();
+#endif
     epd.setFullWindow();
     epd.firstPage();
     do {
       epd.fillScreen(GxEPD_WHITE);
       epd.drawBitmap(0, 0, kanwa.getBuffer(), 800, 480, GxEPD_BLACK);
+#if POMIAR_CZASU
+      // jedna strona: pętla przechodzi raz; nextPage() (wysyłka, odświeżenie, powerOff) zostaje w `e_r`
+      eRys = esp_timer_get_time() - d0;
+#endif
     } while (epd.nextPage());
+#endif
   }
+#if POMIAR_CZASU && EPD_WYSYLKA_BLOKIEM
+  eIni = epd.epd2.pomInitUs;
+  eCzy = epd.epd2.pomCzyscUs;
+#endif
 #if POMIAR_CZASU
   uint32_t p1 = (uint32_t)millis();
 #endif
@@ -958,16 +1284,30 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
     time_t tt = time(nullptr);
     struct tm tl;
     if (localtime_r(&tt, &tl)) strftime(godz, sizeof godz, "%H:%M:%S", &tl);
-    char wiersz[420];
+    // Rozpisanie `obraz_ms` (22.11.2026): pola `e_…` w ms (część całkowita z µs), -1 = nie dotyczy albo nie do
+    // zmierzenia w tej drodze; `e_r` = obraz_ms − suma pól ≥ 0, więc obraz_ms = e_pop + e_now + e_ini + e_czy + e_rys
+    // + e_ods + e_wyl + e_r (pola -1 pominięte) z definicji; w `e_r` zostają komendy bez danych, delay(1) biblioteki,
+    // zaokrąglenia (±1 ms na pole) i wszystko, czego dana droga nie rozpisuje.
+    auto msPola = [](int64_t us) { return us < 0 ? -1L : (long)(us / 1000); };
+    const long ePopMs = msPola(ePop), eNowMs = msPola(eNow), eIniMs = msPola(eIni), eCzyMs = msPola(eCzy),
+               eRysMs = msPola(eRys), eOdsMs = msPola(eOds), eWylMs = msPola(eWyl);
+    long eSuma = 0;
+    for (long v : {ePopMs, eNowMs, eIniMs, eCzyMs, eRysMs, eOdsMs, eWylMs})
+      if (v > 0) eSuma += v;
+    const long eRMs = (long)(p1 - p0) - eSuma;
+    // 512 B: najdłuższy wiersz ok. 470 znaków (pola stałe ok. 300 z liczbami, `fazy` do 95, pola `e_…` do ok. 90)
+    char wiersz[512];
     snprintf(wiersz, sizeof wiersz,
                   "POMIAR %s nr=%lu powod=%s rodzaj=%s od_startu_programu_ms=%lu od_wcisniecia_ms=%ld "
                   "od_puszczenia_ms=%ld wlaczenie_ekranu_ms=%lu obraz_ms=%lu uspienie_ekranu_ms=%lu "
-                  "razem_do_konca_ms=%lu fazy=%s",
+                  "razem_do_konca_ms=%lu e_pop=%ld e_now=%ld e_ini=%ld e_czy=%ld e_rys=%ld e_ods=%ld e_wyl=%ld "
+                  "e_r=%ld fazy=%s",
                   godz, (unsigned long)++pomiar::numer, powodPomiaru(),
                   odswiezanie::nazwa(czesciowe ? Odswiezenie::CZESCIOWE : Odswiezenie::PELNE), (unsigned long)(p0 - od),
                   wc ? (long)((pUs - wc) / 1000) : -1L, pu ? (long)((pUs - pu) / 1000) : -1L,
                   (unsigned long)pomiar::wlaczenieMs, (unsigned long)(p1 - p0), (unsigned long)(p2 - p1),
-                  (unsigned long)(p2 - od), pomiar::fazyDl ? pomiar::fazy : "-");
+                  (unsigned long)(p2 - od), ePopMs, eNowMs, eIniMs, eCzyMs, eRysMs, eOdsMs, eWylMs, eRMs,
+                  pomiar::fazyDl ? pomiar::fazy : "-");
     pomiar::fazyDl = 0;
     pomiar::fazy[0] = 0;
     Serial.println(wiersz);
@@ -987,69 +1327,37 @@ Odswiezenie WyswietlaczEsp32::odswiezJako(Odswiezenie rodzaj) {
 
 // ---------- przyciski i dioda (digitalWrite(LED, …)) ----------
 // Kolejka naciśnięć (R-PRZ-20): zadanie esp_timer co 5 ms próbkuje piny przycisków, także w czasie rysowania ekranu,
-// gdy rdzeń nie czyta przycisków. Stan liczy się po 3 zgodnych próbkach (15 ms), więc drgania styku nie dają
-// fałszywych naciśnięć ani zgubionych puszczeń. Wciśnięcie: od razu krótki pisk; puszczenie: naciśnięcie do kolejki
-// z czasem trzymania. Próbkowanie działa tylko, gdy panel nie śpi (głębokie uśpienie zatrzymuje esp_timer).
+// gdy rdzeń nie czyta przycisków. Logika (odsianie drgań 15 ms, kolejka 8 naciśnięć, `pomin`, zdjęcie naciśnięcia
+// obsłużonego ze stanu) jest w rdzeniu bez Arduino src/przyciski_probki.h: ten sam kod
+// sprawdzają testy na PC. Zadanie esp_timer i pętla główna działają na różnych rdzeniach, więc każde wywołanie modelu
+// jest w całości pod muxPrzyciskow; pisk (`tone`) i znaczniki obrazu pomiarowego poza sekcją krytyczną,
+// według wyniku próbki. Próbkowanie działa tylko, gdy panel nie śpi (głębokie uśpienie zatrzymuje esp_timer).
+#include "przyciski_probki.h"  // tu, nie na górze pliku: zmiana ograniczona do sekcji przycisków (inne gałęzie)
 namespace {
-struct NacisniecieKolejki {
-  uint8_t przycisk;
-  uint32_t trwaloMs;
-  int64_t puszczonyUs;  // ADR-0047: kolejność naciśnięć przy końcu czekania (czekanie::przyciskKonczacy())
-};
-struct StanKlawisza {
-  bool wcisniety = false;  // stan po odsianiu drgań
-  uint8_t zgodnych = 0;    // kolejne próbki różne od `wcisniety`
-  int64_t odUs = 0;        // chwila wciśnięcia (0 = nieznana)
-  bool pomin = false;      // puszczenie nie trafia do kolejki (przycisk budzący, wyczyscKolejke())
-};
-const int KOLEJKA_NACISNIEC = 8;            // R-PRZ-20 [PRÓG]; nadmiar przepada (najnowsze)
-const uint64_t OKRES_PROBKI_US = 5000;
-const uint8_t PROBEK_STANU = 3;             // 15 ms zgodnych próbek
-NacisniecieKolejki kolejkaPrz[KOLEJKA_NACISNIEC];
-uint8_t kolejkaGlowa = 0, kolejkaOgon = 0;
-StanKlawisza klawisze[4];                   // indeks = (int)Przycisk
+przyciski_probki::Model modelPrzyciskow;
 portMUX_TYPE muxPrzyciskow = portMUX_INITIALIZER_UNLOCKED;
 const uint8_t PIN_PRZYCISKU[4] = {0, KEY_LEWY, KEY_SRODEK, KEY_PRAWY};
 esp_timer_handle_t zegarPrzyciskow = nullptr;
 
-bool wcisnietyTeraz(uint32_t wejscia, int i) { return ((wejscia >> PIN_PRZYCISKU[i]) & 1u) == 0; }  // stan niski
+uint8_t surowePrzyciski() {  // bity (1 << (int)Przycisk) pinów w stanie niskim
+  uint32_t we = REG_READ(GPIO_IN_REG);
+  uint8_t b = 0;
+  for (int i = 1; i <= 3; i++)
+    if (((we >> PIN_PRZYCISKU[i]) & 1u) == 0) b = (uint8_t)(b | (1u << i));
+  return b;
+}
 
 void probkujPrzyciski(void*) {
-  uint32_t we = REG_READ(GPIO_IN_REG);
+  uint8_t s = surowePrzyciski();
   int64_t t = esp_timer_get_time();
-  for (int i = 1; i <= 3; i++) {
-    StanKlawisza& k = klawisze[i];
-    bool teraz = wcisnietyTeraz(we, i);
-    if (teraz == k.wcisniety) {
-      k.zgodnych = 0;
-      continue;
-    }
-    if (++k.zgodnych < PROBEK_STANU) continue;
-    k.zgodnych = 0;
-    k.wcisniety = teraz;
-    if (teraz) {
-      k.odUs = t;
-      if (!k.pomin) tone(BUZZER, 2000, 60);  // pisk w chwili naciśnięcia, nie po rysowaniu
+  portENTER_CRITICAL(&muxPrzyciskow);
+  przyciski_probki::ZmianyProbki z = modelPrzyciskow.probka(s, t);
+  portEXIT_CRITICAL(&muxPrzyciskow);
+  if (z.piski) tone(BUZZER, 2000, 60);  // pisk w chwili naciśnięcia, nie po rysowaniu
 #if POMIAR_CZASU
-      if (!k.pomin && pomiar::pierwszeWcisniecieUs == 0) pomiar::pierwszeWcisniecieUs = t;
+  if (z.piski && pomiar::pierwszeWcisniecieUs == 0) pomiar::pierwszeWcisniecieUs = t;
+  if (z.puszczone) pomiar::ostatniePuszczenieUs = t;
 #endif
-      continue;
-    }
-#if POMIAR_CZASU
-    if (!k.pomin && k.odUs != 0) pomiar::ostatniePuszczenieUs = t;
-#endif
-    portENTER_CRITICAL(&muxPrzyciskow);
-    uint8_t nast = (uint8_t)((kolejkaOgon + 1) % KOLEJKA_NACISNIEC);
-    if (!k.pomin && k.odUs != 0 && nast != kolejkaGlowa) {
-      kolejkaPrz[kolejkaOgon].przycisk = (uint8_t)i;
-      kolejkaPrz[kolejkaOgon].trwaloMs = (uint32_t)((t - k.odUs) / 1000);
-      kolejkaPrz[kolejkaOgon].puszczonyUs = t;
-      kolejkaOgon = nast;
-    }
-    k.odUs = 0;
-    k.pomin = false;
-    portEXIT_CRITICAL(&muxPrzyciskow);
-  }
 }
 }  // namespace
 
@@ -1058,39 +1366,54 @@ PrzyciskiEsp32::PrzyciskiEsp32() {
   pinMode(KEY_SRODEK, INPUT);
   pinMode(KEY_LEWY, INPUT);
   // przycisk, który obudził panel, jest już wciśnięty: bez pisku tutaj (piszczy rdzeń) i bez kolejki po puszczeniu
-  uint32_t we = REG_READ(GPIO_IN_REG);
-  for (int i = 1; i <= 3; i++) klawisze[i].wcisniety = klawisze[i].pomin = wcisnietyTeraz(we, i);
+  uint8_t s = surowePrzyciski();
+  portENTER_CRITICAL(&muxPrzyciskow);
+  modelPrzyciskow.start(s);
+  portEXIT_CRITICAL(&muxPrzyciskow);
   esp_timer_create_args_t z = {};
   z.callback = probkujPrzyciski;
   z.name = "przyciski";
-  if (esp_timer_create(&z, &zegarPrzyciskow) == ESP_OK) esp_timer_start_periodic(zegarPrzyciskow, OKRES_PROBKI_US);
+  if (esp_timer_create(&z, &zegarPrzyciskow) == ESP_OK)
+    esp_timer_start_periodic(zegarPrzyciskow, (uint64_t)przyciski_probki::OKRES_PROBKI_US);
 }
 
 bool PrzyciskiEsp32::zKolejki(int& przycisk, uint32_t& trwaloMs) {
-  bool jest = false;
   portENTER_CRITICAL(&muxPrzyciskow);
-  if (kolejkaGlowa != kolejkaOgon) {
-    przycisk = kolejkaPrz[kolejkaGlowa].przycisk;
-    trwaloMs = kolejkaPrz[kolejkaGlowa].trwaloMs;
-    kolejkaGlowa = (uint8_t)((kolejkaGlowa + 1) % KOLEJKA_NACISNIEC);
-    jest = true;
-  }
+  bool jest = modelPrzyciskow.zKolejki(przycisk, trwaloMs);
   portEXIT_CRITICAL(&muxPrzyciskow);
   return jest;
 }
 
 void PrzyciskiEsp32::wyczyscKolejke() {
   portENTER_CRITICAL(&muxPrzyciskow);
-  kolejkaGlowa = kolejkaOgon;
-  for (int i = 1; i <= 3; i++)
-    if (klawisze[i].wcisniety) klawisze[i].pomin = true;
+  modelPrzyciskow.wyczysc();
   portEXIT_CRITICAL(&muxPrzyciskow);
 }
 
+// R-PRZ-20 (zmiana 2026-11-22): rdzeń obsłuży sam naciśnięcie przycisku odczytane właśnie ze stanu; z kolejki znika
+// tylko ono, nie cała kolejka (dawne wyczyscKolejke() w czuwaniu kasowało naciśnięcia z czasu liczenia strony).
+void PrzyciskiEsp32::obsluzoneZeStanu(int przycisk) {
+  int64_t t = esp_timer_get_time();
+  portENTER_CRITICAL(&muxPrzyciskow);
+  modelPrzyciskow.obsluzone(przycisk, t);
+  portEXIT_CRITICAL(&muxPrzyciskow);
+}
+
+// chwila wciśnięcia (po odsianiu drgań) w ms zegara rdzenia (ZegarEsp32::ms() liczy od
+// czekanieEsp32::poczatekMs); przy starcie programu (odUs = 0): nieznana; przed początkiem przebiegu: 0
+bool PrzyciskiEsp32::wcisnietyOd(int przycisk, uint32_t& odMs) {
+  int64_t od = 0;
+  portENTER_CRITICAL(&muxPrzyciskow);
+  bool znane = modelPrzyciskow.wcisnietyOd(przycisk, od);
+  portEXIT_CRITICAL(&muxPrzyciskow);
+  return znane && przyciski_probki::chwilaWPrzebiegu(od, czekanieEsp32::poczatekMs, odMs);
+}
+
+// stan po odsianiu drgań (jak kolejka), nie surowy pin
 uint8_t PrzyciskiEsp32::wcisniete() {
-  uint8_t b = 0;
-  for (Przycisk p : {Przycisk::LEWY, Przycisk::SRODEK, Przycisk::PRAWY})
-    if (digitalRead(pin(p)) == LOW) b = (uint8_t)(b | (1u << (int)p));
+  portENTER_CRITICAL(&muxPrzyciskow);
+  uint8_t b = modelPrzyciskow.wcisniete();
+  portEXIT_CRITICAL(&muxPrzyciskow);
   return b;
 }
 
@@ -1100,7 +1423,7 @@ void PrzyciskiEsp32::dioda(bool swieci) { digitalWrite(LED, swieci ? LOW : HIGH)
 // naciśnięcie w czasie czekania piszczy od razu (R-PRZ-20) i ma czas w obrazie pomiarowym.
 static void przyciskiPrzedCzekaniem() {
   portENTER_CRITICAL(&muxPrzyciskow);
-  kolejkaGlowa = kolejkaOgon;
+  modelPrzyciskow.oproznijKolejke();
   portEXIT_CRITICAL(&muxPrzyciskow);
 #if POMIAR_CZASU
   pomiar::pierwszeWcisniecieUs = 0;
@@ -1114,22 +1437,24 @@ static void przyciskiPrzedCzekaniem() {
 // i nie jest obsłużone drugi raz.
 static czekanie::PrzyciskKonczacy przyciskKonczacyCzekanie(uint8_t maska) {
   czekanie::KlawiszCzekania k[4];
-  czekanie::NacisniecieCzekania q[KOLEJKA_NACISNIEC];
+  czekanie::NacisniecieCzekania q[przyciski_probki::MIEJSC_KOLEJKI];
   portENTER_CRITICAL(&muxPrzyciskow);
   for (int i = 1; i <= 3; i++) {
-    k[i].wcisniety = klawisze[i].wcisniety;
-    k[i].pomin = klawisze[i].pomin;
-    k[i].odUs = klawisze[i].odUs;
+    const przyciski_probki::Klawisz& kl = modelPrzyciskow.klawisz(i);
+    k[i].wcisniety = kl.wcisniety;
+    k[i].pomin = kl.pomin;
+    k[i].odUs = kl.odUs;
   }
-  int ile = 0;
-  for (uint8_t j = kolejkaGlowa; j != kolejkaOgon; j = (uint8_t)((j + 1) % KOLEJKA_NACISNIEC), ile++) {
-    q[ile].przycisk = kolejkaPrz[j].przycisk;
-    q[ile].trwaloMs = kolejkaPrz[j].trwaloMs;
-    q[ile].puszczonyUs = kolejkaPrz[j].puszczonyUs;
+  int ile = modelPrzyciskow.ile();
+  for (int j = 0; j < ile; j++) {
+    const przyciski_probki::Nacisniecie& n = modelPrzyciskow.wpis(j);
+    q[j].przycisk = n.przycisk;
+    q[j].trwaloMs = n.trwaloMs;
+    q[j].puszczonyUs = n.puszczonyUs;
   }
   czekanie::PrzyciskKonczacy w = czekanie::przyciskKonczacy(maska, k, q, ile);
-  if (w.bit && !w.zKolejki) klawisze[w.klawisz].pomin = true;
-  kolejkaGlowa = (uint8_t)((kolejkaGlowa + w.zdjacZKolejki) % KOLEJKA_NACISNIEC);
+  if (w.bit && !w.zKolejki) modelPrzyciskow.klawisz(w.klawisz).pomin = true;
+  modelPrzyciskow.zdejmij(w.zdjacZKolejki);
   portEXIT_CRITICAL(&muxPrzyciskow);
   return w;
 }

@@ -344,7 +344,23 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
   p.ekrany = u.ekrany;  // ADR-0045: ten sam parser co panel
   p.wygaszaczMin = std::to_string(u.wygaszaczMinSkuteczne());  // R-KON-74, R-KON-77
   p.wygaszacz = u.wygaszaczWlaczony() ? "tak" : "nie";
+  p.start = u.start;  // ADR-0049: klucze `start.*`
   return p;
+}
+
+namespace {
+// Pola wyboru sekcji „Dobry start” (ADR-0049, R-DS-31): wartość domyślna usuwa wiersz z `/konfiguracja.txt` (R-KONF-20).
+struct OpcjaStartu { const char* pole; const char* klucz; const char* domyslna; std::initializer_list<const char*> dozwolone; };
+const OpcjaStartu OPCJE_STARTU[] = {{"start_program", "start.program", "nie", {"tak", "nie"}},
+                                    {"start_nawilzacz", "start.nawilzacz", "nie_wiem", {"tak", "nie", "nie_wiem"}},
+                                    {"start_objawy", "start.objawy", "panel", {"panel", "telefon"}},
+                                    {"start_ponad", "start.ponad", "tak", {"tak", "nie"}}};
+}  // namespace
+
+std::string wartoscDoPliku(const std::string& klucz, const std::string& v) {
+  for (auto& o : OPCJE_STARTU)
+    if (klucz == o.klucz && v == o.domyslna) return "";
+  return v;
 }
 
 Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& ob, const std::string& dzis) {
@@ -524,6 +540,28 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
     }
   }
   walidujEkrany(m, w);  // sekcja „Ekrany” (ADR-0045, R-KONF-60)
+  {  // sekcja „Dobry start” (ADR-0049, R-DS-31): wartość domyślna usuwa wiersz (R-KONF-20); zła wartość = błąd przy polu
+    for (auto& o : OPCJE_STARTU) {
+      bool j = false;
+      std::string ws = wartosc(m, o.pole, j);
+      if (!j) continue;
+      bool ok = false;
+      for (const char* d : o.dozwolone) ok = ok || ws == d;
+      if (!ok) w.bledy[o.pole] = "Wybierz z listy.";
+      else w.plik[o.klucz] = ws == o.domyslna ? "" : ws;
+    }
+    bool j = false;
+    std::string d = wartosc(m, "start_dzien", j);
+    if (j) {
+      int maks = std::max(1, dobry_start::katalogWbudowany().miejsc), n = 0;
+      if (d.empty() || d == "1") w.plik["start.dzien"] = "";
+      else if (!indeksZTekstu(d.c_str(), maks + 1, n) || n < 1)
+        w.bledy["start_dzien"] = "Wpisz liczbę od 1 do " + std::to_string(maks) + ".";
+      else w.plik["start.dzien"] = std::to_string(n);
+    }
+    bool jp = false;  // „od nowa” tylko przy włączanym programie (przy wyłączaniu stan zostaje, R-DS-32)
+    w.startOdNowa = wartosc(m, "start_wznow", j) == "od_nowa" && j && wartosc(m, "start_program", jp) == "tak" && jp;
+  }
   {  // czynniki w raporcie dla lekarza (R-CZY-06): `cz_start` = stan pokazany w formularzu, zmiana tylko, gdy wybór jest inny
     bool jestS = false;
     std::string start = wartosc(m, "cz_start", jestS);
@@ -564,7 +602,7 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 namespace {
 // Sekcje strony U-03 w kolejności z makiety 14.11.2026 (R-KONF-59): numer sekcji pola, w którym walidacja zgłosiła
 // błąd; -1 = pole spoza znanych sekcji (strona otwiera wtedy wszystkie sekcje, żeby błąd nie został ukryty).
-const int SEKCJE = 9;  // 0 sieć, 1 AirBridge, 2 pogoda, 3 panel, 4 dźwięk i humor, 5 sprzęt, 6 raport, 7 aktualizacje,
+const int SEKCJE = 10;  // 9 = „Dobry start” (ADR-0049; na stronie po „Ekrany”)  // 0 sieć, 1 AirBridge, 2 pogoda, 3 panel, 4 dźwięk i humor, 5 sprzęt, 6 raport, 7 aktualizacje,
                        // 8 ekrany (ADR-0045; na stronie zaraz po „Panel”)
 int sekcjaPola(const std::string& k) {
   if (k == "ssid" || k == "wifi_haslo" || k == "wifi_bez") return 0;
@@ -577,6 +615,7 @@ int sekcjaPola(const std::string& k) {
     return 5;
   if (k.compare(0, 3, "cz_") == 0) return 6;
   if (k == "aktualizacja_auto" || k == "klucz_wydan" || k == "klucz_usun" || k == "haslo_okna") return 7;
+  if (k.compare(0, 6, "start_") == 0) return 9;
   if (k.compare(0, 3, "kk_") == 0 || k.compare(0, 3, "dk_") == 0 || k.compare(0, 6, "pokaz_") == 0 || k == "ekrany_start" ||
       k == "wygaszacz" || k == "wygaszacz_min")
     return 8;
@@ -694,6 +733,50 @@ std::string sekcjaEkranow(const Pola& p, const std::map<std::string, std::string
        blad(b, "wygaszacz_min") + blad(b, "ekrany_start") + KONIEC_SEKCJI;
   return s;
 }
+// Sekcja „Dobry start” (ADR-0049, R-DS-31, spec 5.6.6): teksty dosłownie ze spec; liczby z pliku porad.
+std::string sekcjaStartu(const Pola& p, const std::map<std::string, std::string>& b, bool otwarta) {
+  const dobry_start::Ustawienia& u = p.start;
+  std::string m = std::to_string(p.startMiejsc > 0 ? p.startMiejsc : 42);
+  int ponad = p.startPonadIle - (u.nawilzacz == 0 && p.startPonadIle > 0 ? 1 : 0);
+  std::string s = sekcja("Dobry start", p.startNaglowek, otwarta);
+  if (p.startBezPorad) s += "<p class=\"b\">Brak pliku porad na panelu. Program czeka.</p>";
+  s += "<label for=\"start_program\">Dobry start: program na pierwsze 6 tygodni</label>" +
+       opcjeWyboru("start_program", u.program ? "tak" : "nie", {{"nie", "wyłączony"}, {"tak", "włączony"}}) +
+       blad(b, "start_program") +
+       "<p class=\"s\">Pierwsze dni i tygodnie decydują, czy terapia się przyjmie. Panel pokaże jedną krótką poradę "
+       "dziennie przez 6 tygodni.</p>";
+  if (p.startZatrzymanyNa > 0) {
+    std::string n = std::to_string(p.startZatrzymanyNa);
+    s += "<label for=\"start_wznow\">Program był już włączony: zatrzymany na dniu " + n + " z " + m +
+         ". Co dalej?</label><select name=\"start_wznow\" id=\"start_wznow\"><option value=\"dalej\" selected>dalej "
+         "od porady " + n + "</option><option value=\"od_nowa\">od nowa</option></select>";
+  }
+  // `maxlength` przy polu liczbowym przeglądarki pomijają (tylko podpowiedź); zakres 1…{miejsc} sprawdza waliduj()
+  s += "<label for=\"start_dzien\">Który to dzień terapii?</label>" +
+       pole("number", "start_dzien", std::to_string(u.dzien), " min=\"1\" max=\"" + m + "\" maxlength=\"2\" inputmode=\"numeric\"") +
+       blad(b, "start_dzien") +
+       "<p class=\"s\">Wpisz 1, jeśli zaczynasz. Przy większej liczbie plan ruszy od tej porady, a najpierw pokaże "
+       "najważniejsze porady z wcześniejszych dni. Resztę przeczytasz na stronie „Wszystkie porady”.</p>"
+       "<label for=\"start_nawilzacz\">Aparat ma nawilżacz</label>" +
+       opcjeWyboru("start_nawilzacz", u.nawilzacz == 1 ? "tak" : u.nawilzacz == 0 ? "nie" : "nie_wiem",
+                   {{"tak", "tak"}, {"nie", "nie"}, {"nie_wiem", "nie wiem"}}) +
+       blad(b, "start_nawilzacz") +
+       "<p class=\"s\">Nawilżacz to komora na wodę w aparacie. Od tego zależą porady o wodzie i suchości.</p>"
+       "<label for=\"start_objawy\">Porady o kłopotach i objawach</label>" +
+       opcjeWyboru("start_objawy", u.telefon ? "telefon" : "panel", {{"panel", "na panelu"}, {"telefon", "tylko na telefonie"}}) +
+       blad(b, "start_objawy") +
+       "<p class=\"s\">Na telefonie: panel pokaże tylko „Nowa porada na telefonie.”, a treść przeczytasz na stronie "
+       "„Wszystkie porady”. Przydaje się, gdy panel widzą domownicy.</p>"
+       "<label for=\"start_ponad\">Tydzień „ponad program”</label>" +
+       opcjeWyboru("start_ponad", u.ponad ? "tak" : "nie", {{"tak", "tak"}, {"nie", "nie"}}) + blad(b, "start_ponad") +
+       "<p class=\"s\">Po 6 tygodniach jeszcze " + std::to_string(ponad > 0 ? ponad : 0) +
+       " porad dla ciekawych, jedna dziennie.</p>"
+       "<p><a href=\"ankieta\">Ankieta</a>" +
+       (p.startAnkietaCzeka ? " · Czeka ankieta: 3 pytania, ok. 1 minuty." : "") +
+       "</p><p><a href=\"porady?t=1\">Wszystkie porady</a></p><p><a href=\"odnowa\">Zacznij od nowa</a></p>"
+       "<p class=\"s\">Odpowiedzi z ankiety zostają na panelu. Nie trafiają do raportu dla lekarza.</p>" + KONIEC_SEKCJI;
+  return s;
+}
 }  // namespace
 
 std::string strona(const Pola& p, const std::string& akcja, const std::string& komunikat,
@@ -799,6 +882,7 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
        "70%, nie 100%, więc wystarczy na krócej. Zmiana działa od następnego wybudzenia panelu.</p>";
   s += KONIEC_SEKCJI;
   s += sekcjaEkranow(p, b, otw[8]);  // ADR-0045, R-KONF-60
+  s += sekcjaStartu(p, b, otw[9] || p.startZatrzymanyNa > 0);  // ADR-0049, R-DS-31
   s += sekcja("Dźwięk i humor", p.buzzer == "nie" ? "dźwięk wyłączony" : "cisza " + p.ciszaOd + "–" + p.ciszaDo, otw[4]) +
        "<label for=\"humor\">Humor na ekranie dnia</label>" +
        opcjeWyboru("humor", p.humor, {{"normalny", "normalny"}, {"oszczedny", "oszczędny"}, {"wylaczony", "wyłączony"}}) +
@@ -906,20 +990,31 @@ Odpowiedz Sesja::obsluz(const std::string& metoda, const std::string& pelna, con
   if (!aktywna(ms)) return o;
   std::string s = pelna.substr(0, pelna.find('?'));
   if (s == "/favicon.ico" || s.compare(0, 17, "/apple-touch-icon") == 0) return o;  // bez tokenu, bez licznika
-  std::string tk;
+  std::string tk, pod;
   if (s.compare(0, 3, "/u/") == 0) {
     size_t k = s.find('/', 3);
     tk = s.substr(3, k == std::string::npos ? std::string::npos : k - 3);
-    if (k != std::string::npos && k + 1 != s.size()) tk.clear();  // tylko `/u/{token}` i `/u/{token}/`
+    // tylko `/u/{token}`, `/u/{token}/` i podstrony programu „Dobry start” (ADR-0049)
+    if (k != std::string::npos && k + 1 != s.size()) {
+      pod = s.substr(k + 1);
+      if (pod != "ankieta" && pod != "porady" && pod != "odnowa") tk.clear();
+    }
   }
   if (!serwer::rowneStalyCzas(tk, token_)) {
     zle_++;  // R-KONF-13, R-KONF-14
     return o;
   }
+  o.podstrona = pod;
+  size_t q = pelna.find("?t=");
+  if (q != std::string::npos) {
+    int z = 0;
+    std::string v = pelna.substr(q + 3, 2);
+    if (indeksZTekstu(v.c_str(), 100, z)) o.zakladka = z;
+  }
   if (metoda == "GET") {
     o.kod = 200;
     o.typ = "text/html; charset=utf-8";
-    o.cialo = std::move(str);  // bez drugiej kopii strony
+    o.cialo = std::move(str);  // bez drugiej kopii strony (podstronę buduje wołający)
     return o;
   }
   if (metoda == "POST") {
@@ -938,6 +1033,128 @@ Odpowiedz Sesja::obsluz(const std::string& metoda, const std::string& pelna, con
   o.kod = 405;
   o.cialo = "Tylko GET i POST.";
   return o;
+}
+
+// ---------- program „Dobry start” (ADR-0049): strony ankiety, wszystkich porad i potwierdzenia „od nowa” ----------
+const char* const TEKST_ANKIETA_ZAPISANA = "Zapisano. Porady do twoich odpowiedzi pojawią się na panelu w najbliższych dniach.";
+const char* const TEKST_ANKIETA_NIEZAPISANA =
+    "Nie udało się zapisać odpowiedzi w pamięci panelu. Spróbuj ponownie za chwilę.";
+
+namespace {
+const char* const STYL_PODSTRONY =
+    "<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,"
+    "initial-scale=1\"><link rel=\"icon\" href=\"data:,\"><style>body{font-family:system-ui,sans-serif;max-width:34em;"
+    "margin:0 auto;padding:0 1em 2em;color:#000;background:#fff}h1{font-size:1.4em}h2{font-size:1.1em;margin:1.2em 0 .3em}"
+    ".s{color:#444;font-size:.9em}.r{border:2px solid #000;padding:.6em}label{display:flex;gap:.6em;align-items:center;"
+    "min-height:44px}input{width:24px;height:24px;flex:none}button{min-height:52px;padding:.6em 1.2em;font:inherit;"
+    "font-weight:bold;border:2px solid #000;border-radius:6px;background:#000;color:#fff;margin:.5em .5em 0 0}"
+    "nav a{display:inline-block;margin:.2em .6em .2em 0;padding:.3em 0}nav b{margin-right:.6em}</style>";
+std::string tytulStrony(const char* t) { return std::string(STYL_PODSTRONY) + "<title>" + t + "</title></head><body>"; }
+}  // namespace
+
+std::string stronaAnkiety(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
+                          const std::string& dzis, const std::string& akcja, const std::string& komunikat) {
+  std::string h = tytulStrony("Ankieta „Dobry start”");
+  h += "<h1>Ankieta „Dobry start”</h1><p>Kilka pytań o pierwsze tygodnie z maską. Odpowiedzi zostają na panelu.</p>";
+  if (!komunikat.empty()) h += "<p class=\"r\">" + html(komunikat) + "</p>";
+  int tyd = 1;
+  std::string t = dobry_start::tydzienAnkiety(s, dzis);
+  if (t.size() > 1) indeksZTekstu(t.c_str() + 1, 1000, tyd);
+  h += "<form method=\"post\" action=\"" + html(akcja) + "ankieta\">";
+  for (auto& q : k.pytania) {
+    if (q.odTygodnia == 0) {  // startowe tylko bez odpowiedzi (R-DS-26): ani w ustawieniach, ani w ankiecie (`nie wiem`)
+      bool odp = !q.klucz.empty() && u.nawilzacz >= 0;
+      for (auto& o : s.o) odp = odp || (o.tydzien == "start" && o.pytanie == q.id && !o.kody.empty());
+      if (odp) continue;
+    }
+    if (q.odTygodnia > tyd) continue;                                           // DS-Q05 od drugiego tygodnia
+    h += "<h2>" + html(q.pytanie) + "</h2><input type=\"hidden\" name=\"ankieta_" + q.id + "\" value=\"1\">";
+    for (size_t i = 0; i < q.odpowiedzi.size(); i++) {
+      std::string nr = std::to_string(i + 1);
+      h += q.typ == "jedna"
+               ? "<label><input type=\"radio\" name=\"q_" + q.id + "\" value=\"" + nr + "\"> " + html(q.odpowiedzi[i]) + "</label>"
+               : "<label><input type=\"checkbox\" name=\"q_" + q.id + "_" + nr + "\" value=\"1\"> " + html(q.odpowiedzi[i]) +
+                     "</label>";
+    }
+  }
+  h += "<button type=\"submit\">Zapisz odpowiedzi</button><a href=\"./\">Pomiń</a></form>"
+       "<p class=\"s\">Odpowiedzi z ankiety zostają na panelu. Nie trafiają do raportu dla lekarza.</p></body></html>";
+  return h;
+}
+
+std::vector<std::pair<std::string, std::vector<int>>> odpowiedziAnkiety(const dobry_start::Katalog& k,
+                                                                        const std::map<std::string, std::string>& m) {
+  std::vector<std::pair<std::string, std::vector<int>>> w;
+  for (auto& q : k.pytania) {
+    std::vector<int> kody;
+    bool jest = false;
+    if (q.typ == "jedna") {
+      std::string v = wartosc(m, ("q_" + q.id).c_str(), jest);
+      int n = 0;
+      if (jest && indeksZTekstu(v.c_str(), (int)q.odpowiedzi.size() + 1, n) && n >= 1) kody.push_back(n);
+    } else {
+      for (size_t i = 0; i < q.odpowiedzi.size(); i++)
+        if (zaznaczone(m, ("q_" + q.id + "_" + std::to_string(i + 1)).c_str())) kody.push_back((int)i + 1);
+    }
+    // pytanie z pola `ankieta_{id}` (było na stronie) zapisane także bez odpowiedzi (R-DS-48); inne bez zapisu
+    if (m.count("ankieta_" + q.id) || !kody.empty()) w.push_back({q.id, kody});
+  }
+  return w;
+}
+
+std::string stronaPorad(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
+                        dobry_start::Tryb tryb, int t, const std::string& akcja,
+                        std::string (*podstaw)(const std::string&, void*), void* kx) {
+  int T = k.tygodni();
+  if (t < 1 || t > T + 3) t = 1;
+  std::string h = tytulStrony("Wszystkie porady");
+  h += "<h1>Wszystkie porady</h1><nav>";
+  for (int i = 1; i <= T + 3; i++) {
+    std::string n = i <= T ? "Tydzień " + std::to_string(i) : i == T + 1 ? "Po nocy" : i == T + 2 ? "Z ankiety" : "Ponad program";
+    h += i == t ? "<b>" + n + "</b>" : "<a href=\"" + html(akcja) + "porady?t=" + std::to_string(i) + "\">" + n + "</a>";
+  }
+  h += "</nav>";
+  auto jedna = [&](const dobry_start::Porada& p, bool ciekawostka) {
+    auto tx = [&](const dobry_start::Wycinek& w) { return html(podstaw ? podstaw(k.tekst(w), kx) : k.tekst(w)); };
+    h += std::string(ciekawostka ? "<h2>Ciekawostka: " : "<h2>") + tx(p.tytul) + "</h2><p>" + tx(p.tresc) + "</p>";
+    if (p.krok.dl) h += "<p><b>" + tx(p.krok) + "</b></p>";
+    h += "<p class=\"s\">" + html(dobry_start::znacznik(k, s, p)) + "</p>";
+  };
+  std::vector<std::string> bazy;
+  auto raz = [&](const std::string& b) {
+    if (std::find(bazy.begin(), bazy.end(), b) != bazy.end()) return false;
+    bazy.push_back(b);
+    return true;
+  };
+  if (t <= T) {
+    for (int m = (t - 1) * 7 + 1; m <= std::min(k.miejsc, t * 7); m++) {
+      const dobry_start::Porada* p = dobry_start::wariantMiejsca(k, m, tryb, u.nawilzacz);
+      if (!p) continue;
+      jedna(*p, false);
+      for (auto& c : k.porady)  // ciekawostka pod poradą planu z kolumny `przy`
+        if (c.rodzaj == dobry_start::Rodzaj::PONAD && c.przy == p->id && raz(c.baza)) {
+          const dobry_start::Porada* v = dobry_start::wariant(k, c.baza, tryb, u.nawilzacz);
+          if (v) jedna(*v, true);
+        }
+    }
+  } else {
+    dobry_start::Rodzaj r = t == T + 1 ? dobry_start::Rodzaj::ZDARZENIE : t == T + 2 ? dobry_start::Rodzaj::ANKIETA
+                                                                                      : dobry_start::Rodzaj::PONAD;
+    for (auto& p : k.porady)
+      if (p.rodzaj == r && raz(p.baza)) {
+        const dobry_start::Porada* v = dobry_start::wariant(k, p.baza, tryb, u.nawilzacz);
+        if (v) jedna(*v, false);
+      }
+  }
+  h += "<p><a href=\"./\">Wróć do ustawień</a></p></body></html>";
+  return h;
+}
+
+std::string stronaOdNowa(const std::string& akcja) {
+  return tytulStrony("Zacznij od nowa") + "<h1>Zacznij od nowa</h1><p>Zacząć program od nowa? Pokazane porady i odpowiedzi " +
+         "z ankiet zostaną w kopii na panelu.</p><form method=\"post\" action=\"" + html(akcja) +
+         "odnowa\"><input type=\"hidden\" name=\"tak\" value=\"1\"><button type=\"submit\">Tak, od nowa</button>"
+         "<a href=\"./\">Nie</a></form></body></html>";
 }
 
 }  // namespace formularz

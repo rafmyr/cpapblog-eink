@@ -35,7 +35,7 @@ for tr in ASVAuto AutoSet; do
   ap=(); [ $tr = AutoSet ] && ap=(--aparat AirSense_10_AutoSet,AutoSet)
   for b in gal bez; do
     "$W/sym-$b" --dane "$W/z-$tr" --od 2026-11-04T05:00 --do "${KONIEC}T23:59" --przyciski "$W/przyciski.txt" \
-      --noce-scenariusza "$W/noce-$tr.txt" "${ap[@]}" --wyjscie "$W/w-$b-$tr" >/dev/null
+      --noce-scenariusza "$W/noce-$tr.txt" ${ap[@]+"${ap[@]}"} --wyjscie "$W/w-$b-$tr" >/dev/null
   done
   echo "== $tr: z normą tymczasową kontra wymuszony brak normy tymczasowej"
   python3 "$T/porownaj.py" "$W/w-gal-$tr" "$W/w-bez-$tr"

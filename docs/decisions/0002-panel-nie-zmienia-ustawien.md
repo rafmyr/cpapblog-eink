@@ -14,3 +14,7 @@ Panel nigdy nie zmienia ustawień, nie podaje wartości do ustawienia ani drogi 
 
 ## Konsekwencje
 Mniejsze ryzyko regulacyjne (MDR, reguła 11) i medyczne. Zmiana tej decyzji wymaga nowego ADR i analizy MDR.
+
+## Zmiana 2026-11-22
+
+Wyjątek tylko dla tekstów programu „Dobry start” ([ADR-0050](0050-opcje-komfortu-w-poradach.md), decyzja właściciela projektu 22.11.2026): porada może nazwać opcję komfortu, którą pacjent zmienia sam według instrukcji aparatu (nawilżanie, temperatura podgrzewanej rury, rampa), podać kierunek i odesłać do instrukcji; ulgę na wydechu tylko opisuje i odsyła do lekarza albo dostawcy. Liczby i poziomy ustawień, droga w menu aparatu albo AirBridge, ciśnienie, zakres, tryb i poziom EPR oraz diagnoza pozostają zakazane wszędzie; pozostałe ekrany i raport bez zmian.

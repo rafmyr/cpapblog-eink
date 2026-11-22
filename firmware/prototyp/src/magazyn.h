@@ -65,6 +65,12 @@ enum class StanPliku : uint8_t {
   DOBRY,       // nagłówek z wersją znaną firmware, przy przepisywanych `#koniec {n}` zgodny z liczbą wierszy
   NOWSZY,      // wersja wyższa niż znana: wiersze obcięte do pól znanej wersji, plik tylko do odczytu (T-WYM-54)
   USZKODZONY,  // przepisywany bez `#koniec` albo z inną liczbą wierszy, zły nagłówek; wiersze puste
+  // (T-WYM-19) plik jest na nośniku (Pliki::istnieje(), na panelu stat() bez otwierania pliku, albo widoczny
+  // w liście katalogu), ale odczyt treści się nie udał (plik się nie otwiera: brak pamięci na bufor przy Wi-Fi
+  // i TLS, limit otwartych plików, błąd nośnika; plik ponad limit adaptera; krótki odczyt), a kompletnego `.tmp` nie
+  // ma; wiersze puste, plik nietknięty i zablokowany do końca życia obiektu Magazyn (jedno wybudzenie): każdy zapis
+  // i dopisanie pod tą ścieżką → false bez zmian
+  NIECZYTELNY,
 };
 
 struct OdczytPliku {
@@ -95,6 +101,8 @@ class Magazyn {
   // Rozszerzenie implementacji uszkodzony plik docelowy (bez kompletnego `.tmp`) dostaje nazwę
   // `{sciezka}.uszkodzony`, żeby następny zapis zaczął plik od nowa, a treść została do ręcznego odzyskania; wcześniejsze
   // kopie przesuwają się na `.uszkodzony.1`, `.uszkodzony.2` (najwyżej KOPII_USZKODZONYCH najnowszych); wersja niższa niż znana → DOBRY z tą wersją, plik czeka na migrujWMiejscu().
+  // gdy odłożenia nie da się zrobić (zmiana nazwy zawiodła), plik zostaje pod swoją ścieżką i wynik to
+  // NIECZYTELNY jak przy odczycie nieudanym (wiersz logu, plikiNieczytelne(), bez zapisu do końca wybudzenia).
   OdczytPliku czytaj(const std::string& format, const std::string& sciezka);
 
   // Zapis atomowy pliku przepisywanego: nagłówek z wersją znaną firmware, wiersz nazw pól, `wiersze`, `#koniec {n}`,
@@ -105,6 +113,13 @@ class Magazyn {
   // w starszej wersji) → false bez zapisu (odrzuconoZapisStarszego()); format dopisywany → to samo przepisanie
   // atomowe bez `#koniec` (przycięcie dziennika).
   bool zapisz(const std::string& format, const std::string& sciezka, const std::vector<std::string>& wiersze);
+  // true dla ścieżek plików „nadpisywanych w całości”: całą ich treść panel wytwarza sam i świadomie zastępuje
+  // poprzednią, a poprzedniej nie dopisuje, nie scala i nie czyta (jedyny taki plik: kopia stanu „Dobrego startu”
+  // SCIEZKA_KOPII_DOBREGO_STARTU, R-DS-33). zapisz() takiej ścieżki pomija ochronę („plik jest, a nie był
+  // w tym wybudzeniu przeczytany”), bo nieprzeczytana stara treść nie wchodzi do nowej, więc nic nie ginie; pozostałe
+  // odmowy jak dla każdego pliku (tylko do odczytu, czeka na migrację, nieczytelny w tym wybudzeniu). Pliki
+  // danych czytane i przepisywane (noce, STR, humor, czynniki, odpowiedzi itd.) nie mogą trafić na tę listę.
+  static bool nadpisywanyWCalosci(const std::string& sciezka);
   // Dopisanie wiersza do pliku dopisywanego; brak pliku → nowy z nagłówkiem i nazwami pól. Urwany ostatni wiersz nie
   // skleja się z nowym. false przy błędzie albo pliku tylko do odczytu. Rozszerzenie implementacji wersję pliku
   // sprawdza pierwszy wiersz (nowsza → tylko do odczytu, starsza → odrzucone jak w zapisz()); plik bez czytelnego
@@ -154,6 +169,23 @@ class Magazyn {
   void wycofajMigracje();
   // Ścieżki przeczytane w wersji nowszej niż znana (ekran testu: `dane z nowszej wersji: {plik}`).
   const std::vector<std::string>& plikiTylkoDoOdczytu() const { return tylkoOdczyt_; }
+  // (T-WYM-19) Odczyt nieudany ≠ plik pusty: ścieżka, której plik jest, a odczyt treści się nie udał
+  // (czytaj() → NIECZYTELNY, dopisz() przy nieudanym odczycie nagłówka i treści istniejącego pliku). Do końca życia
+  // obiektu (jedno wybudzenie, na obu ścieżkach ADR-0047) zapisz(), dopisz() i wewnętrzne przepisania (scalenie,
+  // przywracanie) pod tą ścieżką zwracają false bez zmiany pliku, z jednym wierszem w logu `{plik}: odczyt nieudany,
+  // plik zostaje bez zmian, bez zapisu do końca wybudzenia`. Następne wybudzenie (nowy obiekt) czyta plik od nowa.
+  // zapisz() pliku, który jest na nośniku, a nie był w tym wybudzeniu przeczytany ani zapisany (np. pominięty
+  // przez niepełną listę katalogu), też odmawia (ścieżka trafia do tej samej listy, wiersz `zapis {plik}: plik jest,
+  // a nie był w tym wybudzeniu przeczytany …`); pierwsze utworzenie pliku, którego nie ma, jak dotąd.
+  bool nieczytelny(const std::string& sciezka) const;
+  const std::vector<std::string>& plikiNieczytelne() const { return nieczytelne_; }
+  // true, gdy treść pliku `sciezka` jest w tym wybudzeniu u wołającego: przeczytana przez czytaj() (z treścią)
+  // albo zapisana przez zapisz(). Plik, który przy odczycie nie istniał, a potem powstał przez dopisz(), się nie liczy.
+  bool wczytanyWTymWybudzeniu(const std::string& sciezka) const { return przeczytany(sciezka); }
+  // czy plik `sciezka` jest na nośniku, niezależnie od tego, czy da się go otworzyć: Pliki::istnieje() (na panelu
+  // stat()), a przy „nie ma” lista katalogu nad plikiem. Nieudana lista = „nie ma”. Używa też dyrygent dla plików
+  // spoza rejestru (`/konfiguracja.txt`).
+  bool naNosniku(const std::string& sciezka);
   // true, gdy od utworzenia obiektu zapis albo dopisanie trafiło na plik w wersji starszej niż znana, który czeka na
   // migrację w miejscu (T-WYM-55: migracja przed pierwszym zapisem, więc zapis odrzucony). Dyrygent po udanej
   // migrujWMiejscu() zapisuje wtedy dane z pamięci jeszcze raz.
@@ -207,6 +239,9 @@ class Magazyn {
   }
   bool starszy(const std::string& sciezka) const;
   void bezStarszego(const std::string& sciezka);
+  void oznaczNieczytelny(const std::string& sciezka);
+  bool przeczytany(const std::string& sciezka) const;
+  void oznaczPrzeczytany(const std::string& sciezka);
   Pliki& pliki_;
   std::function<void(const std::string&)> log_;
   const std::vector<FormatPliku>& rejestr_;
@@ -214,6 +249,8 @@ class Magazyn {
   std::vector<std::string> tylkoOdczyt_;
   std::vector<std::string> starsze_;     // przeczytane w wersji starszej niż znana (czekają na migrujWMiejscu())
   std::vector<std::string> utworzone_;   // pliki i znaczniki zapisane przez ostatnie migrujNaNoweSciezki()
+  std::vector<std::string> nieczytelne_; // plik jest, odczyt się nie udał: bez zapisu do końca wybudzenia
+  std::vector<std::string> przeczytane_; // przeczytane (czytaj() z treścią) albo zapisane przez zapisz()
   bool odrzuconoStarszy_ = false;
 };
 
@@ -221,6 +258,9 @@ class Magazyn {
 // `.uszkodzony.2`; przy następnej znika najmniejsza z nich, a starsze
 // od niej zachowują numery [PRÓG].
 const int KOPII_USZKODZONYCH = 3;
+// R-DS-33: jedna kopia stanu programu „Dobry start” sprzed „od nowa” (format `dobry_start`); panel jej nie czyta,
+// a każde „od nowa” zastępuje ją w całości (Magazyn::nadpisywanyWCalosci()).
+const char* const SCIEZKA_KOPII_DOBREGO_STARTU = "/dane/dobry_start.poprzedni.csv";
 // Plik znacznika migracji 0 → 1 formatu `nazwa` na nowe ścieżki: `/dane/.migracja-{nazwa}`.
 std::string znacznikMigracji(const std::string& nazwa);
 // Scalenie wierszy formatu `nazwa` (wersja znana firmware) z pamięci flash (`flash`) i z drugiego źródła (`zrodlo`:

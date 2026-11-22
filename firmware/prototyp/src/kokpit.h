@@ -53,8 +53,10 @@
 #include "stany.h"
 
 struct Linia30 {  // linia 30 nocy w wierszu K1 (K2 w opcji A jej nie ma)
-  float v[30];
-  bool ma[30];
+  // wartości zainicjowane (22.11.2026): domyślny WierszK1 (np. DaneK1 bez budujK1()) rysuje pustą linię zamiast
+  // czytać nieokreślone bajty (UBSan: `load of value 112 … for type 'bool'` w linia30(), src/ekrany.cpp)
+  float v[30] = {};
+  bool ma[30] = {};
   double medNormy = NAN;  // przerywana mediana normy
 };
 

@@ -287,6 +287,9 @@ bool kartaPrzerywnikaMiesci(const TrescEkranu& t);  // S2d: tytuł do 2 linii (S
 // Karta z budzikiem (ADR-0009, 5.7.2). Od 10.11.2026 bez zdania budzika w stopce: lewo t.stopkaLewo (jak na ekranie
 // danych), prawo t.stopkaPrawo; stopka znika, gdy obie są puste.
 void rysujKarte(Plotno& p, const Belka& n, const TrescEkranu& t, const std::string& scena);
+// Scena budzika z prawym dolnym rogiem w (xPrawy, yDol), czarna na białym (ADR-0009); false, gdy sceny nie ma.
+// Karta porady „Dobry start” (S-K-48, src/ekrany_kontekst.h rysujPorade()).
+bool rysujScene(Plotno& p, const std::string& id, int xPrawy, int yDol);
 void rysujEkranDanych(Plotno& p, const Belka& n, const TrescEkranu& t);
 void rysujK1(Plotno& p, const DaneK1& d);
 // Ocena wiersza K1 tak, jak stoi na ekranie (5.5.2, R-KOK-17 od 13.11.2026): w każdym wierszu znak i słowo

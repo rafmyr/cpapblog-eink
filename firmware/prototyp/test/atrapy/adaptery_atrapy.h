@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "przyciski_probki.h"
 #include "adaptery.h"
 #include "aktualizacja.h"
 #include "magazyn.h"
@@ -51,9 +52,14 @@ class AtrapaZegara : public Zegar {
  public:
   explicit AtrapaZegara(Dziennik& d) : d_(d) {}
   uint32_t epoch = 0;   // czas unix w chwili ms = 0; 0 = zegar nieustawiony
-  uint32_t msTeraz = 0; // zegar procesora
+  uint32_t msTeraz = 0; // zegar procesora (surowy: millis() panelu od startu programu)
+  // ADR-0047 na panelu: ms() rdzenia liczy od początku przebiegu (od końca czekania na kablu), a adapter sieci ma
+  // własny zegar procesora od startu programu. poczatekPrzebiegu = surowy czas początku przebiegu; 0 = jedna
+  // podstawa czasu (wszystkie testy sprzed 22.11.2026). Atrapa sieci liczy czas żądania na surowe().
+  uint32_t poczatekPrzebiegu = 0;
+  uint32_t surowe() const { return msTeraz; }
   uint32_t teraz() override { return epoch ? epoch + msTeraz / 1000 : msTeraz / 1000; }
-  uint32_t ms() override { return msTeraz; }
+  uint32_t ms() override { return msTeraz - poczatekPrzebiegu; }
   void czekaj(uint32_t ms) override { msTeraz += ms; }
   bool lokalny(uint32_t t, std::tm& w) override {
     time_t tt = (time_t)t;
@@ -160,6 +166,16 @@ class AtrapaPlikow : public Pliki {
   // chwili żadna operacja zmieniająca pliki nie działa (do „restartu”: zanik = false, zanikPoBajtach = -1).
   long zanikPoBajtach = -1;
   bool zanik = false;
+  // (T-TEST-515): ścieżki, których plik jest (istnieje() true), a odczyt się nie udaje (czytaj(),
+  // czytajWiersze(), pierwszyWiersz() → false, jak LittleFS.open() == nullptr albo plik ponad limit adaptera); zapis
+  // działa. Usterka trwała, dopóki ścieżka jest w zbiorze.
+  std::set<std::string> nieczytelne;
+  // zachowanie panelu przed poprawką adaptera (LittleFS.exists() = próba otwarcia): true = istnieje() też
+  // false dla ścieżek z `nieczytelne` (plik nadal widoczny w listuj()). Testy usterki biegną w obu trybach.
+  bool istniejeJakOtwarcie = false;
+  // (T-TEST-515): ścieżki z tym przedrostkiem nie dają się dopisać (dopiszWiersz() → false, treść bez zmian:
+  // pełna pamięć albo błąd nośnika przy dopisaniu); "" = bez odmowy. Zapis atomowy działa.
+  std::string odmawiaDopisaniaPod;
   std::map<std::string, int> odczyty;  // liczba odczytów każdego pliku (czytaj(), czytajWiersze(), pierwszyWiersz())
   std::map<std::string, int> pierwsze;     // z tego pierwszyWiersz() (ADR-0047, koszt bez pamięci list, 17.11.2026)
   std::map<std::string, int> listowania;  // wywołania listuj() każdego katalogu (jw.)
@@ -186,11 +202,14 @@ class AtrapaPlikow : public Pliki {
   }
   bool zamontuj() override { d_.dodaj("pliki.zamontuj"); montowane = montujeSie; return montowane; }
   bool zamontowane() override { return montowane; }
-  bool istnieje(const char* n) override { return montowane && pliki.count(n); }
+  bool istnieje(const char* n) override {
+    return montowane && pliki.count(n) && !(istniejeJakOtwarcie && nieczytelne.count(n));
+  }
   bool czytajWiersze(const char* n, std::vector<std::string>& w) override {
     w.clear();
     if (!montowane) return false;
     odczyty[n]++;
+    if (nieczytelne.count(n) && pliki.count(n)) return false;
     std::string tmp = std::string(n) + ".tmp";
     if (!pliki.count(n) && pliki.count(tmp)) { pliki[n] = pliki[tmp]; pliki.erase(tmp); }
     auto i = pliki.find(n);
@@ -214,6 +233,8 @@ class AtrapaPlikow : public Pliki {
   bool dopiszWiersz(const char* n, const std::string& w) override {
     d_.dodaj(std::string("pliki.dopisz ") + n);
     if (!montowane || odmawiaZapisu || odmowa(n)) return false;
+    if (!odmawiaDopisaniaPod.empty() && std::string(n).compare(0, odmawiaDopisaniaPod.size(), odmawiaDopisaniaPod) == 0)
+      return false;
     std::string& t = pliki[n];
     if (!t.empty() && t.back() != '\n') t += '\n';
     std::string dop = w + "\n";
@@ -245,7 +266,7 @@ class AtrapaPlikow : public Pliki {
     if (!montowane) return false;
     odczyty[n]++;
     auto i = pliki.find(n);
-    if (i == pliki.end()) return false;
+    if (i == pliki.end() || nieczytelne.count(n)) return false;
     t = i->second;
     return true;
   }
@@ -419,6 +440,7 @@ class AtrapaSieci : public Siec {
     auto& q = odpowiedzi[*najlepszy];
     OdpowiedzAtrapy a = q.front();
     if (q.size() > 1) q.pop_front();
+    const uint32_t start = z_.surowe();  // jak t0 = millis() w SiecEsp32::get()
     z_.przesun(a.opoznienieMs);
     a.o.ms = a.opoznienieMs;
     // kontrakt Siec::get(): przy 401 bez ciała; przy cialoTylko200 ciało tylko przy 200; ciało ponad limit nieczytane
@@ -428,6 +450,12 @@ class AtrapaSieci : public Siec {
     } else if (zad.maksBajtow && a.o.cialo.size() > zad.maksBajtow) {
       a.o.cialo.clear();
       a.o.zaDuzo = true;
+    } else if (!a.o.cialo.empty() && budzetCialaMinal(zad.budzetCialaMs, start, z_.surowe())) {
+      // jak adapter panelu (SiecEsp32::get(), DoNapisu::stop()): pierwszy bajt ciała po budżecie odczytu, liczonym
+      // od wejścia w get() na zegarze adaptera, kończy odczyt (writeToStream: błąd zapisu)
+      a.o.cialo.clear();
+      a.o.wynikZapisu = -10;  // HTTPC_ERROR_STREAM_WRITE
+      a.o.zaDlugo = true;
     }
     return a.o;
   }
@@ -539,8 +567,114 @@ class AtrapaPrzyciskow : public Przyciski {
     kolejka.clear();
     wyczyszczen++;
   }
+  // kolejka tej atrapy to naciśnięcia już puszczone przed przebiegiem (ze skryptu nic do niej nie trafia), więc
+  // naciśnięcie odczytane ze stanu nigdy w niej nie jest: tylko licznik
+  int obsluzonychZeStanu = 0;
+  void obsluzoneZeStanu(int przycisk) override {
+    (void)przycisk;
+    obsluzonychZeStanu++;
+  }
  private:
   AtrapaZegara& z_;
+};
+
+// Przyciski panelu z próbkowaniem (R-PRZ-20): ten sam rdzeń co PrzyciskiEsp32 (src/przyciski_probki.h),
+// stan surowy z odcinków wciśnięcia [od, do) w ms zegara procesora, próbka co 5 ms liczona
+// przy każdym wywołaniu do chwili zegara; naciśnięcie w czasie, gdy rdzeń liczy albo rysuje (atrapa przesuwa wtedy
+// zegar), trafia do kolejki jak na panelu. Pisk adaptera w chwili naciśnięcia liczony w `piskow`
+// (piskPrzyNacisnieciu() = true jak na panelu). Czas modelu = ms * 1000 + PRZESUNIECIE_US (0 w modelu = „nieznana”).
+class AtrapaPrzyciskowProbkowanych : public Przyciski {
+ public:
+  explicit AtrapaPrzyciskowProbkowanych(AtrapaZegara& z) : kolejka(*this), z_(z) {}
+  static constexpr int64_t PRZESUNIECIE_US = 1000000;
+  struct Odcinek {
+    uint32_t od, doMs;
+    uint8_t bit;
+  };
+  struct Wpis {
+    int przycisk;
+    uint32_t trwaloMs, puszczonyMs;
+  };
+  // widok kolejki modelu (testy: empty(), size(), push_back() naciśnięcia zostawionego przez adapter)
+  class Kolejka {
+   public:
+    explicit Kolejka(AtrapaPrzyciskowProbkowanych& a) : a_(a) {}
+    bool empty() const { return a_.m_.ile() == 0; }
+    size_t size() const { return (size_t)a_.m_.ile(); }
+    void push_back(const Wpis& w) {
+      przyciski_probki::Nacisniecie n;
+      n.przycisk = (uint8_t)w.przycisk;
+      n.trwaloMs = w.trwaloMs;
+      n.puszczonyUs = (int64_t)w.puszczonyMs * 1000 + PRZESUNIECIE_US;
+      a_.m_.dopisz(n);
+    }
+   private:
+    AtrapaPrzyciskowProbkowanych& a_;
+  };
+  std::vector<Odcinek> odcinki;
+  Kolejka kolejka;
+  bool swieci = false;
+  int obsluzonychZeStanu = 0, wyczyszczen = 0, piskow = 0;
+  // wciśnięcie `bit` od `od` do `doMs` (ms zegara procesora); `od` nie przed chwilą ostatniej policzonej próbki
+  void nacisnij(uint8_t bit, uint32_t od, uint32_t doMs) { odcinki.push_back({od, doMs, bit}); }
+  // start programu w chwili zegara (jak konstruktor PrzyciskiEsp32)
+  // `przedPrzebiegiem`: przyciski wciśnięte w chwili startu trzymane już przed początkiem przebiegu (czekanie na kablu,
+  // który ich nie zakończył): chwila wciśnięcia sprzed przebiegu, bez `pomin`; inaczej jak po głębokim śnie
+  void start(bool przedPrzebiegiem = false) {
+    probka_ = z_.msTeraz;
+    m_.start(surowe(z_.msTeraz));
+    for (int i = 1; przedPrzebiegiem && i <= 3; i++)
+      if (m_.klawisz(i).wcisniety) {
+        m_.klawisz(i).pomin = false;
+        m_.klawisz(i).odUs = us(z_.msTeraz) - 2000000;
+      }
+  }
+  uint8_t wcisniete() override {
+    probkuj();
+    return m_.wcisniete();
+  }
+  void dioda(bool s) override { swieci = s; }
+  bool zKolejki(int& przycisk, uint32_t& trwaloMs) override {
+    probkuj();
+    return m_.zKolejki(przycisk, trwaloMs);
+  }
+  void wyczyscKolejke() override {
+    probkuj();
+    wyczyszczen++;
+    m_.wyczysc();
+  }
+  void obsluzoneZeStanu(int przycisk) override {
+    probkuj();
+    obsluzonychZeStanu++;
+    m_.obsluzone(przycisk, us(z_.msTeraz));
+  }
+  bool piskPrzyNacisnieciu() const override { return true; }
+  bool wcisnietyOd(int przycisk, uint32_t& odMs) override {
+    probkuj();
+    int64_t od = 0;  // początek przebiegu = ms 0 atrapy (PRZESUNIECIE_US w modelu)
+    return m_.wcisnietyOd(przycisk, od) &&
+           przyciski_probki::chwilaWPrzebiegu(od, (uint32_t)(PRZESUNIECIE_US / 1000), odMs);
+  }
+  przyciski_probki::Model& model() { return m_; }
+
+ private:
+  przyciski_probki::Model m_;
+  AtrapaZegara& z_;
+  uint32_t probka_ = 0;
+  static int64_t us(uint32_t ms) { return (int64_t)ms * 1000 + PRZESUNIECIE_US; }
+  uint8_t surowe(uint32_t t) const {
+    uint8_t b = 0;
+    for (const Odcinek& o : odcinki)
+      if (t >= o.od && t < o.doMs) b = (uint8_t)(b | o.bit);
+    return b;
+  }
+  void probkuj() {
+    for (; probka_ <= z_.msTeraz; probka_ += 5) {
+      przyciski_probki::ZmianyProbki z = m_.probka(surowe(probka_), us(probka_));
+      for (int i = 1; i <= 3; i++)
+        if (z.piski & (1u << i)) piskow++;
+    }
+  }
 };
 
 class AtrapaCzujnikow : public Czujniki {

@@ -198,6 +198,20 @@ bool zKolejkiWolno(Ekran e, bool dlugo) {
   return !dlugo && (e == Ekran::DZIEN || stronaKokpitu(e) || e == Ekran::PORTRET);
 }
 
+bool czystaNawigacja(Ekran przed, const Przejscie& pr) {
+  // oba ekrany w ciągu stron (zKolejkiWolno() dla krótkiego naciśnięcia: ekran dnia, strony kokpitu, Portret)
+  if (!zKolejkiWolno(przed, false) || !zKolejkiWolno(pr.ekran, false)) return false;
+  switch (pr.akcja) {
+    case Akcja::NIC:
+    case Akcja::POKAZ:
+    case Akcja::SPRAWY_OTWORZ:  // karta „Otwartych spraw”: tylko numer karty (`cpap/b5_karta`), bez skutku dla danych
+    case Akcja::SPRAWY_DALEJ:
+    case Akcja::SPRAWY_WSTECZ:
+    case Akcja::SPRAWY_OD_KONCA: return true;
+    default: return false;
+  }
+}
+
 int przytnijKarte(int karta, int liczba) { return liczba < 1 ? 1 : karta < 1 ? 1 : karta > liczba ? liczba : karta; }
 
 std::string numerStronyTekst(Ekran e) {

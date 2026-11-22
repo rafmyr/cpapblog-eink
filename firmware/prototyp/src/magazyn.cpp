@@ -219,6 +219,9 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       // przebieg ostatniej nocy w odcinkach 5 min do Portretu nocy (src/portret.h, T-DANE-38, ADR-0040)
       format("portret", "/dane/portret.csv", "", RodzajZapisu::PRZEPISANIE,
              "data;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki"),
+      // program „Dobry start” (src/dobry_start.h, ADR-0049): stan, dziennik porad, zaległe i odpowiedzi ankiety; rodzaj
+      // wiersza w pierwszym polu (S, D, P, Z, O, K, W, T), pola znaczą według rodzaju
+      format("dobry_start", "/dane/dobry_start.csv", "", RodzajZapisu::PRZEPISANIE, "rodzaj;a;b;c;d;e;f"),
   };
   return r;
 }
@@ -252,6 +255,33 @@ bool Magazyn::starszy(const std::string& s) const {
 void Magazyn::bezStarszego(const std::string& s) {
   starsze_.erase(std::remove(starsze_.begin(), starsze_.end(), s), starsze_.end());
 }
+bool Magazyn::nieczytelny(const std::string& s) const {
+  return std::find(nieczytelne_.begin(), nieczytelne_.end(), s) != nieczytelne_.end();
+}
+// T-WYM-19: plik jest, a odczyt się nie udał; jeden wiersz logu na ścieżkę na wybudzenie
+void Magazyn::oznaczNieczytelny(const std::string& s) {
+  if (nieczytelny(s)) return;
+  nieczytelne_.push_back(s);
+  loguj(nazwaPliku(s) + ": odczyt nieudany, plik zostaje bez zmian, bez zapisu do końca wybudzenia");
+}
+bool Magazyn::przeczytany(const std::string& s) const {
+  return std::find(przeczytane_.begin(), przeczytane_.end(), s) != przeczytane_.end();
+}
+void Magazyn::oznaczPrzeczytany(const std::string& s) {
+  if (!przeczytany(s)) przeczytane_.push_back(s);
+}
+// czy plik jest na nośniku, niezależnie od tego, czy da się go otworzyć. Najpierw istnieje() (na panelu stat()
+// bez otwierania pliku), a gdy mówi „nie ma”, lista katalogu nad plikiem: plik widoczny w liście jest (na panelu
+// LittleFS.exists() otwierał plik, więc plik, który się nie otwierał, wyglądał jak brak). Nieudana lista = nie wiadomo,
+// więc „nie ma” (jak dotąd).
+bool Magazyn::naNosniku(const std::string& s) {
+  if (pliki_.istnieje(s.c_str())) return true;
+  size_t u = s.rfind('/');
+  std::string kat = u == std::string::npos || u == 0 ? "/" : s.substr(0, u);
+  std::vector<std::string> n;
+  if (!pliki_.listuj(kat.c_str(), n)) return false;
+  return std::find(n.begin(), n.end(), s) != n.end();
+}
 
 OdczytPliku Magazyn::czytaj(const std::string& nazwa, const std::string& sciezka) {
   OdczytPliku o;
@@ -279,12 +309,30 @@ OdczytPliku Magazyn::czytaj(const std::string& nazwa, const std::string& sciezka
       if (!kompletny(b)) loguj(krotka + ": plik tymczasowy niekompletny, usunięty");
     }
   }
-  if (!jest) return o;  // BRAK
+  if (!jest) {
+    // T-WYM-19: odczyt nieudany ≠ brak pliku. Plik jest, a jego treści nie da się przeczytać (i nie ma
+    // kompletnego `.tmp`): bez odkładania jako `.uszkodzony` i bez żadnego zapisu tej ścieżki do końca wybudzenia,
+    // bo przepisanie z pustej pamięci zabrałoby historię (63 wiersze → 14, test/testy_kabel_bez_snu_brzegowe.cpp, ADR-0047). „Plik jest”
+    // z naNosniku() (istnieje() albo lista katalogu)
+    if (naNosniku(sciezka)) {
+      oznaczNieczytelny(sciezka);
+      o.stan = StanPliku::NIECZYTELNY;
+    }
+    return o;  // BRAK albo NIECZYTELNY, wiersze puste
+  }
   if (o.stan == StanPliku::USZKODZONY) {
     std::string u = odlozUszkodzony(sciezka);
-    loguj(krotka + ": plik uszkodzony" + (!u.empty() ? " (odłożony jako " + nazwaPliku(u) + ")" : "") +
-          ", praca bez pliku");
     o.wiersze.clear();
+    if (u.empty()) {
+      // odłożenie się nie udało (zmiana nazwy zawiodła), więc uszkodzony plik zostaje pod swoją ścieżką
+      // i jego treści nie ma w pamięci: jak odczyt nieudany, z tym samym wierszem logu i tą samą listą
+      // plikiNieczytelne(), bez zapisu do końca wybudzenia (dawniej każdy zapis odrzucał bez wyjaśnienia)
+      loguj(krotka + ": plik uszkodzony, odłożenie jako .uszkodzony nieudane");
+      oznaczNieczytelny(sciezka);
+      o.stan = StanPliku::NIECZYTELNY;
+      return o;
+    }
+    loguj(krotka + ": plik uszkodzony (odłożony jako " + nazwaPliku(u) + "), praca bez pliku");
     return o;
   }
   if (o.stan == StanPliku::NOWSZY) {
@@ -294,6 +342,7 @@ OdczytPliku Magazyn::czytaj(const std::string& nazwa, const std::string& sciezka
   } else if (o.wersja < f->wersja() && !starszy(sciezka)) {
     starsze_.push_back(sciezka);
   }
+  oznaczPrzeczytany(sciezka);  // treść tej ścieżki jest w pamięci wołającego
   return o;
 }
 
@@ -326,6 +375,7 @@ std::string Magazyn::odlozUszkodzony(const std::string& sciezka) {
 bool Magazyn::zapiszCaly(const FormatPliku& f, const std::string& sciezka, const std::vector<std::string>& wiersze,
                          int wersja) {
   if (!pliki_.zamontowane()) return false;
+  if (nieczytelny(sciezka)) return false;  // T-WYM-19: wiersz logu zapisał już oznaczNieczytelny()
   std::string krotka = nazwaPliku(sciezka);
   for (auto& w : wiersze)
     if (w.find('\n') != std::string::npos || w.find('\r') != std::string::npos) {
@@ -349,6 +399,13 @@ bool Magazyn::zapiszCaly(const FormatPliku& f, const std::string& sciezka, const
   return true;
 }
 
+// bezpieczne tylko dla plików, których treść jest w całości nowa (kopia stanu, R-DS-33): poprzednia treść
+// nie wchodzi do nowej i nikt jej nie czyta, więc nieprzeczytana nie może zostać obcięta ani zgubiona przez
+// przepisanie z pamięci. Dopisanie ścieżki tutaj wymaga tego samego uzasadnienia.
+bool Magazyn::nadpisywanyWCalosci(const std::string& sciezka) {
+  return sciezka == SCIEZKA_KOPII_DOBREGO_STARTU;
+}
+
 bool Magazyn::zapisz(const std::string& nazwa, const std::string& sciezka, const std::vector<std::string>& wiersze) {
   const FormatPliku* f = formatPliku(rejestr_, nazwa);
   if (!f || f->wersja() < 1) return false;
@@ -358,22 +415,58 @@ bool Magazyn::zapisz(const std::string& nazwa, const std::string& sciezka, const
     loguj("zapis " + nazwaPliku(sciezka) + ": plik czeka na migrację, bez zapisu");
     return false;
   }
-  return zapiszCaly(*f, sciezka, wiersze);
+  // plik, który jest na nośniku, a nie był w tym wybudzeniu przeczytany (np. pominięty przez niepełną listę
+  // katalogu), nie jest przepisywany z pamięci: wołający nie ma jego treści. Pierwsze utworzenie pliku (nie ma go)
+  // i plik przeczytany albo zapisany wcześniej w tym wybudzeniu: zapis jak dotąd. Plik nadpisywany w całości
+  // (nadpisywanyWCalosci()) pomija tylko tę jedną kontrolę.
+  if (!nadpisywanyWCalosci(sciezka) && !przeczytany(sciezka) && naNosniku(sciezka)) {
+    if (!nieczytelny(sciezka)) {
+      nieczytelne_.push_back(sciezka);
+      loguj("zapis " + nazwaPliku(sciezka) + ": plik jest, a nie był w tym wybudzeniu przeczytany, bez zapisu do końca "
+            "wybudzenia");
+    }
+    return false;
+  }
+  if (!zapiszCaly(*f, sciezka, wiersze)) return false;
+  oznaczPrzeczytany(sciezka);
+  return true;
 }
 
 bool Magazyn::dopisz(const std::string& nazwa, const std::string& sciezka, const std::string& wiersz) {
   const FormatPliku* f = formatPliku(rejestr_, nazwa);
   if (!f || f->wersja() < 1 || !pliki_.zamontowane()) return false;
   if (tylkoDoOdczytu(sciezka)) return false;
+  if (nieczytelny(sciezka)) return false;  // T-WYM-19
   if (starszy(sciezka)) {
     odrzuconoStarszy_ = true;
     return false;
   }
   if (wiersz.find('\n') != std::string::npos || wiersz.find('\r') != std::string::npos) return false;
   std::string krotka = nazwaPliku(sciezka);
-  if (!pliki_.istnieje(sciezka.c_str())) return zapiszCaly(*f, sciezka, {wiersz});
-  std::string l;
-  int w = pliki_.pierwszyWiersz(sciezka.c_str(), l) ? wersjaNaglowka(f->nazwa, l) : -1;
+  if (!naNosniku(sciezka)) return zapiszCaly(*f, sciezka, {wiersz});  // nowy plik tylko, gdy go nie ma
+  std::string l, cala;
+  bool pierwszy = pliki_.pierwszyWiersz(sciezka.c_str(), l);
+  bool pelny = false, calaCzytelna = false;
+  if (!pierwszy || wersjaNaglowka(f->nazwa, l) < 1) {
+    pelny = true;
+    // nagłówek nieczytelny albo pierwszy wiersz się nie przeczytał (na panelu readStringUntil() przy błędzie
+    // daje ""): potwierdzenie pełnym odczytem, zanim plik zostanie odłożony jako `.uszkodzony`
+    calaCzytelna = pliki_.czytaj(sciezka.c_str(), cala);
+    if (calaCzytelna) {
+      size_t k = cala.find('\n');
+      l = cala.substr(0, k == std::string::npos ? cala.size() : k);
+      if (!l.empty() && l.back() == '\r') l.pop_back();
+      pierwszy = !cala.empty();
+    }
+  }
+  if (pelny && !calaCzytelna) {
+    // T-WYM-19: plik jest, a nie da się przeczytać ani pierwszego wiersza, ani treści: odczyt nieudany, nie
+    // nagłówek nieczytelny, więc bez odkładania jako `.uszkodzony` i bez nowego pliku (dawniej dziennik zaczynał się
+    // od nowa). Plik pusty (treść czytelna, bez wiersza) idzie dalej jak plik bez nagłówka.
+    oznaczNieczytelny(sciezka);
+    return false;
+  }
+  int w = pierwszy ? wersjaNaglowka(f->nazwa, l) : -1;
   if (w < 1) {  // nagłówek nieczytelny: plik odłożony, nowy od tego wiersza
     std::string u = odlozUszkodzony(sciezka);
     loguj(krotka + ": plik bez czytelnego nagłówka, odłożony jako " + nazwaPliku(u.empty() ? sciezka : u) + ", nowy plik");
@@ -627,7 +720,7 @@ std::vector<std::string> Magazyn::plikiNowejSciezki(const FormatPliku& f) {
   size_t r = f.sciezka.find(RRRR);
   if (r == std::string::npos) {
     for (const std::string& s : {f.sciezka, f.sciezka + ".tmp"})
-      if (pliki_.istnieje(s.c_str())) v.push_back(s);
+      if (naNosniku(s)) v.push_back(s);  // plik nowej ścieżki, który się nie otwiera, też się liczy
     return v;
   }
   std::string kat = f.sciezka.substr(0, r), ogon = f.sciezka.substr(r + strlen(RRRR));
@@ -721,6 +814,11 @@ bool Magazyn::scalZrodlo(const FormatPliku& f, WynikMigracji& wy, uint32_t crcZr
     if (o.stan == StanPliku::NOWSZY) {
       ok = false;
       wy.powod = "plik " + nazwaPliku(kv.first) + " w wersji " + std::to_string(o.wersja);
+      break;
+    }
+    if (o.stan == StanPliku::NIECZYTELNY) {  // scalenie powtórzy się przy następnym starcie
+      ok = false;
+      wy.powod = "odczyt " + nazwaPliku(kv.first) + " nieudany";
       break;
     }
     int d = 0;
@@ -978,6 +1076,10 @@ Magazyn::WynikPrzywracania Magazyn::przywrocZKatalogu(const std::string& katalog
       OdczytPliku o = czytaj(f.nazwa, kv.first);
       if (o.stan == StanPliku::NOWSZY) {
         wy.powod = "plik " + nazwaPliku(kv.first) + " w wersji " + std::to_string(o.wersja);
+        break;
+      }
+      if (o.stan == StanPliku::NIECZYTELNY) {  // bez scalenia z pustą pamięcią, bez zapisu zestawu
+        wy.powod = "odczyt " + nazwaPliku(kv.first) + " nieudany";
         break;
       }
       if (f.nazwa == "noce")

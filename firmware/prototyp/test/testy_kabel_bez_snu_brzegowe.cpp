@@ -548,6 +548,7 @@ static void testUsterkaWarstwy() {
 }
 
 // ---------- R2: ta sama usterka na dyrygencie (dane nocy) ----------
+static int wierszyR2b = -1;  // wiersze pliku nocy na końcu R2b (bez usterki); R2b biegnie przed R2
 static void testUsterkaPlikuNocy() {
   Bieg A(false, "2026-11-08", 60, 7), B(true, "2026-11-08", 60, 7);
   Panel tmp;
@@ -571,9 +572,16 @@ static void testUsterkaPlikuNocy() {
   SPRAWDZ(ws.uzbrojono);
   SPRAWDZ(ws.niezgodnych == 0);
   SPRAWDZ(liczWiersze(A) == liczWiersze(B));
-  // informacyjnie: na OBU ścieżkach (także obecnej z głębokim snem) jeden nieudany odczyt pliku nocy daje
-  // `historia: 0 nocy`, a import tego samego wybudzenia przepisuje plik roku samymi nowymi nocami (63 → 14 wierszy,
-  // R2b bez usterki: 66). Usterka sprzed ADR-0047, poza zakresem tej zmiany.
+  // (zmiana 2026-11-22, T-WYM-19, T-TEST-515): dawniej na OBU ścieżkach jeden nieudany odczyt pliku nocy dawał
+  // `historia: 0 nocy`, a import tego samego wybudzenia przepisywał plik roku samymi nowymi nocami (63 → 14 wierszy).
+  // Teraz magazyn rozróżnia „plik jest, odczyt nieudany” od braku pliku: w tym wybudzeniu bez zapisu pliku nocy,
+  // następne czyta całą historię, więc na końcu tyle wierszy co bez usterki (R2b, wierszyR2b).
+  SPRAWDZ(wierszyR2b > 0);
+  SPRAWDZ(liczWiersze(A) == wierszyR2b);
+  SPRAWDZ(liczWiersze(B) == wierszyR2b);
+  bool wLogu = false;
+  for (auto& l : A.p.port.log) wLogu = wLogu || l.find("noce/2026.csv: odczyt nieudany") != std::string::npos;
+  SPRAWDZ(wLogu);
 }
 
 // to samo bez usterki (punkt odniesienia: ile wierszy ma plik nocy bez usterki)
@@ -598,6 +606,72 @@ static void testBezUsterki() {
          wierszy(B), ws.niezgodnych);
   SPRAWDZ(ws.niezgodnych == 0);
   SPRAWDZ(wierszy(A) >= start);
+  wierszyR2b = wierszy(A);
+}
+
+// R2d (T-WYM-19, T-TEST-515, dopisany 22.11.2026): trwała usterka odczytu wszystkich plików `/dane/…` i `/log/…`,
+// które istnieją po dobie przed usterką (w tym scenariuszu: noce/2026, reguły, sypialnia/2026, dziennik wybudzeń;
+// humor, czynniki, odpowiedzi, portret, dobry start i stan pobierania w tej dobie nie powstają, sprawdza je O1 i O3
+// w test/testy_odczyt_nieudany.cpp na samym magazynie), przez całą dobę z importem nocy i naciśnięciami, na obu
+// ścieżkach (A głęboki sen, B czekanie na kablu). Każdy z tych plików zostaje bajt w bajt, obie ścieżki zgodne, w logu
+// wiersz „odczyt nieudany”; po naprawie nośnika następna doba dopisuje nowe noce do pełnej historii.
+static void testTrwalaUsterkaWszystkichPlikow() {
+  Bieg A(false, "2026-11-08", 60, 11), B(true, "2026-11-08", 60, 11);
+  Opcje o;
+  for (int d = 9; d <= 11; d++) {
+    o.stale.push_back({ep(2026, 11, d, 9, 10), BIT_PRAWY});
+    o.stale.push_back({ep(2026, 11, d, 13, 40), BIT_PRAWY});
+    o.stale.push_back({ep(2026, 11, d, 21, 5), BIT_SRODEK});
+  }
+  // doba bez usterki: powstają dzienniki, czynniki, reguły, stan pobierania
+  symuluj(A, B, ep(2026, 11, 9, 4, 50), ep(2026, 11, 9, 23, 0), o, "R2d/przed");
+  auto dane = [](const std::string& s) { return s.rfind("/dane/", 0) == 0 || s.rfind("/log/", 0) == 0; };
+  std::map<std::string, std::string> przedA, przedB;
+  for (auto& kv : A.p.pliki.pliki)
+    if (dane(kv.first)) przedA[kv.first] = kv.second;
+  for (auto& kv : B.p.pliki.pliki)
+    if (dane(kv.first)) przedB[kv.first] = kv.second;
+  for (auto& kv : przedA) A.p.pliki.nieczytelne.insert(kv.first);
+  for (auto& kv : przedB) B.p.pliki.nieczytelne.insert(kv.first);
+  B.nowyProgram();  // start zasilania na początku symuluj(): RAM (także pamięć plików) od zera
+  size_t log0 = A.p.port.log.size();
+  WynikSym ws = symuluj(A, B, ep(2026, 11, 10, 4, 50), ep(2026, 11, 10, 23, 0), o, "R2d");
+  int zmienioneA = 0, zmienioneB = 0;
+  for (auto& kv : przedA) zmienioneA += A.p.pliki.pliki[kv.first] != kv.second;
+  for (auto& kv : przedB) zmienioneB += B.p.pliki.pliki[kv.first] != kv.second;
+  bool wLogu = false;
+  for (size_t i = log0; i < A.p.port.log.size(); i++)
+    wLogu = wLogu || A.p.port.log[i].find(": odczyt nieudany, plik zostaje bez zmian") != std::string::npos;
+  Panel tmp;
+  Magazyn mag(tmp.pliki, bezLogu);
+  std::string sc = mag.sciezkaRoku("noce", "2026");
+  auto wierszy = [&](Bieg& x) {
+    auto i = x.p.pliki.pliki.find(sc);
+    return i == x.p.pliki.pliki.end() ? -1 : (int)std::count(i->second.begin(), i->second.end(), '\n');
+  };
+  int nocyPrzed = (int)std::count(przedA[sc].begin(), przedA[sc].end(), '\n');
+  printf("R2d trwała usterka odczytu %zu plików danych przez dobę: zmienionych A %d B %d, przebiegów %d, niezgodnych %d, "
+         "wiersz w logu %d\n",
+         przedA.size(), zmienioneA, zmienioneB, ws.przebiegow, ws.niezgodnych, (int)wLogu);
+  std::string nazwy;
+  for (auto& kv : przedA) nazwy += " " + kv.first;
+  printf("  pliki z usterką:%s\n", nazwy.c_str());
+  SPRAWDZ(przedA.size() >= 4);  // plik nocy i pliki zapisane w dobie przed usterką (lista wyżej w wyniku testu)
+  SPRAWDZ(przedA.count(sc) == 1);
+  SPRAWDZ(zmienioneA == 0);
+  SPRAWDZ(zmienioneB == 0);
+  SPRAWDZ(ws.niezgodnych == 0);
+  SPRAWDZ(wLogu);
+  // nośnik sprawny: następna doba czyta pełną historię i dopisuje nowe noce
+  A.p.pliki.nieczytelne.clear();
+  B.p.pliki.nieczytelne.clear();
+  B.nowyProgram();
+  WynikSym po = symuluj(A, B, ep(2026, 11, 11, 4, 50), ep(2026, 11, 11, 23, 0), o, "R2d/po");
+  printf("R2d po naprawie: wierszy pliku nocy przed usterką %d, na końcu A %d B %d, niezgodnych %d\n", nocyPrzed,
+         wierszy(A), wierszy(B), po.niezgodnych);
+  SPRAWDZ(wierszy(A) > nocyPrzed);
+  SPRAWDZ(wierszy(A) == wierszy(B));
+  SPRAWDZ(po.niezgodnych == 0);
 }
 
 // przejściowy błąd odczytu /konfiguracja.txt tuż po jej zapisie komendą `W` (obie ścieżki czytają wtedy nośnik)
@@ -697,8 +771,9 @@ int main() {
   testUsterkaWarstwy();
   testBlokada();
   testWylacznikWTymSamymPrzebiegu();
-  testUsterkaPlikuNocy();
   testBezUsterki();
+  testUsterkaPlikuNocy();
+  testTrwalaUsterkaWszystkichPlikow();
   testUsterkaKonfiguracji();
   testLosowe();
   printf("testy_kabel_bez_snu_brzegowe: %d dobrze, %d źle\n", ok, zle);

@@ -25,6 +25,11 @@ Kontrole (błąd = kod wyjścia 1 i komunikat po polsku na stderr):
   - zależności (`wymaga`, `zlozenie.skladniki`, `trwanie.regula`) bez cyklu: wiersze są układane tak, żeby składnik
     był oceniany przed regułą, która go używa (poza tym kolejność plików E, L, H i wierszy w pliku).
 
+Porady programu „Dobry start” (ADR-0049): gdy katalog ma porady.csv, dwa kolejne pliki `porady` i `ankieta`
+(tools/zestaw/porady.py: kontrola ID, planu, długości tekstów krojami panelu i test ADR-0002) w zestawie_wbudowany.h
+jako PORADY i ANKIETA, z tym samym identyfikatorem zestawu i własnym skrótem; identyfikator zestawu liczy się
+z treści reguł (porady go nie zmieniają). Bez porady.csv PORADY i ANKIETA są puste (panel: program czeka, R-DS-36).
+
 Skrót `skrot=sha256:…` liczy się z bajtów UTF-8 pliku po pierwszym wierszu (z końcowym `\\n`), tak jak
 reguly::wczytajZestaw() w src/reguly.cpp.
 
@@ -40,6 +45,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import porady  # noqa: E402  (porady programu „Dobry start”, tools/zestaw/porady.py)
 
 TU = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(TU))
@@ -583,7 +591,7 @@ def zrodlo_z_naglowka(sciezka_h, zestaw):
 
 def z_naglowkami(cialа, zestaw, pochodzenie, fw_od, fw_do, zamrozenie, zrodlo):
     wynik = []
-    for rodzaj, c in zip(("progi", "katalog", "teksty"), cialа):
+    for rodzaj, c in zip(("progi", "katalog", "teksty", "porady", "ankieta"), cialа):
         skrot = hashlib.sha256(c.encode("utf-8")).hexdigest()
         wynik.append("#cpap-eink %s 1 zestaw=%s pochodzenie=%s firmware=%s..%s tryby=%s zamrozenie=%s zrodlo=%s "
                      "skrot=sha256:%s\n%s" % (rodzaj, zestaw, pochodzenie, fw_od, fw_do, TRYBY, zamrozenie, zrodlo,
@@ -592,7 +600,8 @@ def z_naglowkami(cialа, zestaw, pochodzenie, fw_od, fw_do, zamrozenie, zrodlo):
 
 
 def naglowek_cpp(pliki):
-    nazwy = ("PROGI", "KATALOG", "TEKSTY")
+    nazwy = ("PROGI", "KATALOG", "TEKSTY", "PORADY", "ANKIETA")
+    pliki = list(pliki) + [""] * (len(nazwy) - len(pliki))  # bez porady.csv: puste PORADY i ANKIETA
     # REUSE-IgnoreStart (znacznik SPDX jako tekst w kodzie, nie licencja tego pliku)
     out = ["// SPDX-License-Identifier: GPL-3.0-or-later",
            "// WYGENEROWANE przez tools/zestaw/buduj_zestaw.py ze spec funkcjonalnej, docs/spec/progi.csv",
@@ -636,13 +645,17 @@ def main(argv=None):
         if not re.fullmatch(r"[A-Za-z0-9._-]+", zestaw):
             raise BladZestawu("--zestaw `%s`: tylko litery, cyfry i . _ -" % zestaw)
         zrodlo = o.zrodlo or (not o.bez_h and zrodlo_z_naglowka(o.h, zestaw)) or zrodlo_git()
-        pliki = z_naglowkami(cial, zestaw, o.pochodzenie, o.firmware, fw_do, o.zamrozenie, zrodlo)
+        try:
+            por = porady.buduj_porady(o.katalog)  # ADR-0049: porady programu „Dobry start” (None bez porady.csv)
+        except porady.BladPorad as e:
+            raise BladZestawu("porady: %s" % e)
+        pliki = z_naglowkami(cial + (por or []), zestaw, o.pochodzenie, o.firmware, fw_do, o.zamrozenie, zrodlo)
     except BladZestawu as e:
         print("BŁĄD zestawu reguł: %s" % e, file=sys.stderr)
         return 1
     if o.wyjscie:
         os.makedirs(o.wyjscie, exist_ok=True)
-        for n, p in zip(("progi.csv", "katalog.csv", "teksty.csv"), pliki):
+        for n, p in zip(("progi.csv", "katalog.csv", "teksty.csv", "porady.csv", "ankieta.csv"), pliki):
             with open(os.path.join(o.wyjscie, n), "w", encoding="utf-8", newline="") as f:
                 f.write(p)
     if not o.bez_h:
@@ -650,6 +663,8 @@ def main(argv=None):
             f.write(naglowek_cpp(pliki))
     print("zestaw %s: %d progów, %d wierszy katalogu, %d tekstów" % (
         zestaw, pliki[0].count("\n") - 2, pliki[1].count("\n") - 2, pliki[2].count("\n") - 2))
+    if len(pliki) > 3:
+        print("porady: %d, pytania ankiety: %d" % (pliki[3].count("\n") - 2, pliki[4].count("\n") - 2))
     return 0
 
 

@@ -50,6 +50,7 @@ jobs:
   # Heavier core gates (about 3–4 min on 2 cores); the same commands as tools/jakosc/sprawdz.sh.
   # Split into three parallel jobs (17.11.2026): together they no longer fit in 90 min
   # (sanitizers alone took 68 min after the charger-limit and on-cable tests).
+  # 22.11.2026: 116 test programs, sanitizers 76.5 min of 120 (below 2/3 of the limit), no further split.
   jakosc:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -86,7 +87,7 @@ jobs:
 
   jakosc-pokrycie:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90  # 22.11.2026: 40.4 min for 116 programs, over 2/3 of the 60 limit; coverage cannot be split without merging .gcda
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
         with:
@@ -135,6 +136,9 @@ jobs:
           pio run -e e1001 2>&1 | tee pio.log
       - name: Budżet rozmiaru (Flash ≤ 80%, RAM ≤ 60%)
         run: python3 ../../tools/jakosc/budzet_pio.py pio.log
+      # the fallback switch must always build; about 3 min more (job about 5.5 min, limit 30 min)
+      - name: Kompilacja e1001 z wyłącznikiem wysyłki blokiem (EPD_WYSYLKA_BLOKIEM=0)
+        run: PLATFORMIO_BUILD_FLAGS='-DEPD_WYSYLKA_BLOKIEM=0' pio run -e e1001
       - name: Blokada wgrywania przez Wi-Fi do przejścia na układ 32 MB
         run: |
           if pio run -e e1001_ota -t upload > ota.log 2>&1; then echo "BŁĄD: blokada e1001_ota nie działa"; exit 1; fi

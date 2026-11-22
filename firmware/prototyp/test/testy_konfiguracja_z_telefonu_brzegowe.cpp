@@ -183,7 +183,7 @@ static void token() {
   formularz::Sesja s3;
   s3.otworz(tk, 0, "192.168.1.30");
   SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", "", serwer::CZAS_MS, "S").kod == 404);
-  // ciało ponad limit: 413, bez rozkładu (limit MAKS_CIALA, od 14.11.2026 8 KB); na samym limicie przyjęte
+  // ciało ponad limit: 413, bez rozkładu (limit MAKS_CIALA, od 14.11.2026 8 KB, od 22.11.2026 10 KB); na samym limicie przyjęte
   SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", std::string(formularz::MAKS_CIALA + 1, 'a'), 1, "S").kod == 413);
   SPRAWDZ("trzyma", s3.obsluz("POST", "/u/" + tk + "/", std::string(formularz::MAKS_CIALA, 'a'), 1, "S").kod == 200);
 }

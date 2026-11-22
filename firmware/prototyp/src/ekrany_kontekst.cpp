@@ -378,3 +378,43 @@ void rysujEkranKontekstu(Plotno& p, const Belka& n, const TrescKontekstu& k, con
   StopkaDzienna s{sl, sp};
   if (!sl.empty() || !sp.empty()) stopka(p, s);
 }
+
+// S-K-48 „Porada dnia” (ADR-0049): opis w src/ekrany_kontekst.h.
+void rysujPorade(Plotno& p, const DanePorady& d) {
+  p.prostokat(0, 0, 800, 480, false);
+  belka(p, d.belka);
+  const dobry_start::OpisPorady& o = d.o;
+  bool karta = !d.scena.empty();
+  int dy = 0;
+  if (!d.linia.empty()) {  // R-DS-18: linia uwagi pod belką, etykieta i pasek ustępują (to samo mówi środek belki)
+    int h = liniaUwagiEkranu(p, d.linia, d.liniaA, d.liniaOstrzezenie, false);
+    dy = h > 48 ? h - 48 : 0;
+  } else {
+    if (!o.etykieta.empty()) tekst(p, F_P22B, PORADA_X, 78, o.etykieta);
+    if (o.tydzien > 0 && o.tygodni > 0) {  // pasek tygodni: minione pełne, bieżący z obrysem 2 px i wypełnieniem
+      int x0 = PORADA_PASEK_PRAWO - (o.tygodni - 1) * PORADA_PASEK_KROK - PORADA_PASEK_W;
+      for (int i = 1; i <= o.tygodni; i++) {
+        int x = x0 + (i - 1) * PORADA_PASEK_KROK;
+        if (i < o.tydzien) {
+          p.prostokat(x, PORADA_PASEK_Y, PORADA_PASEK_W, PORADA_PASEK_H, true);
+        } else if (i == o.tydzien) {
+          p.ramka(x, PORADA_PASEK_Y, PORADA_PASEK_W, PORADA_PASEK_H, 2);
+          int w = (PORADA_PASEK_W - 4) * std::max(0, std::min(7, o.wTygodniu)) / 7;
+          if (w > 0) p.prostokat(x + 2, PORADA_PASEK_Y + 2, w, PORADA_PASEK_H - 4, true);
+        } else {
+          p.ramka(x, PORADA_PASEK_Y, PORADA_PASEK_W, PORADA_PASEK_H, 1);
+        }
+      }
+    }
+  }
+  // R-DS-18: tytuł pod paskiem linii uwagi (48 px, przy wzorcu A 60 px) bez nakładania wydłużeń i akcentów SB44
+  tekst(p, F_SB44, PORADA_X, PORADA_TYTUL_Y + dy, o.tytul);
+  const GFXfont* f = karta ? F_P22B : F_P24S;
+  int kol = karta ? PORADA_KOLUMNA_KARTY : PORADA_KOLUMNA, ile = karta ? PORADA_LINIE_KARTY : PORADA_LINIE;
+  int krokLinii = karta ? 30 : 34;
+  std::vector<std::string> l = zawin(f, o.tresc, kol);
+  for (size_t i = 0; i < l.size() && (int)i < ile; i++) tekst(p, f, PORADA_X, PORADA_TRESC_Y + dy + krokLinii * (int)i, l[i]);
+  if (!o.krok.empty()) tekst(p, karta ? F_P22B : F_P24B, PORADA_X, 408, o.krok);
+  if (karta) rysujScene(p, d.scena, 774, 425);  // budzik zawsze na bieli (ADR-0009)
+  stopka(p, d.stopka);
+}

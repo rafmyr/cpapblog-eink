@@ -34,6 +34,7 @@ struct LittleFSFS {
   bool remove(const String&) { return true; }
   bool mkdir(const char*) { return true; }
   bool mkdir(const String&) { return true; }
+  const char* mountpoint() { return "/littlefs"; }  // FS::mountpoint() (FS.h), ścieżka bazowa VFS z begin()
   size_t totalBytes() { return 0; }
   size_t usedBytes() { return 0; }
 };

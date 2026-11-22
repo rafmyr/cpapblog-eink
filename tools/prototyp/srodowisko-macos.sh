@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Środowisko testów na macOS: katalog z dowiązaniami g++, gcc, grep, xargs i nproc do narzędzi GNU z Homebrew
-# (tools/prototyp/testy.sh potrzebuje GNU g++, GNU grep z -P, GNU xargs i nproc). Na standardowe wyjście wypisuje
+# Środowisko testów na macOS: katalog z dowiązaniami g++, gcc, grep, xargs, nproc i date do narzędzi GNU z Homebrew
+# (tools/prototyp/testy.sh potrzebuje GNU g++, GNU grep z -P, GNU xargs, nproc i GNU date z `-d`). Na standardowe wyjście wypisuje
 # jedną linię `export PATH=...`, więc wystarczy:
 #   brew install gcc grep findutils coreutils
 #   eval "$(bash tools/prototyp/srodowisko-macos.sh)"
@@ -29,7 +29,7 @@ fi
 GCC="${GPP/g++-/gcc-}"
 
 braki=()
-for p in "$GCC" "$BIN/ggrep" "$BIN/gxargs" "$BIN/gnproc"; do
+for p in "$GCC" "$BIN/ggrep" "$BIN/gxargs" "$BIN/gnproc" "$BIN/gdate"; do
   [ -x "$p" ] || braki+=("$p")
 done
 if [ "${#braki[@]}" -gt 0 ]; then
@@ -44,5 +44,6 @@ ln -sf "$GCC" "$KAT/gcc"
 ln -sf "$BIN/ggrep" "$KAT/grep"
 ln -sf "$BIN/gxargs" "$KAT/xargs"
 ln -sf "$BIN/gnproc" "$KAT/nproc"
+ln -sf "$BIN/gdate" "$KAT/date"  # norma_tymczasowa_roznicowy.sh: `date -d`
 echo "środowisko testów: $KAT (g++ -> $(basename "$GPP"))" >&2
 printf 'export PATH="%s:$PATH"\n' "$KAT"

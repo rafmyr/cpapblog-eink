@@ -749,6 +749,13 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
     // więc nie są tu „pominiętym wierszem” w logu
     if (k == "raport" || k == "raport.czynniki") continue;
     if (wierszUkladu(k, v, u.ekrany, u.bledy)) continue;  // ADR-0045: części złe w `bledy`, reszta działa
+    {  // ADR-0049: klucze `start.*` programu „Dobry start” (zła wartość: domyślna i wpis w `bledy`)
+      std::string b;
+      if (dobry_start::ustawienie(u.start, k, v, b)) {
+        if (!b.empty()) u.bledy.push_back(l);
+        continue;
+      }
+    }
     bool ok = false;
     int m = 0;
     if (k == "wymiana.maska") { ok = dataOk(v); if (ok) u.sprzet[EL_MASKA].wymieniono = v; }
