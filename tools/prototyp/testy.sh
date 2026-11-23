@@ -509,6 +509,9 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_otoczenie_zegar_kab
 echo "testy brzegowe źródła otoczenia po czekaniu (test/testy_otoczenie_zegar_kabel_brzegowe.cpp: budzetCialaMinal() i przebiegi po czekaniu przy przepełnieniu millis(), budżet po przepełnieniu)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_otoczenie_zegar_kabel_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_otoczenie_zegar_kabel_brzegowe"
 "$BUD/testy_otoczenie_zegar_kabel_brzegowe"  # blokuje przy błędzie
+echo "testy ciszy źródła otoczenia (test/testy_co2_cisza.cpp: T-TEST-523, R-AW-41: linia E-08 po 3 h od pierwszej nieudanej próby, raz na epizod, restart w trakcie, dwie doby, zmiana adresu, przerysowanie, regresja R-AW-27; świeżość CO2 75 min)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_co2_cisza.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_co2_cisza"
+"$BUD/testy_co2_cisza"
 echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
 "$BUD/testy_kolejnosc_portret"

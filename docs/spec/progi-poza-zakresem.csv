@@ -160,16 +160,18 @@ M-26,9 h,parametr techniczny,świeżość pogody z lokalnego źródła otoczenia
 R-AW-07,9 h,parametr techniczny,świeżość pogody jak M-26
 R-AW-25,4 KB,parametr techniczny,największa przyjmowana odpowiedź lokalnego źródła otoczenia
 R-AW-26,2 ponowienia; 2 s; 3 s; 15 s,parametr techniczny,ponowienia zapytania do lokalnego źródła otoczenia (jak R-AW-01)
-§5.4.3,30 min,parametr techniczny,świeżość CO2 w stopce jak R-EKR-10
-R-EKR-10,30 min,parametr techniczny,świeżość odczytu CO2 sypialni w stopce (ADR-0019)
+§5.4.3,75 min,parametr techniczny,świeżość CO2 w stopce jak R-EKR-10
+R-EKR-10,75 min,parametr techniczny,"świeżość odczytu CO2 sypialni w stopce (ADR-0019); decyzja właściciela projektu 23.11.2026: odczyt w dzień raz na godzinę (do 23.11.2026 30 min); src/otoczenie.h OTO_SWIEZOSC_SYPIALNI_S"
 E-08,60 min,parametr techniczny,próg ostrzeżenia co2_milczy liczony po stronie źródła (Załącznik C)
 §Załącznik C. Lokalne źródło danych otoczenia (kontrakt wersji 1),4 KB,parametr techniczny,jak R-AW-25
 Załącznik C. Lokalne źródło danych otoczenia (kontrakt wersji 1)|pogoda,9 h,parametr techniczny,jak M-26
-Załącznik C. Lokalne źródło danych otoczenia (kontrakt wersji 1)|sypialnia,30 min,parametr techniczny,jak R-EKR-10
+Załącznik C. Lokalne źródło danych otoczenia (kontrakt wersji 1)|sypialnia,30 min,parametr techniczny,granica po stronie źródła (blok null przy starszym pomiarze); panel przy rysowaniu 75 min (R-EKR-10)
 R-AW-26,1 próba; 6 s,parametr techniczny,po wybudzeniu bez odpowiedzi i w slocie nocnym
+R-AW-41,3 h,czas interfejsu,"linia E-08 przy ciszy samego źródła otoczenia: po ilu godzinach od pierwszej nieudanej próby po ostatniej udanej odpowiedzi (decyzja domyślna 23.11.2026, do korekty; src/otoczenie.h OTO_CISZA_CO2_S)"
 5.4.2|S2c,1000 ppm,powtórzenie,= R-EKR-54.co2_mediana
 8.1|źródło otoczenia niedostępne (R-AW-26),15 s; 6 s,parametr techniczny,budżet energii przy niedostępnym źródle otoczenia
-M-23,30 min,parametr techniczny,świeżość odczytu CO2 sypialni w stopce jak R-EKR-10 (ADR-0019)
+M-23,75 min,parametr techniczny,świeżość odczytu CO2 sypialni w stopce jak R-EKR-10 (ADR-0019)
+R-KON-44,75 min,parametr techniczny,świeżość odczytu CO2 do wariantu CO2 S-K-33 jak R-EKR-10 (do 23.11.2026 30 min)
 §5.4.2,1000 ppm,powtórzenie,= R-EKR-54.co2_mediana (zdanie pod tabelą stanu kolumny S2c)
 R-EKR-57,"godziny okna (05:00, 11:00, 23:30)",czas interfejsu,"S10 przed 11:00 albo przy nocy w budowie; te same godziny co R-DANE-19, R-DANE-20"
 R-AW-35,"początek okna dnia (05:00)",czas interfejsu,"ekran przy odrzuconym logowaniu od pierwszej próby w oknie dnia; ta sama godzina co R-EKR-57"

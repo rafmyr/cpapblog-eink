@@ -363,6 +363,27 @@ bool pokazE08(bool aktywne, bool bezOstrzezenia, uint32_t od, const std::string&
   return s.dzien == dzis;
 }
 
+bool probaNieudanaOtoczenia(const Otoczenie& o) {
+  return o.magia == OTO_MAGIA && usterkaOtoczenia(o) && (StanOto)o.stan != StanOto::POZA_SIECIA;
+}
+
+uint32_t ciszaPoProbie(const Otoczenie& o, uint32_t ciszaOd, uint32_t teraz) {
+  if (o.magia != OTO_MAGIA) return ciszaOd;
+  if ((StanOto)o.stan == StanOto::OK) return 0;
+  if (!probaNieudanaOtoczenia(o)) return ciszaOd;
+  if (ciszaOd) return ciszaOd;
+  return teraz;  // od pierwszej nieudanej próby, nie od ostatniej udanej odpowiedzi
+}
+
+uint32_t czasLiniiCiszy(uint32_t ciszaOd, uint32_t ostatniaUdana) {
+  return ostatniaUdana && ostatniaUdana <= ciszaOd ? ostatniaUdana : ciszaOd;
+}
+
+bool ciszaZrodlaTeraz(const Otoczenie& o, uint32_t ciszaOd, uint32_t teraz) {
+  return probaNieudanaOtoczenia(o) && ciszaOd != 0 && teraz != 0 && teraz >= ciszaOd &&
+         teraz - ciszaOd >= OTO_CISZA_CO2_S;
+}
+
 // R-NF-27: adres w sieci lokalnej (kontrakt w otoczenie.h). Sama analiza tekstu: schemat, host (bez `@`), port.
 static bool oktet(const std::string& t, int& v) {
   if (t.empty() || t.size() > 3) return false;

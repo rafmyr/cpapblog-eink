@@ -53,7 +53,7 @@ Co2Nocy co2ZNocy(const NocSypialni* n);
 struct WejscieWieczoru {
   std::string dzis;          // data wieczoru (jutro rano będzie data poranka dzis+1)
   const Co2Nocy* noc = nullptr;  // zeszła noc (data poranka dzis)
-  int co2Teraz = -1;         // odczyt nie starszy niż 30 min, -1 = brak
+  int co2Teraz = -1;         // odczyt nie starszy niż 75 min, -1 = brak
   float pm25ZaOknem = NAN;   // M-27 teraz (źródło lokalne albo prognoza), NAN = brak
   float pm25Sypialni = NAN;  // brak w kontrakcie wersji 1
   float tempSypialni = NAN;  // do tabeli konfliktów 5.8.5 (≤ 16 °C: krok z otuliną)

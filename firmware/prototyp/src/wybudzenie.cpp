@@ -217,7 +217,8 @@ KontekstNaw kontekstNawigacji(Ekran e, const DecyzjaNocy& dn, bool s5, bool s10,
 
 // Linia uwagi ekranu dnia: zaproszenie albo E-08.
 LiniaDnia liniaDnia(bool zaproszenieAktywne, const std::string& typ, const Otoczenie& o, uint32_t teraz,
-                    const std::string& dzis, StanE08& st, bool co2) {
+                    const std::string& dzis, StanE08& st, bool co2, StanE08* cisza, uint32_t ciszaOd,
+                    uint32_t ciszaUdana) {
   LiniaDnia l;
   l.zaproszenie = zaproszenieAktywne && typ != "S5";  // R-CZY-17 fail-path: na S5 linia nie powstaje
   if (!l.zaproszenie && typ != "S5" && co2) {
@@ -225,6 +226,16 @@ LiniaDnia liniaDnia(bool zaproszenieAktywne, const std::string& typ, const Otocz
     bool zm = false;
     l.e08 = pokazE08(co2MilczyTeraz(o, teraz), swiezaOdp && !o.co2Milczy, o.co2MilczyOd, dzis, st, zm);
     l.zapiszE08 = zm;
+    l.e08Od = o.co2MilczyOd;
+    if (cisza) {  // R-AW-41: cisza samego źródła (wyklucza się ze świeżym ostrzeżeniem: to wymaga udanej odpowiedzi)
+      bool zc = false;
+      bool c = pokazE08(ciszaZrodlaTeraz(o, ciszaOd, teraz), swiezaOdp, ciszaOd, dzis, *cisza, zc);
+      l.zapiszCisza = zc;
+      if (c && !l.e08) {
+        l.e08 = l.e08Cisza = true;
+        l.e08Od = czasLiniiCiszy(ciszaOd, ciszaUdana);
+      }
+    }
   }
   return l;
 }

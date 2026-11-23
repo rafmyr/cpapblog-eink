@@ -95,7 +95,7 @@ struct WejscieWietrzenia {
   std::string dzis;
   int godzina = -1;      // bieżąca pełna godzina (0…23)
   float przyLozku = NAN; // M-22, czujnik panelu z tego wybudzenia (R-AW-13: NAN = brak, S-K-33 pominięte)
-  int co2 = -1;          // CO2 sypialni z odczytu nie starszego niż 30 min (M-23); -1 = brak
+  int co2 = -1;          // CO2 sypialni z odczytu nie starszego niż 75 min (M-23); -1 = brak
   PylkiDnia pylki;
 };
 

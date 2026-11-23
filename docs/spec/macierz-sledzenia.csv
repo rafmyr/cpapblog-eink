@@ -527,6 +527,8 @@ R-AW-17,R-LEK-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-17
 R-AW-07,M-26,M,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-07
 R-AW-25,R-NF-27,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
 R-AW-25,R-AW-26,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
+R-AW-25,E-08,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
+R-AW-25,R-AW-41,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-25
 R-AW-26,R-AW-01,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-26
 R-AW-27,E-08,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-27
 R-AW-19,R-AW-20,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-19
@@ -645,6 +647,12 @@ R-AW-39,U-06,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
 R-AW-39,R-NF-29,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-39
 R-AW-39,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
 R-AW-40,U-05,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-40
+R-AW-41,R-AW-25,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
+R-AW-41,R-AW-26,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
+R-AW-41,E-08,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
+R-AW-41,R-AW-27,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
+R-AW-41,U-05,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
+R-AW-41,R-EKR-60,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
 R-AW-22,R-AW-02,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
 R-AW-22,R-DANE-07,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22
 R-AW-22,E-03,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-22

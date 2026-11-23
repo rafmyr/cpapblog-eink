@@ -15,9 +15,13 @@
 
 const int OTO_WERSJA = 1;            // jedyna obsługiwana wersja kontraktu; inna = brak źródła (i log)
 const size_t OTO_MAX_BAJTOW = 4096;  // kontrakt: odpowiedź < 2 KB; większa jest odrzucana (bez parsowania)
-// Świeżość kopii na panelu (od `ts` bloku do chwili rysowania), te same granice co po stronie źródła [PRÓG]:
+// Świeżość kopii na panelu (od `ts` bloku do chwili rysowania) [PRÓG]; pogoda jak po stronie źródła (9 h):
 const uint32_t OTO_SWIEZOSC_POGODY_S = 9 * 3600;  // pogoda i powietrze za oknem
-const uint32_t OTO_SWIEZOSC_SYPIALNI_S = 30 * 60;  // CO2 sypialni
+// CO2 sypialni: 75 min [PRÓG], decyzja właściciela projektu (23.11.2026): odczyt w dzień raz na godzinę (rytm 60 min
+// + zapas); wcześniej 30 min, jak granica źródła (`sypialnia` = null przy pomiarze starszym niż 30 min, kontrakt bez zmian).
+// Tę samą świeżość biorą stopka (R-EKR-10), ekrany CO2 (S-K-01, S-K-02, S-K-13, wariant S-K-33), bufor nocy (co2DoBufora(),
+// każdy pomiar raz: `tsCo2WBuforze`) i log odczytu.
+const uint32_t OTO_SWIEZOSC_SYPIALNI_S = 75 * 60;
 const uint32_t OTO_SWIEZOSC_OSTRZEZEN_S = 60 * 60;  // ostrzeżenia z ostatniej udanej odpowiedzi
 const uint32_t OTO_ZAPAS_ZEGARA_S = 10 * 60;       // `ts` z przyszłości o więcej = nieświeże (zegar źródła albo panelu)
 // R-AW-26 (ponowienia jak R-AW-01, czasy dopasowane do kontraktu: odpowiedź < 200 ms) [stałe prototypu]:
@@ -154,3 +158,26 @@ struct StanE08 {
 // epizod; z `od` znanym nowy epizod rozpoznaje tylko inne `od` (to samo `od` po jednej odpowiedzi bez ostrzeżenia, np.
 // chwilowe wahanie źródła, linii nie wraca; druga).
 bool pokazE08(bool aktywne, bool bezOstrzezenia, uint32_t od, const std::string& dzis, StanE08& s, bool& zmiana);
+
+// R-AW-41 (decyzja właściciela projektu, 23.11.2026): cisza samego źródła otoczenia. Ostrzeżenie `co2_milczy` przychodzi tylko
+// w udanej odpowiedzi, więc gdy źródło nie odpowiada (brak odpowiedzi, -400, odmowa, zła wersja, nieczytelna albo za duża
+// odpowiedź, przekierowanie, inny kod HTTP), CO2 po OTO_SWIEZOSC_SYPIALNI_S znikało ze stopki bez komunikatu. Po
+// OTO_CISZA_CO2_S od pierwszej nieudanej próby po ostatniej udanej odpowiedzi (nocą panel
+// źródła nie pyta, więc liczenie od ostatniej udanej dawało linię już po jednej nieudanej próbie rano) panel pokazuje tę
+// samą linię E-08 (`Brak odczytu CO2 od {czas}.`, `{czas}` = ostatnia udana odpowiedź, czasLiniiCiszy()), z osobnym stanem
+// „raz na epizod” (StanE08 w NVS `cpap`, klucze `e08c_od`, `e08c_d`, `e08c_k`).
+const uint32_t OTO_CISZA_CO2_S = 3 * 3600;  // [PRÓG] decyzja domyślna 23.11.2026, do korekty
+// Próba zakończona stanem, który nie daje nowych danych: każdy stan usterki poza POZA_SIECIA (tam panel nie pyta).
+bool probaNieudanaOtoczenia(const Otoczenie& o);
+// Początek ciszy źródła po próbie zapisanej w `o` (nieudanaOtoczenia() albo parsujOtoczenie()). Przyjmuje dotychczasowy
+// początek (`ciszaOd`, epoch; 0 = brak ciszy) i czas próby (`teraz`, 0 = bez zegara). Zwraca: 0 po udanej odpowiedzi
+// (koniec ciszy); po próbie nieudanej dotychczasowy początek, a bez niego czas tej próby, czyli pierwszej nieudanej
+// (0 bez zegara); przy stanach bez próby (wyłączone, jeszcze bez odczytu, adres poza siecią) i bez magii `ciszaOd` bez
+// zmian. Ostatnią udaną odpowiedź (`o.pobrano` w chwili początku ciszy) do tekstu linii przechowuje wołający osobno.
+uint32_t ciszaPoProbie(const Otoczenie& o, uint32_t ciszaOd, uint32_t teraz);
+// `{czas}` linii E-08 z ciszy: ostatnia udana odpowiedź przed ciszą (`ostatniaUdana`), a bez niej (0, np. restart
+// z pustą pamięcią RTC przed pierwszą udaną odpowiedzią albo wartość późniejsza od początku ciszy) początek ciszy.
+uint32_t czasLiniiCiszy(uint32_t ciszaOd, uint32_t ostatniaUdana);
+// Czy trwa cisza źródła do linii E-08 (R-AW-41): ostatnia próba nieudana (probaNieudanaOtoczenia()), początek ciszy
+// znany i od niego minęło co najmniej OTO_CISZA_CO2_S. Bez zegara (`teraz` = 0) albo z początkiem „z przyszłości”: false.
+bool ciszaZrodlaTeraz(const Otoczenie& o, uint32_t ciszaOd, uint32_t teraz);

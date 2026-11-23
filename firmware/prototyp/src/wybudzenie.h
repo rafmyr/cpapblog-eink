@@ -114,7 +114,8 @@ struct StanRtc {
   uint32_t klatkaSkrot = 0;
   uint32_t klatkaOd = 0;
   // R-EKR-60: tryb ('K' karta, 'D' ekran danych; 0 = nieznany) i linia uwagi (0 brak,
-  // 1 zaproszenie R-PIE-08, 2 E-08) ekranu dnia z ostatniego narysowania; przerysowanie bez pobrania ich nie zmienia.
+  // 1 zaproszenie R-PIE-08, 2 E-08, 3 E-08 z ciszy źródła R-AW-41) ekranu dnia z ostatniego narysowania; przerysowanie
+  // bez pobrania ich nie zmienia.
   char dzienTryb = 0;
   uint8_t dzienLinia = 0;
   // Slot dzienny (src/plan.h WejsciePlanu, R-KON-41): czas unix pierwszego zapisu rekordu kompletnego
@@ -380,16 +381,25 @@ KontekstNaw kontekstNawigacji(Ekran e, const DecyzjaNocy& dn, bool s5, bool s10,
 
 struct LiniaDnia {
   bool zaproszenie = false;  // `Co było inaczej? ↻ 2 s` (R-CZY-17)
-  bool e08 = false;          // E-08 `co2_milczy` (grupa „dane”, raz na epizod)
+  bool e08 = false;          // E-08 `co2_milczy` (grupa „dane”, raz na epizod) albo cisza źródła (R-AW-41)
   bool zapiszE08 = false;    // stan E-08 zmieniony: zapis w NVS
+  bool e08Cisza = false;     // linia E-08 z ciszy źródła otoczenia (R-AW-41), nie z ostrzeżenia `co2_milczy`
+  bool zapiszCisza = false;  // stan epizodu ciszy zmieniony: zapis w NVS (`e08c_*`)
+  uint32_t e08Od = 0;        // `{czas}` linii: `od` ostrzeżenia albo początek ciszy źródła (0 = bez czasu)
 };
 // Linia uwagi na ekranie dnia. Przyjmuje, czy zaproszenie jest aktywne (zaproszenieTeraz()),
 // typ ekranu dnia, ostatnią odpowiedź źródła otoczenia, czas unix teraz, datę dziś i stan E-08 (zmieniany).
 // Zwraca: zaproszenie tylko poza S5 (R-CZY-17 fail-path); bez zaproszenia i poza S5 E-08 według pokazE08() z odpowiedzią
 // świeżą (OTO_SWIEZOSC_OSTRZEZEN_S) bez ostrzeżenia jako końcem epizodu; zapiszE08, gdy pokazE08() zmienił stan.
-// `co2`: ekrany CO2 włączone w egzemplarzu (5.8.8); bez nich linii E-08 nie ma
+// `co2`: ekrany CO2 włączone w egzemplarzu (5.8.8); bez nich linii E-08 nie ma.
+// R-AW-41: `cisza` (stan epizodu ciszy źródła, NVS `e08c_*`; nullptr = bez tej linii), `ciszaOd` (początek ciszy =
+// pierwsza nieudana próba, ciszaPoProbie(); klucz epizodu i próg) i `ciszaUdana` (ostatnia udana odpowiedź przed ciszą,
+// 0 = nieznana): gdy nie ma linii z ostrzeżenia, a ciszaZrodlaTeraz(), ta sama linia E-08 z `e08Od` =
+// czasLiniiCiszy(ciszaOd, ciszaUdana), raz na epizod według pokazE08(); koniec epizodu: świeża udana odpowiedź
+// (z ostrzeżeniem albo bez); zapiszCisza przy zmianie.
 LiniaDnia liniaDnia(bool zaproszenieAktywne, const std::string& typ, const Otoczenie& o, uint32_t teraz,
-                    const std::string& dzis, StanE08& st, bool co2 = true);
+                    const std::string& dzis, StanE08& st, bool co2 = true, StanE08* cisza = nullptr,
+                    uint32_t ciszaOd = 0, uint32_t ciszaUdana = 0);
 
 struct PlanWyboru {
   bool zWpisu = false;  // to samo wyświetlenie dnia: tryb, scena i zdanie z dziennika

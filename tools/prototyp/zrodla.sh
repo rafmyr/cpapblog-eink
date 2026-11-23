@@ -108,6 +108,7 @@ TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe.cpp") # testy brzegowe ADR-0047: 
 TESTY+=("$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp") # testy brzegowe ADR-0047, część 2: lista katalogu i nowy rok, usterki nośnika na obu ścieżkach
 TESTY+=("$FW/test/testy_otoczenie_zegar_kabel.cpp") # źródło otoczenia po czekaniu na kablu: dwie podstawy czasu, budżet odczytu ciała względny (T-TEST-519)
 TESTY+=("$FW/test/testy_otoczenie_zegar_kabel_brzegowe.cpp") # testy brzegowe: otoczenie po czekaniu przy przepełnieniu millis() (T-TEST-519)
+TESTY+=("$FW/test/testy_co2_cisza.cpp") # R-AW-41: linia E-08 przy ciszy samego źródła otoczenia (T-TEST-523)
 TESTY+=("$FW/test/testy_odczyt_nieudany.cpp") # T-WYM-19: odczyt nieudany ≠ plik pusty; nieudane dopisanie w logu
 TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe_2.cpp") # testy brzegowe odczytu nieudanego, część 2: legalne zapisy bez odmów, dwa lata, przełom roku
 TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe.cpp") # testy brzegowe odczytu nieudanego: semantyka panelu (LittleFS.exists() = open())

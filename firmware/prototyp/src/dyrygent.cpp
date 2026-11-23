@@ -321,6 +321,13 @@ class Przebieg {
   std::vector<NocSypialni> sypNoce;
   bool otoTeraz = false;  // udana odpowiedź źródła otoczenia w tym wybudzeniu
   StanE08 stanE08;        // E-08 raz na epizod: NVS „cpap”, klucze e08_od, e08_d, e08_k
+  // R-AW-41: cisza źródła otoczenia. Początek ciszy = pierwsza nieudana próba (epoch; 0 = źródło odpowiada albo
+  // nie było próby) w NVS „cpap” `oto_cod`, ostatnia udana odpowiedź przed ciszą (do `{czas}` linii) `oto_cpo`,
+  // suma adresu `oto_cad` (inny adres źródła = bez starej ciszy); zapis tylko przy zmianie, więc przeżywa restart, gdy
+  // pamięć RTC (`r.oto.pobrano`) jest pusta; epizod linii E-08 z ciszy: klucze e08c_od, e08c_d, e08c_k
+  uint32_t ciszaOto = 0;
+  uint32_t ciszaOtoUdana = 0;
+  StanE08 stanCisza;
   std::vector<WpisBaterii> baterie;
   bool baterieWczytane = false;
   uint32_t wifiOdMs = 0;  // ms włączenia Wi-Fi w bieżącej sesji (0 = Wi-Fi wyłączone)
@@ -2930,24 +2937,34 @@ class Przebieg {
     LiniaDnia ld;
     if (zPamieci) {
       ld.zaproszenie = r.dzienLinia == 1;
-      ld.e08 = r.dzienLinia == 2;
+      ld.e08 = r.dzienLinia == 2 || r.dzienLinia == 3;
+      ld.e08Cisza = r.dzienLinia == 3;
+      ld.e08Od = ld.e08Cisza ? czasLiniiCiszy(ciszaOto, ciszaOtoUdana) : r.oto.co2MilczyOd;
     } else {
-      ld = liniaDnia(zaproszenieTeraz(), e.typ, r.oto, teraz(), dzis, stanE08, co2B17());
+      ld = liniaDnia(zaproszenieTeraz(), e.typ, r.oto, teraz(), dzis, stanE08, co2B17(), &stanCisza, ciszaOto,
+                     ciszaOtoUdana);
     }
     bool linia = ld.zaproszenie;
     d.linia = linia ? TEKST_ZAPROSZENIA : "";
     d.liniaOstrzezenie = linia && liniaJestOstrzezeniem(GrupaLinii::PYTANIA);
-    if (ld.e08) {  // E-08 (grupa „dane”, 7.5: pod zaproszeniem z grupy 2a): `co2_milczy`, raz na epizod
+    if (ld.e08) {  // E-08 (grupa „dane”, 7.5: pod zaproszeniem z grupy 2a): `co2_milczy` albo cisza źródła (R-AW-41),
+                   // raz na epizod
       std::string dOd;
       int mOd;
-      dataIMinuta(r.oto.co2MilczyOd, dOd, mOd);
+      dataIMinuta(ld.e08Od, dOd, mOd);
       d.linia = tekstE08(dOd, mOd, dzis);
       d.liniaOstrzezenie = liniaJestOstrzezeniem(GrupaLinii::DANE);
+      if (ld.e08Cisza && !zPamieci) log("E-08: źródło otoczenia nie odpowiada od %s (R-AW-41)", godzina(ld.e08Od).c_str());
     }
     if (ld.zapiszE08) {
       a.nvs.ustawLiczbeU("cpap", "e08_od", stanE08.od);
       a.nvs.ustawTekst("cpap", "e08_d", stanE08.dzien);
       a.nvs.ustawFlage("cpap", "e08_k", stanE08.koniec);
+    }
+    if (ld.zapiszCisza) {
+      a.nvs.ustawLiczbeU("cpap", "e08c_od", stanCisza.od);
+      a.nvs.ustawTekst("cpap", "e08c_d", stanCisza.dzien);
+      a.nvs.ustawFlage("cpap", "e08c_k", stanCisza.koniec);
     }
     if (awariaPamieci()) {  // R-AW-16 (T-WYM-34, R7): awaria pamięci przed pytaniem i danymi (grupa „awarie”, 7.5)
       linia = false;
@@ -3052,7 +3069,7 @@ class Przebieg {
     // R-KONF-61 (decyzja 12 z 15.11.2026): dowód spokoju S2a…S2d, przerywnik, rozruch S6, Portret i drugi
     // ekran poranka to wynik nocy, więc nigdy nie są „bez sprawy” dla informacji (dzienBezSprawy zostaje false)
     r.dzienTryb = w.tryb == 'K' ? 'K' : 'D';
-    r.dzienLinia = linia ? 1 : ld.e08 ? 2 : 0;
+    r.dzienLinia = linia ? 1 : ld.e08 ? (ld.e08Cisza ? 3 : 2) : 0;
     if (zPamieci) log("przerysowanie R-EKR-60: tryb i linia uwagi jak w ostatnim rysowaniu, nowa stopka");
     if (oznaczycZaproszenie(linia, zap)) {  // R-PIE-08: linia liczy się dopiero, gdy była na ekranie
       zap->pokazano = true;
@@ -7569,6 +7586,21 @@ class Przebieg {
     return kod;
   }
 
+  // R-AW-41: początek ciszy źródła po próbie (ciszaPoProbie()); NVS tylko przy zmianie (początek i koniec ciszy).
+  void ciszaPoProbieOto(uint32_t ep) {
+    uint32_t n = ciszaPoProbie(r.oto, ciszaOto, ep);
+    if (n == ciszaOto) return;
+    uint32_t udana = n ? r.oto.pobrano : 0;  // ostatnia udana przed ciszą (0 po restarcie z pustą pamięcią RTC)
+    if (n) log("otoczenie: cisza źródła od %s, ostatnia udana %s (linia E-08 po %u h, R-AW-41)", godzina(n).c_str(),
+               godzina(udana).c_str(), (unsigned)(OTO_CISZA_CO2_S / 3600));
+    else log("otoczenie: źródło znów odpowiada, koniec ciszy od %s", godzina(ciszaOto).c_str());
+    ciszaOto = n;
+    ciszaOtoUdana = udana;
+    a.nvs.ustawLiczbeU("cpap", "oto_cod", n);
+    a.nvs.ustawLiczbeU("cpap", "oto_cpo", udana);
+    a.nvs.ustawLiczbeU("cpap", "oto_cad", otoAdres());
+  }
+
   void pobierzOtoczenie(bool przerywalny) {
     otoTeraz = false;
     if (!otoUzywalne() || !a.siec.polaczona()) return;
@@ -7603,9 +7635,11 @@ class Przebieg {
       nieudanaOtoczenia(r.oto, kod, ep);  // 3xx: przekierowanie, bez podążania i bez ponowień (R-NF-27, R-AW-25)
       log("otoczenie: nieudana próba (kod %d, prób najwyżej %d), zostają dane z %s", kod, maxProb,
           godzina(r.oto.pobrano).c_str());
+      ciszaPoProbieOto(ep);
       return;
     }
     StanOto st = parsujOtoczenie(tresc, ep, r.oto);
+    ciszaPoProbieOto(ep);
     otoTeraz = st == StanOto::OK;
     if (st == StanOto::ZLA_WERSJA)
       log("otoczenie: wersja kontraktu %d, panel zna %d: traktuję jak brak źródła", r.oto.wersja, OTO_WERSJA);
@@ -8361,6 +8395,16 @@ class Przebieg {
     stanE08.od = a.nvs.liczbaU("cpap", "e08_od", 0);
     stanE08.dzien = a.nvs.tekst("cpap", "e08_d", "");
     stanE08.koniec = a.nvs.flaga("cpap", "e08_k", false);
+    stanCisza.od = a.nvs.liczbaU("cpap", "e08c_od", 0);
+    stanCisza.dzien = a.nvs.tekst("cpap", "e08c_d", "");
+    stanCisza.koniec = a.nvs.flaga("cpap", "e08c_k", false);
+    ciszaOto = a.nvs.liczbaU("cpap", "oto_cod", 0);
+    ciszaOtoUdana = ciszaOto ? a.nvs.liczbaU("cpap", "oto_cpo", 0) : 0;
+    if (ciszaOto && a.nvs.liczbaU("cpap", "oto_cad", 0) != otoAdres()) {  // inne źródło (albo żadne): bez starej ciszy
+      ciszaOto = 0;
+      ciszaOtoUdana = 0;
+      a.nvs.ustawLiczbeU("cpap", "oto_cod", 0);
+    }
 
     OdczytCzujnikow cz = a.czujniki.czytaj();  // bateria przed ekranem i Wi-Fi
     temp = cz.temp;

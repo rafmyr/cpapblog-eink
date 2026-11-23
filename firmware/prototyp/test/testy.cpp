@@ -3460,8 +3460,9 @@ static void testOtoczenie() {
   SPRAWDZ(std::isnan(o.tempSyp) && std::isnan(o.wilgSyp));  // null w sypialni: brak, nie 0
   SPRAWDZ(co2MilczyTeraz(o, T) && o.co2MilczyOd == 1792494000u);
   ROWNE(liniaTestuOtoczenia(o, T, "22:30"), "Otoczenie: OK 22:30 · 8° · PM2.5 12 · CO2 967 · CO2 milczy");
-  // świeżość kopii na panelu: CO2 do 30 min od pomiaru, pogoda do 9 h, ostrzeżenia do 60 min od odpowiedzi
-  SPRAWDZ(co2Teraz(o, 1793395500u + 30 * 60) == 967 && co2Teraz(o, 1793395500u + 30 * 60 + 1) == -1);
+  // świeżość kopii na panelu: CO2 do 75 min od pomiaru (od 23.11.2026; wcześniej 30 min),
+  // pogoda do 9 h, ostrzeżenia do 60 min od odpowiedzi
+  SPRAWDZ(co2Teraz(o, 1793395500u + 75 * 60) == 967 && co2Teraz(o, 1793395500u + 75 * 60 + 1) == -1);
   SPRAWDZ(!pogodaTeraz(o, 1793394900u + 9 * 3600).empty() && pogodaTeraz(o, 1793394900u + 9 * 3600 + 1).empty());
   SPRAWDZ(!co2MilczyTeraz(o, T + 3601));
   SPRAWDZ(co2Teraz(o, 0) == -1 && pogodaTeraz(o, 0).empty());  // bez zegara nie oceniamy świeżości: nic
@@ -3565,7 +3566,9 @@ static void testOtoczenie() {
     SPRAWDZ(parsuj(R"({"wersja":1,"sypialnia":{"co2":900,"ts":"2026-10-31T05:45:00+0100"}})", x) == StanOto::OK &&
             co2Teraz(x, T6) == 900);
     SPRAWDZ(parsuj(R"({"wersja":1,"sypialnia":{"co2":900,"ts":"2026-10-31T04:20:00Z"}})", x) == StanOto::OK &&
-            co2Teraz(x, T6) == -1);  // 40 min: nieświeże
+            co2Teraz(x, T6) == 900);  // 40 min: świeże (75 min; do 23.11.2026 przy 30 min nieświeże)
+    SPRAWDZ(parsuj(R"({"wersja":1,"sypialnia":{"co2":900,"ts":"2026-10-31T03:40:00Z"}})", x) == StanOto::OK &&
+            co2Teraz(x, T6) == -1);  // 80 min: nieświeże
     SPRAWDZ(parsuj(R"({"wersja":1,"sypialnia":{"co2":1e3}})", x) == StanOto::OK && co2Teraz(x, T6) == 1000);
     SPRAWDZ(parsuj(R"({"wersja":1,"pogoda":{"temp":-0.4}})", x) == StanOto::OK);
     ROWNE(pogodaTeraz(x, T6), "0°");  // bez „−0”
