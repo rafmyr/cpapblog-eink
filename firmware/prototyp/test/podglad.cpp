@@ -1405,9 +1405,10 @@ static void podgladSypialni(PlotnoPamiec& p, const std::string& dzis) {
   ustawSypialnieWKokpicie(false);
 }
 
-// S-K-48 „Porada dnia” programu „Dobry start” (ADR-0049, spec 5.8.14): ekran danych planu (pasek tygodni), z danych,
-// z ankiety, „ponad program”, karta tygodnia z budzikiem, z linią uwagi, „tylko na telefonie” i każda porada z pliku
-// (`porada-{ID}`), żeby przegląd długości był na prawdziwych krojach i ikonach przycisków (R-DS-39, R-DS-52).
+// S-K-48 „Porada dnia” programu „Dobry start” (ADR-0049, spec 5.8.14, wersja 2): każda porada z pliku (`porada-{ID}`:
+// plan z paskiem 12 tygodni, pochwały, z danych, z ankiety, karty z rzędem faktów, porady z kodem QR), karta z faktami
+// jako ekran danych, z linią uwagi i „tylko na telefonie”, na prawdziwych krojach i ikonach (R-DS-39, R-DS-52, R-DS-62,
+// R-DS-64); znaczniki danych z przykładowej nocy (6 h 12, 7 z 7 nocy).
 static void podgladPorad(PlotnoPamiec& p) {
   const dobry_start::Katalog& k = dobry_start::katalogWbudowany();
   dobry_start::Stan s = dobry_start::nowyStan(dobry_start::Ustawienia(), k);
@@ -1419,18 +1420,30 @@ static void podgladPorad(PlotnoPamiec& p) {
     w.zrodlo = z;
     w.dataNocy = "2026-12-03";
     w.telefon = telefon;
-    w.ponadIle = k.ponadIle;
     DanePorady d;
     d.o = dobry_start::opis(k, s, w);
-    for (std::string* t : {&d.o.tytul, &d.o.tresc, &d.o.krok})  // R-DS-53: wartości domyślne progów
-      *t = dobry_start::podstawProgi(*t, [](const std::string& id) -> std::string {
+    dobry_start::Znaczniki zn;
+    zn.czas = 372;
+    zn.oIleDluzej = 65;
+    zn.nocyZRzedu = 7;
+    zn.wyciek = 6;
+    zn.nocyZMaska = 7;
+    zn.nocy4h = 6;
+    zn.srednio = 340;
+    zn.nocyZMaskaProg = 80;
+    zn.srednioProg = 352;
+    auto wart = [&](const std::string& t) {  // R-DS-53, R-DS-60: wartości domyślne progów i przykładowej nocy
+      return dobry_start::podstawProgi(dobry_start::podstawZnaczniki(t, zn), [](const std::string& id) -> std::string {
         const reguly::Prog* pr = reguly::zestawWbudowany().prog(id, reguly::Tryb::NIEZNANY);
         return pr ? calkowita(pr->wartosc) : "";
       });
+    };
+    for (std::string* t : {&d.o.tytul, &d.o.tresc, &d.o.krok}) *t = wart(*t);
+    for (auto& f : d.o.fakty) f.first = wart(f.first);
     d.belka = Belka(dobry_start::NAZWA_BELKI, d.o.srodekBelki);
     d.linia = linia;
     d.liniaOstrzezenie = !linia.empty();
-    bool karta = x.karta && !telefon && linia.empty();
+    bool karta = x.karta && !telefon && linia.empty() && nazwa.find("ekran-danych") == std::string::npos;
     if (karta) d.scena = "M06";
     d.stopka = StopkaDzienna{karta ? "" : "noc 6 h 38 · AHI 1,1 · wyciek 4", "za oknem 3° · przy łóżku 20°"};
     rysujPorade(p, d);
@@ -1440,11 +1453,16 @@ static void podgladPorad(PlotnoPamiec& p) {
     dobry_start::Zrodlo z = x.rodzaj == dobry_start::Rodzaj::PLAN       ? dobry_start::Zrodlo::PLAN
                             : x.rodzaj == dobry_start::Rodzaj::ZDARZENIE ? dobry_start::Zrodlo::DANE
                             : x.rodzaj == dobry_start::Rodzaj::ANKIETA   ? dobry_start::Zrodlo::ANKIETA
-                                                                         : dobry_start::Zrodlo::PONAD;
+                                                                         : dobry_start::Zrodlo::POCHWALA;
     jedna(x, z, "porada-" + x.id, "", false);
   }
-  const dobry_start::Porada* plan = dobry_start::wariantMiejsca(k, 18, dobry_start::Tryb::CPAP, -1);
+  const dobry_start::Porada* plan = dobry_start::wariantDoby(k, dobry_start::Faza::ADAPTACJA, 18, dobry_start::Tryb::CPAP, -1);
   if (plan) jedna(*plan, dobry_start::Zrodlo::PLAN, "sk48-plan-z-linia-uwagi", "Bateria 15%. Podłącz kabel.", false);
+  for (auto& x : k.porady)  // karta z faktami, gdy nie może być kartą (R-DS-17, R-DS-64): fakty jedną linią
+    if (x.karta && x.fakty.dl && x.rodzaj == dobry_start::Rodzaj::PLAN) {
+      jedna(x, dobry_start::Zrodlo::PLAN, "sk48-karta-z-faktami-ekran-danych", "", false);
+      break;
+    }
   for (auto& x : k.porady)
     if (x.ma(dobry_start::FL_OBJAW) && x.rodzaj == dobry_start::Rodzaj::ZDARZENIE) {
       jedna(x, dobry_start::Zrodlo::DANE, "sk48-tylko-na-telefonie", "", true);

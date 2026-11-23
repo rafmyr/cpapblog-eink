@@ -85,7 +85,8 @@ def test_karta_piec_linii(tmp_path):
     def z(w):
         p = _por(w, "DS-D07")
         p["tresc"] = " ".join(["Słowo"] * 80)
-    with pytest.raises(porady.BladPorad, match=r"DS-D07: treść \d+ linii > 4"):
+    # wersja 2 (R-DS-64): karta z rzędem faktów ma treść do 2 linii
+    with pytest.raises(porady.BladPorad, match=r"DS-D07: treść \d+ linii > 2"):
         _zbuduj(tmp_path, z)
 
 
@@ -105,7 +106,7 @@ def test_powtorzone_id(tmp_path):
 
 
 def test_dziura_w_planie_asv(tmp_path):
-    with pytest.raises(porady.BladPorad, match="miejsce planu 1 w trybie ASV"):
+    with pytest.raises(porady.BladPorad, match="start_rano doba 1 w trybie ASV"):  # wersja 2: doby faz (R-DS-71)
         _zbuduj(tmp_path, lambda w: [p for p in w if p["id"] != "DS-D01.asv"])
 
 
@@ -114,7 +115,7 @@ def test_dwie_porady_na_miejscu_wszystkie_i_cpap(tmp_path):
         n = dict(_por(w, "DS-D02"))
         n.update(id="DS-D99", tryb="CPAP")
         return w + [n]
-    with pytest.raises(porady.BladPorad, match="miejsce planu 2 w trybie CPAP"):
+    with pytest.raises(porady.BladPorad, match="start_rano doba 2 w trybie CPAP"):  # wersja 2: doby faz (R-DS-71)
         _zbuduj(tmp_path, z)
 
 
@@ -142,7 +143,7 @@ def _wbudowane():
 def test_teksty_panelu_bajt_w_bajt_z_csv():
     _, wiersze = _wczytaj()
     wb = _wbudowane()
-    assert len(wb) == len(wiersze) == 88  # 87 + DS-C06.asv (decyzja właściciela 22.11.2026, luka trybu ASV)
+    assert len(wb) == len(wiersze) == 128  # wersja 2: 128 porad (spec 5.8.14, tabela 5.4; DS-D40.asv i DS-D40.asvbez)
     los = random.Random(22112026).sample(wiersze, 10) + [p for p in wiersze if "." in p["id"]]
     for p in los:
         for pole in ("tytul", "tresc", "krok"):

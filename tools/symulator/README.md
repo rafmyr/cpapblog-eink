@@ -143,7 +143,7 @@ Co robi który przycisk na którym ekranie: tabela w [`firmware/prototyp/README.
 
 ## Program „Dobry start” (od 22.11.2026)
 
-Z wierszem `start.program=tak` w `konfiguracja.txt` zrzutu symulator rysuje poradę dnia S-K-48: klatki `…-dzien-SK48-{ID porady}.pbm` w pierwszych 180 min slotu dziennego i wieczorem, stan programu w `/dane/dobry_start.csv` atrapy pamięci (ADR-0049, spec 5.8.14).
+Z wierszem `start.program=tak` w `konfiguracja.txt` zrzutu symulator rysuje poradę dnia S-K-48: klatki `…-dzien-SK48-{ID porady}.pbm` w pierwszych 180 min slotu dziennego i wieczorem, stan programu w `/dane/dobry_start.csv` atrapy pamięci (ADR-0049, spec 5.8.14). Od wersji 2 (22.11.2026) w starcie (doby 1…10) także porada wieczorna W3b, pochwały z danych nocy, kod QR i rząd faktów na S-K-48; `start.dzien` 1…84.
 
 ## Pozostałe opcje
 

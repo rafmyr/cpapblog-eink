@@ -355,7 +355,7 @@ struct OpcjaStartu { const char* pole; const char* klucz; const char* domyslna; 
 const OpcjaStartu OPCJE_STARTU[] = {{"start_program", "start.program", "nie", {"tak", "nie"}},
                                     {"start_nawilzacz", "start.nawilzacz", "nie_wiem", {"tak", "nie", "nie_wiem"}},
                                     {"start_objawy", "start.objawy", "panel", {"panel", "telefon"}},
-                                    {"start_ponad", "start.ponad", "tak", {"tak", "nie"}}};
+                                    };
 }  // namespace
 
 std::string wartoscDoPliku(const std::string& klucz, const std::string& v) {
@@ -744,20 +744,19 @@ std::string sekcjaEkranow(const Pola& p, const std::map<std::string, std::string
 // Sekcja „Dobry start” (ADR-0049, R-DS-31, spec 5.6.6): teksty dosłownie ze spec; liczby z pliku porad.
 std::string sekcjaStartu(const Pola& p, const std::map<std::string, std::string>& b, bool otwarta) {
   const dobry_start::Ustawienia& u = p.start;
-  std::string m = std::to_string(p.startMiejsc > 0 ? p.startMiejsc : 42);
-  int ponad = p.startPonadIle - (u.nawilzacz == 0 && p.startPonadIle > 0 ? 1 : 0);
+  std::string m = std::to_string(p.startMiejsc > 0 ? p.startMiejsc : 84);
   std::string s = sekcja("Dobry start", p.startNaglowek, otwarta);
   if (p.startBezPorad) s += "<p class=\"b\">Brak pliku porad na panelu. Program czeka.</p>";
-  s += "<label for=\"start_program\">Dobry start: program na pierwsze 6 tygodni</label>" +
+  s += "<label for=\"start_program\">Dobry start: program na pierwsze 12 tygodni</label>" +
        opcjeWyboru("start_program", u.program ? "tak" : "nie", {{"nie", "wyłączony"}, {"tak", "włączony"}}) +
        blad(b, "start_program") +
-       "<p class=\"s\">Pierwsze dni i tygodnie decydują, czy terapia się przyjmie. Panel pokaże jedną krótką poradę "
-       "dziennie przez 6 tygodni.</p>";
+       "<p class=\"s\">Pierwsze dni i tygodnie decydują, czy terapia się przyjmie. Przez pierwsze 10 dni panel pokaże "
+       "poradę rano i wieczorem, do 6. tygodnia jedną dziennie, a potem dwie w tygodniu.</p>";
   if (p.startZatrzymanyNa > 0) {
     std::string n = std::to_string(p.startZatrzymanyNa);
     s += "<label for=\"start_wznow\">Program był już włączony: zatrzymany na dniu " + n + " z " + m +
          ". Co dalej?</label><select name=\"start_wznow\" id=\"start_wznow\"><option value=\"dalej\" selected>dalej "
-         "od porady " + n + "</option><option value=\"od_nowa\">od nowa</option></select>";
+         "od dnia " + n + "</option><option value=\"od_nowa\">od nowa</option></select>";
   }
   // `maxlength` przy polu liczbowym przeglądarki pomijają (tylko podpowiedź); zakres 1…{miejsc} sprawdza waliduj()
   s += "<label for=\"start_dzien\">Który to dzień terapii?</label>" +
@@ -775,10 +774,6 @@ std::string sekcjaStartu(const Pola& p, const std::map<std::string, std::string>
        blad(b, "start_objawy") +
        "<p class=\"s\">Na telefonie: panel pokaże tylko „Nowa porada na telefonie.”, a treść przeczytasz na stronie "
        "„Wszystkie porady”. Przydaje się, gdy panel widzą domownicy.</p>"
-       "<label for=\"start_ponad\">Tydzień „ponad program”</label>" +
-       opcjeWyboru("start_ponad", u.ponad ? "tak" : "nie", {{"tak", "tak"}, {"nie", "nie"}}) + blad(b, "start_ponad") +
-       "<p class=\"s\">Po 6 tygodniach jeszcze " + std::to_string(ponad > 0 ? ponad : 0) +
-       " porad dla ciekawych, jedna dziennie.</p>"
        "<p><a href=\"ankieta\">Ankieta</a>" +
        (p.startAnkietaCzeka ? " · Czeka ankieta: 3 pytania, ok. 1 minuty." : "") +
        "</p><p><a href=\"porady?t=1\">Wszystkie porady</a></p><p><a href=\"odnowa\">Zacznij od nowa</a></p>"
@@ -1115,22 +1110,48 @@ std::vector<std::pair<std::string, std::vector<int>>> odpowiedziAnkiety(const do
   return w;
 }
 
+// Zakładki strony „Wszystkie porady” (spec 5.8.14.8.3, wersja 2): `Start, rano`, `Start, wieczór`, `Tydzień 2` …
+// `Tydzień {A}` (adaptacja), `Tygodnie {A+1}–{T}` (utrwalenie), `Pochwały`, `Po nocy`, `Z ankiety`; start podzielony na
+// dwie zakładki, żeby każda strona zmieściła się w MAKS_STRONY_PORAD.
+int zakladekPorad(const dobry_start::Katalog& k) { return 2 + std::max(0, (k.koniecAdaptacji + 6) / 7 - 1) + 4; }
+
 std::string stronaPorad(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
                         dobry_start::Tryb tryb, int t, const std::string& akcja,
                         std::string (*podstaw)(const std::string&, void*), void* kx) {
-  int T = k.tygodni();
-  if (t < 1 || t > T + 3) t = 1;
+  using dobry_start::Faza;
+  using dobry_start::Rodzaj;
+  int A = std::max(1, (k.koniecAdaptacji + 6) / 7), N = zakladekPorad(k);
+  if (t < 1 || t > N) t = 1;
+  auto nazwa = [&](int i) -> std::string {
+    if (i == 1) return "Start, rano";
+    if (i == 2) return "Start, wieczór";
+    if (i <= A + 1) return "Tydzień " + std::to_string(i - 1);
+    if (i == A + 2) return "Tygodnie " + std::to_string(A + 1) + "–" + std::to_string(k.tygodni());
+    return i == A + 3 ? "Pochwały" : i == A + 4 ? "Po nocy" : "Z ankiety";
+  };
   std::string h = tytulStrony("Wszystkie porady");
   h += "<h1>Wszystkie porady</h1><nav>";
-  for (int i = 1; i <= T + 3; i++) {
-    std::string n = i <= T ? "Tydzień " + std::to_string(i) : i == T + 1 ? "Po nocy" : i == T + 2 ? "Z ankiety" : "Ponad program";
+  for (int i = 1; i <= N; i++) {
+    std::string n = nazwa(i);
     h += i == t ? "<b>" + n + "</b>" : "<a href=\"" + html(akcja) + "porady?t=" + std::to_string(i) + "\">" + n + "</a>";
   }
   h += "</nav>";
-  auto jedna = [&](const dobry_start::Porada& p, bool ciekawostka) {
+  auto jedna = [&](const dobry_start::Porada& p) {
     auto tx = [&](const dobry_start::Wycinek& w) { return html(podstaw ? podstaw(k.tekst(w), kx) : k.tekst(w)); };
-    h += std::string(ciekawostka ? "<h2>Ciekawostka: " : "<h2>") + tx(p.tytul) + "</h2><p>" + tx(p.tresc) + "</p>";
+    h += "<h2>" + tx(p.tytul) + "</h2><p>" + tx(p.tresc) + "</p>";
+    std::string f;  // rząd faktów karty (R-DS-64), znaczniki jako opis
+    for (auto& x : dobry_start::fakty(k, p)) {
+      if (!f.empty()) f += " · ";
+      f += x.first;
+      f += ' ';
+      f += x.second;
+    }
+    if (!f.empty()) h += "<p>" + html(podstaw ? podstaw(f, kx) : f) + "</p>";
     if (p.krok.dl) h += "<p><b>" + tx(p.krok) + "</b></p>";
+    if (p.qr.dl) {  // R-DS-62: ten sam adres co w kodzie QR
+      std::string a = html(k.tekst(p.qr));
+      h += "<p>Więcej: <a href=\"" + a + "\">" + a + "</a></p>";
+    }
     h += "<p class=\"s\">" + html(dobry_start::znacznik(k, s, p)) + "</p>";
   };
   std::vector<std::string> bazy;
@@ -1139,24 +1160,19 @@ std::string stronaPorad(const dobry_start::Katalog& k, const dobry_start::Stan& 
     bazy.push_back(b);
     return true;
   };
-  if (t <= T) {
-    for (int m = (t - 1) * 7 + 1; m <= std::min(k.miejsc, t * 7); m++) {
-      const dobry_start::Porada* p = dobry_start::wariantMiejsca(k, m, tryb, u.nawilzacz);
-      if (!p) continue;
-      jedna(*p, false);
-      for (auto& c : k.porady)  // ciekawostka pod poradą planu z kolumny `przy`
-        if (c.rodzaj == dobry_start::Rodzaj::PONAD && c.przy == p->id && raz(c.baza)) {
-          const dobry_start::Porada* v = dobry_start::wariant(k, c.baza, tryb, u.nawilzacz);
-          if (v) jedna(*v, true);
-        }
+  if (t <= A + 2) {  // plan: porady fazy w kolejności dób nominalnych
+    Faza f = t == 1 ? Faza::START_RANO : t == 2 ? Faza::START_WIECZOR : t <= A + 1 ? Faza::ADAPTACJA : Faza::UTRWALENIE;
+    for (int d = 1; d <= k.miejsc; d++) {
+      if (f == Faza::ADAPTACJA && (d - 1) / 7 + 1 != t - 1) continue;  // zakładka 3 = tydzień 2
+      const dobry_start::Porada* p = dobry_start::wariantDoby(k, f, d, tryb, u.nawilzacz);
+      if (p) jedna(*p);
     }
   } else {
-    dobry_start::Rodzaj r = t == T + 1 ? dobry_start::Rodzaj::ZDARZENIE : t == T + 2 ? dobry_start::Rodzaj::ANKIETA
-                                                                                      : dobry_start::Rodzaj::PONAD;
+    Rodzaj r = t == A + 3 ? Rodzaj::POCHWALA : t == A + 4 ? Rodzaj::ZDARZENIE : Rodzaj::ANKIETA;
     for (auto& p : k.porady)
       if (p.rodzaj == r && raz(p.baza)) {
         const dobry_start::Porada* v = dobry_start::wariant(k, p.baza, tryb, u.nawilzacz);
-        if (v) jedna(*v, false);
+        if (v) jedna(*v);
       }
   }
   h += "<p><a href=\"./\">Wróć do ustawień</a></p></body></html>";

@@ -511,6 +511,11 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_otoczenie_zegar_kab
 "$BUD/testy_otoczenie_zegar_kabel_brzegowe"  # blokuje przy błędzie
 echo "testy ciszy źródła otoczenia (test/testy_co2_cisza.cpp: T-TEST-523, R-AW-41: linia E-08 po 3 h od pierwszej nieudanej próby, raz na epizod, restart w trakcie, dwie doby, zmiana adresu, przerysowanie, regresja R-AW-27; świeżość CO2 75 min)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_co2_cisza.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_co2_cisza"
+echo "testy programu „Dobry start” z ciszą źródła otoczenia i z nieczytelnym plikiem oceny (test/testy_dobry_start_cisza_otoczenia.cpp: R-AW-41 przy włączonym programie; test/testy_dobry_start_ocena_niepelna.cpp: R-AW-40, R-DS-60 bez pochwał przy ocenie niepełnej)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_dobry_start_cisza_otoczenia.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_cisza_otoczenia"
+"$BUD/testy_dobry_start_cisza_otoczenia"  # blokuje przy błędzie
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_dobry_start_ocena_niepelna.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_ocena_niepelna"
+"$BUD/testy_dobry_start_ocena_niepelna"  # blokuje przy błędzie
 "$BUD/testy_co2_cisza"
 echo "testy kolejności ekranów z dyrygentem (test/testy_kolejnosc_portret.cpp: Portret ▶ na pierwszą stronę ciągu w każdej kolejności; test/testy_kolejnosc_slot_dyrygent.cpp: dzien.ukryte w slocie dziennym)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejnosc_portret.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejnosc_portret"
@@ -595,6 +600,12 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_dobry_start_brzegow
 echo "testy brzegowe „Dobry start” z dyrygentem (test/testy_dobry_start_brzegowe_dyrygent.cpp: uszkodzony plik stanu, wyłączenie i ponowne włączenie)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test" "$FW/test/testy_dobry_start_brzegowe_dyrygent.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_brzegowe_dyrygent"
 "$BUD/testy_dobry_start_brzegowe_dyrygent"  # blokuje przy błędzie i przy przypadku CZERWONYM
+echo "testy programu „Dobry start” w wersji 2 (test/testy_dobry_start_v2.cpp: R-DS-54…R-DS-71, fazy, pochwały, QR, fakty, migracja v1, scenariusze 90 dób)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test/atrapy" "$FW/test/testy_dobry_start_v2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_v2"
+"$BUD/testy_dobry_start_v2"  # blokuje przy błędzie
+echo "testy brzegowe „Dobry start” wersja 2 (test/testy_dobry_start_v2_brzegowe.cpp: przypadki dawnych usterek wersji 2, blokujące)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" -I"$FW/test/atrapy" "$FW/test/testy_dobry_start_v2_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_dobry_start_v2_brzegowe"
+"$BUD/testy_dobry_start_v2_brzegowe"  # blokuje przy błędzie
 echo "testy brzegowe szybkich naciśnięć (test/testy_kolejka_szybkie_brzegowe.cpp: serie losowe wobec „każde osobno” z regułą „z kolejki tylko nawigacja”, pytanie tak/nie z kolejki i z czasu rysowania, przepełnienie, skrót, progi, trzy szybkie w kokpicie z danymi)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kolejka_szybkie_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kolejka_szybkie_brzegowe"
 "$BUD/testy_kolejka_szybkie_brzegowe"  # blokuje przy błędzie

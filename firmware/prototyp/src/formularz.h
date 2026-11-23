@@ -29,20 +29,16 @@ extern const char* const NAZWY_ELEMENTOW[ELEMENTY];   // "Maska", "Filtr"
 
 // Wartości do pokazania w formularzu (obecny stan panelu), bez haseł.
 struct Pola {
+  // pola `bool` na końcu struktury (bez dziur między napisami; clang-analyzer-optin.performance.Padding)
   std::string ssid;
-  bool hasloWifi = false;  // hasło zapisane: pole puste z napisem `ustawione`
   std::string abAdres, abKonto;
-  bool hasloAb = false;
   std::string profil = "prywatny";   // `publiczny` | `prywatny`
   std::string wymiana[ELEMENTY];     // RRRR-MM-DD albo ""
   std::string okres[ELEMENTY];       // maska: miesiące, filtr: tygodnie, "" = domyślny okres
   // R-MAS-17: termin następnej wymiany przy polu daty (sprzet::terminFormularza(), z datami po odpowiedzi „tak” na
   // `Wymieniona maska?`, R-MAS-13); ustawia wołający (dyrygent), zPliku() zostawia puste = bez wiersza terminu
   std::string termin[ELEMENTY];
-  // R-MAS-19: nowy model maski zapisany dziś (NVS `sp_model` = dziś, ustawia wołający): pole `Cofnij nowy model z dziś`
-  bool nowyModelDzis = false;
   // (5.6.4). Wartości domyślne ze spec, gdy w pliku nie ma wiersza.
-  bool zrodloOto = false;             // panel ma źródło otoczenia (OTO_URL): tylko wtedy jest pole CO2
   std::string co2 = "tak";            // `tak` | `nie`
   std::string humor = "normalny";     // `wylaczony` | `oszczedny` | `normalny`
   std::string buzzer = "tak";         // `tak` | `nie`
@@ -74,10 +70,15 @@ struct Pola {
   // stan programu i liczby z pliku porad ustawia wołający (dyrygent, ustawStartFormularza())
   dobry_start::Ustawienia start;
   std::string startNaglowek = "wyłączony";
-  int startZatrzymanyNa = 0;     // > 0: program zatrzymany na tym miejscu (pytanie „dalej czy od nowa”, R-DS-32)
+  int startZatrzymanyNa = 0;     // > 0: program zatrzymany w tej dobie programu (pytanie „dalej czy od nowa”, R-DS-32)
+  int startMiejsc = 0;           // ostatnia doba programu z pliku porad (0 = brak)
   bool startAnkietaCzeka = false;
   bool startBezPorad = false;    // brak pliku porad (R-DS-36)
-  int startMiejsc = 0, startPonadIle = 0;  // z pliku porad (0 = brak)
+  bool hasloWifi = false;        // hasło zapisane: pole puste z napisem `ustawione`
+  bool hasloAb = false;
+  // R-MAS-19: nowy model maski zapisany dziś (NVS `sp_model` = dziś, ustawia wołający): pole `Cofnij nowy model z dziś`
+  bool nowyModelDzis = false;
+  bool zrodloOto = false;        // panel ma źródło otoczenia (OTO_URL): tylko wtedy jest pole CO2
 };
 // Pola z `/konfiguracja.txt` i sekretów (stan przed formularzem). `zrodloOto` = panel ma lokalne źródło otoczenia.
 // `wymiana.filtr` w innej postaci niż RRRR-MM-DD = pole puste; `okres.*` dłuższe niż MAKS_OKRESU_Z_PLIKU bajtów
@@ -150,8 +151,9 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 // gałęziach, od ADR-0045 (sekcja „Ekrany”) 20 KB, przedtem 16 KB
 // Od sekcji „Dobry start” (ADR-0049, 22.11.2026) 26 KB: pięć pól z tekstami ze spec 5.6.6 i błędy przy nich dokładają
 // ok. 2,4 KB w scenariuszu brzegowym (test/testy_formularz_u03.cpp podaje zmierzony rozmiar i zapas).
-// Pole kanału wczesnego (R-KONF-62, 23.11.2026) bez zmiany rezerwacji: scenariusz brzegowy 24 785 B (zapas 1 839 B),
-// najgorszy realny 21 990 B (zapas 4 634 B).
+// Pole kanału wczesnego (R-KONF-62, 23.11.2026) i „Dobry start” wersji 2 (sekcja bez pola „ponad program”) bez zmiany
+// rezerwacji; aktualny rozmiar i zapas podaje test/testy_formularz_u03.cpp (23.11.2026: scenariusz brzegowy
+// 24 467 B, zapas 2 157 B; najgorszy realny 21 780 B, zapas 4 844 B).
 const size_t REZERWACJA_STRONY = size_t{26} * 1024;
 // Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
 const size_t MAKS_OKRESU_Z_PLIKU = 8;
@@ -170,8 +172,9 @@ std::string stronaAnkiety(const dobry_start::Katalog& k, const dobry_start::Stan
 // Odpowiedzi z ciała POST: pole `q_{id}` (jedna odpowiedź, numer od 1) albo `q_{id}_{k}` (wiele).
 std::vector<std::pair<std::string, std::vector<int>>> odpowiedziAnkiety(const dobry_start::Katalog& k,
                                                                         const std::map<std::string, std::string>& m);
-// Zakładka `t`: 1…T tygodnie planu, T+1 `Po nocy`, T+2 `Z ankiety`, T+3 `Ponad program`; `podstaw` = wartości
-// znaczników `{prog:id}` (R-DS-53). Zła zakładka = tydzień 1.
+// Zakładka `t` 1…zakladekPorad(k) (wersja 2): `Start, rano`, `Start, wieczór`, tygodnie adaptacji, utrwalenie,
+// `Pochwały`, `Po nocy`, `Z ankiety`; `podstaw` = wartości znaczników `{prog:id}` (R-DS-53). Zła zakładka = pierwsza.
+int zakladekPorad(const dobry_start::Katalog& k);
 std::string stronaPorad(const dobry_start::Katalog& k, const dobry_start::Stan& s, const dobry_start::Ustawienia& u,
                         dobry_start::Tryb tryb, int t, const std::string& akcja,
                         std::string (*podstaw)(const std::string&, void*), void* kontekst);

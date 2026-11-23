@@ -789,8 +789,8 @@ static void testR_KONF_59_uklad_strony() {
                                     "pokaz_dzien_i_noc", "pokaz_obrazek",
                                     // R-KON-77: wyłącznik wygaszacza i jego czas
                                     "wygaszacz", "wygaszacz_min",
-                                    // sekcja „Dobry start” (ADR-0049, R-DS-31)
-                                    "start_program", "start_dzien", "start_nawilzacz", "start_objawy", "start_ponad"};
+                                    // sekcja „Dobry start” (ADR-0049, R-DS-31; wersja 2: bez `start_ponad`, R-DS-66)
+                                    "start_program", "start_dzien", "start_nawilzacz", "start_objawy"};
   for (auto& poz : POZYCJE)
     if (poz.bit != CZ_NIC) nazwy.push_back(std::string("cz_") + poz.kod);
   for (auto& n : nazwy) {

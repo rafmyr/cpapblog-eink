@@ -29,7 +29,7 @@ Co robi, po kolei, i kiedy odmawia (bez publikacji):
 | Krok | Odmowa, gdy |
 |---|---|
 | repo na gałęzi `main`, bez niezapisanych zmian, równo z GitHubem (sam dociąga nowsze commity) | inna gałąź, zmiany lokalne, lokalne commity spoza GitHuba |
-| CI na tym commicie: wszystkie sprawdzenia zakończone sukcesem | CI w toku albo czerwone |
+| CI na tym commicie: sprawdzenie `wynik: pełne CI` z wynikiem `success`, żadne sprawdzenie w toku, pozostałe `success` albo `skipped` (zadania galerii na push do `main` są pomijane; od 23.11.2026) | CI w toku, czerwone albo bez `wynik: pełne CI` |
 | linie „Co nowego” (od 14.11.2026, R-KONF-56): do 3, po najwyżej 40 znaków, Enter kończy; bez linii wydanie bez pola | linia za długa, ze znakami, których panel nie wyświetli (emoji, `◀ ▶ ↻`), albo o ustawieniach aparatu (np. `Obniż EPR o 1`, `OBNIZ EPR`, `7 cmH2O`, `Ustaw tryb CPAP`; ADR-0002, reguły niżej) |
 | numer wersji: następny po najwyższym wydaniu (`1.0.0-beta.2` → `1.0.0-beta.3`, `1.0.1` → `1.0.2`); ręcznie: `tools/wydanie/wydaj.sh 1.0.1` | wydanie o tym numerze już jest |
 | podsumowanie (wersja, commit, repo) i pytanie | odpowiedź inna niż `tak` |

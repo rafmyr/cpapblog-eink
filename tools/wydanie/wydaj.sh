@@ -63,14 +63,20 @@ if [ "$LOKALNY" != "$ZDALNY" ]; then
 fi
 KROTKI="$(git rev-parse --short HEAD)"
 
-# 2. CI na tym commicie zielone (wszystkie sprawdzenia zakończone sukcesem)
-STANY="$(gh api "repos/$REPO_KODU/commits/$LOKALNY/check-runs" --jq '.check_runs[] | "\(.name) \(.status) \(.conclusion)"')"
-[ -n "$STANY" ] || blad "CI nie ma jeszcze wyniku dla $KROTKI; spróbuj za kilka minut"
-ZLE="$(printf '%s\n' "$STANY" | awk '$2 != "completed" || $3 != "success"')"
+# 2. CI na tym commicie zielone: sprawdzenie „wynik: pełne CI” z wynikiem success (reguła „zielone CI”,
+#    od 23.11.2026), żadne sprawdzenie w toku ani z wynikiem innym niż success albo skipped
+#    (zadania galerii są na push do main celowo pomijane). Pola rozdzielone tabulatorem, bo nazwy mają spacje
+#    („sanitizery (4)”, „wynik: pełne CI”).
+#    Tylko sprawdzenia GitHub Actions (inna aplikacja z tą samą nazwą nie daje sygnału), wszystkie strony wyników.
+STANY="$(gh api --paginate "repos/$REPO_KODU/commits/$LOKALNY/check-runs?per_page=100" --jq '.check_runs[] | select(.app.slug == "github-actions") | "\(.name)\t\(.status)\t\(.conclusion)"')"
+[ -n "$STANY" ] || blad "CI nie ma jeszcze wyniku dla $KROTKI; spróbuj za kilka minut (jeśli przebieg na main został anulowany przez nowszy push, wynik się nie pojawi: wydaj z nowszego commitu)"
+ZLE="$(printf '%s\n' "$STANY" | awk -F '\t' '$2 != "completed" || ($3 != "success" && $3 != "skipped")')"
 if [ -n "$ZLE" ]; then
   printf 'CI dla %s nie jest w pełni zielone:\n%s\n' "$KROTKI" "$ZLE" >&2
   blad "poczekaj na zielone CI (w toku) albo popraw błąd (failure)"
 fi
+PELNE="$(printf '%s\n' "$STANY" | awk -F '\t' '$1 == "wynik: pełne CI" && $2 == "completed" && $3 == "success"')"
+[ -n "$PELNE" ] || blad "brak zielonego sprawdzenia „wynik: pełne CI” dla $KROTKI (pełne CI nie przeszło na tym commicie)"
 
 # 3. Numer wersji
 if [ -n "$NUMER" ]; then

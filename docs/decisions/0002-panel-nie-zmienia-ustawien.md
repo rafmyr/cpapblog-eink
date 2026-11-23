@@ -18,3 +18,7 @@ Mniejsze ryzyko regulacyjne (MDR, reguła 11) i medyczne. Zmiana tej decyzji wym
 ## Zmiana 2026-11-22
 
 Wyjątek tylko dla tekstów programu „Dobry start” ([ADR-0050](0050-opcje-komfortu-w-poradach.md), decyzja właściciela projektu 22.11.2026): porada może nazwać opcję komfortu, którą pacjent zmienia sam według instrukcji aparatu (nawilżanie, temperatura podgrzewanej rury, rampa), podać kierunek i odesłać do instrukcji; ulgę na wydechu tylko opisuje i odsyła do lekarza albo dostawcy. Liczby i poziomy ustawień, droga w menu aparatu albo AirBridge, ciśnienie, zakres, tryb i poziom EPR oraz diagnoza pozostają zakazane wszędzie; pozostałe ekrany i raport bez zmian.
+
+## Zmiana 2026-11-22 (2)
+
+Drugi wyjątek, też tylko dla tekstów programu „Dobry start” ([ADR-0051](0051-menu-pacjenta-i-odczucia-w-poradach.md)): droga w menu pacjenta aparatu („Moje opcje”) dla opcji komfortu, opis poziomów ulgi wydechowej bez liczby i włączanie jej przez pacjenta, gdy widzi ją w Moich opcjach; objaśnienie odczucia oddechowego kierunkiem ciśnienia („to może być za niskie ciśnienie”) zawsze z odesłaniem do lekarza. Menu kliniczne, liczby ciśnienia i zakresu, tryb, polecenie zmiany ciśnienia i diagnoza pozostają zakazane wszędzie; ekrany S-K, E, L, H, kokpit i raport bez zmian.

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cmath>
 #include "../include/fonty_slot.h"
+#include "qr.h"
+#include "raport_ekran.h"
 #include "wspolne.h"
 
 std::string godzinaOsiSlotu(int g) {
@@ -380,7 +382,7 @@ void rysujEkranKontekstu(Plotno& p, const Belka& n, const TrescKontekstu& k, con
 }
 
 // S-K-48 „Porada dnia” (ADR-0049): opis w src/ekrany_kontekst.h.
-void rysujPorade(Plotno& p, const DanePorady& d) {
+bool rysujPorade(Plotno& p, const DanePorady& d) {
   p.prostokat(0, 0, 800, 480, false);
   belka(p, d.belka);
   const dobry_start::OpisPorady& o = d.o;
@@ -409,12 +411,59 @@ void rysujPorade(Plotno& p, const DanePorady& d) {
   }
   // R-DS-18: tytuł pod paskiem linii uwagi (48 px, przy wzorcu A 60 px) bez nakładania wydłużeń i akcentów SB44
   tekst(p, F_SB44, PORADA_X, PORADA_TYTUL_Y + dy, o.tytul);
+  // R-DS-62, R-DS-63: kod QR w prawym dolnym rogu pola treści (moduł 7 px, strefa ciszy 4 moduły, podpis pod kodem);
+  // bez kodu, gdy adres się nie koduje albo kod ze strefą ciszy nie mieści się pod tytułem
+  bool qrJest = false;
+  if (!karta && !o.qr.empty()) {
+    qr::Kod kod = qr::koduj(o.qr);
+    int bok = kod.rozmiar * PORADA_QR_MODUL, cisza = qr::STREFA_CISZY * PORADA_QR_MODUL;
+    int x0 = PORADA_QR_PRAWO - bok + 1, y0 = PORADA_QR_DOL - bok + 1;
+    if (kod.rozmiar > 0 && y0 - cisza > PORADA_TYTUL_Y + dy + PORADA_TYTUL_DOL && x0 - cisza >= PORADA_X + PORADA_KOLUMNA_QR) {
+      qrJest = rysujKodQr(p, x0 - cisza, y0 - cisza, bok + 2 * cisza, o.qr) == PORADA_QR_MODUL;
+      if (qrJest) {
+        const char* podpis = o.qr.find("facebook.com") != std::string::npos ? "grupa pacjentów" : "więcej na cpapblog.pl";
+        tekst(p, F_P20, PORADA_QR_PRAWO + 1 - szer(F_P20, podpis), PORADA_QR_PODPIS_Y, podpis);
+      } else {
+        p.prostokat(x0 - cisza, y0 - cisza, bok + 2 * cisza, bok + 2 * cisza, false);
+      }
+    }
+  }
+  bool fakty = !o.fakty.empty();
   const GFXfont* f = karta ? F_P22B : F_P24S;
-  int kol = karta ? PORADA_KOLUMNA_KARTY : PORADA_KOLUMNA, ile = karta ? PORADA_LINIE_KARTY : PORADA_LINIE;
+  int kol = karta ? PORADA_KOLUMNA_KARTY : qrJest ? PORADA_KOLUMNA_QR : PORADA_KOLUMNA;
+  int ile = karta ? (fakty ? PORADA_LINIE_FAKTY : PORADA_LINIE_KARTY) : PORADA_LINIE;
   int krokLinii = karta ? 30 : 34;
   std::vector<std::string> l = zawin(f, o.tresc, kol);
-  for (size_t i = 0; i < l.size() && (int)i < ile; i++) tekst(p, f, PORADA_X, PORADA_TRESC_Y + dy + krokLinii * (int)i, l[i]);
-  if (!o.krok.empty()) tekst(p, karta ? F_P22B : F_P24B, PORADA_X, 408, o.krok);
+  int n = 0;
+  for (size_t i = 0; i < l.size() && (int)i < ile; i++, n++)
+    tekst(p, f, PORADA_X, PORADA_TRESC_Y + dy + krokLinii * (int)i, l[i]);
+  if (fakty && karta) {  // R-DS-64: rząd faktów (liczba P28B nad podpisem P22B, pary co 24 px)
+    int x = PORADA_X;
+    for (auto& para : o.fakty) {
+      int w = std::max(szer(F_P28B, para.first), szer(F_P22B, para.second));
+      if (x + w > PORADA_X + PORADA_KOLUMNA_KARTY) break;
+      tekst(p, F_P28B, x, PORADA_FAKTY_Y, para.first);
+      tekst(p, F_P22B, x, PORADA_FAKTY_Y + 28, para.second);
+      x += w + 24;
+    }
+  } else if (fakty && n < PORADA_LINIE) {  // karta jako ekran danych: fakty jedną linią pod treścią
+    std::string t;
+    for (auto& para : o.fakty) t += (t.empty() ? "" : " · ") + para.first + " " + para.second;
+    std::vector<std::string> lf = zawin(F_P24S, t, kol);
+    if (!lf.empty()) tekst(p, F_P24S, PORADA_X, PORADA_TRESC_Y + dy + krokLinii * n, lf[0]);
+  }
+  std::string krok = o.krok;
+  if (!karta && !qrJest && !o.qr.empty() && krok.find("kod") != std::string::npos) {
+    // R-DS-63: kod nie stanął (np. pod linią uwagi wzorca A), a krok odsyła do kodu → krok z adresem kodu
+    size_t s = o.qr.find("://");
+    krok = "→ Więcej: " + o.qr.substr(s == std::string::npos ? 0 : s + 3);
+  }
+  if (!krok.empty()) {
+    const GFXfont* fk = karta ? F_P22B : F_P24B;
+    std::vector<std::string> lk = zawin(fk, krok, kol);  // krok w 1 linii kolumny (przy kodzie 513 px)
+    tekst(p, fk, PORADA_X, 408, lk.size() == 1 ? krok : lk.empty() ? "" : lk[0]);
+  }
   if (karta) rysujScene(p, d.scena, 774, 425);  // budzik zawsze na bieli (ADR-0009)
   stopka(p, d.stopka);
+  return o.qr.empty() || karta || qrJest;
 }

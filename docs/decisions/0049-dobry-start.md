@@ -59,3 +59,16 @@ Ograniczenia, które trzeba zachować:
 - **Pkt 7 zmieniony:** opcje komfortu w poradach według [ADR-0050](0050-opcje-komfortu-w-poradach.md); nowe porady DS-D45 (nawilżanie i ciepła rura) i DS-D46 / DS-D46.asv (rampa i ulga na wydechu; w ASV tylko rampa).
 - **Treści:** infekcja według książki (nie przerywać, więcej nawilżania; DS-D32, DS-Z11), wyciek według pasm panelu z ADR-0034 (DS-D22 z `{prog:…}`, R-DS-53), mycie rury co 2–3 tygodnie i filtr co 6–8 tygodni według książki (DS-D17, DS-D20); pozostałe zgodnie z propozycjami projektu.
 - **Plan:** nowa kolejność 42 miejsc (DS-D45 na 9., DS-D46 na 16.); DS-D29 (drzemki) i DS-D36 (kiedy poczuję różnicę) przechodzą do „ponad program”, który ma teraz 11 porad; bez nawilżacza miejsce DS-D45 zajmuje DS-D29 (R-DS-29).
+
+## Zmiana 2026-11-22 (2): wersja 2 programu (decyzja właściciela projektu)
+
+Specyfikacja wersji 2: spec funkcjonalna 5.8.14.14 (R-DS-54…R-DS-71), treści w `docs/spec/katalog/porady.csv`.
+
+- **Trzy fazy, 12 tygodni (84 doby) zamiast 42 miejsc w 56 dobach** (zmienia pkt 3): start (doby 1…10) do 2 porad na dobę: rano reakcja na noc (pochwała albo porada do zdarzenia, bez nich porada poranna planu), wieczorem porada przygotowująca do nocy; adaptacja (doby 11…42) 1 porada dziennie; utrwalenie (tygodnie 7…12) 2 porady w tygodniu `[PRÓG]`, na wejściu kontrola po 6 tygodniach (DS-U01). „Ponad program” wchłonięty do utrwalenia. Zmienia odrzucony wariant „dwie porady dziennie”: w starcie tak, bo to tam brakuje wskazówek i wsparcia; dalej jedna.
+- **Pochwały z danych** (nowa rodzina DS-P01…DS-P12, zmienia pkt 2 i 4): chwalą zachowanie (czas z maską, regularność, szczelność), nigdy AHI ani zdrowie (ADR-0029 pkt 7); najwyżej jedna na dobę, nie w dniu z ekranem problemu, szczelność nie po nocy niepewnej. DS-Z14 wycofane, zob. DS-P04. Karty z budzikiem: karty tygodnia, DS-U02 i trzy pochwały serii (DS-P04, DS-P09, DS-P10), wszystkie bez treści zdrowotnej, z rzędem faktów z danych (do 3 par liczba i podpis, bez AHI); limity kart R-HUM-02 i R-HUM-23 bez zmian.
+- **Kod QR** na 27 poradach (15 artykułów CPAPblog.pl i grupa pacjentów), ekran danych z węższą kolumną (513 px), moduł 7 px jak na ekranie raportu; nigdy na karcie.
+- **Granice:** opcje komfortu i odczucia oddechowe według [ADR-0051](0051-menu-pacjenta-i-odczucia-w-poradach.md) (droga w Moich opcjach, ulga wydechowa, „za niskie / za wysokie ciśnienie” z lekarzem); pozostałe granice pkt 7 bez zmian.
+
+## Zmiana 2026-11-22 (3): wersja 2 w kodzie
+
+Wersja 2 wdrożona w firmware: fazy, pochwały, znaczniki danych, kod QR i fakty na S-K-48, formularz „12 tygodni”, spec funkcjonalna 5.8.14.14. Trzy rozstrzygnięcia przy wdrożeniu, przyjęte przez właściciela projektu: kolejki faz liczone z wpisów `P` dziennika (bez wierszy kolejki w pliku stanu), kopia przed migracją `/dane/dobry_start.csv.v1` (konwencja magazynu), fakty karty na ekranie danych jedną linią „liczba podpis”.

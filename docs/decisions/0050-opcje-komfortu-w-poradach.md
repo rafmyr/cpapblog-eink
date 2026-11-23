@@ -49,3 +49,7 @@ Porady, które z tego korzystają (22.11.2026): DS-D06, DS-D45, DS-D46 i DS-D46.
 
 - Krok DS-D46 brzmi „→ Wydech pod ciśnieniem męczy? Zapytaj lekarza o ulgę.” (decyzja właściciela projektu 22.11.2026): poprzednie „Zapytaj o ulgę na wydechu.” nie mówiło, kogo pytać, i mogło czytać się jak droga do zmiany EPR; pkt 3 bez zmian w treści.
 - Test tekstów (pkt 5) jest od wdrożenia przy budowie zestawu: `tools/zestaw/adr2.py` i `tools/zestaw/adr2_wyjatki.csv`. Wzorce i samotest bez zmian.
+
+## Zmiana 2026-11-22 (2): rozszerzona przez ADR-0051
+
+Decyzja właściciela projektu po przeglądzie scenariusza wersji 2 programu ([ADR-0051](0051-menu-pacjenta-i-odczucia-w-poradach.md)): w tekstach programu wolno podać drogę w menu pacjenta („Moje opcje”) dla opcji komfortu, opisać poziomy ulgi wydechowej (bez liczby i bez zalecenia) oraz napisać „widzisz ją w Moich opcjach: możesz ją włączać i zmieniać samodzielnie”; wolno objaśnić odczucie „mało powietrza” i „ciężki wydech” kierunkiem ciśnienia, zawsze z odesłaniem do lekarza w tym samym tekście. Punkt 2 („odesłać do instrukcji aparatu”) i pkt 3 (ulga tylko opis i odesłanie) w tym zakresie zastąpione; pkt 4 (liczby, menu kliniczne, AirBridge, ciśnienie, zakres, tryb, diagnoza) bez zmian. Porada DS-D45 wycofana (treść w DS-D06 i DS-D19), DS-D46 bez ulgi wydechowej (osobna DS-S08). Test `tools/zestaw/adr2.py` rozszerzony (pkt 5).

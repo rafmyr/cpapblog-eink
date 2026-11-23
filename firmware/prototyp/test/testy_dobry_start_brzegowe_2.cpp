@@ -53,12 +53,19 @@ static Doba db(int n, std::set<std::string> tok = {}, Tryb t = Tryb::CPAP, bool 
 static std::string dzien(Stan& s, const Ustawienia& u, const Doba& d, bool rysuj = true, WyborPorady* wy = nullptr) {
   WyborPorady w = wybierz(K(), s, u, d);
   if (wy) *wy = w;
-  if (!w.porada) return "";
-  if (rysuj) zapiszPokazanie(K(), s, w, d.dzis, w.tylkoWieczor, w.telefon);
-  return w.porada->id;
+  if (rysuj && w.porada) zapiszPokazanie(K(), s, w, d.dzis, w.tylkoWieczor, w.telefon);
+  if (rysuj) {  // wersja 2 (R-DS-55): w fazie start także porada wieczorna
+    WyborPorady e = wybierzWieczor(K(), s, u, d);
+    if (e.porada && e.porada->faza == Faza::START_WIECZOR && e.zrodlo == Zrodlo::PLAN && !e.narysowana)
+      zapiszPokazanie(K(), s, e, d.dzis, true, e.telefon);
+  }
+  return w.porada ? w.porada->id : "";
 }
+// wersja 2: porada planu rano w dobie nominalnej m (faza z doby: start, adaptacja, utrwalenie)
 static std::string idMiejsca(int m, Tryb t = Tryb::CPAP, int n = -1) {
-  const Porada* p = wariantMiejsca(K(), m, t, n);
+  Etap e = K().etap(m);
+  Faza f = e == Etap::START ? Faza::START_RANO : e == Etap::ADAPTACJA ? Faza::ADAPTACJA : Faza::UTRWALENIE;
+  const Porada* p = wariantDoby(K(), f, m, t, n);
   return p ? p->id : "";
 }
 static int wpisy(const Stan& s, const std::string& baza) {
@@ -66,9 +73,9 @@ static int wpisy(const Stan& s, const std::string& baza) {
   for (auto& x : s.p) n += x.id.substr(0, x.id.find('.')) == baza;
   return n;
 }
-static int wpisowDnia(const Stan& s, const std::string& data) {
+static int wpisowDnia(const Stan& s, const std::string& data) {  // wpisy porady dnia (bez wieczornej startu)
   int n = 0;
-  for (auto& x : s.p) n += x.data == data;
+  for (auto& x : s.p) n += x.data == data && !(K().porada(x.id) && K().porada(x.id)->faza == Faza::START_WIECZOR && x.zrodlo == "plan");
   return n;
 }
 
@@ -78,17 +85,18 @@ static int wpisowDnia(const Stan& s, const std::string& data) {
 static void brz_R_DS_07_oknoIGranica() {
   Stan s;
   Ustawienia u = wl();
-  for (int n = 1; n <= 2; n++) dzien(s, u, db(n));
-  SPRAWDZ(dzien(s, u, db(3, {"E-11"})) == "DS-Z04");
-  SPRAWDZ(dzien(s, u, db(5, {"E-14"})) == "DS-Z07");
-  // doba 9: dwie wyzwalane w oknie (3, 5) → porada planu, DS-Z09 zaległa
-  std::string d9 = dzien(s, u, db(9, {"S-K-14"}));
+  // wersja 2 (R-DS-68): w fazie start bez limitu 2 na 7, więc przykład przesunięty o 10 dób (adaptacja)
+  for (int n = 1; n <= 12; n++) dzien(s, u, db(n));
+  SPRAWDZ(dzien(s, u, db(13, {"E-11"})) == "DS-Z04");
+  SPRAWDZ(dzien(s, u, db(15, {"E-14"})) == "DS-Z07");
+  // doba 19: dwie wyzwalane w oknie (13, 15) → porada planu, DS-Z09 zaległa
+  std::string d9 = dzien(s, u, db(19, {"S-K-14"}));
   SPRAWDZ(K().porada(d9) && K().porada(d9)->rodzaj == Rodzaj::PLAN);
   bool zal = false;
   for (auto& z : s.z) zal = zal || z.id == "DS-Z09";
   SPRAWDZ(zal);
-  // doba 10: wpis z doby 3 wypada z okna (10 − 3 = 7) → zaległa DS-Z09
-  SPRAWDZ(dzien(s, u, db(10)) == "DS-Z09");
+  // doba 20: wpis z doby 13 wypada z okna (20 − 13 = 7) → zaległa DS-Z09
+  SPRAWDZ(dzien(s, u, db(20)) == "DS-Z09");
   // po 28. dobie limit 1: DS-Z04 w 30., DS-Z13? nie: noc_niepewna wymaga DS-D09 → bierzemy E-14 (DS-Z07) w 36.
   Stan t;
   for (int n = 1; n <= 29; n++) dzien(t, u, db(n));
@@ -108,7 +116,7 @@ static void brz_R_DS_08_stopnie() {
     bool wyc = noce.count(n) || n == 55;
     std::string id = dzien(s, u, db(n, wyc ? std::set<std::string>{"S-K-10/problem"} : std::set<std::string>{}));
     if (noce.count(n)) SPRAWDZ(id == noce[n]);
-    if (n == 55) SPRAWDZ(K().porada(id) && K().porada(id)->rodzaj != Rodzaj::ZDARZENIE);  // po dwóch Z03 nic nowego
+    if (n == 55) SPRAWDZ(!K().porada(id) || K().porada(id)->rodzaj != Rodzaj::ZDARZENIE);  // po dwóch Z03 nic nowego (wersja 2: w utrwaleniu doba może być bez porady)
   }
   // E-11 w nocach 3 i 6: DS-Z04 tylko raz w tych 7 dniach (bez zaległej)
   Stan t;
@@ -122,7 +130,8 @@ static void brz_R_DS_08_stopnie() {
   dzien(z, u, db(3, {"S-K-10/problem"}));
   std::vector<std::string> dalej;
   for (int n = 4; n <= 7; n++) dalej.push_back(dzien(z, u, db(n)));
-  SPRAWDZ(dalej[0] == idMiejsca(3) && dalej[1] == idMiejsca(4) && dalej[2] == idMiejsca(5) && dalej[3] == idMiejsca(7));
+  // wersja 2: DS-D05 stoi rano na dobie 3, więc po niej kolejka od doby 4
+  SPRAWDZ(dalej[0] == idMiejsca(4) && dalej[1] == idMiejsca(5) && dalej[2] == idMiejsca(6) && dalej[3] == idMiejsca(7));
   SPRAWDZ(znacznik(K(), z, *K().porada("DS-D05")) == "pokazana " + ddmm(db(3).dzis));
   printf("  R-DS-08/09: stopnie Z01→Z02→Z03, okno 7 dni, `zamiast` zgodne z przykładem\n");
 }
@@ -132,7 +141,6 @@ static void brz_R_DS_11_przerwa() {
   Stan s;
   Ustawienia u = wl();
   for (int n = 1; n <= 10; n++) dzien(s, u, db(n));
-  int kol = s.kolejka;
   SPRAWDZ(dzien(s, u, db(11, {"E-10/linia"}, Tryb::CPAP, false)) == "DS-Z05");
   for (int n = 12; n <= 20; n++) {
     std::string id = dzien(s, u, db(n, {"E-10/linia", "E-10/problem"}, Tryb::CPAP, false));
@@ -143,38 +151,33 @@ static void brz_R_DS_11_przerwa() {
     if (x.id == "DS-Z06") daty.push_back(x.data);
   SPRAWDZ(daty.size() == 2 && daty[0] == db(12).dzis && daty[1] == db(19).dzis);
   std::string id = dzien(s, u, db(21));
-  SPRAWDZ(id == idMiejsca(kol) && s.stan == "aktywny");
-  SPRAWDZ(s.przerwaDni == 9);  // termin programu + 9 dób
+  SPRAWDZ(id == idMiejsca(11) && s.stan == "aktywny");  // wersja 2: doba programu 12, adaptacja od doby 11
+  SPRAWDZ(s.przerwaDni == 9);  // doba programu − 9 dób
   printf("  R-DS-11: przerwa zgodna z przykładem (DS-Z06 %zu wpisy, przerwa %d dób)\n", daty.size(), s.przerwaDni);
 }
 
-// R-DS-14, R-DS-29: 11 porad „ponad program” z etykietą `n z 11`, bez nawilżacza 10 bez DS-D29
+// wersja 2 (R-DS-14 wycofane, zob. R-DS-69): „ponad program” w utrwaleniu: 12 porad z etykietą `porada n z 12`,
+// także bez nawilżacza (DS-D29 i DS-D33.bez), potem `zakonczony`
 static void brz_R_DS_14_ponad() {
   for (int nawilz : {-1, 0}) {
     Stan s;
     Ustawienia u = wl();
     u.nawilzacz = nawilz;
-    std::vector<std::string> ponad, etykiety;
-    for (int n = 1; n <= 70; n++) {
+    std::vector<std::string> etykiety;
+    for (int n = 1; n <= 90; n++) {
       WyborPorady w;
-      std::string id = dzien(s, u, db(n), false, &w);
+      dzien(s, u, db(n), false, &w);
       if (!w.porada) continue;
-      if (w.zrodlo == Zrodlo::PONAD) {
-        ponad.push_back(id);
-        etykiety.push_back(opis(K(), s, w).etykieta);
-      }
+      if (w.porada->faza == Faza::UTRWALENIE) etykiety.push_back(opis(K(), s, w).etykieta);
       zapiszPokazanie(K(), s, w, db(n).dzis, false, false);
+      WyborPorady e = wybierzWieczor(K(), s, u, db(n));
+      if (e.porada && e.porada->faza == Faza::START_WIECZOR && e.zrodlo == Zrodlo::PLAN) zapiszPokazanie(K(), s, e, db(n).dzis, true, false);
     }
-    size_t ocz = nawilz == 0 ? 10 : 11;
-    SPRAWDZ(ponad.size() == ocz && s.stan == "zakonczony");
-    SPRAWDZ(!etykiety.empty() && etykiety.front() == "ponad program · 1 z " + std::to_string(ocz) &&
-            etykiety.back() == "ponad program · " + std::to_string(ocz) + " z " + std::to_string(ocz));
-    SPRAWDZ((std::find(ponad.begin(), ponad.end(), "DS-D29") != ponad.end()) == (nawilz != 0));
-    int planD29 = 0;
-    for (auto& x : s.p) planD29 += x.id == "DS-D29" && x.zrodlo == "plan";
-    SPRAWDZ(planD29 == (nawilz == 0 ? 1 : 0));
+    SPRAWDZ(etykiety.size() == 12 && s.stan == "zakonczony");
+    SPRAWDZ(!etykiety.empty() && etykiety.front() == "porada 1 z 12" && etykiety.back() == "porada 12 z 12");
+    SPRAWDZ(wpisy(s, "DS-D29") == 1);
   }
-  printf("  R-DS-14: ponad program 11 / bez nawilżacza 10 zgodne\n");
+  printf("  R-DS-69: utrwalenie 12 porad z nawilżaczem i bez\n");
 }
 
 // R-DS-34: start od dnia 15: podstawowe w kolejności, potem miejsce 15; belka według miejsca porady
@@ -190,8 +193,9 @@ static void brz_R_DS_34_start15() {
     belki.push_back(opis(K(), s, w).srodekBelki);
     zapiszPokazanie(K(), s, w, db(n).dzis, false, false);
   }
-  SPRAWDZ(v == (std::vector<std::string>{"DS-D34", "DS-D37", "DS-D05", "DS-D06", "DS-D09", idMiejsca(15)}));
-  SPRAWDZ(belki[0] == "dzień 3 z 42" && belki[5] == "dzień 15 z 42");
+  // wersja 2 (R-DS-34 wycofane, zob. R-DS-65): przykład z R-DS-65
+  SPRAWDZ(v == (std::vector<std::string>{"DS-D37", "DS-S07", "DS-D05", "DS-D06", "DS-D09", idMiejsca(15)}));
+  SPRAWDZ(belki[0] == "start · dzień 9 z 10" && belki[5] == "adaptacja · dzień 15 z 42");
   printf("  R-DS-34: start od 15: %s … %s\n", v.front().c_str(), v.back().c_str());
 }
 
@@ -199,15 +203,16 @@ static void brz_R_DS_34_start15() {
 static void brz_R_DS_49_objasnienie() {
   Stan s;
   Ustawienia u = wl();
-  for (int n = 1; n <= 4; n++) dzien(s, u, db(n));
+  // wersja 2 (R-DS-68): DS-Z08 nie w fazie start (`!faza/start`), więc przykład w adaptacji
+  for (int n = 1; n <= 10; n++) dzien(s, u, db(n));
   WyborPorady w;
-  SPRAWDZ(dzien(s, u, db(5, {"E-30"}), true, &w) == "DS-D09");
-  SPRAWDZ(opis(K(), s, w).srodekBelki == "dzień 11 z 42");
-  SPRAWDZ(dzien(s, u, db(6)) == "DS-Z08");
+  SPRAWDZ(dzien(s, u, db(11, {"E-30"}), true, &w) == "DS-D09");
+  SPRAWDZ(opis(K(), s, w).srodekBelki == "adaptacja · dzień 13 z 42");
+  SPRAWDZ(dzien(s, u, db(12)) == "DS-Z08");
   std::vector<std::string> v;
-  for (int n = 7; n <= 20; n++) v.push_back(dzien(s, u, db(n)));
+  for (int n = 13; n <= 20; n++) v.push_back(dzien(s, u, db(n)));
   SPRAWDZ(std::find(v.begin(), v.end(), "DS-D09") == v.end());
-  SPRAWDZ(std::find(v.begin(), v.end(), "DS-D37") != v.end());
+  SPRAWDZ(std::find(v.begin(), v.end(), idMiejsca(11)) != v.end());
   printf("  R-DS-49: objaśnienie DS-D09 przed DS-Z08, potem pominięte w kolejce\n");
 }
 
@@ -216,7 +221,9 @@ static void brz_R_DS_42_zegar() {
   Stan s;
   Ustawienia u = wl();
   for (int n = 1; n <= 10; n++) dzien(s, u, db(n));
-  std::string d10 = s.p.back().id;
+  std::string d10;
+  for (auto& x : s.p)
+    if (x.data == db(10).dzis && x.pora == "dzien") d10 = x.id;
   size_t przed = s.p.size();
   SPRAWDZ(dzien(s, u, db(8)).empty() && dzien(s, u, db(9)).empty());
   SPRAWDZ(dzien(s, u, db(10)) == d10 && s.p.size() == przed);
@@ -236,14 +243,14 @@ static void brz_plikStanuUszkodzony() {
   Stan s = stanZWierszy(w, K());
   SPRAWDZ(s.start == START && s.p.size() == 2 && s.stan == "aktywny" && s.bledy.size() >= 8);
   SPRAWDZ(s.zaliczone.empty() && s.wDzis.empty());
-  // `S;kolejka;abc` to zła wartość, ale wiersz kolejki jest: kolejka zostaje domyślna (1), nie z dziennika
-  printf("  plik stanu z śmieciami: kolejka %d, błędów %zu (wiersz `S;kolejka;abc` blokuje odtworzenie z dziennika)\n",
-         s.kolejka, s.bledy.size());
+  // wersja 2 (R-DS-67): wiersz `S;kolejka` (wersja 1) pominięty, kolejki z dziennika P
+  printf("  plik stanu z śmieciami: błędów %zu\n", s.bledy.size());
   Stan b = stanZWierszy({"S;start;2026-12-01", "P;2026-12-01;DS-D01;plan;;dzien;panel", "P;2026-12-02;DS-D02;plan;;dzien;panel"}, K());
-  SPRAWDZ(b.kolejka == 3);
+  Ustawienia ub = wl();
+  SPRAWDZ(dzien(b, ub, db(3)) == idMiejsca(3));
   // pusty stan i plik 0 B: program zaczyna się od nowa bez wyjątku
   Stan p = stanZWierszy({}, K());
-  SPRAWDZ(p.start.empty() && p.kolejka == 1);
+  SPRAWDZ(p.start.empty() && p.p.empty());
   // obieg zapis → odczyt bez strat
   Stan r;
   Ustawienia u = wl();
@@ -273,8 +280,11 @@ static void brz_poTerminiePanelWylaczony() {
   Ustawienia u = wl();
   for (int n = 1; n <= 10; n++) dzien(s, u, db(n));
   WyborPorady w;
-  std::string id = dzien(s, u, db(80), false, &w);
-  printf("  przypadek 2: pierwszy start w 80. dobie: porada %s, stan %s (oczekiwane: brak porady, zakonczony)\n",
+  // wersja 2: koniec programu po dobie 84 (R-DS-69); po skoku daty o > SKOK_DNI najpierw `wstrzymany`, nowa data
+  // przyjęta po SKOK_POTWIERDZ kolejnych dobach
+  for (int n = 95 - SKOK_POTWIERDZ + 1; n < 95; n++) SPRAWDZ(dzien(s, u, db(n)).empty() && s.stan == "wstrzymany");
+  std::string id = dzien(s, u, db(95), false, &w);
+  printf("  przypadek 2: pierwszy start w 95. dobie: porada %s, stan %s (oczekiwane: brak porady, zakonczony)\n",
          id.empty() ? "-" : id.c_str(), s.stan.c_str());
   CZERWONY("przypadek 2", id.empty() && s.stan == "zakonczony");
 }
@@ -293,18 +303,22 @@ static void brz_odNowaDrugaPoradaTejDoby() {
   CZERWONY("przypadek 3", po.empty());
 }
 
-// (fail-path R-DS-29): `start.nawilzacz` zmieniony z `tak` na `nie` po DS-D45 na miejscu 9: DS-D29 nie była
-// pokazana, więc ma wrócić do „ponad program”; silnik ją gubi (nie ma jej ani w planie, ani w „ponad program”).
+// (fail-path R-DS-29), wersja 2 (bez DS-D45 i `miejsce_bez`): `start.nawilzacz` zmieniony z `tak` na `nie` po
+// DS-D06 → DS-D06.bez się nie pokazuje (doba już pokazana), dalsze porady w wariancie bez nawilżacza
 static void brz_D29GinieZmianaNawilzacza() {
   Stan s;
   Ustawienia u = wl();
   u.nawilzacz = 1;
-  for (int n = 1; n <= 9; n++) dzien(s, u, db(n));
-  SPRAWDZ(wpisy(s, "DS-D45") == 1);
+  for (int n = 1; n <= 12; n++) dzien(s, u, db(n));
+  SPRAWDZ(wpisy(s, "DS-D06") == 1);
   u.nawilzacz = 0;
-  for (int n = 10; n <= 70; n++) dzien(s, u, db(n));
-  printf("  przypadek 4: DS-D29 pokazana %d razy (oczekiwane 1: „niepokazana wraca do ponad program”)\n", wpisy(s, "DS-D29"));
-  CZERWONY("przypadek 4", wpisy(s, "DS-D29") == 1);
+  for (int n = 13; n <= 90; n++) dzien(s, u, db(n));
+  int bez = 0;
+  for (auto& x : s.p) bez += x.id == "DS-D06.bez";
+  printf("  przypadek 4: DS-D06.bez pokazana %d razy, DS-D19.bez %d (oczekiwane 0 i 1)\n", bez, wpisy(s, "DS-D19"));
+  CZERWONY("przypadek 4", bez == 0 && wpisy(s, "DS-D29") == 1);
+  for (auto& x : s.p)
+    if (x.data >= db(13).dzis) SPRAWDZ(K().porada(x.id)->nawilzacz != 1);
 }
 
 // (R-DS-37): dwa wiersze planu na tym samym miejscu i w tym samym wariancie, gdy jeden ma `tryb=wszystkie`,
@@ -315,7 +329,7 @@ static void brz_wszystkieIKonkretnyTryb() {
   std::string cialo = pelny.substr(nl + 1);
   const Porada* d2 = K().porada("DS-D02");
   SPRAWDZ(d2 && (d2->tryby & TR_WSZYSTKIE));
-  cialo += "DS-X99;plan;2;CPAP;;dane;;;;;;;;;;Tytuł;Treść;\n";
+  cialo += "DS-X99;plan;2;CPAP;;dane;;;;;;;;;;Tytuł;Treść;;start_rano;rano;;\n";
   std::string plik = "#cpap-eink porady 1 zestaw=z-test skrot=sha256:" + sha256Hex(cialo) + "\n" + cialo;
   Katalog k;
   std::string powod;
@@ -324,8 +338,8 @@ static void brz_wszystkieIKonkretnyTryb() {
   printf("  przypadek 5: wiersz CPAP na miejscu 2 obok `wszystkie`: %s\n", pominiety ? "pominięty" : "przyjęty");
   CZERWONY("przypadek 5", pominiety);
   // te same wejścia z błędnymi wierszami (R-DS-37): ucięty wiersz, nieznany tryb, śmieci, bardzo długi wiersz
-  std::string c2 = pelny.substr(nl + 1) + "DS-X98;plan;43;CPAP\n" + "DS-X97;plan;43;VAuto;;dane;;;;;;;;;;T;X;\n" +
-                   std::string("\x01\x02\xff;") + "\n" + std::string(70000, 'a') + "\n" + "DS-D02;plan;43;wszystkie;;dane;;;;;;;;;;T;X;\n";
+  std::string c2 = pelny.substr(nl + 1) + "DS-X98;plan;43;CPAP\n" + "DS-X97;plan;43;VAuto;;dane;;;;;;;;T;X;;utrwalenie;;\n" +
+                   std::string("\x01\x02\xff;") + "\n" + std::string(70000, 'a') + "\n" + "DS-D02;plan;43;wszystkie;;dane;;;;;;;;T;X;;utrwalenie;;\n";
   std::string p2 = "#cpap-eink porady 1 zestaw=z-test skrot=sha256:" + sha256Hex(c2) + "\n" + c2;
   Katalog k2;
   SPRAWDZ(wczytajKatalog(p2.c_str(), nullptr, k2, powod, true));
@@ -344,7 +358,15 @@ static void brz_zmianaTrybuPrzyklad() {
   Stan s;
   Ustawienia u = wl();
   int n = 1;
-  while (s.kolejka <= 29 && n < 60) dzien(s, u, db(n++, {}, Tryb::AUTOSET));
+  while (n <= 29) dzien(s, u, db(n++, {}, Tryb::AUTOSET));  // wersja 2: AutoSet do doby 29 (rano i wieczorem w starcie)
+  // kolejność wariantów ASV z dziennika P (porady planu pokazane w AutoSet, bez `wszystkie`, R-DS-45)
+  std::vector<std::string> ocz;
+  for (auto& x : s.p) {
+    const Porada* p = K().porada(x.id);
+    if (!p || p->rodzaj != Rodzaj::PLAN || (p->tryby & TR_WSZYSTKIE)) continue;
+    const Porada* a = wariantDoby(K(), p->faza, p->dzien, Tryb::ASV, u.nawilzacz);
+    if (a && a->id != p->id && std::find(ocz.begin(), ocz.end(), a->id) == ocz.end()) ocz.push_back(a->id);
+  }
   std::vector<std::string> v;
   v.push_back(dzien(s, u, db(n++, {"M-21"}, Tryb::ASV)));
   for (int i = 0; i < 5; i++) v.push_back(dzien(s, u, db(n++, {}, Tryb::ASV)));
@@ -353,13 +375,16 @@ static void brz_zmianaTrybuPrzyklad() {
   printf("  przypadek 6: po zmianie AutoSet → ASV: %s\n", sv.c_str());
   // oczekiwanie według poprawionego przykładu R-DS-45 (rozstrzygnięcie przypadku 6: kod zgodny z R-DS-49, poprawiony przykład
   // w spec): DS-D25 (miejsce 30, objaśnia DS-Z12) przed DS-Z12, potem warianty nowego trybu
-  CZERWONY("przypadek 6", v == (std::vector<std::string>{idMiejsca(30, Tryb::ASV), "DS-Z12", "DS-D01.asv", "DS-D46.asv",
-                                                   "DS-D23.asv", "DS-D24.asv"}));
+  // wersja 2: DS-D25 (objaśnienie DS-Z12) stoi już w dobie 29, więc najpierw DS-Z12, potem po jednej na dobę warianty
+  // ASV porad pokazanych w AutoSet (R-DS-45) w kolejności dziennika
+  bool dobre = v.size() == 6 && v[0] == "DS-Z12" && ocz.size() >= 5;
+  for (size_t i = 1; dobre && i < v.size(); i++) dobre = v[i] == ocz[i - 1];
+  CZERWONY("przypadek 6", dobre);
 }
 
 // Formularz (R-DS-31…R-DS-35, R-KONF-13): złe wejście w polach sekcji i na podstronach, kodowanie HTML, bez skryptu
 static void brz_formularzZleWejscie() {
-  for (const char* d : {"0", "43", "-1", "abc", "9999999999", " 5", "5 ", "+5", "4.0", "１"}) {
+  for (const char* d : {"0", "85", "-1", "abc", "9999999999", " 5", "5 ", "+5", "4.0", "１"}) {
     formularz::Wynik w = formularz::waliduj({{"start_dzien", d}}, sekrety::Dane(), "2026-12-01");
     SPRAWDZ(w.bledy.count("start_dzien") && !w.plik.count("start.dzien"));
   }
@@ -367,7 +392,7 @@ static void brz_formularzZleWejscie() {
   SPRAWDZ(pusty.ok() && pusty.plik.count("start.dzien") && pusty.plik["start.dzien"].empty());
   formularz::Wynik d42 = formularz::waliduj({{"start_dzien", "42"}}, sekrety::Dane(), "2026-12-01");
   SPRAWDZ(d42.ok() && d42.plik["start.dzien"] == "42");
-  for (const char* pole : {"start_program", "start_nawilzacz", "start_objawy", "start_ponad"}) {
+  for (const char* pole : {"start_program", "start_nawilzacz", "start_objawy"}) {  // wersja 2: bez `start_ponad` (R-DS-66)
     formularz::Wynik w = formularz::waliduj({{pole, "<script>"}}, sekrety::Dane(), "2026-12-01");
     SPRAWDZ(w.bledy.count(pole) == 1);
   }
@@ -383,7 +408,7 @@ static void brz_formularzZleWejscie() {
   formularz::Odpowiedz z = s.obsluz("GET", "/u/tok/porady?t=99999999999", "", 1, "");
   SPRAWDZ(z.kod == 200 && z.podstrona == "porady");
   std::string h = formularz::stronaPorad(K(), Stan(), wl(), Tryb::CPAP, z.zakladka, "/u/tok/", nullptr, nullptr);
-  SPRAWDZ(h.find("<b>Tydzień 1</b>") != std::string::npos && h.find("<script") == std::string::npos);
+  SPRAWDZ(h.find("<b>Start, rano</b>") != std::string::npos && h.find("<script") == std::string::npos);  // wersja 2: zakładki faz
   // kodowanie HTML znaków z tekstów porad
   SPRAWDZ(formularz::html("<a & \"b\"> → ▶") == "&lt;a &amp; &quot;b&quot;&gt; → ▶");
   // wszystkie strony porad w każdym trybie i stanie nawilżacza w budżecie 8 KB, każda porada na jakiejś stronie

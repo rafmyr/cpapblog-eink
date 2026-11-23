@@ -247,12 +247,24 @@ R-DS-06,2 dni,czas interfejsu,porada zaległa czeka najwyżej tyle dni (ZALEGLA_
 R-DS-07,2 / 7 dni; 28 dób; 1 / 7 dni,czas interfejsu,"limit porad wyzwalanych (LIMIT_POCZATEK, LIMIT_GRANICA, LIMIT_POZNIEJ); zasady v2 pkt 3.4"
 R-DS-08,7 dni; 2 razy,czas interfejsu,"ta sama porada wyzwalana raz na 7 dni i 2 razy w programie (OKNO_DNI, RAZY_W_PROGRAMIE)"
 R-DS-11,7 dni,powtórzenie,porada przerwy wraca co tyle dni (= R-DS-08); 2 noce = E-10.noce_problem
-R-DS-12,56 dób,czas interfejsu,najpóźniejszy koniec planu od dnia włączenia plus dni przerwy (KONIEC_DOBA); zasady v2 pkt 5
 R-DS-26,3 noce; 7 dni,czas interfejsu,"tygodnie ankiety (ANKIETA_NOCE, ANKIETA_CO_DNI)"
 R-DS-44,11:00,czas interfejsu,= R-KON-41 (start slotu dziennego bez nocy)
-R-DS-47,7 nocy,czas interfejsu,"= R-EKR-16 (seria S2b), token M-20/7"
 §5.8.14.11,brak liczby,opis,tabela progów programu „Dobry start”
 7.2|D0b,180 min,czas interfejsu,= R-DS-03
+R-DS-54,10 dób; 42 doby; 84 doby,czas interfejsu,"granice faz start, adaptacja, utrwalenie (ostatnie doby nominalne porad faz w porady.csv: Katalog::koniecStartu, koniecAdaptacji, miejsc)"
+R-DS-69,2 porady / tydzień,czas interfejsu,porady planu w utrwaleniu (doby nominalne w porady.csv)
+R-DS-59,1 pochwała / dobę; 1 / 7 dni; 1 doba,czas interfejsu,"najwyżej jedna pochwała na dobę, poza startem 1 na 7 dni poza kartami serii (POCHWALA_OKNO_DNI), pochwała czeka 1 dobę (POCHWALA_CZEKA_DNI)"
+5.8.14.14.2|start,10 dób,czas interfejsu,= R-DS-54 (koniec fazy start)
+5.8.14.14.2|utrwalenie,2 porady / tydzień,czas interfejsu,= R-DS-69
+§5.8.14.14.3,1 doba; 1 / 7 dni,czas interfejsu,= R-DS-59 (pochwała czeka 1 dobę; poza startem 1 pochwała na 7 dni)
+§5.8.14.14.4.1,1 / 7 dni; 3 razy,czas interfejsu,"= R-DS-59, R-DS-58 (POCHWALA_OKNO_DNI, POCHWALA_LIMIT)"
+5.8.14.14.4.2|3,30 nocy,czas interfejsu,DS-P10: seria M-20 (token M-20/30 w porady.csv)
+5.8.14.14.4.2|4,14 nocy,czas interfejsu,DS-P09: seria M-20 (token M-20/14 w porady.csv)
+5.8.14.14.4.2|7,6 h,czas interfejsu,"DS-P06: M-01 co najmniej 6 h przy M-17 = 0 (CALA_NOC_MIN); brak źródła (badania: korzyść rośnie do 6–7 h)"
+5.8.14.14.4.2|9,3 noce,czas interfejsu,DS-P05: seria M-20 (token M-20/3 w porady.csv)
+5.8.14.14.4.2|12,30 min,czas interfejsu,"DS-P03: noc dłuższa od poprzedniej z terapią co najmniej o tyle (DLUZEJ_MIN); obserwacja własna, brak źródła"
+§5.8.14.14.6.2,8 KB,parametr techniczny,= R-DS-35 (strona „Wszystkie porady”)
+"5.8.14.14.9|pochwala/…, M-20/n",tokeny warunku,opis,"progi pochwał w 5.8.14.14.4.2 i 5.8.14.11"
 R-AW-40,3 wybudzenia,parametr techniczny,kolejne wybudzenia z nieudanym odczytem tej samej ścieżki do sprawy trwale nieczytelnego pliku (src/nieczytelne.h WYBUDZEN_DO_SPRAWY)
 R-AW-40,14 dób,parametr techniczny,bez nieudanego odczytu ścieżki przez tyle czasu wpis i sprawa trwale nieczytelnego pliku wygasają (src/nieczytelne.h WYGASA_S)
 R-KONF-62,5 wydań na liście kanału wczesnego (`WYDAN_NA_LISCIE`),parametr techniczny,"kanał wczesny (23.11.2026): ok. 25 KB przy krótkich notach, w limicie odpowiedzi `releases/latest` 64 KB (`MAKS_ODPOWIEDZI_API`); src/aktualizacja.h; pytanie otwarte"

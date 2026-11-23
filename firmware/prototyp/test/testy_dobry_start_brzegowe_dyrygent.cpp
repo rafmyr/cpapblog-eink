@@ -52,10 +52,10 @@ std::string plikStanu(bool koniec) {
                                 "S;doba;2026-11-02", "S;dzien_ust;1", "S;plan_koniec;0"};
   const dobry_start::Katalog& k = dobry_start::katalogWbudowany();
   for (int m = 1; m <= 9; m++) {
-    const dobry_start::Porada* p = dobry_start::wariantMiejsca(k, m, dobry_start::Tryb::ASV, -1);
+    const dobry_start::Porada* p = dobry_start::wariantDoby(k, dobry_start::Faza::START_RANO, m, dobry_start::Tryb::ASV, -1);
     w.push_back("P;" + dodajDni("2026-10-25", m - 1) + ";" + (p ? p->id : "?") + ";plan;;dzien;panel");
   }
-  std::string t = "#cpap-eink dobry_start 1\nrodzaj;a;b;c;d;e;f\n";
+  std::string t = "#cpap-eink dobry_start 2\nrodzaj;a;b;c;d;e;f\n";  // wersja 2 pliku (R-DS-67); wiersze wersji 1 pominięte
   for (auto& x : w) {
     std::string r = x;
     int pol = 1;
@@ -78,13 +78,14 @@ void brz_uszkodzonyPlikStanu() {
   std::string dobry = poDobie(plikStanu(true));
   printf("  przypadek 8: plik cały: %s, %s, wpisów P %d\n", wiersz(dobry, "S;start;").c_str(), wiersz(dobry, "S;kolejka;").c_str(),
          ileP(dobry));
-  SPRAWDZ(wiersz(dobry, "S;start;") == "S;start;2026-10-25" && wiersz(dobry, "S;kolejka;") == "S;kolejka;11" && ileP(dobry) == 10);
+  // wersja 2 (R-DS-67): kolejki faz z wpisów P (bez wiersza `S;kolejka`)
+  SPRAWDZ(wiersz(dobry, "S;start;") == "S;start;2026-10-25" && wiersz(dobry, "S;kolejka;").empty() && ileP(dobry) == 10);
   std::vector<Wyb> v;
   std::string zly = poDobie(plikStanu(false), &v);
-  printf("  przypadek 8: plik bez `#koniec`: %s, %s, wpisów P %d (oczekiwane: start 2026-10-25, kolejka z wpisów P = 11)\n",
+  printf("  przypadek 8: plik bez `#koniec`: %s, %s, wpisów P %d (oczekiwane: start 2026-10-25, wpisów P 10)\n",
          wiersz(zly, "S;start;").c_str(), wiersz(zly, "S;kolejka;").c_str(), ileP(zly));
   SPRAWDZ(zdarzenie(v, "uszkodzony"));
-  CZERWONY("przypadek 8", wiersz(zly, "S;start;") == "S;start;2026-10-25" && wiersz(zly, "S;kolejka;") == "S;kolejka;11");
+  CZERWONY("przypadek 8", wiersz(zly, "S;start;") == "S;start;2026-10-25" && ileP(zly) == 10);
 }
 void brz_doba5() {
   PanelSym a;
@@ -119,10 +120,10 @@ void brz_R_DS_32_wylaczIWlacz() {
   SPRAWDZ(wiersz(a.p.pliki.pliki[PLIK], "S;stan;") == "S;stan;zatrzymany" && ileP(a.p.pliki.pliki[PLIK]) == 9);
   std::string wyl = a.p.pliki.pliki[PLIK];
   std::string pl = poDobie(wyl, &v);
-  SPRAWDZ(zdarzenie(v, "porada dnia: S-K-48") && zdarzenie(v, "włączony ponownie, dalej od miejsca 10"));
-  SPRAWDZ(wiersz(pl, "S;start;") == "S;start;2026-10-25" && ileP(pl) == 10 && wiersz(pl, "S;stan;") == "S;stan;aktywny" &&
-          wiersz(pl, "S;kolejka;") == "S;kolejka;11");
-  printf("  R-DS-32: wyłączony bez S-K-48 (zatrzymany), ponownie włączony: %s, wpisów P %d\n", wiersz(pl, "S;kolejka;").c_str(),
+  // wersja 2: dalej od doby programu (doby bez programu nie liczą się, R-DS-56)
+  SPRAWDZ(zdarzenie(v, "porada dnia: S-K-48") && zdarzenie(v, "włączony ponownie, dalej od doby programu"));
+  SPRAWDZ(wiersz(pl, "S;start;") == "S;start;2026-10-25" && ileP(pl) >= 10 && wiersz(pl, "S;stan;") == "S;stan;aktywny");
+  printf("  R-DS-32: wyłączony bez S-K-48 (zatrzymany), ponownie włączony: %s, wpisów P %d\n", wiersz(pl, "S;przerwa_dni;").c_str(),
          ileP(pl));
 }
 

@@ -647,6 +647,7 @@ R-AW-39,U-06,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
 R-AW-39,R-NF-29,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-39
 R-AW-39,U-05,U,tak,5.3.2 Wymagania,katalog+wymaganie,weryfikacja R-AW-39
 R-AW-40,U-05,U,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-40
+R-AW-40,R-DS-60,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-40
 R-AW-41,R-AW-25,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
 R-AW-41,R-AW-26,R,nie,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
 R-AW-41,E-08,E,tak,5.3.2 Wymagania,wymaganie,weryfikacja R-AW-41
@@ -1850,25 +1851,27 @@ R-DS-04,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-04
 R-DS-04,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog+wymaganie,weryfikacja R-DS-04
 R-DS-04,S-K-12,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-04
 R-DS-04,L-03,L,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-04
+R-DS-05,R-DS-55,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-05
 R-DS-05,E-11,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-05
 R-DS-06,E-21,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-06
 R-DS-06,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-06
 R-DS-07,R-DS-06,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-07
+R-DS-07,R-DS-68,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-07
 R-DS-07,E-11,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-07
 R-DS-08,R-DS-11,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-08
 R-DS-08,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-08
 R-DS-08,E-11,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-08
 R-DS-11,E-10,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-11
-R-DS-11,R-DS-12,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-11
+R-DS-11,R-DS-56,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-11
+R-DS-11,R-DS-69,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-11
 R-DS-11,R-SKI-27,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-11
-R-DS-12,R-DS-11,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-12
-R-DS-12,R-DS-32,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-12
-R-DS-12,R-DS-14,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-12
 R-DS-13,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog+wymaganie,weryfikacja R-DS-13
-R-DS-14,R-DS-29,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-14
+R-DS-13,R-DS-57,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-13
 R-DS-15,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog+wymaganie,weryfikacja R-DS-15
 R-DS-15,R-KON-51,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-15
+R-DS-15,R-DS-62,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-15
 R-DS-15,R-DS-52,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-15
+R-DS-16,R-DS-64,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-16
 R-DS-17,R-HUM-02,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-17
 R-DS-17,R-HUM-23,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-17
 R-DS-17,R-HUM-17,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-17
@@ -1908,13 +1911,15 @@ R-DS-27,E-21,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-27
 R-DS-27,E-22,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-27
 R-DS-27,E-23,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-27
 R-DS-28,R-DS-08,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-28
-R-DS-29,R-DS-14,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-29
+R-DS-29,R-DS-69,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-29
+R-DS-29,R-DS-71,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-29
 R-DS-29,S-K-03,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-29
 R-DS-30,L-11,L,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-30
 R-DS-31,U-03,U,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-31
+R-DS-31,R-DS-66,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-31
 R-DS-31,R-KONF-59,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-31
 R-DS-32,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog+wymaganie,weryfikacja R-DS-32
-R-DS-33,R-DS-34,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-33
+R-DS-33,R-DS-65,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-33
 R-DS-33,R-DS-32,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-33
 R-DS-36,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog+wymaganie,weryfikacja R-DS-36
 R-DS-38,R-DANE-29,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-38
@@ -1930,17 +1935,11 @@ R-DS-44,R-KON-41,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-44
 R-DS-44,E-01,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-44
 R-DS-45,R-DS-02,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-45
 R-DS-45,M-21,M,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-45
-R-DS-45,R-DS-49,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-45
 R-DS-45,R-NOR-07,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-45
 R-DS-46,S-K-04,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-46
 R-DS-46,S-K-14,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-46
 R-DS-46,S-K-03,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-46
 R-DS-46,R-KON-06,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-46
-R-DS-47,M-20,M,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
-R-DS-47,M-01,M,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
-R-DS-47,R-DANE-13,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
-R-DS-47,S-K-28,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
-R-DS-47,R-DS-08,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
 R-DS-48,R-DS-28,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-48
 R-DS-49,R-DS-06,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-49
 R-DS-49,E-30,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-49
@@ -1954,6 +1953,24 @@ R-DS-51,S-K-01,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-51
 R-DS-53,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-53
 R-DS-53,R-KONF-42,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-53
 R-DS-53,R-NOR-05,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-53
+R-DS-56,R-DS-11,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-56
+R-DS-56,R-DS-32,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-56
+R-DS-56,R-DS-69,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-56
+R-DS-57,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-57
+R-DS-58,M-20,M,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-58
+R-DS-60,E-20,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
+R-DS-60,S-K-12,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
+R-DS-60,R-AW-40,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
+R-DS-60,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
+R-DS-60,M-01,M,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
+R-DS-62,R-LEK-06,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-62
+R-DS-64,R-DS-17,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-64
+R-DS-68,S-K-10,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-68
+R-DS-68,R-DS-08,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-68
+R-DS-68,E-30,E,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-68
+R-DS-69,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-69
+R-DS-70,R-DS-02,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-70
+R-DS-71,R-DS-29,R,nie,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-71
 R-MAS-01,S-K-31,S-K,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-01
 R-MAS-01,S-K-35,S-K,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-01
 R-MAS-01,R-MAS-18,R,nie,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-01
@@ -3156,8 +3173,7 @@ R-DS-30,strona A4,nazwany,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R
 R-DS-40,pytanie o senność,nazwany,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-40
 R-DS-40,pytanie „gorzej”,nazwany,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-40
 R-DS-44,S5,stan,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-44
-R-DS-47,S2b,stan,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
-R-DS-47,S2c,stan,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-47
+R-DS-60,S3,stan,tak,5.8.14.10 Wymagania (EARS),wymaganie,weryfikacja R-DS-60
 R-MAS-01,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-01
 R-MAS-02,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,wymaganie,weryfikacja R-MAS-02
 R-MAS-05,„Sprzęt”,nazwany,tak,5.9.7 Wymagania,katalog+wymaganie,weryfikacja R-MAS-05
@@ -3378,9 +3394,6 @@ R-DS-07,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-07
 R-DS-08,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-08
 R-DS-09,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-09
 R-DS-10,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-10
-R-DS-11,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-11
-R-DS-12,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-12
-R-DS-14,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-14
 R-DS-16,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-16
 R-DS-25,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-25
 R-DS-26,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-26
@@ -3389,9 +3402,6 @@ R-DS-28,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-28
 R-DS-29,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-29
 R-DS-30,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-30
 R-DS-31,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-31
-R-DS-33,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-33
-R-DS-34,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-34
-R-DS-35,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-35
 R-DS-37,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-37
 R-DS-38,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-38
 R-DS-39,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-39
@@ -3400,11 +3410,13 @@ R-DS-41,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-41
 R-DS-43,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-43
 R-DS-44,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-44
 R-DS-45,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-45
-R-DS-46,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-46
-R-DS-47,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-47
-R-DS-48,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-48
 R-DS-49,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-49
 R-DS-52,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-52
+R-DS-11,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-11
+R-DS-33,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-33
+R-DS-35,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-35
+R-DS-46,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-46
+R-DS-48,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-48
 R-DS-53,S-K-48,S-K,tak,5.8.14.10 Wymagania (EARS),katalog,weryfikacja R-DS-53
 R-EKR-43,„Co znaczą te liczby”,nazwany,tak,5.4.11 Wymagania,katalog,weryfikacja R-EKR-43
 R-KOK-21,„Otwarte sprawy”,nazwany,tak,5.5.7 Krótszy kokpit (ADR-0041),katalog,weryfikacja R-KOK-21
@@ -3451,5 +3463,10 @@ R-POR-18,,brak,nie,"5.4.16 Portret nocy (S11, od 11.11.2026)",brak powiązania,w
 R-POR-22,,brak,nie,"5.4.16 Portret nocy (S11, od 11.11.2026)",brak powiązania,weryfikacja R-POR-22
 R-POR-26,,brak,nie,"5.4.16 Portret nocy (S11, od 11.11.2026)",brak powiązania,weryfikacja R-POR-26
 R-EKR-63,,brak,nie,5.4.17 Belka informacyjna (od 14.11.2026),brak powiązania,weryfikacja R-EKR-63
+R-DS-54,,brak,nie,5.8.14.10 Wymagania (EARS),brak powiązania,weryfikacja R-DS-54
+R-DS-59,,brak,nie,5.8.14.10 Wymagania (EARS),brak powiązania,weryfikacja R-DS-59
+R-DS-61,,brak,nie,5.8.14.10 Wymagania (EARS),brak powiązania,weryfikacja R-DS-61
+R-DS-63,,brak,nie,5.8.14.10 Wymagania (EARS),brak powiązania,weryfikacja R-DS-63
+R-DS-67,,brak,nie,5.8.14.10 Wymagania (EARS),brak powiązania,weryfikacja R-DS-67
 R-NF-36,,brak,nie,8.2 Wymagania,brak powiązania,weryfikacja R-NF-36
 R-NF-21,,brak,nie,8.2 Wymagania,brak powiązania,weryfikacja R-NF-21

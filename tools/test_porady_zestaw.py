@@ -53,7 +53,11 @@ def test_porady_z_repo_przechodza_wszystkie_kontrole():
     assert pola == porady.POLA_PANELU
     for zrodlo in ("ksiazka", "blog", "zalecenia", "poziom", "werdykt", "wyzwalacz"):
         assert zrodlo not in pola, "kolumna źródeł nie idzie do firmware"
-    assert "https://" not in p, "odnośniki źródeł nie idą do firmware"
+    # odnośniki źródeł nie idą do firmware; adres w firmware tylko w kolumnie `qr` (wersja 2, R-DS-62)
+    iq = pola.index("qr")
+    for w in p.splitlines()[1:]:
+        f = w.split(";")
+        assert all("https://" not in x for i, x in enumerate(f) if i != iq), f[0]
     assert len(p.splitlines()) - 1 == len(wiersze())
     assert len(a.splitlines()) >= 2
 
@@ -125,14 +129,11 @@ def test_R_DS_53_znacznik_progu(tmp_path):
         porady.buduj_porady(kopia(tmp_path, f), K)
 
 
-def test_R_DS_29_miejsce_bez_nawilzacza(tmp_path):
-    # bez kolumny `miejsce_bez` miejsce porady tylko z nawilżaczem nie ma porady bez nawilżacza
-    def f(r):
-        for x in r:
-            x["miejsce_bez"] = ""
-        return r
-    with pytest.raises(porady.BladPorad, match="bez nawilżacza"):
-        porady.buduj_porady(kopia(tmp_path, f), K)
+def test_R_DS_29_doba_bez_nawilzacza(tmp_path):
+    # wersja 2 (R-DS-29 zmienione, R-DS-71): każda doba planu ma wariant `.bez` albo poradę bez wody; bez DS-D19.bez
+    # doba 23 adaptacji nie ma porady bez nawilżacza
+    with pytest.raises(porady.BladPorad, match="adaptacja doba 23 .* bez nawilżacza"):
+        porady.buduj_porady(kopia(tmp_path, lambda r: [x for x in r if x["id"] != "DS-D19.bez"]), K)
 
 
 def test_R_DS_37_powtorzone_id_i_brak_tresci(tmp_path):
@@ -151,8 +152,8 @@ def test_R_DS_37_brak_tresci(tmp_path):
 
 
 def test_plan_kazde_miejsce_w_kazdym_trybie_i_obu_stanach_nawilzacza(tmp_path):
-    # bez DS-D06.bez miejsce 8 nie ma porady bez nawilżacza
-    with pytest.raises(porady.BladPorad, match="miejsce planu 8"):
+    # bez DS-D06.bez doba 12 adaptacji nie ma porady bez nawilżacza (wersja 2: doby faz zamiast miejsc 1…42)
+    with pytest.raises(porady.BladPorad, match="adaptacja doba 12"):
         porady.buduj_porady(kopia(tmp_path, lambda r: [x for x in r if x["id"] != "DS-D06.bez"]), K)
 
 
@@ -236,3 +237,85 @@ def test_budowa_zestawu_bez_materialow_zrodlowych(tmp_path):
     assert "porady: " in r.stdout
     with open(os.path.join(REPO, "firmware", "prototyp", "src", "zestaw_wbudowany.h"), encoding="utf-8") as f:
         assert (kopia_repo / "firmware" / "prototyp" / "src" / "zestaw_wbudowany.h").read_text(encoding="utf-8") == f.read()
+
+
+# ---------- wersja 2 (spec 5.8.14, R-DS-54…R-DS-71) ----------
+def _zmien(id_, **pola):
+    def f(r):
+        for x in r:
+            if x["id"] == id_:
+                x.update(pola)
+        return r
+    return f
+
+
+def test_R_DS_62_adres_qr_dluzszy_niz_42_bajty(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-S07: adres QR"):
+        porady.buduj_porady(kopia(tmp_path, _zmien("DS-S07", qr="https://cpapblog.pl/?p=" + "1" * 21)), K)
+
+
+def test_R_DS_62_qr_na_karcie_i_kolumna_513(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-D07: kod QR na karcie"):
+        porady.buduj_porady(kopia(tmp_path / "a", _zmien("DS-D07", qr="https://cpapblog.pl/?p=1")), K)
+    # tekst, który mieści się w 748 px w 5 liniach, a z kodem QR (513 px) już nie
+    def f(r):
+        for x in r:
+            if x["id"] == "DS-D09":
+                t = "Słowo"
+                while len(porady.zawin(K["P24S"], t + " słowo", porady.KOLUMNA)) <= 5:
+                    t += " słowo"
+                x["tresc"], x["qr"] = t, "https://cpapblog.pl/?p=1"
+        return r
+    with pytest.raises(porady.BladPorad, match=r"DS-D09: treść \d+ linii > 5"):
+        porady.buduj_porady(kopia(tmp_path / "b", f), K)
+
+
+def test_R_DS_64_fakty_poza_karta_i_za_szerokie(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-D09: fakty poza kartą"):
+        porady.buduj_porady(kopia(tmp_path / "a", _zmien("DS-D09", fakty="{czas}::z maską")), K)
+    szerokie = " | ".join(["{srednio}::bardzo długi podpis faktu"] * 3)
+    with pytest.raises(porady.BladPorad, match="DS-D07: rząd faktów"):
+        porady.buduj_porady(kopia(tmp_path / "b", _zmien("DS-D07", fakty=szerokie)), K)
+
+
+def test_R_DS_61_ahi_na_karcie_i_w_pochwale(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-D28: AHI na karcie"):
+        porady.buduj_porady(kopia(tmp_path / "a", _zmien("DS-D28", krok="→ AHI niskie.")), K)
+    with pytest.raises(porady.BladPorad, match="DS-P01: AHI"):
+        porady.buduj_porady(kopia(tmp_path / "b", _zmien("DS-P01", tytul="AHI w normie")), K)
+
+
+def test_R_DS_60_nieznany_znacznik_danych(tmp_path):
+    with pytest.raises(porady.BladPorad, match=r"DS-P01: nieznany znacznik danych \{ahi\}"):
+        porady.buduj_porady(kopia(tmp_path, _zmien("DS-P01", tresc="Ta noc: {ahi}.")), K)
+
+
+def test_R_DS_56_koncowa_fazy_i_zla_faza(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-D34: `koncowa_fazy`"):  # doba 41, ostatnia doba adaptacji to 42
+        porady.buduj_porady(kopia(tmp_path / "a", _zmien("DS-D34", flagi="podstawowa,objaw,koncowa_fazy")), K)
+    with pytest.raises(porady.BladPorad, match="DS-D09: zła faza"):
+        porady.buduj_porady(kopia(tmp_path / "b", _zmien("DS-D09", faza="ponad")), K)
+    with pytest.raises(porady.BladPorad, match="DS-P01: zła pora"):
+        porady.buduj_porady(kopia(tmp_path / "c", _zmien("DS-P01", pora="wieczor")), K)
+
+
+def test_R_DS_71_pochwala_bez_wariantu_trybu(tmp_path):
+    with pytest.raises(porady.BladPorad, match="DS-P01: brak wariantu w trybie ASV"):
+        porady.buduj_porady(kopia(tmp_path, _zmien("DS-P01", tryb="CPAP+AutoSet")), K)
+
+
+def test_werdykt_bez_kodow_i_numerow_pytan():
+    """Kolumna `werdykt` w porady.csv idzie 1:1 do publicznego repo: bez odsyłaczy [Snn] do notatek, bez kodów wpisów
+    bloga (A1, B2…) i bez numerów pytań otwartych P-nnn (zapis neutralny jak w `cpapblog-eink`)."""
+    import csv
+    import re
+    with open(os.path.join(KATALOG, "porady.csv"), encoding="utf-8") as f:
+        wiersze = list(csv.DictReader(f, delimiter=";"))
+    assert wiersze
+    zle = []
+    for w in wiersze:
+        t = w["werdykt"]
+        if (re.search(r"\[S\d+", t) or re.search(r"\bblog\w*\s+[A-L]\d", t)
+                or re.search(r"(?<![-\w])[A-L]\d{1,2}(?![\w])", t) or re.search(r"\bP-\d{3}\b", t)):
+            zle.append((w["id"], t))
+    assert not zle, zle

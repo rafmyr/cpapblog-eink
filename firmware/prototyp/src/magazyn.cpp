@@ -220,8 +220,14 @@ const std::vector<FormatPliku>& rejestrFormatow() {
       format("portret", "/dane/portret.csv", "", RodzajZapisu::PRZEPISANIE,
              "data;rodzaj;od;do;wyciek95;wyc_s;zew;centr;ps;maks;braki"),
       // program „Dobry start” (src/dobry_start.h, ADR-0049): stan, dziennik porad, zaległe i odpowiedzi ankiety; rodzaj
-      // wiersza w pierwszym polu (S, D, P, Z, O, K, W, T), pola znaczą według rodzaju
-      format("dobry_start", "/dane/dobry_start.csv", "", RodzajZapisu::PRZEPISANIE, "rodzaj;a;b;c;d;e;f"),
+      // wiersza w pierwszym polu (S, D, E, P, Z, O, K, W, T), pola znaczą według rodzaju. Wersja 2 (program 12 tygodni,
+      // R-DS-67): te same pola; krok 1 → 2 w miejscu z kopią `.v1` (ADR-0022), znaczenie wierszy wersji 1
+      // (`S;kolejka`, `S;ponad`, `K;{miejsce}`) przepisuje dobry_start::stanZWierszy() przy odczycie
+      [] {
+        FormatPliku f = format("dobry_start", "/dane/dobry_start.csv", "", RodzajZapisu::PRZEPISANIE, "rodzaj;a;b;c;d;e;f");
+        f.pola.push_back(f.pola[0]);
+        return f;
+      }(),
   };
   return r;
 }

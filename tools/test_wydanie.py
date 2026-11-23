@@ -369,7 +369,7 @@ def test_kanal_wczesny_klucz_jak_firmware():
 
 
 # ---------- testy brzegowe kanału wczesnego: argumenty wydaj.sh ----------
-def _uruchom_wydaj_sh(tmp_path, argumenty):
+def _uruchom_wydaj_sh(tmp_path, argumenty, checki=None):
     """wydaj.sh na atrapach (git z `origin`, gh, pio, wydaj.py zapisujący argumenty); zwraca (kod, argumenty wydaj.py
     przy publikacji albo None, wyjście)."""
     import shutil
@@ -388,14 +388,16 @@ def _uruchom_wydaj_sh(tmp_path, argumenty):
     (bin_ / "gh").write_text(
         "#!/bin/sh\n"
         "case \"$*\" in\n"
-        "  *check-runs*) echo 'testy completed success';;\n"
+        "  *check-runs*) printf '%b' \"$CHECKI\";;\n"
         "  *releases/tags*) exit 1;;\n"
         "esac\n"
         "exit 0\n")
     (bin_ / "pio").write_text("#!/bin/sh\nexit 0\n")
     for n in ("gh", "pio"):
         os.chmod(bin_ / n, 0o755)
-    env = dict(os.environ, PATH=str(bin_) + os.pathsep + os.environ["PATH"], HOME=str(tmp_path),
+    if checki is None:
+        checki = "wynik: pełne CI\tcompleted\tsuccess\nsanitizery (4)\tcompleted\tsuccess\ngaleria\tcompleted\tskipped\n"
+    env = dict(os.environ, PATH=str(bin_) + os.pathsep + os.environ["PATH"], HOME=str(tmp_path), CHECKI=checki,
                GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
     zdalne = tmp_path / "zdalne.git"
     subprocess.run(["git", "init", "-q", "--bare", str(zdalne)], check=True, env=env)
@@ -439,3 +441,25 @@ def test_wydaj_sh_argumenty_wczesne(tmp_path):
     assert kod == 0 and arg is not None and "--wczesne" not in arg and "wygląda na wersję próbną" in wyj
     kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "e", ["--wczesne", "1.1.0-beta.2"])
     assert "wygląda na wersję próbną" not in wyj
+
+
+def test_wydaj_sh_zielone_ci_wynik_pelne(tmp_path):
+    """Reguła „zielone CI”: nazwy ze spacjami i pominięte zadania galerii nie blokują wydania;
+    brak „wynik: pełne CI”, zadanie w toku albo failure blokują je bez publikacji."""
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "a", ["1.0.2"])
+    assert kod == 0 and arg is not None, wyj
+    przypadki = {
+        "b": "testy\tcompleted\tsuccess\n",
+        "c": "wynik: pełne CI\tcompleted\tsuccess\nsanitizery (2)\tin_progress\t\n",
+        "d": "wynik: pełne CI\tcompleted\tsuccess\ngaleria\tcompleted\tfailure\n",
+        "e": "wynik: pełne CI\tcompleted\tfailure\n",
+        "f": "wynik: szybka bramka (nie do scalenia)\tcompleted\tsuccess\n",
+        "g": "wynik: pełne CI\tcompleted\tsuccess\nsanitizery (1)\tin_progress\tnull\n",
+        "h": "wynik: pełne CI\tcompleted\tsuccess\ntesty\tcompleted\tcancelled\n",
+        "i": "wynik: pełne CI\tcompleted\tskipped\n",
+        "j": "",
+    }
+    for k, checki in przypadki.items():
+        (tmp_path / k).mkdir()
+        kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / k, ["1.0.2"], checki)
+        assert kod != 0 and arg is None, (k, wyj)

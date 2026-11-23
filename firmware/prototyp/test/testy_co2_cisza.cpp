@@ -517,7 +517,11 @@ static void testR_AW_41_liniaDnia() {
 }
 #endif
 
+#ifdef CO2_CISZA_BEZ_MAIN  // plik dołącza inny test (testy_dobry_start_cisza_otoczenia.cpp): własny main() tamtego
+int main_testy_co2_cisza() {
+#else
 int main() {
+#endif
   setenv("TZ", STREFA_PANELU, 1);
   tzset();
   testR_AW_41_episodPo3h(Awaria::BRAK_ODPOWIEDZI, "HTTP -1", "brak odpowiedzi");

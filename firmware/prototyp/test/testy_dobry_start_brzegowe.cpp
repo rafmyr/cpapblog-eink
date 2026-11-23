@@ -74,8 +74,9 @@ void testR_DS_03_blokIWieczor() {
   SPRAWDZ(pierwsza >= 0 && ostatniaDzien - pierwsza < dobry_start::BLOK_MIN);
   SPRAWDZ(logMa(d.v, "slot dzienny: S-K-3", ostatniaDzien + 1, 21 * 60));  // po bloku zwykły slot dzienny
   SPRAWDZ(logMa(d.v, "(wieczór", 17 * 60, 24 * 60));                       // W3b
-  SPRAWDZ(wpisyP(d.pliki) == 1 && wpisyP(d.pliki, ";dzien;") == 1);       // jedna porada na dobę
-  SPRAWDZ(d.pliki.count(PLIK) && d.pliki.at(PLIK).compare(0, 25, "#cpap-eink dobry_start 1\n") == 0);
+  // wersja 2 (R-DS-55): w fazie start porada rano w bloku i inna porada wieczorna w W3b
+  SPRAWDZ(wpisyP(d.pliki) == 2 && wpisyP(d.pliki, ";dzien;") == 1 && wpisyP(d.pliki, ";wieczor;") == 1);
+  SPRAWDZ(d.pliki.count(PLIK) && d.pliki.at(PLIK).compare(0, 25, "#cpap-eink dobry_start 2\n") == 0);
 }
 
 // R-DS-22: `porada` w `dzien.ukryte` to nazwa nieznana; poradę wyłącza tylko `start.program=nie`
@@ -112,12 +113,12 @@ void testR_DS_15_rysunek() {
   dobry_start::Stan s;
   dobry_start::Ustawienia u;
   u.program = true;
-  u.dzien = 18;  // trzeci tydzień, czwarte miejsce
+  u.dzien = 18;  // trzeci tydzień, czwarta doba (wersja 2: adaptacja, pasek 12 tygodni)
   s = dobry_start::nowyStan(u, k);
   s.start = "2026-12-01";
   s.dzienUstawiony = 1;
   dobry_start::WyborPorady w;
-  w.porada = dobry_start::wariantMiejsca(k, 18, dobry_start::Tryb::CPAP, -1);
+  w.porada = dobry_start::wariantDoby(k, dobry_start::Faza::ADAPTACJA, 18, dobry_start::Tryb::CPAP, -1);
   SPRAWDZ(w.porada != nullptr);
   if (!w.porada) return;
   DanePorady dp;
@@ -126,8 +127,8 @@ void testR_DS_15_rysunek() {
   dp.stopka = StopkaDzienna{"noc 6 h 38 · AHI 1,1 · wyciek 4", "za oknem 3° · przy łóżku 20°"};
   PlotnoT p;
   rysujPorade(p, dp);
-  int x0 = PORADA_PASEK_PRAWO - 5 * PORADA_PASEK_KROK - PORADA_PASEK_W;
-  // tygodnie 1 i 2 pełne, trzeci z obrysem i wypełnieniem 4/7, 4…6 obrys
+  int x0 = PORADA_PASEK_PRAWO - (k.tygodni() - 1) * PORADA_PASEK_KROK - PORADA_PASEK_W;
+  // tygodnie 1 i 2 pełne, trzeci z obrysem i wypełnieniem 4/7, dalsze obrys
   SPRAWDZ(p.czarne(x0, 62, x0 + 20, 75) == 20 * 13 && p.czarne(x0 + 26, 62, x0 + 46, 75) == 20 * 13);
   int trzeci = p.czarne(x0 + 52, 62, x0 + 72, 75), czwarty = p.czarne(x0 + 78, 62, x0 + 98, 75);
   SPRAWDZ(trzeci > czwarty && trzeci < 20 * 13 && czwarty == 2 * 20 + 2 * 11);
@@ -173,16 +174,20 @@ void testR_DS_35_stronyFormularza() {
   dobry_start::Ustawienia u;
   u.program = true;
   size_t maks = 0;
-  for (int t = 1; t <= k.tygodni() + 3; t++) {
+  for (int t = 1; t <= formularz::zakladekPorad(k); t++) {
     std::string h = formularz::stronaPorad(k, s, u, dobry_start::Tryb::ASV, t, "/u/abc/", podstaw, nullptr);
     maks = std::max(maks, h.size());
-    SPRAWDZ(h.find("http") == std::string::npos && h.find("<script") == std::string::npos && h.find("{prog:") == std::string::npos);
+    // wersja 2 (R-DS-62): adres tylko w odnośniku `Więcej:` (ten sam co w kodzie QR)
+    size_t http = 0, wiecej = 0;
+    for (size_t q = h.find("http"); q != std::string::npos; q = h.find("http", q + 1)) http++;
+    for (size_t q = h.find("Więcej: <a href="); q != std::string::npos; q = h.find("Więcej: <a href=", q + 1)) wiecej++;
+    SPRAWDZ(http == 2 * wiecej && h.find("<script") == std::string::npos && h.find("{prog:") == std::string::npos);
     SPRAWDZ(h.find("jeszcze nie") != std::string::npos);
   }
   printf("  R-DS-35: najdłuższa strona „Wszystkie porady” %zu B (próg %zu B)\n", maks, formularz::MAKS_STRONY_PORAD);
   SPRAWDZ(maks <= formularz::MAKS_STRONY_PORAD);
   std::string t1 = formularz::stronaPorad(k, s, u, dobry_start::Tryb::ASV, 1, "/u/abc/", podstaw, nullptr);
-  const dobry_start::Porada* asv = dobry_start::wariantMiejsca(k, 1, dobry_start::Tryb::ASV, -1);
+  const dobry_start::Porada* asv = dobry_start::wariantDoby(k, dobry_start::Faza::START_RANO, 1, dobry_start::Tryb::ASV, -1);
   SPRAWDZ(asv && t1.find(formularz::html(k.tekst(asv->tresc))) != std::string::npos);
   // ankieta: pytanie startowe tylko bez odpowiedzi; zapis bez odpowiedzi nie blokuje (R-DS-48)
   u.nawilzacz = -1;
@@ -202,14 +207,13 @@ void testR_DS_35_stronyFormularza() {
   SPRAWDZ(formularz::stronaOdNowa("/u/tok/").find("Tak, od nowa") != std::string::npos);
   // formularz: sekcja po „Ekrany”, przed „Dźwięk i humor”, nagłówek, pola, walidacja dnia
   formularz::Pola pf = formularz::zPliku("start.program=tak\nstart.dzien=15\n", sekrety::Dane());
-  pf.startNaglowek = "dzień 15 z 42";
+  pf.startNaglowek = "adaptacja · dzień 15 z 42";
   pf.startMiejsc = k.miejsc;
-  pf.startPonadIle = k.ponadIle;
   std::string f = formularz::strona(pf, "/u/tok/", "", {});
   size_t e = f.find("<b>Ekrany</b>"), d = f.find("<b>Dobry start</b>"), h = f.find("<b>Dźwięk i humor</b>");
-  SPRAWDZ(e < d && d < h && f.find("dzień 15 z 42") != std::string::npos);
+  SPRAWDZ(e < d && d < h && f.find("adaptacja · dzień 15 z 42") != std::string::npos);
   SPRAWDZ(f.find("Pierwsze dni i tygodnie decydują, czy terapia się przyjmie.") != std::string::npos);
-  formularz::Wynik wy = formularz::waliduj({{"start_program", "tak"}, {"start_dzien", "50"}}, sekrety::Dane(), "2026-12-01");
+  formularz::Wynik wy = formularz::waliduj({{"start_program", "tak"}, {"start_dzien", "90"}}, sekrety::Dane(), "2026-12-01");  // wersja 2: 1…84
   SPRAWDZ(wy.plik["start.program"] == "tak" && wy.bledy.count("start_dzien") &&
           wy.bledy["start_dzien"] == "Wpisz liczbę od 1 do " + std::to_string(k.miejsc) + ".");
   formularz::Wynik wd = formularz::waliduj({{"start_program", "nie"}, {"start_dzien", "1"}, {"start_wznow", "od_nowa"}},

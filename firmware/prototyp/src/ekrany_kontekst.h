@@ -48,4 +48,10 @@ const int PORADA_X = 28, PORADA_KOLUMNA = 748, PORADA_KOLUMNA_KARTY = 490;
 const int PORADA_LINIE = 5, PORADA_LINIE_KARTY = 4;
 const int PORADA_TYTUL_Y = 142, PORADA_TRESC_Y = 192;  // linie bazowe tytułu i pierwszej linii treści (spec 5.8.14.5)
 const int PORADA_PASEK_PRAWO = 774, PORADA_PASEK_Y = 62, PORADA_PASEK_W = 20, PORADA_PASEK_H = 13, PORADA_PASEK_KROK = 26;
-void rysujPorade(Plotno& p, const DanePorady& d);
+// Kod QR na poradzie (R-DS-62): moduł 7 px, prawa krawędź x 771 (strefa ciszy 4 moduły także do prawego brzegu),
+// dół y 385, podpis P20 na y 429; treść i krok obok kodu w kolumnie 513 px (kod od x 569 przy wersji 3); tytuł SB44 schodzi najwyżej PORADA_TYTUL_DOL px pod linię bazową. Karta z faktami (R-DS-64):
+// treść do 2 linii, rząd faktów liczba P28B na y 292 nad podpisem P22B.
+const int PORADA_QR_MODUL = 7, PORADA_QR_PRAWO = 771, PORADA_QR_DOL = 385, PORADA_QR_PODPIS_Y = 429;
+const int PORADA_KOLUMNA_QR = 513, PORADA_TYTUL_DOL = 11, PORADA_LINIE_FAKTY = 2, PORADA_FAKTY_Y = 292;
+// false: porada z adresem QR narysowana bez kodu (R-DS-63; wywołujący zapisuje wpis w logu).
+bool rysujPorade(Plotno& p, const DanePorady& d);

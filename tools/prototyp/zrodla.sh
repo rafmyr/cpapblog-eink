@@ -156,6 +156,9 @@ TESTY+=("$FW/test/testy_kokpit_karty_przekroj.cpp") # K2 we wszystkich trybach i
 TESTY+=("$FW/test/testy_siec_panelu_u02_brzegowe.cpp") # przypadki brzegowe: sieć panelu U-02
 TESTY+=("$FW/test/testy_dobry_start.cpp" "$FW/test/testy_dobry_start_brzegowe.cpp") # program „Dobry start” (ADR-0049): silnik, dyrygent, ekran S-K-48, formularz
 TESTY+=("$FW/test/testy_dobry_start_brzegowe_2.cpp" "$FW/test/testy_dobry_start_brzegowe_dyrygent.cpp") # testy brzegowe „Dobry start”, część 2 i z dyrygentem
+TESTY+=("$FW/test/testy_dobry_start_v2.cpp") # program „Dobry start” w wersji 2 (R-DS-54…R-DS-71)
+TESTY+=("$FW/test/testy_dobry_start_v2_brzegowe.cpp") # testy brzegowe „Dobry start” wersja 2
+TESTY+=("$FW/test/testy_dobry_start_cisza_otoczenia.cpp" "$FW/test/testy_dobry_start_ocena_niepelna.cpp") # „Dobry start” z ciszą źródła otoczenia (R-AW-41) i oceną niepełną (R-AW-40, R-DS-60)
 TESTY+=("$FW/test/testy_wysylka_obrazu.cpp") # obraz do sterownika e-ink blokiem: bajt w bajt jak pętla GxEPD2 1.6.9, kawałki
 TESTY+=("$FW/test/testy_wysylka_obrazu_brzegowe.cpp") # testy brzegowe: długości brzegowe, wzorce, wyrównanie, strażnik bufora
 # Programy testów, które do 22.11.2026 były tylko w testy.sh, bez sanitizerów i pokrycia:

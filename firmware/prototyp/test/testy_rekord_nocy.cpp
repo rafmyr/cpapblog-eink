@@ -503,9 +503,11 @@ static void testRejestrNoceV2() {
   ROWNE(polaTekst(f->pola[0]), POLA_V1);
   ROWNE(polaTekst(f->pola[1]), POLA_V2);
   ROWNE_L(f->pola[1].size(), POLA_NOCY_V2);
-  // pozostałe formaty bez zmian (wersja 1); `sypialnia` w wersji 2 (seria CO2 nocy)
+  // pozostałe formaty bez zmian (wersja 1); `sypialnia` w wersji 2 (seria CO2 nocy);
+  // `dobry_start` w wersji 2 (Dobry start wersja 2, bez kolejki w pliku stanu)
   for (auto& x : rejestrFormatow())
-    if (x.nazwa != "noce") ROWNE_L(x.wersja(), x.nazwa == "sypialnia" ? 2 : 1);
+    if (x.nazwa != "noce")
+      ROWNE_L(x.wersja(), (x.nazwa == "sypialnia" || x.nazwa == "dobry_start") ? 2 : 1);
 }
 
 // Prawdziwy panel jest dziś w wersji 0 (płaski `/noce.csv`, 20 pól, źródła K i A, ostatnie pola czasem puste):

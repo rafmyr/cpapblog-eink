@@ -323,7 +323,9 @@ static void testT_WYM_50_naglowkiPlikow() {
     ROWNE(f->sciezka, e.sciezka);
     ROWNE(f->sciezkaV0, e.v0);
     SPRAWDZ(f->rodzaj == e.rodzaj);
-    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 5 : std::string(e.nazwa) == "sypialnia" ? 2 : 1);
+    // `dobry_start` w wersji 2 od programu 12 tygodni (R-DS-67): te same pola, inne znaczenie wierszy wersji 1
+    ROWNE_L(f->wersja(), std::string(e.nazwa) == "noce" ? 5
+                         : std::string(e.nazwa) == "sypialnia" || std::string(e.nazwa) == "dobry_start" ? 2 : 1);
     if (f->wersja() >= 1) ROWNE(polaTekst(f->pola[0]), e.pola);
   }
   Dziennik d;

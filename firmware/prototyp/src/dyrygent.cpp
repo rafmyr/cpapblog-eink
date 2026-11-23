@@ -4399,7 +4399,37 @@ class Przebieg {
     return t;
   }
   // Porada dnia (raz na dobę; kolejne wywołania tej doby dają to samo). `typ` = ekran dnia rano.
-  dobry_start::WyborPorady poradaDniaB49(const std::string& dzis, const std::string& typ, DaneDnia& dd) {
+  // Noce z rekordów do pochwał i znaczników danych (R-DS-58, R-DS-60): M-01, M-17 i M-07 P95 z istniejących metryk.
+  std::vector<dobry_start::NocProgramu> nocePoradB49() const {
+    std::vector<dobry_start::NocProgramu> w;
+    size_t od = hist.size() > 120 ? hist.size() - 120 : 0;
+    for (size_t i = od; i < hist.size(); i++) {
+      if (hist[i].czesciowa) continue;  // noc częściowa nie liczy się do pochwał ani znaczników
+      dobry_start::NocProgramu n;
+      n.data = hist[i].data;
+      n.m01 = hist[i].m01;
+      n.m17 = hist[i].m17;
+      n.wyciek = std::isnan(hist[i].wp95) ? -1 : (int)std::lround(hist[i].wp95);
+      w.push_back(n);
+    }
+    return w;
+  }
+  dobry_start::ProgiPochwal progiPochwalB49() {
+    auto pr = [this](const char* id) {
+      const reguly::Prog* p = reguly::zestawWbudowany().prog(id, trybHist());
+      return p ? (int)std::lround(p->jednostka == "h" ? p->wartosc * 60 : p->wartosc) : 0;  // minuty
+    };
+    dobry_start::ProgiPochwal p;
+    p.terapia = pr("R-SKI-27.noc_z_terapia_m01");
+    p.m01Min = pr("R-DANE-13.m01_min");
+    p.wyciekUwaga = ustawieniaB9().uwagaOMasce > 0 ? ustawieniaB9().uwagaOMasce : pr("S-K-10.uwaga_o_masce");
+    p.noceProblem = pr("E-10.noce_problem");
+    return p;
+  }
+  // Porada dnia (raz na dobę; kolejne wywołania tej doby dają to samo). `typ` = ekran dnia rano. `wieczor`: porada slotu
+  // wieczornego (w fazie start inna niż poranna, R-DS-55).
+  dobry_start::WyborPorady poradaDniaB49(const std::string& dzis, const std::string& typ, DaneDnia& dd,
+                                         bool wieczor = false) {
     dobry_start::WyborPorady w;
     if (!dataOk(dzis) || !wczytajB49()) return w;
     const dobry_start::Katalog& kp = katalogB49();
@@ -4407,7 +4437,7 @@ class Przebieg {
     d.dzis = dzis;
     bool juz = ds_.wDzis == dzis;
     for (auto& x : ds_.p) juz = juz || x.data == dzis;
-    if (!juz && ustawieniaB9().start.program) {  // tokeny tylko przy nowym wyborze
+    if ((!juz || wieczor) && ustawieniaB9().start.program) {  // tokeny tylko przy nowym wyborze dnia
       reguly::Tryb tr = trybHist();
       d.tryb = tr == reguly::Tryb::CPAP ? dobry_start::Tryb::CPAP
                : tr == reguly::Tryb::AUTOSET ? dobry_start::Tryb::AUTOSET
@@ -4416,15 +4446,31 @@ class Przebieg {
       d.bezNocy = hist.empty();
       const Noc* n = nocZDnia(hist, dzis);
       d.nocZTerapia = n && n->m01 >= NOC_Z_TERAPIA_MIN;
-      d.tokeny = tokenyRegulB49(dzis, typ, dd);
       const sprawy::SprawaL* l = sprawaB5(b5.kluczEkranu);
       bool lAB = l && l->jestL() && (l->pilnosc == reguly::Pilnosc::A || l->pilnosc == reguly::Pilnosc::B);
       sk::Wejscie wk = wejscieB16(dzis, dd);
-      d.d0 = zostajeRano(typ, false) || l != nullptr || sk::problemNaEkranieRano(sk::rano(wk));
+      bool problemSk = sk::problemNaEkranieRano(sk::rano(wk));
+      d.d0 = zostajeRano(typ, false) || l != nullptr || problemSk;
       d.w0 = typ == "S5" || lAB;
+      if (!juz) {
+        d.tokeny = tokenyRegulB49(dzis, typ, dd);
+        // pochwały (R-DS-58) i dzień z ekranem problemu (R-DS-60: S3, S-K w tonie „problem”, ekran L)
+        dobry_start::tokenyPochwal(nocePoradB49(), dzis, seria(hist, dzis), progiPochwalB49(), d.tokeny);
+        if (typ == "S3" || l != nullptr || problemSk) d.tokeny.insert("ekran/problem");
+        if (n && n->czesciowa) d.tokeny.insert("noc_czesciowa");  // R-DS-60: bez pochwały po nocy częściowej
+        // R-AW-40, R-DS-60: ocena niepełna przez trwale nieczytelny plik oceny: bez pochwał (zwykłe porady zostają)
+        if (sprawaPlikuOceny()) d.tokeny.insert("ocena_niepelna");
+      }
     }
-    w = dobry_start::wybierz(kp, ds_, ustawieniaB9().start, d);
+    w = wieczor ? dobry_start::wybierzWieczor(kp, ds_, ustawieniaB9().start, d)
+                : dobry_start::wybierz(kp, ds_, ustawieniaB9().start, d);
     for (auto& x : w.log) log("%s", x.c_str());
+    // R-AW-40, R-DS-60: pochwała wybrana albo narysowana przed oceną niepełną (plik oceny nieczytelny później) nie staje
+    // ani nie wraca, dopóki ocena jest niepełna; bez nowego wpisu P; zwykłe porady bez zmian
+    if (w.porada && w.porada->rodzaj == dobry_start::Rodzaj::POCHWALA && sprawaPlikuOceny()) {
+      log("dobry start: pochwała %s wstrzymana, ocena niepełna (R-AW-40)", w.porada->id.c_str());
+      w = dobry_start::WyborPorady();
+    }
     zapiszB49();
     return w;
   }
@@ -4464,8 +4510,16 @@ class Przebieg {
   }
   // R-DS-53: `{prog:id}` w tekście porady = bieżąca wartość progu z zestawu; `S-K-10.uwaga_o_masce` = ustawienie
   // „Uwaga o masce od” (R-KONF-42), bez wiersza wartość progu.
-  std::string progiPoradyB49(const std::string& t) {
-    return dobry_start::podstawProgi(t, [this](const std::string& id) -> std::string {
+  // `noc` = data poranka nocy porady (pochwała zaległa: noc, której dotyczy); "" = strona „Wszystkie porady”:
+  // znaczniki jako opis, bez liczb żadnej nocy.
+  std::string progiPoradyB49(const std::string& t, const std::string& noc) {
+    std::string td = t;
+    if (t.find('{') != std::string::npos) {  // R-DS-60: znaczniki danych nocy (`{czas}`, `{srednio}` …)
+      td = noc.empty() ? dobry_start::opisZnacznikow(t)
+                       : dobry_start::podstawZnaczniki(t, dobry_start::znacznikiNocy(nocePoradB49(), noc, ds_.start,
+                                                                                      seria(hist, noc), progiPochwalB49()));
+    }
+    return dobry_start::podstawProgi(td, [this](const std::string& id) -> std::string {
       if (id == "S-K-10.uwaga_o_masce" && ustawieniaB9().uwagaOMasce > 0) return std::to_string(ustawieniaB9().uwagaOMasce);
       const reguly::Prog* p = reguly::zestawWbudowany().prog(id, trybHist());
       if (!p) return "";
@@ -4480,7 +4534,10 @@ class Przebieg {
     const dobry_start::Katalog& kp = katalogB49();
     DanePorady dp;
     dp.o = dobry_start::opis(kp, ds_, w);
-    for (std::string* t : {&dp.o.tytul, &dp.o.tresc, &dp.o.krok}) *t = progiPoradyB49(*t);
+    const std::string noc = w.dataNocy.empty() ? dzis : w.dataNocy;
+    for (std::string* t : {&dp.o.tytul, &dp.o.tresc, &dp.o.krok}) *t = progiPoradyB49(*t, noc);
+    for (auto& f : dp.o.fakty) f.first = progiPoradyB49(f.first, noc);
+    dobry_start::faktyNaEkran(dp.o.fakty);
     dp.belka = Belka(dobry_start::NAZWA_BELKI, dp.o.srodekBelki);
     dp.linia = dd.linia;
     dp.liniaA = dd.liniaA;
@@ -4508,7 +4565,8 @@ class Przebieg {
       if (wb.tryb == 'K' && dd.linia.empty() && scenaJest(wb.scena)) dp.scena = wb.scena;
     }
     dp.stopka = stopkaPoradyB49(dzis, !dp.scena.empty());
-    rysujPorade(plotno(), dp);
+    if (!rysujPorade(plotno(), dp) && !dp.o.qr.empty())
+      log("porada %s: QR pominięty (adres nie do zakodowania albo kod za duży, R-DS-63)", w.porada->id.c_str());
     dobry_start::zapiszPokazanie(kp, ds_, w, dzis, wieczor, w.telefon);
     zapiszB49();
     log("porada dnia: S-K-48 %s (%s%s)", w.porada->id.c_str(), wieczor ? "wieczór" : "blok dzienny",
@@ -4524,7 +4582,7 @@ class Przebieg {
     if (!zegar() || dzis.empty() || !ustawieniaB9().start.program) return false;
     int m = minutaDoby();
     if (!slot_wieczorny::wOknie(slot_wieczorny::oknoZHistorii(hist, dzis), m)) return false;
-    dobry_start::WyborPorady w = poradaDniaB49(dzis, typ, dd);
+    dobry_start::WyborPorady w = poradaDniaB49(dzis, typ, dd, true);
     if (!w.porada) return false;
     const sprawy::SprawaL* l = sprawaB5(b5.kluczEkranu);
     if (typ == "S5" || (l && l->jestL() && (l->pilnosc == reguly::Pilnosc::A || l->pilnosc == reguly::Pilnosc::B)))
@@ -4536,11 +4594,10 @@ class Przebieg {
     const dobry_start::Katalog& kp = katalogB49();
     pf.startBezPorad = !kp.jest();
     pf.startMiejsc = kp.miejsc;
-    pf.startPonadIle = kp.ponadIle;
     if (!wczytajB49()) return;  // wyłączony i bez pliku: „wyłączony”
     std::string dzis = dzisiaj();
     pf.startNaglowek = dobry_start::naglowekSekcji(kp, ds_, pf.start, dzis);
-    pf.startZatrzymanyNa = ds_.stan == "zatrzymany" ? ds_.kolejka : 0;
+    pf.startZatrzymanyNa = ds_.stan == "zatrzymany" ? std::max(1, dobry_start::dobaProgramu(ds_, ds_.doba)) : 0;
     pf.startAnkietaCzeka = pf.start.program && dobry_start::ankietaCzeka(ds_, dzis);
   }
   // R-DS-33: poprzedni stan w `/dane/dobry_start.poprzedni.csv` (jedna kopia), nowy program od najbliższej doby.
@@ -4557,7 +4614,7 @@ class Przebieg {
     log("dobry start: od nowa (R-DS-33)");
   }
   static std::string progiPoradyStatB49(const std::string& t, void* kx) {
-    return static_cast<Przebieg*>(kx)->progiPoradyB49(t);
+    return static_cast<Przebieg*>(kx)->progiPoradyB49(t, "");
   }
   dobry_start::Tryb trybPoradB49() {
     reguly::Tryb tr = trybHist();
