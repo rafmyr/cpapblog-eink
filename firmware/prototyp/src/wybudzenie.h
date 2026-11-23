@@ -16,6 +16,7 @@
 #include "dobranoc.h"
 #include "humor.h"
 #include "nawigacja.h"
+#include "nieczytelne.h"
 #include "otoczenie.h"
 #include "sypialnia.h"
 
@@ -186,6 +187,9 @@ struct StanRtc {
   // zmian (bez odświeżenia) nie zmienia. Po N (`eink.pelne_co`) częściowych następne jest pełne. W RTC, żeby
   // przetrwał głęboki sen; po starcie innym niż wybudzenie z uśpienia 0 (pierwsze rysowanie i tak pełne).
   uint8_t czesciowychZRzedu = 0;
+  // (T-WYM-19, src/nieczytelne.h): kolejne wybudzenia z nieudanym odczytem tej samej ścieżki i chwila
+  // początku serii; magia ≠ nieczytelne::MAGIA (start inny niż wybudzenie z uśpienia) = odtworzenie spraw z NVS.
+  nieczytelne::Stan nieczytelne{};
 };
 // StanRtc leży w pamięci RTC i przetrwa głęboki sen tylko jako ciąg bajtów: bez wskaźników, std::string i wirtualnych.
 static_assert(std::is_trivially_copyable<StanRtc>::value, "StanRtc musi być trywialnie kopiowalny (pamięć RTC)");

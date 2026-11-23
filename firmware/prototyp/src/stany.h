@@ -127,6 +127,10 @@ struct Stany {
 };
 // Punkty warunku uspokojenia bez reguły w panelu (tabela PUNKTY_USPOKOJENIA w stany.cpp).
 std::vector<std::string> nieocenianeUspokojenia();
+// R-AW-40 (ADR-0029 pkt 7): przy nieczytelnym pliku oceny (`plikOceny`) ocena jest niepełna: bez „W normie”,
+// zdań uspokajających i kart pochwalnych; powód jak przy sprawie (krok zamienny `→ Otwarte sprawy: …`). Bez pliku
+// oceny `s` bez zmian.
+void wymusOceneNiepelna(Stany& s, bool plikOceny);
 
 Stany liczStany(const std::vector<Noc>& hist, const std::string& dzis, const std::set<std::string>& wykluczone);
 // To samo z pamięcią ostatniego wyniku (panel woła to kilka razy w jednym wybudzeniu; liczenie idzie noc po nocy).

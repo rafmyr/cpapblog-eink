@@ -211,6 +211,7 @@ class Przebieg {
   // po zwykłym wybudzeniu (tryb awaryjny pokazuje U-06 i U-05 bez tych linii); na panelu nie jest wołane (sen nie wraca).
   void tekstyKoncowe() {
     if (!zwykle) return;
+    tylkoOdczytNieczytelnych = true;  // teksty tylko czytają stan serii (na panelu tekstów nie ma)
     std::vector<std::string> l = tekstyTestu(daneTestu()), g = diagnostykaTestu();
     tk.linieTestu.insert(tk.linieTestu.end(), l.begin(), l.end());
     tk.diagnostykaTestu.insert(tk.diagnostykaTestu.end(), g.begin(), g.end());
@@ -920,6 +921,7 @@ class Przebieg {
     a.nvs.usun("cpap", NVS_KLUCZ_PRZYWR_ODRZ);
     a.nvs.usun("cpap", NVS_KLUCZ_PRZYWR_K);
     a.nvs.usun("cpap", NVS_KLUCZ_PRZYWR_PROBA);
+    wyczyscNieczytelne();  // nowa partycja bez plików, więc bez spraw nieczytelnych plików
     sformatowano = true;
   }
 
@@ -936,6 +938,7 @@ class Przebieg {
       if (przywrocenie.proba) log("przywracanie: bez znacznika, okno przywracania wróci przy następnym starcie zasilania");
       return;
     }
+    wyczyscNieczytelne();  // pliki zapisane od nowa ze zrzutu
     wczytajOdrzucone();
     if (!odrzucone.empty()) {
       log("przywracanie: pliki odrzucone w oknie (%s), bez znacznika; okno przywracania wróci przy następnym starcie "
@@ -1121,6 +1124,7 @@ class Przebieg {
         n->co2 = c;
       }
     } else {  // pliki roczne od roku granicy 120 dni (cały rok w pamięci: zapis roku bez utraty starszych wierszy)
+      odRokuSypialni = odRoku;  // starsze pliki roczne sypialni nie są używane
       for (auto& l : wczytaj("sypialnia", odRoku)) {
         NocSypialni n;
         if (parsujSypialnie(l, n)) sypNoce.push_back(n);
@@ -1510,8 +1514,10 @@ class Przebieg {
     wk.odpowiedziPelne = &odpowiedzi;
     wk.nocyNieczytelne = stany(dzis).nocyNieczytelne;  // R-SKI-24
     // ADR-0039 pkt 5 (R-KON-68): linia „dobra zmiana” w grupie „norma”, raz na 7 dni od pokazania
-    wk.dobraZmiana = sk::liniaDobrejZmiany(stany(dzis), trybHist() == reguly::Tryb::ASV ||
-                                                        trybHist() == reguly::Tryb::ASVAUTO);
+    // linia „dobra zmiana” liczy trend z normy, więc przy nieczytelnym pliku oceny jej nie ma (R-AW-40)
+    wk.dobraZmiana = sprawaPlikuOceny() ? std::string()
+                                        : sk::liniaDobrejZmiany(stany(dzis), trybHist() == reguly::Tryb::ASV ||
+                                                                                trybHist() == reguly::Tryb::ASVAUTO);
     b5.linieE = linieZdarzenB11();  // E-10, E-04 i inne linie zdarzeń w kolejce 7.5
     liniaZmianyUstawienB21(dzis);  // R-NOR-14 (grupa 4, przed R-MAS-11)
     liniaTrybuB21(dzis);           // R-DANE-29 (grupa 3)
@@ -1520,6 +1526,12 @@ class Przebieg {
     b5.linie = kolejka::kolejkaLinii(wk);
     b5.stany = stany(dzis);
     kolejka::zastosujUspokojenie(b5.stany, kolejka::ocenUspokojenie(b5.wyniki, b5.linie));
+    // R-AW-40 (ADR-0029 pkt 7): trwale nieczytelny plik danych = ocena bez części danych, więc nigdy
+    // „w normie” ani karta pochwalna; powód jak przy sprawie (`→ Otwarte sprawy: …`, karta „Nie odczytuję danych”)
+    if (sprawaPlikuOceny()) {  // tylko plik, z którego liczona jest ocena (nieczytelne::plikOceny())
+      wymusOceneNiepelna(b5.stany, true);
+      log("ocena: niepełna, nieczytelny plik oceny (R-AW-40)");
+    }
     kolejka::WejsciePytan wp;
     wp.dzis = dzis;
     wp.minuta = minutaDoby();
@@ -3485,7 +3497,84 @@ class Przebieg {
     ws.ostatniaNiepewna = stany(dzis).ostatniaNiepewna;
     // ADR-0029 pkt 7, R-KOK-21: `Ocena: pełna` tylko przy tym samym stanie, przy którym nagłówek K1 nie ma dopisku
     ws.ocenaPelna = !stanyOcenyB5(dzis).ocenaNiepelna;
+    for (const nieczytelne::Sprawa& s : sprawyNieczytelnych()) {  // R-AW-40: karta na końcu
+      std::string d = s.od ? dataZ(s.od) : "";
+      ws.plikiNieczytelne.push_back({nieczytelne::rodzaj(s.sciezka), d.empty() ? "" : ddmm(d),
+                                     nieczytelne::plikOceny(s.sciezka)});
+    }
+    if (sprawaPlikuOceny()) ws.ocenaPelna = false;  // tylko plik oceny
     return ws;
+  }
+  // ---------- trwale nieczytelny plik danych (R-AW-40, T-WYM-19, src/nieczytelne.h) ----------
+  // Licznik w StanRtc, sprawy także w NVS `cpap`/`nczyt` (zapis tylko przy zmianie listy spraw). Wolno wołać w każdej
+  // chwili wybudzenia: ścieżki nieudane do tej chwili liczą się raz na wybudzenie, udany odczyt kończy serię.
+  void odswiezNieczytelne() {
+    nieczytelne::Stan& s = r.nieczytelne;
+    if (s.magia != nieczytelne::MAGIA)
+      nieczytelne::odtworz(s, a.nvs.tekst(nieczytelne::NVS_PRZESTRZEN, nieczytelne::NVS_KLUCZ, ""));
+    if (tylkoOdczytNieczytelnych) return;  // teksty końcowe (tylko testy) nie zmieniają stanu serii
+    // plik, którego danych panel nie używa (roczny plik sypialni starszy niż rok granicy 120 dni; migracja
+    // w miejscu dalej go dotyka, więc odczyt bywa nieudany w każdym wybudzeniu), nie liczy się i kończy sprawę
+    const std::vector<std::string> nieudane = nieudaneUzywane();
+    bool seria = false;
+    for (const nieczytelne::Wpis& w : s.w) seria = seria || w.sciezka[0] != 0;
+    if (nieudane.empty() && !seria) return;  // bez usterki i bez serii: nic do liczenia (jak przed zmianą)
+    std::function<bool(const std::string&)> jest;
+    if (fsOk()) jest = [this](const std::string& p) { return sciezkaUzywana(p) && mag.naNosniku(p); };
+    nieczytelne::aktualizuj(s, r.wybudzen, nieudane,
+                            [this](const std::string& p) { return mag.dostepUdany(p); },
+                            jest, zegar() ? teraz() : 0);
+    // zapis NVS, gdy sprawy różnią się od tych w NVS (także po wcześniej nieudanym zapisie); skrót tylko po
+    // udanym zapisie, więc pełna NVS daje ponowienie w następnym wywołaniu albo wybudzeniu
+    std::string t = nieczytelne::tekstNvs(s);
+    uint32_t sk = t.empty() ? 0 : crc32((const uint8_t*)t.data(), t.size());
+    if (sk == s.skrotNvs) return;
+    if (probaNvsBylo) return;  // najwyżej jedna próba zapisu `nczyt` na wybudzenie (pełna NVS: ponowienie w następnym)
+    probaNvsBylo = true;
+    bool zapisano = true;
+    if (t.empty()) a.nvs.usun(nieczytelne::NVS_PRZESTRZEN, nieczytelne::NVS_KLUCZ);
+    else zapisano = a.nvs.ustawTekst(nieczytelne::NVS_PRZESTRZEN, nieczytelne::NVS_KLUCZ, t);
+    if (!zapisano) {
+      log("pliki nieczytelne: zapis NVS nieudany, ponowienie później (R-AW-40)");
+      return;
+    }
+    s.skrotNvs = sk;
+    std::vector<nieczytelne::Sprawa> sp = nieczytelne::sprawy(s);
+    if (sp.empty()) log("pliki nieczytelne: koniec sprawy");
+    for (auto& x : sp)
+      log("pliki nieczytelne: %s od %s, co najmniej %u wybudzenia z rzędu (R-AW-40)", nazwaPliku(x.sciezka).c_str(),
+          x.od ? chwila(x.od).c_str() : "?", (unsigned)nieczytelne::WYBUDZEN_DO_SPRAWY);
+  }
+  // formatowanie i udane przywrócenie zaczynają pliki od nowa, więc sprawy i serie znikają (RTC i NVS)
+  void wyczyscNieczytelne() {
+    std::memset(&r.nieczytelne, 0, sizeof r.nieczytelne);
+    r.nieczytelne.magia = nieczytelne::MAGIA;
+    a.nvs.usun(nieczytelne::NVS_PRZESTRZEN, nieczytelne::NVS_KLUCZ);
+  }
+  bool tylkoOdczytNieczytelnych = false;  // ustawia tekstyKoncowe()
+  bool probaNvsBylo = false;              // była już próba zapisu `nczyt` w tym wybudzeniu (przebiegu)
+  // nieudane w tym wybudzeniu ścieżki, których dane panel używa (bez rocznych plików sypialni spoza roku granicy)
+  std::vector<std::string> nieudaneUzywane() const {
+    std::vector<std::string> v;
+    for (const std::string& p : mag.plikiNieczytelne())
+      if (sciezkaUzywana(p)) v.push_back(p);
+    return v;
+  }
+  std::string odRokuSypialni;  // rok granicy 120 dni przy odczycie sypialni (wczytajDane()); "" = wszystkie lata
+  bool sciezkaUzywana(const std::string& p) const {
+    const std::string kat = "/dane/sypialnia/";
+    if (odRokuSypialni.empty() || p.size() != kat.size() + 8 || p.compare(0, kat.size(), kat) != 0) return true;
+    return p.substr(kat.size(), 4) >= odRokuSypialni;
+  }
+  // czy któraś sprawa dotyczy pliku, z którego liczona jest ocena terapii (nieczytelne::plikOceny())
+  // także plik oceny nieudany teraz bez wpisu (nieczytelne::ocenaNiepelna()), więc niezależnie od miejsca
+  bool sprawaPlikuOceny() {
+    sprawyNieczytelnych();  // odświeżenie serii
+    return nieczytelne::ocenaNiepelna(r.nieczytelne, nieudaneUzywane());
+  }
+  std::vector<nieczytelne::Sprawa> sprawyNieczytelnych() {
+    odswiezNieczytelne();
+    return nieczytelne::sprawy(r.nieczytelne);
   }
   void zapiszKarteB5(int karta) {  // karta „Otwartych spraw” w NVS (przeżywa sen), zapis tylko przy zmianie
     b5.karta = karta;
@@ -3498,7 +3587,13 @@ class Przebieg {
   }
   // R-KOK-19, R-KOK-20: „Otwarte sprawy” w ciągu stron kokpitu tylko przy co najmniej jednej sprawie z R-EKR-48;
   // bez wyników silnika (zestaw nie działa, brak daty) strony nie ma, a K1 mówi `ocena częściowa` (R-KOK-21)
-  bool sprawyWCiaguB5(const std::string& dzis) { return !dzis.empty() && silnikDzis(dzis) && kartySprawB5(dzis) > 0; }
+  // R-AW-40: trwale nieczytelny plik danych też jest sprawą tej strony, także gdy silnik dziś nie
+  // ocenił (np. bez nocy z nieczytelnego pliku roku)
+  bool sprawyWCiaguB5(const std::string& dzis) {
+    if (dzis.empty()) return false;
+    if (silnikDzis(dzis) && kartySprawB5(dzis) > 0) return true;
+    return !sprawyNieczytelnych().empty();
+  }
   // Stany z oceną uspokojenia z wyników silnika (5.4.13 pkt 1, 4, 7), gdy silnik ocenił dziś; inaczej bez niej
   // (punkty 1, 4, 7 nieoceniane). Wspólne dla nagłówka K1 (R-KOK-21) i stanu pustego spraw (`ocenaPelna`).
   const Stany& stanyOcenyB5(const std::string& dzis) { return b5.wyniki.empty() || b5.dzis != dzis ? stany(dzis) : b5.stany; }
@@ -3725,18 +3820,32 @@ class Przebieg {
   void zapiszAkt() { aktualizacja::zapisz(a.nvs, akt); }
   std::string wlasnaWersja() { return aktualizacja::bezBudowy(wersjaWydania(a.uruchomienie.wersja())); }
   bool tokenWydan() { return !sekrety::kluczWydan(a.nvs).empty(); }
-  bool automatWlaczony() {  // `aktualizacja_auto=tak` w /konfiguracja.txt (5.6.4, formularz U-03)
-    std::string t = konfiguracjaPliku();
+  bool wierszKonfiguracji(const std::string& wiersz) {  // dokładnie taki wiersz w /konfiguracja.txt
+    return wierszWTresci(konfiguracjaPliku(), wiersz);
+  }
+  static bool wierszWTresci(const std::string& t, const std::string& wiersz) {  // dokładnie taki wiersz w treści
     size_t p = 0;
     while (p < t.size()) {
       size_t e = t.find('\n', p);
       std::string l = t.substr(p, e == std::string::npos ? std::string::npos : e - p);
       obetnijKoniec(l);
-      if (l == "aktualizacja_auto=tak") return true;
+      if (l == wiersz) return true;
       if (e == std::string::npos) break;
       p = e + 1;
     }
     return false;
+  }
+  // `aktualizacja_auto=tak` w /konfiguracja.txt (5.6.4, formularz U-03)
+  bool automatWlaczony() { return wierszKonfiguracji("aktualizacja_auto=tak"); }
+  // R-KONF-62 (kanał wczesny, decyzja właściciela projektu z 23.11.2026): `aktualizacja_wczesna=tak`; bez wiersza `releases/latest`
+  // Plik jest, a odczyt się nie udał: kanał wyłączony w tym sprawdzeniu (zwykłe wydania), z wpisem w logu.
+  bool kanalWczesny() {
+    std::string t;
+    if (!konfiguracjaZnana(t)) {
+      log("kanał wczesny: konfiguracja nieczytelna, wyłączony w tym sprawdzeniu");
+      return false;
+    }
+    return wierszWTresci(t, std::string(aktualizacja::KLUCZ_KANALU_WCZESNEGO) + "=tak");
   }
   bool ikonaAktualizacjiTeraz() {  // ten sam warunek przy automacie i bez niego
     wczytajAkt();
@@ -3802,7 +3911,10 @@ class Przebieg {
     if (!a.wydania) return Powod::BRAK_SIECI;
     if (!zegar()) return Powod::BRAK_SIECI;      // karta 2 pkt 7: bez poprawnego czasu brak sprawdzania
     ZadanieWydania z;
-    z.url = aktualizacja::adresNajnowszego(REPO_WYDAN);
+    // R-KONF-62: kanał wczesny pyta o listę wydań tego samego repo (ten sam host, token, limity czasu i odpowiedzi);
+    // bez niego `releases/latest` jak dotąd (pre-release pomijane przez GitHub)
+    const bool wczesny = kanalWczesny();
+    z.url = wczesny ? aktualizacja::adresListyWydan(REPO_WYDAN) : aktualizacja::adresNajnowszego(REPO_WYDAN);
     z.token = tok;
     z.limitMs = aktualizacja::LIMIT_API_MS;
     z.maksBajtow = aktualizacja::MAKS_ODPOWIEDZI_API;
@@ -3820,7 +3932,21 @@ class Przebieg {
       return Powod::BRAK_WYDAN;
     }
     if (o.kod != 200) return Powod::BRAK_SIECI;
-    if (!aktualizacja::parsujWydanie(o.cialo, wyd)) {
+    if (wczesny) {
+      aktualizacja::LicznikiListy ll;
+      aktualizacja::WynikListy wl = aktualizacja::wybierzZListy(o.cialo, wyd, &ll);
+      if (wl == aktualizacja::WynikListy::NIECZYTELNA) {
+        log("aktualizacja: lista wydań nieczytelna%s", o.zaDuzo ? " (za duża)" : "");
+        return Powod::BRAK_SIECI;  // jak nieczytelne `releases/latest`
+      }
+      if (wl == aktualizacja::WynikListy::BRAK) {  // pusta lista, same robocze albo bez `wydanie.json`: jak 404
+        // powód w logu (np. same robocze przy tokenie z prawem zapisu), decyzja bez zmian
+        log("aktualizacja: kanał wczesny, brak wydania do wzięcia w %s (na liście %d, roboczych %d, bez "
+            "wydanie.json albo SemVer %d)", REPO_WYDAN, ll.wydan, ll.roboczych, ll.wydan - ll.roboczych);
+        return Powod::BRAK_WYDAN;
+      }
+      log("aktualizacja: kanał wczesny, najwyższa wersja na liście %s", wyd.tag.c_str());
+    } else if (!aktualizacja::parsujWydanie(o.cialo, wyd)) {
       log("aktualizacja: odpowiedź GitHub nieczytelna%s", o.zaDuzo ? " (za duża)" : "");
       return Powod::BRAK_SIECI;  // nic nie pobrano, więc nie „plik uszkodzony”
     }
@@ -5331,6 +5457,8 @@ class Przebieg {
     for (auto& b : bledyMigracji) cz.push_back(b);
     for (auto& f : mag.plikiTylkoDoOdczytu()) cz.push_back("dane z nowszej wersji: " + nazwaPliku(f));
     for (auto& p : nvsNowsze) cz.push_back("dane z nowszej wersji: NVS " + p);
+    for (auto& x : sprawyNieczytelnych())  // R-AW-40: każda trwale nieczytelna ścieżka z chwilą początku serii
+      cz.push_back("odczyt nieudany: " + nazwaPliku(x.sciezka) + (x.od ? " od " + chwila(x.od) : std::string()));
     if (cz.empty()) {
       std::string v;
       for (int x : wersjePlikow) v += (v.empty() ? "" : ", ") + std::to_string(x);
@@ -5367,9 +5495,11 @@ class Przebieg {
   // Wartość wiersza `Pamięć panelu`: najpierw problem (pierwszy z linii `Dane: …`, ta sama kolejność, w wariancie,
   // który mieści się w kolumnie; pełny tekst w diagnostyce), po przywróceniu wynik, inaczej `wolne {n} MB`.
   bool pamiecUsterka = false;  // wynik ostatniego wartoscPamieci(): wiersz `Pamięć panelu` z usterką (R-KONF-58)
+  std::string pamiecKrotko;    // nazwa wiersza w werdykcie (R-AW-40: z rodzajem nieczytelnych danych)
   std::string wartoscPamieci(bool u = false) {  // u: miejsce wiersza z usterką (R-KONF-58)
     const std::string n = "Pamięć panelu";
     pamiecUsterka = true;  // każdy wczesny powrót niżej to usterka; `przywrócono …` i `wolne {n} MB` nie
+    pamiecKrotko = "pamięć panelu";
     if (staryUklad) return dopasujWartosc(n, {"stary układ: wgraj kablem", "układ: wgraj kablem", "wgraj kablem"}, TEST_KOLUMNA, u);
     if (!fsOk()) return "nie zamontowana";
     wczytajOdrzucone();
@@ -5402,6 +5532,12 @@ class Przebieg {
     }
     if (!nvsNowsze.empty())
       return dopasujWartosc(n, wariantyNowszychDanychU05("NVS " + nvsNowsze.front()), TEST_KOLUMNA, u);
+    std::vector<nieczytelne::Sprawa> nc = sprawyNieczytelnych();
+    if (!nc.empty()) {  // R-AW-40: najstarsza seria; pełna lista w `Dane: …` (log portu)
+      std::string d = nc.front().od ? dataZ(nc.front().od) : "";
+      pamiecKrotko = krotkoNieczytelnegoU05(nieczytelne::rodzaj(nc.front().sciezka));  // rodzaj danych w werdykcie
+      return dopasujWartosc(n, wariantyNieczytelnegoU05(d.empty() ? "" : ddmm(d)), TEST_KOLUMNA, u);
+    }
     pamiecUsterka = false;
     if (przywrocenie.ok)
       return dopasujWartosc(n, {"przywrócono " + p + " z " + o, "przywrócono " + p + "/" + o, p + "/" + o + " nocy"});
@@ -5516,7 +5652,7 @@ class Przebieg {
         {"Oprogramowanie", wartoscOprogramowania()},  // ADR-0032 pkt 2, R-NF-35: dopisek aktualizacji
         zeg ? WierszTestu("Zegar panelu", chwila(teraz()))
             : WierszTestu("Zegar panelu", "nie ustawiony", true, "zegar"),
-        {"Pamięć panelu", pam, pamUsterka, "pamięć panelu"},
+        {"Pamięć panelu", pam, pamUsterka, pamiecKrotko},
         // wiersz `Karta` wróci razem ze sterownikiem karty microSD (R-AW-29):
         // bez sterownika zawsze mówiłby `brak karty`
         wierszBaterii(),
@@ -8127,6 +8263,7 @@ class Przebieg {
   void spij() {
     zamknijSiec();
     zapiszWpisBaterii();
+    odswiezNieczytelne();  // R-AW-40, T-WYM-19: także pliki odrzucone przy zapisie w tym wybudzeniu
     r.obsluzoneDo = chwilaObsluzona();
     WejsciePlanu wp = wejsciePlanu(r.obsluzoneDo);
     Termin t = nastepnyTermin(wp);
@@ -8235,6 +8372,7 @@ class Przebieg {
     zasilanie = odczytZasilania.stan;
 
     wczytajPliki(w);
+    odswiezNieczytelne();  // R-AW-40, T-WYM-19: pliki nieczytelne przy odczycie danych liczą się w tym wybudzeniu
     // T-WYM-87: okno przywracania przed jakimkolwiek Wi-Fi, przy każdym starcie zasilania (i po pierwszym
     // formatowaniu), dopóki przywracanie czeka (U2 wariant A)
     // przy starcie tylko po prawdziwym starcie zasilania (startZasilania())

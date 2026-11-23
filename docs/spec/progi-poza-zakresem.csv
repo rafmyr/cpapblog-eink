@@ -251,3 +251,6 @@ R-DS-44,11:00,czas interfejsu,= R-KON-41 (start slotu dziennego bez nocy)
 R-DS-47,7 nocy,czas interfejsu,"= R-EKR-16 (seria S2b), token M-20/7"
 §5.8.14.11,brak liczby,opis,tabela progów programu „Dobry start”
 7.2|D0b,180 min,czas interfejsu,= R-DS-03
+R-AW-40,3 wybudzenia,parametr techniczny,kolejne wybudzenia z nieudanym odczytem tej samej ścieżki do sprawy trwale nieczytelnego pliku (src/nieczytelne.h WYBUDZEN_DO_SPRAWY)
+R-AW-40,14 dób,parametr techniczny,bez nieudanego odczytu ścieżki przez tyle czasu wpis i sprawa trwale nieczytelnego pliku wygasają (src/nieczytelne.h WYGASA_S)
+R-KONF-62,5 wydań na liście kanału wczesnego (`WYDAN_NA_LISCIE`),parametr techniczny,"kanał wczesny (23.11.2026): ok. 25 KB przy krótkich notach, w limicie odpowiedzi `releases/latest` 64 KB (`MAKS_ODPOWIEDZI_API`); src/aktualizacja.h; pytanie otwarte"

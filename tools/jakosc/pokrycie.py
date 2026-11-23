@@ -16,6 +16,10 @@ Użycie
   gcov --json-format --stdout -o OBJ src/*.cpp > gcov.json   (robi to tools/jakosc/sprawdz.sh pokrycie)
   python3 tools/jakosc/pokrycie.py gcov.json            # porównanie z bazą
   python3 tools/jakosc/pokrycie.py gcov.json --zapisz   # nowa baza
+  python3 tools/jakosc/pokrycie.py czesc1.json czesc2.json …   # części CI (sprawdz.sh pokrycie --czesc k/n)
+
+Kilka raportów (części CI) łączy się tak samo jak jednostki .cpp w jednym raporcie: linia wykonana w którejkolwiek
+części jest wykonana, a zbiór linii to suma zbiorów. Wynik jest ten sam co z jednego przebiegu wszystkich programów.
 
 Plik bazy: jedna linia `pokryte wszystkie procent`, np. `2897 3102 93.39`.
 Kod wyjścia: 0 = nie mniej niż baza, 1 = spadek, 2 = błąd odczytu.
@@ -65,14 +69,20 @@ def suma(mapy):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Zapadka pokrycia linii rdzenia.")
-    ap.add_argument("gcov_json", help="wyjście gcov --json-format --stdout (- = stdin)")
+    ap.add_argument("gcov_json", nargs="+", help="wyjście gcov --json-format --stdout (- = stdin); kilka = części CI")
     ap.add_argument("--baza", default=BAZA)
     ap.add_argument("--zapisz", action="store_true")
     ap.add_argument("--pliki", action="store_true", help="wypisz pokrycie każdego pliku")
     a = ap.parse_args(argv)
     try:
-        tekst = sys.stdin.read() if a.gcov_json == "-" else open(a.gcov_json, encoding="utf-8").read()
-        mapy = linie(tekst)
+        teksty = []
+        for p in a.gcov_json:
+            if p == "-":
+                teksty.append(sys.stdin.read())
+            else:
+                with open(p, encoding="utf-8") as f:
+                    teksty.append(f.read())
+        mapy = linie("\n".join(teksty))
     except (OSError, ValueError) as e:
         print("Nie da się odczytać raportu gcov: %s" % e, file=sys.stderr)
         return 2

@@ -356,6 +356,14 @@ static const PunktUspokojenia PUNKTY_USPOKOJENIA[] = {
     {"pkt 7: każda reguła zestawu policzona (R-AW-31)", false},     // z wyników silnika
 };
 
+void wymusOceneNiepelna(Stany& s, bool plikOceny) {
+  if (!plikOceny) return;
+  s.ocenaNiepelna = true;
+  s.uspokojenie = false;
+  s.bezSpraw = false;
+  if (s.niespokoj == Stany::Niespokoj::BRAK) s.niespokoj = Stany::Niespokoj::SPRAWA;
+}
+
 std::vector<std::string> nieocenianeUspokojenia() {
   std::vector<std::string> w;
   for (auto& p : PUNKTY_USPOKOJENIA)

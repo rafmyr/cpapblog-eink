@@ -69,3 +69,14 @@ Po przeglądzie zmiany (zgoda właściciela projektu 15.11.2026 na tekst nieudan
 - **Porządki w NVS:** wpis innej wersji albo pokazany w innej dobie (także z przyszłości po złym zegarze) kasowany jednym zapisem przy najbliższym rysowaniu ekranu dnia; najwyżej 4 zapisy klucza `u07_inf` na instalację.
 - **Belka:** znak nowej wersji zdjęty tylko na czas rysowania informacji, potem wraca.
 - **Koszt e-ink (pytanie otwarte bez zmiany decyzji 11):** w slocie dziennym 08:00–21:00 z informacją 1 odświeżenie e-ink wobec 13 bez niej (pogoda, wietrzenie, „jutro rano” stoją pod informacją do przycisku albo końca doby); ostrzeżenia mimo to ją zdejmują.
+
+## Zmiana 2026-11-23 (kanał wczesny)
+
+Decyzja właściciela projektu z 23.11.2026: ryzykowne zmiany najpierw na egzemplarzu referencyjnym, potem na kolejnych panelach. Wymaganie R-KONF-62.
+
+- **Ustawienie panelu:** pole „Dostawaj wersje próbne przed innymi” w formularzu U-03 (sekcja „Aktualizacje”), w pliku `/konfiguracja.txt` wiersz `aktualizacja_wczesna=tak`; domyślnie wyłączone (bez wiersza). Bez przycisku i bez przytrzymania (reguła przycisków B31 bez zmian).
+- **Wyłączone = jak dotąd:** panel pyta `releases/latest`, które z definicji GitHuba pomija pre-release i wydania robocze. Względem stanu przed zmianą: te same zapytania sieciowe, decyzje, log i NVS; jeden odczyt pliku więcej (test równoważności w `test/testy_kanal_wczesny.cpp`).
+- **Włączone:** panel pyta o listę wydań tego samego repozytorium (`releases?per_page=5`, [PRÓG]) tym samym hostem `api.github.com`, z tym samym tokenem, w tym samym limicie czasu i odpowiedzi (64 KB) co `releases/latest`. Bierze najwyższą wersję według SemVer (nie według kolejności z API), zwykłą albo oznaczoną jako pre-release; wydania robocze nigdy. Dalej bez zmian: `wydanie.json`, decyzja „czy instalować” (pkt 4: tylko wersja wyższa od własnej), skrót SHA-256, automat, U-07.
+- **Wydanie wersji próbnej:** `tools/wydanie/wydaj.sh --wczesne` (i `wydaj.py --wczesne`) publikuje wydanie z `--prerelease` i ostrzega w podsumowaniu, że panel bez kanału wczesnego go nie zobaczy; kontrola po publikacji dla zwykłych wydań zostaje (najnowsze wydanie nie może być pre-release).
+- **Granice:** ADR-0001 bez nowego ruchu wychodzącego (ten sam host, to samo repo, ten sam token, ADR-0038 bez zmiany zasad); ADR-0002 bez wpływu (treść wydań i „Co nowego” jak dotąd).
+- **Znane ograniczenia (pytania otwarte):** lista bierze 5 ostatnio utworzonych wydań, więc wydanie starsze niż piąte od końca (np. poprawka starej linii opublikowana po nowszych) nie będzie widoczne. Panel na wersji próbnej po wyłączeniu kanału zostaje na niej, aż wyjdzie wyższa zwykła wersja (pkt 4: bez cofania się).

@@ -311,6 +311,7 @@ Pola zPliku(const std::string& konf, const sekrety::Dane& s, bool zrodloOto, dou
     if (k == "okres.filtr_tyg") { p.okres[1] = przytnijOkres(v); jestTyg = true; }
     if (k == "okres.filtr") staryFiltr = v;
     if (k == "aktualizacja_auto") p.aktualizacjaAuto = v == "tak" ? "tak" : "nie";  // zła wartość = `nie`
+    if (k == "aktualizacja_wczesna") p.aktualizacjaWczesna = v == "tak" ? "tak" : "nie";  // R-KONF-62, zła = `nie`
   }
   // R-DANE-66: ten sam parser co panel (src/ladowarka.h), zła wartość = `nie`
   p.ladowanieLimit = ladowarka::limitWKonfiguracji(konf) ? "tak" : "nie";
@@ -523,6 +524,13 @@ Wynik waliduj(const std::map<std::string, std::string>& m, const sekrety::Dane& 
       else if (au == "nie") w.plik["aktualizacja_auto"] = "";  // domyślnie `nie`: wiersz znika
       else w.bledy["aktualizacja_auto"] = "Wybierz z listy.";
     }
+    bool jestW = false;  // R-KONF-62: kanał wczesny w pliku jak automat; `nie` usuwa wiersz (stan domyślny)
+    std::string wc = wartosc(m, "aktualizacja_wczesna", jestW);
+    if (jestW) {
+      if (wc == "tak") w.plik["aktualizacja_wczesna"] = "tak";
+      else if (wc == "nie") w.plik["aktualizacja_wczesna"] = "";
+      else w.bledy["aktualizacja_wczesna"] = "Wybierz z listy.";
+    }
     bool jestK = false;
     std::string kl = wartosc(m, "klucz_wydan", jestK);
     if (jestK && !kl.empty()) {
@@ -614,7 +622,7 @@ int sekcjaPola(const std::string& k) {
       k == "uwaga_o_masce")
     return 5;
   if (k.compare(0, 3, "cz_") == 0) return 6;
-  if (k == "aktualizacja_auto" || k == "klucz_wydan" || k == "klucz_usun" || k == "haslo_okna") return 7;
+  if (k == "aktualizacja_auto" || k == "aktualizacja_wczesna" || k == "klucz_wydan" || k == "klucz_usun" || k == "haslo_okna") return 7;
   if (k.compare(0, 6, "start_") == 0) return 9;
   if (k.compare(0, 3, "kk_") == 0 || k.compare(0, 3, "dk_") == 0 || k.compare(0, 6, "pokaz_") == 0 || k == "ekrany_start" ||
       k == "wygaszacz" || k == "wygaszacz_min")
@@ -941,13 +949,18 @@ std::string strona(const Pola& p, const std::string& akcja, const std::string& k
        "wybór obowiązuje zawsze.</p>" + KONIEC_SEKCJI;
   // sekcja „Aktualizacje” (przyjęta 09.11.2026); klucz jak pola haseł, w nagłówku tylko tryb i brak klucza
   s += sekcja("Aktualizacje",
-              std::string(p.aktualizacjaAuto == "tak" ? "samodzielnie" : "ręcznie") + (p.kluczWydan ? "" : " · bez klucza"),
+              std::string(p.aktualizacjaAuto == "tak" ? "samodzielnie" : "ręcznie") +
+                  (p.aktualizacjaWczesna == "tak" ? " · próbne" : "") + (p.kluczWydan ? "" : " · bez klucza"),
               otw[7]) +
        "<label for=\"aktualizacja_auto\">Instaluj nowe wersje samodzielnie</label>" +
        opcjeWyboru("aktualizacja_auto", p.aktualizacjaAuto, {{"nie", "nie"}, {"tak", "tak"}}) +
        blad(b, "aktualizacja_auto") +
        "<p class=\"s\">Panel instaluje sam tylko w dzień, poza terapią, przy naładowanej baterii. Raz na dobę pyta "
        "GitHub o nową wersję.</p>"
+       "<label for=\"aktualizacja_wczesna\">Dostawaj wersje próbne przed innymi</label>" +
+       opcjeWyboru("aktualizacja_wczesna", p.aktualizacjaWczesna, {{"nie", "nie"}, {"tak", "tak"}}) +
+       blad(b, "aktualizacja_wczesna") +
+       "<p class=\"s\">Wersje próbne mogą mieć błędy. Wyłączenie nie cofa wersji.</p>"
        "<label for=\"klucz_wydan\">Klucz wydań (token GitHub)</label>" +
        pole("password", "klucz_wydan", "",
             std::string(" maxlength=\"255\" autocomplete=\"off\" autocapitalize=\"none\"") +

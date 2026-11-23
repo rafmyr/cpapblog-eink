@@ -3,7 +3,7 @@
 # Bramki jakości rdzenia lokalnie, tak samo jak w CI (.github/workflows/testy.yml).
 # Uruchom przed każdym pushem. Wymaga: g++ (9+), gcov, clang-tidy (18), python3.
 #
-# Użycie: tools/jakosc/sprawdz.sh [krok …] [--zapisz]
+# Użycie: tools/jakosc/sprawdz.sh [krok …] [--zapisz] [--czesc k/n]
 #   testy       tools/prototyp/testy.sh (flagi -Werror i dodatkowe ostrzeżenia, podgląd ekranów)
 #   standard    bez wyjątków i RTTI w src/ (grep: throw, try, catch, dynamic_cast, typeid)
 #   sanitizery  testy rdzenia z ASan i UBSan; każde zgłoszenie przerywa
@@ -14,6 +14,10 @@
 #   spojnosc    skrypty spójności spec i pytest narzędzi
 #   (bez kroku) wszystko po kolei
 #   --zapisz    przy tidy i pokrycie: zapisz obecny wynik jako nową bazę (tylko świadomie, z powodem w PR)
+#   --czesc k/n przy sanitizery i pokrycie: tylko k-ta z n części programów TESTY, podział po czasie z
+#               tools/jakosc/czasy-testow.txt (tools/jakosc/podzial.py; równolegle w CI). Lista wykonanych programów
+#               i ich czasy w $BUD/<krok>/programy.txt i czasy.txt. Pokrycie w części zapisuje tylko gcov.json,
+#               bez porównania z bazą: bazę sprawdza scalenie części (pokrycie.py część1.json część2.json …)
 set -euo pipefail
 if (( BASH_VERSINFO[0] < 4 )); then
   echo "sprawdz.sh wymaga bash 4 albo nowszego (mapfile); na macOS: brew install bash, potem \"\$(brew --prefix)/bin/bash\" tools/jakosc/sprawdz.sh" >&2
@@ -27,15 +31,28 @@ BUD="$FW/.pio/jakosc"
 mkdir -p "$BUD"
 
 ZAPISZ=""
+CZESC=""
 KROKI=()
+nastepny_czesc=0
 for a in "$@"; do
+  if [ "$nastepny_czesc" = 1 ]; then CZESC="$a"; nastepny_czesc=0; continue; fi
   case "$a" in
     --zapisz) ZAPISZ="--zapisz" ;;
+    --czesc) nastepny_czesc=1 ;;
+    --czesc=*) CZESC="${a#--czesc=}" ;;
     testy|standard|sanitizery|tidy|pokrycie|bazy|spojnosc) KROKI+=("$a") ;;
     *) echo "nieznany krok: $a"; exit 2 ;;
   esac
 done
+[ "$nastepny_czesc" = 1 ] && { echo "--czesc bez wartości k/n"; exit 2; }
+if [ -n "$CZESC" ] && ! [[ "$CZESC" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then echo "--czesc: oczekiwane k/n, jest $CZESC"; exit 2; fi
 [ ${#KROKI[@]} -eq 0 ] && KROKI=(testy standard sanitizery tidy pokrycie bazy spojnosc)
+
+# programy TESTY tej części (wszystkie bez --czesc), w kolejności TESTY; $1 = krok (sanitizery, pokrycie)
+programy_czesci() {
+  if [ -z "$CZESC" ]; then printf '%s\n' "${TESTY[@]}"; return; fi
+  python3 "$REPO/tools/jakosc/podzial.py" czesc --krok "$1" --czesc "$CZESC" -- "${TESTY[@]}"
+}
 
 # kompiluje rdzeń plik po pliku (równolegle) do katalogu $1 z flagami z dalszych argumentów
 kompiluj_rdzen() {
@@ -64,24 +81,33 @@ krok_sanitizery() {
   local kat="$BUD/asan" fl=(-std=c++17 -O1 -g -fsanitize=address,undefined,float-cast-overflow -fno-omit-frame-pointer
                             -fno-sanitize-recover=all "${INCLUDY[@]}")
   sprawdz_liste_testow || return 1  # każdy test/testy*.cpp w TESTY (zrodla.sh)
+  local t n wycieki=1 t0 wybrane
+  mapfile -t wybrane < <(programy_czesci sanitizery)
+  [ ${#wybrane[@]} -gt 0 ] || { echo "  BŁĄD: część $CZESC bez programów"; return 1; }
+  echo "  programów: ${#wybrane[@]} z ${#TESTY[@]}${CZESC:+ (część $CZESC)}"
   kompiluj_rdzen "$kat" "${fl[@]}"
   mapfile -t ob < <(obiekty "$kat")
-  local t n wycieki=1
+  : > "$kat/programy.txt"; : > "$kat/czasy.txt"
   # macOS: LeakSanitizer nie działa (ASan przerywa przy detect_leaks=1), a libasan z GCC z Homebrew zawiesza się przy
   # starcie programu (gcc 15) albo jej nie ma (gcc 12); lokalnie g++ = clang++ na PATH (22.11.2026). CI (Linux) bez zmian.
   [ "$(uname -s)" = Darwin ] && wycieki=0
-  for t in "${TESTY[@]}"; do  # programy testów rdzenia z zrodla.sh, argumenty jak w testy.sh (uruchom_test_rdzenia)
+  for t in "${wybrane[@]}"; do  # programy testów rdzenia z zrodla.sh, argumenty jak w testy.sh (uruchom_test_rdzenia)
     n="$(basename "$t" .cpp)"
+    t0=$(date +%s)
     g++ "${fl[@]}" "$t" "${ob[@]}" -o "$kat/$n"
-    ASAN_OPTIONS=detect_leaks=$wycieki:halt_on_error=1:abort_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
-      uruchom_test_rdzenia "$kat/$n" "$kat/wyjscie" > "$kat/wynik-$n.txt" 2>&1 \
+    # CPAP_TESTY_SANITIZERY: program może pod sanitizerami przejrzeć mniej powtórzeń tych samych kontroli
+    # (dziś tylko testy_ladowarka_brzegowe_2); tryb domyślny programu (bez sanitizera) zostaje w testy.sh
+    CPAP_TESTY_SANITIZERY=1 ASAN_OPTIONS=detect_leaks=$wycieki:halt_on_error=1:abort_on_error=1 \
+      UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 uruchom_test_rdzenia "$kat/$n" "$kat/wyjscie" > "$kat/wynik-$n.txt" 2>&1 \
       || { tail -40 "$kat/wynik-$n.txt"; echo "  BŁĄD: sanitizery albo $n"; return 1; }
     if grep -qE 'runtime error|AddressSanitizer|LeakSanitizer' "$kat/wynik-$n.txt"; then
       grep -E 'runtime error|Sanitizer' "$kat/wynik-$n.txt" | head -20; echo "  BŁĄD: zgłoszenie sanitizera ($n)"; return 1
     fi
     grep -E '^testy' "$kat/wynik-$n.txt" || true
+    echo "$n" >> "$kat/programy.txt"
+    echo "czas: sanitizery $n $(( $(date +%s) - t0 )) s" | tee -a "$kat/czasy.txt"  # kompilacja i przebieg (podzial.py z-logu)
   done
-  echo "  sanitizery: 0 zgłoszeń"
+  echo "  sanitizery: 0 zgłoszeń${CZESC:+ (część $CZESC)}"
 }
 
 krok_tidy() {
@@ -105,19 +131,31 @@ krok_pokrycie() {
   echo "== pokrycie linii rdzenia (gcov)"
   local kat="$BUD/pokrycie" fl=(-std=c++17 -O0 --coverage "${INCLUDY[@]}")
   sprawdz_liste_testow || return 1  # każdy test/testy*.cpp w TESTY (zrodla.sh)
+  local t n gcda=() t0 wybrane
+  mapfile -t wybrane < <(programy_czesci pokrycie)
+  [ ${#wybrane[@]} -gt 0 ] || { echo "  BŁĄD: część $CZESC bez programów"; return 1; }
+  echo "  programów: ${#wybrane[@]} z ${#TESTY[@]}${CZESC:+ (część $CZESC)}"
   kompiluj_rdzen "$kat" "${fl[@]}"
   rm -f "$kat"/testy*.gcda "$kat"/testy*.gcno
   mapfile -t ob < <(obiekty "$kat")
-  local t n gcda=()
-  for t in "${TESTY[@]}"; do  # liczniki .gcda rdzenia sumują się ze wszystkich programów testów
+  : > "$kat/programy.txt"; : > "$kat/czasy.txt"
+  for t in "${wybrane[@]}"; do  # liczniki .gcda rdzenia sumują się ze wszystkich programów testów (części: pokrycie.py)
     n="$(basename "$t" .cpp)"
+    t0=$(date +%s)
     g++ "${fl[@]}" "$t" "${ob[@]}" -o "$kat/$n"
     (cd "$kat" && uruchom_test_rdzenia "$kat/$n" "$kat/wyjscie" > "wynik-$n.txt") \
       || { tail -20 "$kat/wynik-$n.txt"; echo "  BŁĄD: $n z --coverage"; return 1; }
     gcda+=("$kat/$n-$n.gcda")
+    echo "$n" >> "$kat/programy.txt"
+    echo "czas: pokrycie $n $(( $(date +%s) - t0 )) s" | tee -a "$kat/czasy.txt"
   done
   # także jednostki testów: linie z nagłówków src/*.h wykonane tylko w kodzie testów
   (cd "$kat" && gcov --json-format --stdout -o "$kat" "${ob[@]}" "${gcda[@]}" > "$kat/gcov.json" 2> /dev/null)
+  if [ -n "$CZESC" ]; then
+    # linia wykonana w którejkolwiek części = wykonana (pokrycie.py łączy raporty tak samo jak jednostki .cpp)
+    echo "  pokrycie części $CZESC: $kat/gcov.json (bazę sprawdza scalenie: pokrycie.py część1.json część2.json …)"
+    return 0
+  fi
   python3 "$REPO/tools/jakosc/pokrycie.py" "$kat/gcov.json" $ZAPISZ
 }
 

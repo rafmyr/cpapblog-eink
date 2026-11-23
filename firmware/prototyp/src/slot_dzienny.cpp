@@ -832,6 +832,10 @@ UstawieniaDnia parsujUstawieniaDnia(const std::string& tresc) {
       ok = v == "tak" || v == "nie";
       if (ok) u.co2 = v == "tak" ? 1 : 0;
     }
+    // sekcja „Aktualizacje” (ADR-0038; R-KONF-62 od 23.11.2026): czyta dyrygent (automatWlaczony(), kanalWczesny())
+    // tylko wiersz dokładnie `klucz=tak`; tu tylko, żeby poprawny wiersz nie był w logu „pominiętym wierszem”
+    // (zły zapis, np. `= tak` ze spacją, zostaje w logu, bo panel go nie stosuje)
+    if (k == "aktualizacja_auto" || k == "aktualizacja_wczesna") ok = l == k + "=tak" || l == k + "=nie";
     // ustawienia z formularza U-03 (5.6.4). Wartości spoza dozwolonych: wiersz pominięty (R-KONF-21).
     if (k == "humor") {
       ok = true;

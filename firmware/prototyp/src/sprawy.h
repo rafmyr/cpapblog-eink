@@ -185,7 +185,20 @@ struct WejscieSpraw {
   // nie liczy (WY9), więc dziś nikt tego nie ustawia. bez pewności
   // `Ocena: częściowa` i wiersz `Części rzeczy jeszcze nie oceniam.` (tytuł wtedy `Nie widzę otwartych spraw.`) (R-EKR-50).
   bool ocenaPelna = false;
+  // (R-AW-40, src/nieczytelne.h): trwale nieczytelne pliki danych, od najstarszej serii; niepusta lista
+  // = jedna karta „Nie odczytuję danych” na końcu (po kartach R-EKR-48, więc kolejność spraw zdrowia bez zmian)
+  struct PlikNieczytelny {
+    std::string rodzaj;  // prostym słowem (nieczytelne::rodzaj()), bez ścieżki
+    std::string od;      // `DD.MM` pierwszego nieudanego odczytu w serii; "" = zegar był nieznany
+    bool ocena = true;   // plik, z którego liczona jest ocena terapii (nieczytelne::plikOceny())
+  };
+  std::vector<PlikNieczytelny> plikiNieczytelne;
 };
+// Pole `Ty:` karty trwale nieczytelnych plików (decyzja właściciela projektu 23.11.2026: wariant z tygodniem; to samo sformułowanie co
+// istniejący krok `→ Daj znać osobie, która instalowała panel.`); szerokość sprawdza T-TEST-520 (kolumna 632 px).
+extern const char* const TY_NIECZYTELNE;
+// Karta trwale nieczytelnych plików (R-AW-40); `p` niepuste.
+KartaSprawy kartaNieczytelnych(const std::vector<WejscieSpraw::PlikNieczytelny>& p);
 // Karty w kolejności R-EKR-48; pusta lista = stan pusty (R-EKR-50, kartaPusta()).
 std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w);
 KartaSprawy kartaPusta(const WejscieSpraw& w);

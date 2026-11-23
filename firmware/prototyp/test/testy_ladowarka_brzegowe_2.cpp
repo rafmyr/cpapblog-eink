@@ -129,6 +129,25 @@ struct Swiat {
 };
 
 static bool pelny = false;  // BRZEGOWE2_PELNY=1: pełny przegląd (ok. 4 min); domyślnie co trzeci bajt i REG05 8F, 9F
+// CPAP_TESTY_SANITIZERY=1 (ustawia tools/jakosc/sprawdz.sh sanitizery): mniej wartości rejestru i wpisu, każdy rodzaj
+// kontroli zostaje (każdy rodzaj i każde miejsce błędu, opcje, kable, REG05, wszystkie własności W1…W6, P3-a, P3-b).
+// Pod ASan każdy wyjątek `Zanik` kosztuje tyle, że tryb domyślny trwał 10–21 min (pomiar CI 23.11.2026); tryb
+// domyślny (co trzeci bajt) bez sanitizera dalej biegnie w tools/prototyp/testy.sh (ok. 10 s).
+static bool podSanitizerami = false;
+// Kody VREG z osobnym znaczeniem w ADR-0046 i w ocenie W2/W6: 0, 1, kod limitu 2 (3920 mV), 3, 11 (4208 mV), 12 (pierwszy
+// wyżej niż wpis z karty), 15 (osobny wpis karty, 4352 mV), 23, 24 (≥ 24 = 4624 mV), 31.
+static bool kodSzczegolny(int kod) {
+  return kod == 0 || kod == 1 || kod == 2 || kod == 3 || kod == 11 || kod == 12 || kod == 15 || kod == 23 || kod == 24 ||
+         kod == 31;
+}
+// Faza A: wartości REG04 (r4 i REG04 wpisu) brane pod sanitizerami: co 30 i po jednej z każdego kodu szczególnego.
+static bool bajtWProbce(int b, int krok) {
+  if (!podSanitizerami || b < 0) return true;
+  if (b % 30 == 0) return true;
+  return kodSzczegolny(b >> 3) && (b - krok < 0 || ((b - krok) >> 3) != (b >> 3));  // pierwsza odwiedzona w kodzie
+}
+// Faza B: kody VREG (kod i kod wpisu) pod sanitizerami: tylko szczególne, brak wpisu i zły wpis zawsze.
+static bool kodWProbce(int kod) { return !podSanitizerami || kod < 0 || kodSzczegolny(kod); }
 static long long przebiegow = 0;
 static long long nW1 = 0, nW1zapis = 0, nW1wl = 0, nW3 = 0, nW4 = 0, nW5 = 0;
 static long long podnZWpisu = 0, podnBezWpisu = 0, w6Wpis = 0, w6Utkniety = 0, w6NizejZWpisu = 0;
@@ -160,6 +179,7 @@ static void fazaA() {
           for (int kab = 0; kab < 2; kab++)
             for (int rodz = R_BRAK; rodz <= R_NVS_ODCZYT0; rodz++)
               for (int nr = (rodz == R_BRAK ? -1 : 1); nr <= (rodz == R_BRAK ? -1 : 14); nr++) {
+                if (!bajtWProbce(r4, krok) || !bajtWProbce(wpis, krok)) continue;
                 Swiat s;
                 s.u.r[4] = (uint8_t)r4;
                 s.u.r[5] = r5;
@@ -191,6 +211,7 @@ static void fazaB() {
   for (int kod = 0; kod < 32; kod++)
     for (int wpis = -3; wpis < 32; wpis++) {
       if (wpis == -2) continue;  // -2 i -3 to ten sam przypadek dla firmware; -3 zostaje
+      if (!kodWProbce(kod) || !kodWProbce(wpis)) continue;
       for (uint8_t r5 : R05) {
         if (!pelny && (r5 == 0xAF || r5 == 0xBF)) continue;
         for (int opcje = 0; opcje < 8; opcje++)
@@ -264,7 +285,9 @@ static void fazaB() {
 
 int main() {
   pelny = getenv("BRZEGOWE2_PELNY") != nullptr;
-  printf("tryb: %s\n", pelny ? "pelny" : "szybki (BRZEGOWE2_PELNY=1: pelny)");
+  podSanitizerami = !pelny && getenv("CPAP_TESTY_SANITIZERY") != nullptr;
+  printf("tryb: %s\n", pelny ? "pelny" : podSanitizerami ? "pod sanitizerami (probka wartosci)"
+                                                         : "szybki (BRZEGOWE2_PELNY=1: pelny)");
   fazaA();
   long long poA = przebiegow;
   printf("faza A: %lld wybudzen; W1 %lld (zapis %lld), W1-wl (podniesienie przy wlaczonej) %lld, W3 %lld, W4 %lld, W5 %lld\n",

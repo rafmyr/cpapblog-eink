@@ -55,6 +55,8 @@ ZRODLA+=("$FW/src/przyciski_probki.cpp")
 ZRODLA+=("$FW/src/dobry_start.cpp")
 # Wysyłka obrazu do sterownika e-ink kawałkami z odwróceniem bitów (src/wysylka_obrazu.cpp, T-KOMP-17, 22.11.2026)
 ZRODLA+=("$FW/src/wysylka_obrazu.cpp")
+# Trwale nieczytelny plik danych: licznik wybudzeń w RTC, sprawa w NVS, rodzaj danych słowem (src/nieczytelne.cpp)
+ZRODLA+=("$FW/src/nieczytelne.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -97,6 +99,8 @@ TESTY+=("$FW/test/testy_portret.cpp") # Portret nocy: odcinki wobec tools/portre
 TESTY+=("$FW/test/testy_porownanie.cpp") # tryb porównawczy: noc z plików wobec raportu JSON, U-05, /dane/porownanie.csv
 TESTY+=("$FW/test/testy_porownanie_brzegowe.cpp") # przypadki brzegowe trybu porównawczego
 TESTY+=("$FW/test/testy_aktualizacja.cpp" "$FW/test/testy_aktualizacja_dyrygent.cpp" "$FW/test/testy_aktualizacja_brzegowe.cpp") # aktualizacja z wydań GitHub (ADR-0032, ADR-0038) i przypadki brzegowe
+TESTY+=("$FW/test/testy_kanal_wczesny.cpp") # kanał wczesny aktualizacji: lista wydań z pre-release (R-KONF-62, ADR-0032 zmiana 2026-11-23)
+TESTY+=("$FW/test/testy_kanal_wczesny_brzegowe.cpp") # testy brzegowe kanału wczesnego: SemVer, nigdy w dół, przełączenie kanału
 TESTY+=("$FW/test/testy_szybciej_przycisk.cpp") # szybsza zmiana ekranu po przycisku: liczniki i równoważność (T-WYM-99)
 TESTY+=("$FW/test/testy_szybciej_przycisk_brzegowe.cpp") # testy brzegowe T-WYM-99: mutacje kluczy, testy różnicowe z pamięcią i bez
 TESTY+=("$FW/test/testy_kabel_bez_snu.cpp") # czekanie na kablu zamiast głębokiego snu: równoważność, liczniki, awarie (ADR-0047)
@@ -107,6 +111,9 @@ TESTY+=("$FW/test/testy_otoczenie_zegar_kabel_brzegowe.cpp") # testy brzegowe: o
 TESTY+=("$FW/test/testy_odczyt_nieudany.cpp") # T-WYM-19: odczyt nieudany ≠ plik pusty; nieudane dopisanie w logu
 TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe_2.cpp") # testy brzegowe odczytu nieudanego, część 2: legalne zapisy bez odmów, dwa lata, przełom roku
 TESTY+=("$FW/test/testy_odczyt_nieudany_brzegowe.cpp") # testy brzegowe odczytu nieudanego: semantyka panelu (LittleFS.exists() = open())
+TESTY+=("$FW/test/testy_plik_nieczytelny.cpp") # R-AW-40: trwale nieczytelny plik danych na U-05 i w „Otwartych sprawach” (T-TEST-520)
+TESTY+=("$FW/test/testy_plik_nieczytelny_brzegowe_2.cpp") # testy brzegowe trwale nieczytelnego pliku, część 2 (w testy.sh blokujące)
+TESTY+=("$FW/test/testy_plik_nieczytelny_brzegowe.cpp") # testy brzegowe trwale nieczytelnego pliku (w testy.sh blokujące)
 TESTY+=("$FW/test/testy_kabel_ladowanie_brzegowe.cpp") # testy brzegowe: limit ładowania × czekanie na kablu, losowo na dwóch ścieżkach
 TESTY+=("$FW/test/testy_kolejnosc_ekranow.cpp") # kolejność i widoczność ekranów z telefonu (ADR-0045), zgodność z bazą sprzed zmiany
 TESTY+=("$FW/test/testy_norma_tymczasowa.cpp") # norma tymczasowa „sprzed zmiany” po zmianie ustawień: liczenie, K1, K2, reguły bez zmian (ADR-0048)

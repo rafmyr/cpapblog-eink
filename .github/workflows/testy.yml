@@ -1,5 +1,7 @@
 # Tests and quality gates. Runs on pull requests and on push to main.
-# Locally the same: tools/prototyp/testy.sh (PC tests) and tools/jakosc/sprawdz.sh (core quality gates).
+# Locally the same: tools/prototyp/testy.sh (PC tests) and tools/jakosc/sprawdz.sh (core quality gates; parts: --czesc k/n).
+# Sanitizers and coverage run in parallel parts split by measured time (tools/jakosc/podzial.py,
+# tools/jakosc/czasy-testow.txt); the collecting jobs check that every TESTY program ran exactly once.
 name: testy
 
 on:
@@ -44,30 +46,79 @@ jobs:
         run: python3 tools/spojnosc.py --strict
       - name: Spójność specyfikacji technicznej (odwołania do kodu)
         run: python3 tools/spojnosc_tech.py
-      - name: Testy narzędzi
-        run: python3 -m pytest -q tools
 
-  # Heavier core gates (about 3–4 min on 2 cores); the same commands as tools/jakosc/sprawdz.sh.
-  # Split into three parallel jobs (17.11.2026): together they no longer fit in 90 min
-  # (sanitizers alone took 68 min after the charger-limit and on-cable tests).
-  # 22.11.2026: 116 test programs, sanitizers 76.5 min of 120 (below 2/3 of the limit), no further split.
-  jakosc:
+  # Tool tests separately from testy.sh, in parallel (pytest-xdist).
+  narzedzia:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
         with:
-          fetch-depth: 0  # bazy bramek porównywane z origin/main (merge-base)
-      - name: Zależności (g++, gcov, clang-tidy 18)
+          fetch-depth: 0  # test_spojnosc_tech checks the spec commit from the header
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Zależności
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang-tidy-18
-          sudo ln -sf "$(command -v clang-tidy-18)" /usr/local/bin/clang-tidy
-          clang-tidy --version | head -2
+          sudo apt-get install -y -q g++
+          python3 -m pip install --quiet -r requirements-dev.txt
+      - name: Testy narzędzi (pytest -n auto)
+        run: python3 -m pytest -q -n auto --dist worksteal --durations=15 tools
+
+  # ASan + UBSan in parts by measured time (about 14 min of programs per part plus about 3 min to build the core).
+  # testy_ladowarka_brzegowe_2 under sanitizers checks a sample of values (CPAP_TESTY_SANITIZERY); the program's
+  # default mode (every third byte, no sanitizer) runs in testy.sh.
+  sanitizery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        czesc: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+      - name: Zależności (g++)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++
+      - name: ASan + UBSan na testach rdzenia, część ${{ matrix.czesc }}/4 (zero zgłoszeń)
+        run: bash tools/jakosc/sprawdz.sh sanitizery --czesc ${{ matrix.czesc }}/4
+      - name: Lista wykonanych programów i czasy
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: sanitizery-${{ matrix.czesc }}
+          path: |
+            firmware/prototyp/.pio/jakosc/asan/programy.txt
+            firmware/prototyp/.pio/jakosc/asan/czasy.txt
+          retention-days: 14
+
+  # always(): a failed or cancelled part gives an error here, not "skipped"; the standard check always runs
+  jakosc:
+    needs: sanitizery
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
       - name: Standard (bez wyjątków i RTTI w src/)
         run: bash tools/jakosc/sprawdz.sh standard
-      - name: ASan + UBSan na testach rdzenia (zero zgłoszeń)
-        run: bash tools/jakosc/sprawdz.sh sanitizery
+      - name: Wszystkie części sanitizerów zaliczone
+        env:
+          WYNIK: ${{ needs.sanitizery.result }}
+        run: '[ "$WYNIK" = success ] || { echo "BŁĄD: części sanitizerów: $WYNIK"; exit 1; }'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: sanitizery-*
+          path: czesci
+      - name: Każdy program TESTY pod sanitizerami dokładnie raz w sumie części
+        run: |
+          FW="$PWD/firmware/prototyp" REPO="$PWD" bash -c 'source tools/prototyp/zrodla.sh; printf "%s\n" "${TESTY[@]}"' > testy.txt
+          python3 tools/jakosc/podzial.py sprawdz --lista testy.txt czesci/sanitizery-*/programy.txt
+          python3 tools/jakosc/podzial.py z-logu --krok sanitizery czesci/sanitizery-*/czasy.txt
 
   jakosc-tidy:
     runs-on: ubuntu-latest
@@ -85,21 +136,57 @@ jobs:
       - name: clang-tidy (zero nowych ostrzeżeń wobec tools/jakosc/clang-tidy-baza.txt)
         run: bash tools/jakosc/sprawdz.sh tidy
 
-  jakosc-pokrycie:
+  # Coverage in parts: each part saves a gcov report (JSON); the merge counts coverage over all of them
+  # (a line run in any part counts as run, as between .cpp units), with the same thresholds and report.
+  pokrycie:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # 22.11.2026: 40.4 min for 116 programs, over 2/3 of the 60 limit; coverage cannot be split without merging .gcda
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        czesc: [1, 2, 3]
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
+      - name: Zależności (g++, gcov)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++
+      - name: Pokrycie linii rdzenia, część ${{ matrix.czesc }}/3
+        run: bash tools/jakosc/sprawdz.sh pokrycie --czesc ${{ matrix.czesc }}/3
+      - name: Raport gcov części i lista programów
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: pokrycie-${{ matrix.czesc }}
+          path: |
+            firmware/prototyp/.pio/jakosc/pokrycie/gcov.json
+            firmware/prototyp/.pio/jakosc/pokrycie/programy.txt
+            firmware/prototyp/.pio/jakosc/pokrycie/czasy.txt
+          retention-days: 14
+
+  jakosc-pokrycie:
+    needs: pokrycie
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wszystkie części pokrycia zaliczone
+        env:
+          WYNIK: ${{ needs.pokrycie.result }}
+        run: '[ "$WYNIK" = success ] || { echo "BŁĄD: części pokrycia: $WYNIK"; exit 1; }'
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
         with:
           fetch-depth: 0  # bazy bramek porównywane z origin/main (merge-base)
-      - name: Zależności (g++, gcov, clang-tidy 18)
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: pokrycie-*
+          path: czesci
+      - name: Każdy program TESTY w pokryciu dokładnie raz w sumie części
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang-tidy-18
-          sudo ln -sf "$(command -v clang-tidy-18)" /usr/local/bin/clang-tidy
-          clang-tidy --version | head -2
+          FW="$PWD/firmware/prototyp" REPO="$PWD" bash -c 'source tools/prototyp/zrodla.sh; printf "%s\n" "${TESTY[@]}"' > testy.txt
+          python3 tools/jakosc/podzial.py sprawdz --lista testy.txt czesci/pokrycie-*/programy.txt
+          python3 tools/jakosc/podzial.py z-logu --krok pokrycie czesci/pokrycie-*/czasy.txt
       - name: Pokrycie linii rdzenia (nie poniżej tools/jakosc/pokrycie-baza.txt)
-        run: bash tools/jakosc/sprawdz.sh pokrycie
+        run: python3 tools/jakosc/pokrycie.py czesci/pokrycie-*/gcov.json
       - name: Bazy bramek nie gorsze niż na main
         run: bash tools/jakosc/sprawdz.sh bazy
 

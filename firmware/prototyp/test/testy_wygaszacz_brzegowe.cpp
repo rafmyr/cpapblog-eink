@@ -141,7 +141,7 @@ static void testRec_stronaZBledamiWygaszacza() {
   for (const char* pole : {"ssid", "wifi_haslo", "wifi_bez", "ab_adres", "ab_konto", "ab_haslo", "profil", "co2", "miasto",
                            "humor", "buzzer", "cisza_od", "cisza_do", "podpowiedz", "cz_start", "wymiana.maska",
                            "okres.maska", "nowy_model", "nowy_model_cofnij", "wymiana.filtr", "okres.filtr_tyg",
-                           "uwaga_o_masce", "aktualizacja_auto", "klucz_wydan", "klucz_usun", "haslo_okna",
+                           "uwaga_o_masce", "aktualizacja_auto", "aktualizacja_wczesna", "klucz_wydan", "klucz_usun", "haslo_okna",
                            "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana",
                            "dk_pylek", "ekrany_start", "wygaszacz", "wygaszacz_min"})
     wszystkie[pole] = "Nowa sieć: wpisz jej hasło albo zaznacz „bez hasła”. Panel nie zna dzisiejszej daty.";

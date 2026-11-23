@@ -30,6 +30,11 @@ import sys
 import tempfile
 import zlib
 
+try:
+    import fcntl  # blokada budowy (Linux, macOS); bez fcntl budowa bez blokady
+except ImportError:  # pragma: no cover
+    fcntl = None
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scenariusze as scen  # noqa: E402
 
@@ -191,9 +196,18 @@ def mtime(p):
 
 
 def zbuduj(cicho=False):
-    """Kompiluje symulator (pliki obiektowe w build/symulator/, tylko zmienione). Zwraca ścieżkę programu."""
-    kx, wersja = kompilator()
+    """Kompiluje symulator (pliki obiektowe w build/symulator/, tylko zmienione). Zwraca ścieżkę programu.
+    Jedna budowa naraz w katalogu BUDOWA (blokada pliku): testy narzędzi biegną równolegle (pytest -n, pytest-xdist)
+    i bez blokady dwa procesy pisałyby te same pliki .o."""
     os.makedirs(BUDOWA, exist_ok=True)
+    with open(os.path.join(BUDOWA, ".blokada"), "w", encoding="utf-8") as blokada:
+        if fcntl is not None:
+            fcntl.flock(blokada, fcntl.LOCK_EX)  # zwalnia zamknięcie pliku
+        return _zbuduj(cicho)
+
+
+def _zbuduj(cicho):
+    kx, wersja = kompilator()
     zrodla = zrodla_rdzenia()
     naglowki = (glob.glob(os.path.join(FW, "src", "*.h")) + glob.glob(os.path.join(FW, "include", "*.h"))
                 + glob.glob(os.path.join(FW, "test", "atrapy", "**", "*.h"), recursive=True))

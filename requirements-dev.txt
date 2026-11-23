@@ -1,8 +1,10 @@
-# Narzędzia deweloperskie: testy narzędzi (pytest), generatory plików firmware i podglądy (Pillow, NumPy, fontTools),
+# Narzędzia deweloperskie: testy narzędzi (pytest, pytest-xdist), generatory plików firmware i podglądy (Pillow, NumPy, fontTools),
 # wgrywanie plików przez port szeregowy (pyserial) i build firmware (PlatformIO). Nic z tej listy nie trafia do
 # firmware. Wersje przypięte, żeby testy i generatory dawały u każdego to samo co w CI:
 #   python3 -m pip install -r requirements-dev.txt
 pytest==9.0.3
+pytest-xdist==3.8.0  # testy narzędzi równolegle: python3 -m pytest -n auto tools (CI, zadanie narzedzia)
+execnet==2.1.2  # zależność pytest-xdist
 pillow==12.3.0
 numpy==2.5.4
 fonttools==4.68.0

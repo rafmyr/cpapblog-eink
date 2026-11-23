@@ -466,7 +466,39 @@ std::vector<KartaSprawy> kartySpraw(const WejscieSpraw& w) {
     x.koniec = "gdy dane przestaną to pokazywać";  // warunek linii z jej modułu (6.4), jak przy zdarzeniach
     k.push_back(x);
   }
+  if (!w.plikiNieczytelne.empty()) k.push_back(kartaNieczytelnych(w.plikiNieczytelne));  // R-AW-40, na końcu
   return k;
+}
+
+const char* const TY_NIECZYTELNE = "po tygodniu daj znać osobie, która instalowała panel";  // 590 px z 632
+
+KartaSprawy kartaNieczytelnych(const std::vector<WejscieSpraw::PlikNieczytelny>& p) {
+  // R-AW-40: co się stało i co dalej, bez diagnozy i bez ustawień aparatu
+  // (ADR-0002). Powód najwyżej 70 znaków (5.4.4, `{dane}` najdłużej `dziennik baterii`); przy 2–4 plikach (MIEJSC)
+  // liczba bez nazw („nie odczytuję {n} plików”: dopełniacz po przeczeniu, ta sama forma dla 2, 3 i 4), nazwa
+  // najstarszego w werdykcie U-05. `Ocena:`: `częściowa` (to samo słowo co K1, R-KOK-21) tylko przy pliku
+  // oceny; przy plikach spoza oceny ocena nocy jest pełna jak bez sprawy, więc karta mówi to wprost.
+  KartaSprawy x;
+  const bool jeden = p.size() == 1;
+  const std::string& od = p.front().od;
+  bool ocena = false, wszystkieOceny = true;
+  for (auto& f : p) {
+    ocena = ocena || f.ocena;
+    wszystkieOceny = wszystkieOceny && f.ocena;
+  }
+  x.tytul = "Nie odczytuję danych";
+  const std::string pocz = od.empty() ? std::string("Nie odczytuję") : "Od " + od + " nie odczytuję";
+  x.powod = jeden ? pocz + ": " + p.front().rodzaj + ". Nic tam nie zapisuję."
+                  : pocz + " " + std::to_string(p.size()) + " plików danych. Nic tam nie zapisuję.";
+  // pliki mieszane (część z oceny, część spoza): `bez części danych`, nie „bez danych z tych plików”
+  x.ocena = !ocena          ? "bez wpływu na ocenę nocy"
+            : jeden         ? "częściowa: bez danych z tego pliku"
+            : wszystkieOceny ? "częściowa: bez danych z tych plików"
+                            : "częściowa: bez części danych";
+  x.ty = TY_NIECZYTELNE;  // decyzja właściciela projektu 23.11.2026: wariant z tygodniem
+  x.dalej = "ponawiam odczyt przy każdym wybudzeniu";
+  x.koniec = "po pierwszym udanym odczycie";
+  return x;
 }
 
 KartaSprawy kartaPusta(const WejscieSpraw& w) {

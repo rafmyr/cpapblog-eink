@@ -33,6 +33,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <vector>
@@ -182,6 +183,11 @@ class Magazyn {
   // true, gdy treść pliku `sciezka` jest w tym wybudzeniu u wołającego: przeczytana przez czytaj() (z treścią)
   // albo zapisana przez zapisz(). Plik, który przy odczycie nie istniał, a potem powstał przez dopisz(), się nie liczy.
   bool wczytanyWTymWybudzeniu(const std::string& sciezka) const { return przeczytany(sciezka); }
+  // udany dostęp do pliku w tym wybudzeniu (src/nieczytelne.h): przeczytany albo zapisany
+  // (wczytanyWTymWybudzeniu()) albo udanie dopisany przez dopisz(); koniec serii trwale nieczytelnego pliku.
+  bool dostepUdany(const std::string& sciezka) const {
+    return przeczytany(sciezka) || std::find(udane_.begin(), udane_.end(), sciezka) != udane_.end();
+  }
   // czy plik `sciezka` jest na nośniku, niezależnie od tego, czy da się go otworzyć: Pliki::istnieje() (na panelu
   // stat()), a przy „nie ma” lista katalogu nad plikiem. Nieudana lista = „nie ma”. Używa też dyrygent dla plików
   // spoza rejestru (`/konfiguracja.txt`).
@@ -241,6 +247,7 @@ class Magazyn {
   void bezStarszego(const std::string& sciezka);
   void oznaczNieczytelny(const std::string& sciezka);
   bool przeczytany(const std::string& sciezka) const;
+  bool dopiszWewn(const std::string& nazwa, const std::string& sciezka, const std::string& wiersz);
   void oznaczPrzeczytany(const std::string& sciezka);
   Pliki& pliki_;
   std::function<void(const std::string&)> log_;
@@ -250,6 +257,7 @@ class Magazyn {
   std::vector<std::string> starsze_;     // przeczytane w wersji starszej niż znana (czekają na migrujWMiejscu())
   std::vector<std::string> utworzone_;   // pliki i znaczniki zapisane przez ostatnie migrujNaNoweSciezki()
   std::vector<std::string> nieczytelne_; // plik jest, odczyt się nie udał: bez zapisu do końca wybudzenia
+  std::vector<std::string> udane_;      // udanie dopisane przez dopisz() (dostepUdany())
   std::vector<std::string> przeczytane_; // przeczytane (czytaj() z treścią) albo zapisane przez zapisz()
   bool odrzuconoStarszy_ = false;
 };

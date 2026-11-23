@@ -912,6 +912,9 @@ class AtrapaWydan : public Wydania {
   bool certyfikatZly = false;       // serwer spoza zestawu certyfikatów: żądanie nie wychodzi
   bool przekierowanieNaHttp = false;  // przekierowanie na http:// (adapter go nie przyjmuje)
   std::string odpowiedzApi;         // ciało `releases/latest`
+  // R-KONF-62 (kanał wczesny): ciało i kod `releases?per_page=…` (lista wydań); pusta = `[odpowiedzApi]`
+  std::string odpowiedzListy;
+  int kodListy = 200;
   std::string opis;                 // ciało `wydanie.json`
   std::string obraz;                // bajty obrazu
   size_t uciecObrazPo = 0;          // >0: połączenie zrywa się po tylu bajtach
@@ -952,8 +955,9 @@ class AtrapaWydan : public Wydania {
     OdpowiedzWydania o;
     d_.dodaj("wydania.tekst " + zw.url);
     if (certyfikatZly) { o.certyfikatOk = false; o.kod = -1; return o; }
-    bool api = zw.url.find("/releases/latest") != std::string::npos;
-    int kod = api ? kodApi : kodOpisu;
+    bool lista = zw.url.find("/releases?") != std::string::npos;
+    bool api = lista || zw.url.find("/releases/latest") != std::string::npos;
+    int kod = lista ? kodListy : api ? kodApi : kodOpisu;
     zapiszZadanie(zw.url, zw.token, zw.binarne);
     o.hosty.push_back(aktualizacja::hostZAdresu(zw.url));
     if (!api && zw.binarne && kod > 0) {  // zasób: przekierowanie na serwer plików
@@ -965,7 +969,7 @@ class AtrapaWydan : public Wydania {
     z_.przesun(msZadania);
     o.kod = kod;
     if (kod == 200) {
-      o.cialo = api ? odpowiedzApi : opis;
+      o.cialo = lista ? (odpowiedzListy.empty() ? "[" + odpowiedzApi + "]" : odpowiedzListy) : api ? odpowiedzApi : opis;
       if (zw.maksBajtow && o.cialo.size() > zw.maksBajtow) { o.cialo.clear(); o.zaDuzo = true; }
     }
     return o;

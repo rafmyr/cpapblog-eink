@@ -312,7 +312,20 @@ OcenaUspokojenia ocenUspokojenie(const std::vector<reguly::Wynik>& wyniki, const
   return o;
 }
 
+#ifndef ARDUINO
+bool testUspokojenieSpelnione = false;  // tylko buildy na PC
+#endif
+
 void zastosujUspokojenie(Stany& st, const OcenaUspokojenia& o) {
+#ifndef ARDUINO
+  if (testUspokojenieSpelnione) {  // tylko testy; w obrazie na panel tej gałęzi nie ma
+    st.nieoceniane.clear();
+    st.ocenaNiepelna = false;
+    st.uspokojenieOcenione = st.bezSpraw = st.uspokojenie = true;
+    st.niespokoj = Stany::Niespokoj::BRAK;
+    return;
+  }
+#endif
   if (!o.silnik) return;  // bez wyników punkty 1, 4 i 7 zostają nieoceniane
   if (o.wszystkieOcenione) {
     auto ocenione = [](const std::string& p) {

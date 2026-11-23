@@ -424,6 +424,12 @@ WierszTestu wierszU05Pobrania(const std::string& pobrano, bool nowsza, bool kont
 std::vector<std::string> wariantyOprogramowaniaU05(const std::string& wersja, const std::string& dopisek);
 // Warianty `Pamięć panelu` przy danych z nowszej wersji (`co` = plik albo `NVS {klucz}`).
 std::vector<std::string> wariantyNowszychDanychU05(const std::string& co);
+// R-AW-40: wiersz `Pamięć panelu` przy trwale nieczytelnym pliku (kolumna ma na wartość z usterką
+// 197 px, więc rodzaj danych idzie do nazwy w pasie werdyktu): `nieczytelne od {DD.MM}`, bez daty `nieczytelne dane`;
+// nazwa wiersza w werdykcie `pamięć ({rodzaj})`, np. `! 3 rzeczy do sprawdzenia: pamięć (noce 2026), Wi-Fi, AirBridge`
+// (krótko, żeby pozostałe usterki zostały w pasie).
+std::vector<std::string> wariantyNieczytelnegoU05(const std::string& od);
+std::string krotkoNieczytelnegoU05(const std::string& rodzaj);
 
 // Werdykt U-05 (R-KONF-58, ADR-0029 pkt 7), wiersze w kolejności lewa, prawa, dol:
 //  - z usterką: `{n} rzecz do sprawdzenia: {a}` (n = 1) albo `{n} rzeczy do sprawdzenia: {a}, {b}` (nazwy `krotko`);

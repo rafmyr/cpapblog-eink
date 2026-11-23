@@ -433,6 +433,13 @@ bool Magazyn::zapisz(const std::string& nazwa, const std::string& sciezka, const
 }
 
 bool Magazyn::dopisz(const std::string& nazwa, const std::string& sciezka, const std::string& wiersz) {
+  // udane dopisanie to udany dostęp do pliku (koniec serii nieczytelnego pliku, src/nieczytelne.h)
+  bool ok = dopiszWewn(nazwa, sciezka, wiersz);
+  if (ok && !dostepUdany(sciezka)) udane_.push_back(sciezka);
+  return ok;
+}
+
+bool Magazyn::dopiszWewn(const std::string& nazwa, const std::string& sciezka, const std::string& wiersz) {
   const FormatPliku* f = formatPliku(rejestr_, nazwa);
   if (!f || f->wersja() < 1 || !pliki_.zamontowane()) return false;
   if (tylkoDoOdczytu(sciezka)) return false;

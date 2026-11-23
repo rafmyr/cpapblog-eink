@@ -1621,6 +1621,12 @@ std::vector<std::string> wariantyNowszychDanychU05(const std::string& co) {
   return {"dane z nowszej wersji: " + co, "dane z nowszej wersji", "dane nowszej wersji"};
 }
 
+std::vector<std::string> wariantyNieczytelnegoU05(const std::string& od) {
+  if (od.empty()) return {"nieczytelne dane"};
+  return {"nieczytelne od " + od, "nieczytelne dane"};
+}
+std::string krotkoNieczytelnegoU05(const std::string& rodzaj) { return "pamięć (" + rodzaj + ")"; }
+
 std::string slowoSygnalu(int dbm) {
   if (dbm >= 0) return "";
   return dbm >= SYGNAL_DOBRY ? "dobry" : dbm > SYGNAL_SLABY ? "średni" : "słaby";

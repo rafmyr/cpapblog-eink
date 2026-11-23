@@ -101,6 +101,12 @@ OcenaUspokojenia ocenUspokojenie(const std::vector<reguly::Wynik>& wyniki, const
 // Wpisuje ocenę do stanów: punkty 1, 4 i 7 schodzą z listy nieocenianych tylko wtedy, gdy wszystkie reguły są
 // ocenione (inaczej zostają, a uspokojenie jest niespełnione, ADR-0029 pkt 3 i 7); spełnienie wchodzi do
 // uspokojenieOcenione (pkt 2 z wyników reguł). Pozostałe punkty bez zmian.
+// Tylko testy: punkty, których panel dziś nie ocenia, traktowane jako ocenione i spełnione, więc
+// zastosujUspokojenie() daje uspokojenie spełnione (ekrany z „W normie”). Poza obrazem na panel (tylko
+// buildy na PC, bez ARDUINO), jak inne gałęzie `ARDUINO` w rdzeniu (magazyn.cpp).
+#ifndef ARDUINO
+extern bool testUspokojenieSpelnione;
+#endif
 void zastosujUspokojenie(Stany& st, const OcenaUspokojenia& o);
 
 // ---------- buzzer pilności A (5.14) ----------

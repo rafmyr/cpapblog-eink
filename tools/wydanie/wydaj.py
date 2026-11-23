@@ -13,6 +13,7 @@ Użycie:
   python3 tools/wydanie/wydaj.py 1.0.1 --publikuj            # jak wyżej i wydanie na GitHubie (tylko na wyraźne polecenie)
   python3 tools/wydanie/wydaj.py --nastepna                  # tylko wypisuje następny numer po ostatnim wydaniu
   python3 tools/wydanie/wydaj.py 1.0.1 --nowosc "Portret nocy: łagodniejsze piki" --nowosc "…"   # „Co nowego” (do 3)
+  python3 tools/wydanie/wydaj.py 1.1.0-beta.1 --publikuj --wczesne   # wersja próbna (pre-release, R-KONF-62)
 Na co dzień: tools/wydanie/wydaj.sh (sprawdza main i CI, sam bierze następny numer, pyta „tak”, publikuje).
 """
 import argparse
@@ -83,12 +84,17 @@ def tagi_wydan(repo):
     return [t for t in r.stdout.split() if t]
 
 
-def sprawdz_opublikowane(repo, wersja):
-    """Lista błędów po publikacji: najnowsze wydanie to v{wersja}, nie robocze, z obrazem i wydanie.json."""
-    r = subprocess.run(["gh", "api", "repos/%s/releases/latest" % repo], capture_output=True, text=True)
+def sprawdz_opublikowane(repo, wersja, wczesne=False):
+    """Lista błędów po publikacji. Zwykłe: najnowsze wydanie (`releases/latest`) to v{wersja}, nie robocze, nie
+    pre-release, z obrazem i wydanie.json. Wczesne (R-KONF-62): wydanie v{wersja} z tagu (`releases/latest` pomija
+    pre-release z definicji GitHuba), nie robocze, oznaczone jako pre-release, z obrazem i wydanie.json."""
+    adres = "repos/%s/releases/tags/v%s" % (repo, wersja) if wczesne else "repos/%s/releases/latest" % repo
+    r = subprocess.run(["gh", "api", adres], capture_output=True, text=True)
     if r.returncode != 0:
-        return ["GitHub nie zwraca najnowszego wydania: " + r.stderr.strip()]
-    return bledy_wydania(json.loads(r.stdout), wersja)
+        return ["GitHub nie zwraca %s: %s" % ("wydania v" + wersja if wczesne else "najnowszego wydania",
+                                               r.stderr.strip())]
+    w = json.loads(r.stdout)
+    return bledy_wydania_wczesnego(w, wersja) if wczesne else bledy_wydania(w, wersja)
 
 
 def bledy_wydania(w, wersja):
@@ -103,6 +109,29 @@ def bledy_wydania(w, wersja):
         if nazwy.get(n) != "uploaded":
             b.append("brak pliku %s w wydaniu" % n)
     return b
+
+
+def bledy_wydania_wczesnego(w, wersja):
+    """Jak bledy_wydania(), ale dla wersji próbnej: tag v{wersja}, nie robocze i oznaczone jako pre-release (inaczej
+    panele bez kanału wczesnego dostałyby ją jak zwykłą)."""
+    b = []
+    if w.get("tag_name") != "v" + wersja:
+        b.append("wydanie z tagu v%s ma tag %s" % (wersja, w.get("tag_name")))
+    if w.get("draft"):
+        b.append("wydanie oznaczone jako robocze: żaden panel go nie zobaczy")
+    if not w.get("prerelease"):
+        b.append("wydanie nie jest oznaczone jako pre-release: dostaną je wszystkie panele, nie tylko z kanałem wczesnym")
+    nazwy = {a.get("name"): a.get("state") for a in w.get("assets") or []}
+    for n in (nazwa_obrazu(wersja), "wydanie.json"):
+        if nazwy.get(n) != "uploaded":
+            b.append("brak pliku %s w wydaniu" % n)
+    return b
+
+
+# Ostrzeżenie w podsumowaniu wersji próbnej (wydaj.py i wydaj.sh): kto ją zobaczy
+OSTRZEZENIE_WCZESNE = ("UWAGA: wersja próbna (pre-release). Zobaczą ją tylko panele z kanałem wczesnym "
+                       "(„Dostawaj wersje próbne przed innymi” = tak, `aktualizacja_wczesna=tak`). Panel bez kanału "
+                       "wczesnego tego wydania nie zobaczy i zostaje przy ostatniej zwykłej wersji.")
 
 
 def nazwa_obrazu(wersja):
@@ -287,9 +316,10 @@ def polecenie_budowy(wersja, repo):
     return ["pio", "run", "-e", "e1001_wydanie"], env
 
 
-def polecenie_publikacji(wersja, repo, pliki, nota):
+def polecenie_publikacji(wersja, repo, pliki, nota, wczesne=False):
+    """`gh release create`; przy `wczesne` z `--prerelease` (R-KONF-62: tylko panele z kanałem wczesnym)."""
     return ["gh", "release", "create", "v" + wersja, *pliki, "--repo", repo, "--title", "cpap-eink " + wersja,
-            "--notes-file", nota]
+            "--notes-file", nota] + (["--prerelease"] if wczesne else [])
 
 
 def main(argv=None):
@@ -301,6 +331,9 @@ def main(argv=None):
     a.add_argument("--katalog", help="katalog wynikowy (domyślnie build/wydanie-{wersja})")
     a.add_argument("--nota", default="", help="krótka nota wydania")
     a.add_argument("--publikuj", action="store_true", help="utwórz wydanie na GitHubie (gh release create)")
+    a.add_argument("--wczesne", action="store_true",
+                   help="wersja próbna: wydanie oznaczone jako pre-release, widzą je tylko panele z kanałem wczesnym "
+                        "(`aktualizacja_wczesna=tak`, R-KONF-62)")
     a.add_argument("--nowosc", action="append", default=[], metavar="TEKST",
                    help="linia „Co nowego” na ekranie aktualizacji panelu (do %d, po najwyżej %d znaków; pole "
                         "`nowosci` w wydanie.json)" % (NOWOSCI_MAKS, NOWOSC_MAKS_ZNAKOW))
@@ -367,23 +400,27 @@ def main(argv=None):
         if o.nowosc:
             f.write("\nCo nowego:\n\n" + "".join("- %s\n" % t for t in o.nowosc))
     print("obraz %s, %d B, SHA-256 %s" % (plik_obrazu, d["rozmiar"], d["sha256"]))
+    if o.wczesne:
+        print(OSTRZEZENIE_WCZESNE, file=sys.stderr)
     print("UWAGA: obraz wydania nie ma haseł ani adresów. Wolno go instalować tylko na panelu, który ma już w "
           "pamięci sieć, AirBridge, hasło okna serwisowego, źródło otoczenia i współrzędne z wersji z aktualizatorem "
           "wgranej z secrets.h kablem albo oknem serwisowym.", file=sys.stderr)
     if not o.publikuj:
         print("bez --publikuj: nic nie wysłano")
         return 0
-    cmd = polecenie_publikacji(o.wersja, o.repo, [plik_obrazu, plik_opisu], plik_noty)
+    cmd = polecenie_publikacji(o.wersja, o.repo, [plik_obrazu, plik_opisu], plik_noty, o.wczesne)
     print("publikacja:", " ".join(cmd))
     rc = subprocess.run(cmd).returncode
     if rc != 0:
         return rc
-    bledy = sprawdz_opublikowane(o.repo, o.wersja)
+    bledy = sprawdz_opublikowane(o.repo, o.wersja, o.wczesne)
     for b in bledy:
         print("BŁĄD po publikacji:", b, file=sys.stderr)
     if not bledy:
-        print("opublikowane: https://github.com/%s/releases/tag/v%s (obraz i wydanie.json na miejscu)" %
-              (o.repo, o.wersja))
+        print("opublikowane%s: https://github.com/%s/releases/tag/v%s (obraz i wydanie.json na miejscu)" %
+              (" jako pre-release" if o.wczesne else "", o.repo, o.wersja))
+        if o.wczesne:
+            print(OSTRZEZENIE_WCZESNE, file=sys.stderr)
     return 1 if bledy else 0
 
 

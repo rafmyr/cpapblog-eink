@@ -5,11 +5,14 @@
 # Użycie (z dowolnego miejsca w repo):
 #   tools/wydanie/wydaj.sh            # następny numer po ostatnim wydaniu (np. 1.0.0-beta.2 → 1.0.0-beta.3)
 #   tools/wydanie/wydaj.sh 1.0.1      # numer podany ręcznie
+#   tools/wydanie/wydaj.sh --wczesne 1.1.0-beta.1   # wersja próbna (pre-release, flaga w dowolnym miejscu): tylko panele z kanałem wczesnym
+#                                                   # (`aktualizacja_wczesna=tak`, R-KONF-62, od 23.11.2026)
 #
 # Po kolei: repo na aktualnym `main` bez niezapisanych zmian, CI na tym commicie zielone, numer wersji, linie „Co nowego”
 # (od 14.11.2026, opcjonalne), pytanie
 # „tak”, budowa obrazu bez sekretów i jego kontrola (wydaj.py), publikacja w repozytorium wydań przez `gh`
-# i sprawdzenie, że najnowsze wydanie na GitHubie ma obraz i wydanie.json. Każda odmowa kończy bez publikacji.
+# i sprawdzenie, że najnowsze wydanie (przy --wczesne: wydanie z tagu, oznaczone jako pre-release) ma obraz i wydanie.json.
+# Każda odmowa kończy bez publikacji.
 # Wymaga: PlatformIO (~/.platformio), `gh` zalogowane na konto z prawem zapisu do repozytorium wydań.
 # Zgodne z bash 3.2 (macOS).
 set -euo pipefail
@@ -23,6 +26,21 @@ export PATH="$HOME/.platformio/penv/bin:$PATH"
 export PLATFORMIO_WORKSPACE_DIR="${PLATFORMIO_WORKSPACE_DIR:-$HOME/.cache/cpap-eink-pio-wydanie}"
 
 blad() { echo "STOP: $*" >&2; exit 1; }
+
+# Argumenty: `--wczesne` (R-KONF-62: wydanie oznaczone jako pre-release) w dowolnym miejscu i najwyżej jeden numer;
+# inny przełącznik albo drugi numer = odmowa bez publikacji (flaga po numerze nie może dać zwykłego wydania)
+WCZESNE=()
+NUMER=""
+for ARG in "$@"; do
+  case "$ARG" in
+    --wczesne) WCZESNE=(--wczesne) ;;
+    -*) blad "nieznany przełącznik $ARG (dozwolony tylko --wczesne)" ;;
+    *)
+      [ -z "$NUMER" ] || blad "za dużo argumentów: $NUMER i $ARG (podaj jeden numer wersji)"
+      NUMER="$ARG"
+      ;;
+  esac
+done
 
 command -v gh >/dev/null || blad "brak narzędzia gh (brew install gh, potem gh auth login)"
 command -v pio >/dev/null || blad "brak PlatformIO (pio) w ~/.platformio/penv/bin"
@@ -55,8 +73,8 @@ if [ -n "$ZLE" ]; then
 fi
 
 # 3. Numer wersji
-if [ $# -ge 1 ]; then
-  WERSJA="$1"
+if [ -n "$NUMER" ]; then
+  WERSJA="$NUMER"
 else
   WERSJA="$(python3 tools/wydanie/wydaj.py --nastepna --repo "$REPO_WYDAN")" || blad "nie znam następnego numeru; podaj go: tools/wydanie/wydaj.sh 1.0.1"
 fi
@@ -80,12 +98,26 @@ python3 tools/wydanie/wydaj.py --sprawdz-nowosci ${NOWOSCI[@]+"${NOWOSCI[@]}"} |
 echo
 echo "Wydanie:   $WERSJA"
 echo "Z commitu: $KROTKI $(git log -1 --format=%s)"
-echo "Do:        https://github.com/$REPO_WYDAN (panele z kluczem zobaczą je przy następnym sprawdzeniu)"
+if [ "${#WCZESNE[@]}" -gt 0 ]; then
+  echo "Rodzaj:    wersja próbna (pre-release)"
+  echo "Do:        https://github.com/$REPO_WYDAN"
+  echo "UWAGA: zobaczą ją tylko panele z kanałem wczesnym („Dostawaj wersje próbne przed innymi” = tak)."
+  echo "       Panel bez kanału wczesnego tego wydania nie zobaczy i zostaje przy ostatniej zwykłej wersji."
+else
+  echo "Do:        https://github.com/$REPO_WYDAN (panele z kluczem zobaczą je przy następnym sprawdzeniu)"
+  case "$WERSJA" in
+    *-beta*|*-rc*)
+      echo "UWAGA: numer $WERSJA wygląda na wersję próbną, a wydanie będzie ZWYKŁE: dostaną je wszystkie panele."
+      echo "       Wersja próbna tylko dla kanału wczesnego: przerwij i uruchom tools/wydanie/wydaj.sh --wczesne $WERSJA"
+      ;;
+  esac
+fi
 echo
 printf 'Wpisz „tak”, żeby zbudować i opublikować: '
 read -r ODP
 [ "$ODP" = "tak" ] || blad "przerwane, nic nie opublikowano"
 
 # 4. Budowa, kontrola obrazu, publikacja i sprawdzenie na GitHubie (wydaj.py)
-python3 tools/wydanie/wydaj.py "$WERSJA" --repo "$REPO_WYDAN" --publikuj ${NOWOSCI[@]+"${NOWOSCI[@]}"} \
+python3 tools/wydanie/wydaj.py "$WERSJA" --repo "$REPO_WYDAN" --publikuj ${WCZESNE[@]+"${WCZESNE[@]}"} \
+  ${NOWOSCI[@]+"${NOWOSCI[@]}"} \
   --nota "Zbudowane z main @ $KROTKI ($(git log -1 --format=%s)). Obraz bez sekretów."

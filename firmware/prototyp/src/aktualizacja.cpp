@@ -387,9 +387,54 @@ bool tokenOk(const std::string& t) {
   return true;
 }
 
+namespace {
+bool wydanieZObiektu(const Json& j, Wydanie& w);
+}
+
 bool parsujWydanie(const std::string& json, Wydanie& w) {
   Json j;
-  if (!parsujJson(json, j) || j.typ != Json::Typ::OBIEKT) return false;
+  if (!parsujJson(json, j)) return false;
+  return wydanieZObiektu(j, w);
+}
+
+std::string adresListyWydan(const std::string& repo) {
+  std::string a = adresNajnowszego(repo);
+  if (a.empty()) return "";
+  a.erase(a.size() - std::string("/latest").size());
+  return a + "?per_page=" + std::to_string(WYDAN_NA_LISCIE);
+}
+
+WynikListy wybierzZListy(const std::string& json, Wydanie& w, LicznikiListy* l) {
+  Json j;
+  if (!parsujJson(json, j) || j.typ != Json::Typ::TABLICA) return WynikListy::NIECZYTELNA;
+  bool jest = false;
+  Wydanie najlepsze;
+  Wersja wNaj;
+  for (auto& e : j.elementy) {
+    if (e.typ != Json::Typ::OBIEKT) continue;
+    if (l) l->wydan++;
+    const Json* dr = e.pole("draft");
+    if (dr && !(dr->typ == Json::Typ::LOGICZNA && !dr->logiczna)) {  // robocze (albo dziwne pole) nigdy
+      if (l) l->roboczych++;
+      continue;
+    }
+    Wydanie k;
+    Wersja wk;
+    if (!wydanieZObiektu(e, k) || !parsujWersje(k.tag, wk)) continue;
+    if (!jest || porownaj(wk, wNaj) > 0) {
+      najlepsze = k;
+      wNaj = wk;
+      jest = true;
+    }
+  }
+  if (!jest) return WynikListy::BRAK;
+  w = najlepsze;
+  return WynikListy::WYBRANE;
+}
+
+namespace {
+bool wydanieZObiektu(const Json& j, Wydanie& w) {
+  if (j.typ != Json::Typ::OBIEKT) return false;
   const Json* tag = j.pole("tag_name");
   if (!tag || tag->typ != Json::Typ::TEKST || tag->tekst.empty()) return false;
   Wydanie n;
@@ -415,6 +460,7 @@ bool parsujWydanie(const std::string& json, Wydanie& w) {
   w = n;
   return true;
 }
+}  // namespace
 
 namespace {
 bool hex64(const std::string& s) {

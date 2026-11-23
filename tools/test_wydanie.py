@@ -289,3 +289,153 @@ def test_katalog_budowy(monkeypatch):
     assert wydaj.katalog_budowy() == os.path.join("/tmp/ws", "build", "e1001_wydanie")
     monkeypatch.delenv("PLATFORMIO_WORKSPACE_DIR")
     assert wydaj.katalog_budowy().endswith(os.path.join("firmware", "prototyp", ".pio", "build", "e1001_wydanie"))
+
+
+# ---------- kanał wczesny: wydanie jako pre-release (R-KONF-62, ADR-0032 „Zmiana 2026-11-23”) ----------
+def test_polecenie_publikacji_wczesne():
+    """--wczesne dokłada `--prerelease`; bez niego polecenie jak dotąd (bez flagi)."""
+    zwykle = wydaj.polecenie_publikacji("1.0.1", "a/b", ["x.bin", "wydanie.json"], "nota.md")
+    assert "--prerelease" not in zwykle
+    wczesne = wydaj.polecenie_publikacji("1.1.0-beta.1", "a/b", ["x.bin", "wydanie.json"], "nota.md", True)
+    assert wczesne == wydaj.polecenie_publikacji("1.1.0-beta.1", "a/b", ["x.bin", "wydanie.json"], "nota.md") + \
+        ["--prerelease"]
+
+
+def test_bledy_wydania_wczesnego():
+    dobre = {"tag_name": "v1.1.0-beta.1", "draft": False, "prerelease": True,
+             "assets": [{"name": "cpap-eink-1.1.0-beta.1.bin", "state": "uploaded"},
+                        {"name": "wydanie.json", "state": "uploaded"}]}
+    assert wydaj.bledy_wydania_wczesnego(dobre, "1.1.0-beta.1") == []
+    assert any("pre-release" in b for b in wydaj.bledy_wydania_wczesnego(dict(dobre, prerelease=False), "1.1.0-beta.1"))
+    assert any("robocze" in b for b in wydaj.bledy_wydania_wczesnego(dict(dobre, draft=True), "1.1.0-beta.1"))
+    assert len(wydaj.bledy_wydania_wczesnego(dict(dobre, assets=[]), "1.1.0-beta.1")) == 2
+    assert wydaj.bledy_wydania_wczesnego(dobre, "1.1.0-beta.2")
+    # dla zwykłych wydań dzisiejsza kontrola zostaje: pre-release to błąd (panel bez kanału go nie zobaczy)
+    assert wydaj.bledy_wydania(dobre, "1.1.0-beta.1")
+
+
+def test_sprawdz_opublikowane_adres(monkeypatch):
+    """Zwykłe: `releases/latest` jak dotąd; wczesne: wydanie z tagu (latest pomija pre-release)."""
+    adresy = []
+    w = {"tag_name": "v1.1.0-beta.1", "draft": False, "prerelease": True,
+         "assets": [{"name": "cpap-eink-1.1.0-beta.1.bin", "state": "uploaded"},
+                    {"name": "wydanie.json", "state": "uploaded"}]}
+
+    def run(cmd, **k):
+        adresy.append(cmd[2])
+        return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(w), stderr="")
+    monkeypatch.setattr(subprocess, "run", run)
+    assert wydaj.sprawdz_opublikowane("a/b", "1.1.0-beta.1", True) == []
+    assert wydaj.sprawdz_opublikowane("a/b", "1.1.0-beta.1")  # zwykła kontrola: pre-release = błąd
+    assert adresy == ["repos/a/b/releases/tags/v1.1.0-beta.1", "repos/a/b/releases/latest"]
+
+
+def test_main_wczesne_publikuje_prerelease_z_ostrzezeniem(tmp_path, monkeypatch, capsys):
+    obraz = tmp_path / "firmware.bin"
+    obraz.write_bytes(b"\xe9abc" + wydaj.ZNACZNIK)
+    wywolania, sprawdzenia = [], []
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: wywolania.append(a[0]) or subprocess.CompletedProcess(a, 0))
+    monkeypatch.setattr(wydaj, "sekrety_z_nazwami", lambda *a: [])
+    monkeypatch.setattr(wydaj, "sprawdz_opublikowane", lambda *a: sprawdzenia.append(a) or [])
+    assert wydaj.main(["1.1.0-beta.1", "--obraz", str(obraz), "--katalog", str(tmp_path / "w"), "--publikuj",
+                       "--wczesne"]) == 0
+    assert len(wywolania) == 1 and wywolania[0][:3] == ["gh", "release", "create"] and "--prerelease" in wywolania[0]
+    assert sprawdzenia == [(wydaj.REPO_WYDAN, "1.1.0-beta.1", True)]
+    err = capsys.readouterr().err
+    assert "nie zobaczy" in err and "aktualizacja_wczesna=tak" in err
+    # bez --wczesne: bez `--prerelease`, kontrola zwykła, bez ostrzeżenia
+    wywolania.clear()
+    sprawdzenia.clear()
+    assert wydaj.main(["1.0.1", "--obraz", str(obraz), "--katalog", str(tmp_path / "w2"), "--publikuj"]) == 0
+    assert "--prerelease" not in wywolania[0] and sprawdzenia == [(wydaj.REPO_WYDAN, "1.0.1", False)]
+    assert "nie zobaczy" not in capsys.readouterr().err
+
+
+def test_wydaj_sh_wczesne():
+    """wydaj.sh --wczesne: przekazuje flagę do wydaj.py i ostrzega przed pytaniem „tak”."""
+    sciezka = os.path.join(os.path.dirname(__file__), "wydanie", "wydaj.sh")
+    with open(sciezka, encoding="utf-8") as f:
+        t = f.read()
+    assert '--wczesne) WCZESNE=(--wczesne)' in t and '${WCZESNE[@]+"${WCZESNE[@]}"}' in t
+    assert t.index("Panel bez kanału wczesnego tego wydania nie zobaczy") < t.index('[ "$ODP" = "tak" ]')
+
+
+def test_kanal_wczesny_klucz_jak_firmware():
+    """Ostrzeżenie podaje ten sam klucz konfiguracji co firmware (KLUCZ_KANALU_WCZESNEGO) i adres listy wydań."""
+    with open(os.path.join(wydaj.FW, "src", "aktualizacja.h"), encoding="utf-8") as f:
+        t = f.read()
+    assert 'KLUCZ_KANALU_WCZESNEGO = "aktualizacja_wczesna"' in t
+    assert "aktualizacja_wczesna=tak" in wydaj.OSTRZEZENIE_WCZESNE
+
+
+# ---------- testy brzegowe kanału wczesnego: argumenty wydaj.sh ----------
+def _uruchom_wydaj_sh(tmp_path, argumenty):
+    """wydaj.sh na atrapach (git z `origin`, gh, pio, wydaj.py zapisujący argumenty); zwraca (kod, argumenty wydaj.py
+    przy publikacji albo None, wyjście)."""
+    import shutil
+    korzen = tmp_path / "repo"
+    (korzen / "tools" / "wydanie").mkdir(parents=True)
+    shutil.copy(os.path.join(os.path.dirname(__file__), "wydanie", "wydaj.sh"), korzen / "tools" / "wydanie" / "wydaj.sh")
+    zapis = tmp_path / "argumenty.json"
+    (korzen / "tools" / "wydanie" / "wydaj.py").write_text(
+        "import json, sys\n"
+        "if '--sprawdz-nowosci' in sys.argv or '--nastepna' in sys.argv:\n"
+        "    print('1.0.2') if '--nastepna' in sys.argv else None\n"
+        "    sys.exit(0)\n"
+        "json.dump(sys.argv[1:], open(%r, 'w'))\n" % str(zapis), encoding="utf-8")
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    (bin_ / "gh").write_text(
+        "#!/bin/sh\n"
+        "case \"$*\" in\n"
+        "  *check-runs*) echo 'testy completed success';;\n"
+        "  *releases/tags*) exit 1;;\n"
+        "esac\n"
+        "exit 0\n")
+    (bin_ / "pio").write_text("#!/bin/sh\nexit 0\n")
+    for n in ("gh", "pio"):
+        os.chmod(bin_ / n, 0o755)
+    env = dict(os.environ, PATH=str(bin_) + os.pathsep + os.environ["PATH"], HOME=str(tmp_path),
+               GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+    zdalne = tmp_path / "zdalne.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(zdalne)], check=True, env=env)
+    for c in (["git", "init", "-q", "-b", "main"], ["git", "add", "tools"], ["git", "commit", "-q", "-m", "x"],
+              ["git", "remote", "add", "origin", str(zdalne)], ["git", "push", "-q", "origin", "main"]):
+        subprocess.run(c, cwd=korzen, check=True, env=env, capture_output=True)
+    r = subprocess.run(["bash", str(korzen / "tools" / "wydanie" / "wydaj.sh"), *argumenty], cwd=korzen, env=env,
+                       input="\ntak\n", capture_output=True, text=True)
+    arg = json.loads(zapis.read_text()) if zapis.exists() else None
+    return r.returncode, arg, r.stdout + r.stderr
+
+
+def test_brzeg_wydaj_sh_wczesne_na_poczatku(tmp_path):
+    kod, arg, _ = _uruchom_wydaj_sh(tmp_path, ["--wczesne", "1.1.0-beta.1"])
+    assert kod == 0 and arg is not None and "--wczesne" in arg and arg[0] == "1.1.0-beta.1"
+
+
+def test_brzeg_wydaj_sh_zwykle_bez_flagi(tmp_path):
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path, ["1.0.2"])
+    assert kod == 0 and arg is not None and "--wczesne" not in arg and "wersja próbna" not in wyj
+
+
+def test_brzeg_wydaj_sh_flaga_po_numerze_nie_daje_zwyklego(tmp_path):
+    kod, arg, _ = _uruchom_wydaj_sh(tmp_path, ["1.1.0-beta.1", "--wczesne"])
+    # dopuszczalne: odmowa bez publikacji albo publikacja jako pre-release; niedopuszczalne: zwykłe wydanie
+    assert arg is None or "--wczesne" in arg
+
+
+def test_wydaj_sh_argumenty_wczesne(tmp_path):
+    """Flaga po numerze daje pre-release; nieznany przełącznik i drugi numer = odmowa bez
+    publikacji; zwykłe wydanie z numerem `-beta`/`-rc` ostrzega przed „tak”."""
+    for n in "abcde":
+        (tmp_path / n).mkdir()
+    kod, arg, _ = _uruchom_wydaj_sh(tmp_path / "a", ["1.1.0-beta.1", "--wczesne"])
+    assert kod == 0 and arg is not None and "--wczesne" in arg and arg[0] == "1.1.0-beta.1"
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "b", ["1.1.0-beta.1", "--wczesna"])
+    assert kod != 0 and arg is None and "nieznany przełącznik" in wyj
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "c", ["1.1.0", "1.1.1"])
+    assert kod != 0 and arg is None and "za dużo argumentów" in wyj
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "d", ["1.1.0-rc.1"])
+    assert kod == 0 and arg is not None and "--wczesne" not in arg and "wygląda na wersję próbną" in wyj
+    kod, arg, wyj = _uruchom_wydaj_sh(tmp_path / "e", ["--wczesne", "1.1.0-beta.2"])
+    assert "wygląda na wersję próbną" not in wyj

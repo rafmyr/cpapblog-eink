@@ -142,6 +142,7 @@ NAJDLUZSZE = {
     "x razy / o y": "o 99,9", "sygnał": "wentylacja wyższa",
     "ustawienie": "okres wymiany: komora nawilżacza",
     "przesunięcie": "45 min",
+    "dane": "dziennik baterii",  # R-AW-40: rodzaj trwale nieczytelnych danych (src/nieczytelne.cpp rodzaj())
     "element": "komora nawilżacza",  # S-K-35 (ADR-0027)
     "elemencie": "filtrze",  # S-K-35 krok `przy {elemencie}` (masce, filtrze)
     "v": "150",  # S-K-34: porywy wiatru w km/h  # R-AW-36: 15, 30, 45 min albo 1…99 h, od 100 h „99+ h”

@@ -56,6 +56,8 @@ struct Pola {
   // sekcja „Aktualizacje” (ADR-0038): automat z pliku (`aktualizacja_auto=tak`,
   // domyślnie `nie`); token wydań i hasło okna serwisowego tylko jako „ustawiony” (wartości nigdy do przeglądarki)
   std::string aktualizacjaAuto = "nie";  // `tak` | `nie`
+  // R-KONF-62 (kanał wczesny, decyzja właściciela projektu z 23.11.2026): `aktualizacja_wczesna=tak`, domyślnie `nie` (bez wiersza)
+  std::string aktualizacjaWczesna = "nie";  // `tak` | `nie`
   bool kluczWydan = false;               // token wydań zapisany w pamięci panelu (wołający ustawia z NVS)
   bool hasloOkna = false;                // hasło okna serwisowego w pamięci panelu (wołający ustawia z NVS)
   // R-KONF-59: numer wydania oprogramowania w nagłówku strony (`wersja {X}`); ustawia wołający (dyrygent, ten sam
@@ -148,6 +150,8 @@ std::string scal(const std::string& plik, const std::map<std::string, std::strin
 // gałęziach, od ADR-0045 (sekcja „Ekrany”) 20 KB, przedtem 16 KB
 // Od sekcji „Dobry start” (ADR-0049, 22.11.2026) 26 KB: pięć pól z tekstami ze spec 5.6.6 i błędy przy nich dokładają
 // ok. 2,4 KB w scenariuszu brzegowym (test/testy_formularz_u03.cpp podaje zmierzony rozmiar i zapas).
+// Pole kanału wczesnego (R-KONF-62, 23.11.2026) bez zmiany rezerwacji: scenariusz brzegowy 24 785 B (zapas 1 839 B),
+// najgorszy realny 21 990 B (zapas 4 634 B).
 const size_t REZERWACJA_STRONY = size_t{26} * 1024;
 // Najdłuższa wartość `okres.maska` / `okres.filtr_tyg` z pliku przenoszona do pola formularza (bajty).
 const size_t MAKS_OKRESU_Z_PLIKU = 8;

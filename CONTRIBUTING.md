@@ -21,7 +21,7 @@ Thank you for your interest. This is a small beta project with one maintainer; i
 
 ```
 bash tools/prototyp/testy.sh                  # about 3 minutes
-python3 -m pytest -q tools                    # about 4 minutes
+python3 -m pytest -q tools                    # about 4 minutes; in parallel: python3 -m pytest -q -n auto tools
 python3 tools/spojnosc.py --strict
 python3 tools/spojnosc_tech.py
 python3 tools/zestaw/buduj_zestaw.py          # after changing thresholds or the rule catalogue

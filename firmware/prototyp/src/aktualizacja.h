@@ -74,6 +74,34 @@ std::string nazwaObrazu(const std::string& wersja);
 // wtedy opis mówi o pliku, którego nie ma, i decyzja daje powód „uszkodzony”). Adres zasobu tylko https://api.github.com/.
 bool parsujWydanie(const std::string& json, Wydanie& w);
 
+// ---------- kanał wczesny (R-KONF-62, decyzja właściciela projektu z 23.11.2026, ADR-0032 „Zmiana 2026-11-23”) ----------
+// Przy `aktualizacja_wczesna=tak` w /konfiguracja.txt panel pyta o listę wydań tego samego repozytorium (ten sam host
+// i token, ADR-0001, ADR-0038) zamiast `releases/latest`, które z definicji GitHuba pomija pre-release. Bez wiersza
+// (domyślnie) wszystko jak dotąd: `releases/latest`, te same zapytania sieciowe, decyzje, log i NVS; jeden odczyt
+// pliku więcej.
+const char* const KLUCZ_KANALU_WCZESNEGO = "aktualizacja_wczesna";
+// Ile ostatnio utworzonych wydań bierze lista (`per_page`) [PRÓG]: 5 wydań z notą i dwoma zasobami to ok. 25 KB,
+// w tym samym limicie odpowiedzi MAKS_ODPOWIEDZI_API co `releases/latest` (ta sama pamięć HTTP/TLS i JSON na panelu).
+// Wydanie starsze niż piąte od końca (np. poprawka starej linii opublikowana po nowszych) lista pomija.
+const int WYDAN_NA_LISCIE = 5;
+// `https://api.github.com/repos/{repo}/releases?per_page={WYDAN_NA_LISCIE}`; "" przy złej nazwie repo (jak
+// adresNajnowszego()).
+std::string adresListyWydan(const std::string& repo);
+enum class WynikListy : unsigned char {
+  WYBRANE = 0,  // `w` = wydanie o najwyższej wersji SemVer
+  BRAK,         // lista poprawna, ale bez wydania do wzięcia (pusta, same robocze, bez `wydanie.json`, zły tag)
+  NIECZYTELNA,  // to nie tablica JSON albo błąd składni
+};
+// Wybór z odpowiedzi `GET /repos/{repo}/releases`: pomija wydania robocze (`draft` = true albo w innej postaci niż `false`;
+// bez pola = zwykłe), wydania bez zasobu `wydanie.json` przez API i tagi spoza SemVer (parsujWersje); z pozostałych, zwykłych
+// i oznaczonych jako pre-release, bierze najwyższe według porownaj() (SemVer), nie według kolejności z API. Przy dwóch
+// tagach o tej samej wersji (np. `v1.0.1` i `1.0.1`) zostaje pierwszy z listy.
+// `l` (opcjonalne, do logu): ile obiektów wydań było na liście i ile z nich roboczych.
+struct LicznikiListy {
+  int wydan = 0, roboczych = 0;
+};
+WynikListy wybierzZListy(const std::string& json, Wydanie& w, LicznikiListy* l = nullptr);
+
 // ---------- opis wydania `wydanie.json` (ADR-0032) ----------
 // {"wersja":"1.0.1","plytka":"reterminal_e1001","uklad":"0x1a2b3c4d","rozmiar":1700000,
 //  "sha256":"…64 znaki szesnastkowe…","plik":"cpap-eink-1.0.1.bin"[,"nowosci":["…","…"]]}

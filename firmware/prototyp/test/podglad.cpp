@@ -1802,6 +1802,12 @@ int main(int argc, char** argv) {
     u.ramkaPrawo = "hasła i dane terapii nie są pokazywane";
     rysujTest(p, u);
     zapisz(p, "test");  // zdrowy panel: `Wszystko działa`
+    {  // R-AW-40: trwale nieczytelny plik nocy roku, rodzaj danych w pasie werdyktu
+      DaneTestu nc = u;
+      nc.lewa[2] = wierszU05("Pamięć panelu", wariantyNieczytelnegoU05("10.11"), true, krotkoNieczytelnegoU05("noce 2026"));
+      rysujTest(p, nc);
+      zapisz(p, "test-plik-nieczytelny");
+    }
     // bez usterek, ale bez odczytu baterii i bez pobranej nocy: `Bez usterek · nie sprawdzono: …`
     DaneTestu ns = u;
     ns.lewa[3] = wierszU05Baterii(false, -1, BATERIA_NISKA);
@@ -2011,6 +2017,21 @@ int main(int argc, char** argv) {
       pusto.dzis = dzis;
       rysujSprawy(p, trescSpraw({}, 1, pusto));
       zapisz(p, "b5-sprawy-pusto");
+      {  // R-AW-40: karta trwale nieczytelnego pliku, sama na stronie
+        sprawy::WejscieSpraw wn;
+        wn.dzis = dzis;
+        wn.plikiNieczytelne = {{"noce 2026", "10.11", true}};  // data usterki przed zegarem podglądu (12.11)
+        rysujSprawy(p, trescSpraw(sprawy::kartySpraw(wn), 1, wn));
+        zapisz(p, "b5-sprawy-plik-nieczytelny");
+        wn.plikiNieczytelne = {{"dziennik baterii", "10.11", false}};  // plik spoza oceny
+        rysujSprawy(p, trescSpraw(sprawy::kartySpraw(wn), 1, wn));
+        zapisz(p, "b5-sprawy-plik-nieczytelny-poza-oceny");
+        // cztery pliki mieszane (1 z oceny, 3 spoza): `Ocena: częściowa: bez części danych`
+        wn.plikiNieczytelne = {{"noce 2026", "10.11", true}, {"dziennik baterii", "10.11", false},
+                               {"dziennik ekranów", "11.11", false}, {"prognoza", "11.11", false}};
+        rysujSprawy(p, trescSpraw(sprawy::kartySpraw(wn), 1, wn));
+        zapisz(p, "b5-sprawy-cztery-mieszane");
+      }
       rysujOmowione(p, trescOmowione(sp[0], dzis));
       zapisz(p, "b5-omowione");
       rysujPotwierdzenie(p, trescPrzeniesione(sp[0], d, true));

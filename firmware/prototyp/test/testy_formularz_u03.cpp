@@ -746,7 +746,8 @@ static void testR_KONF_59_uklad_strony() {
       {"buzzer", "Dźwięk i humor"}, {"cisza_od", "Dźwięk i humor"}, {"podpowiedz", "Dźwięk i humor"},
       {"wymiana.maska", "Sprzęt"}, {"okres.maska", "Sprzęt"}, {"wymiana.filtr", "Sprzęt"}, {"okres.filtr_tyg", "Sprzęt"},
       {"nowy_model", "Sprzęt"}, {"uwaga_o_masce", "Sprzęt"}, {"cz_start", "Raport dla lekarza"},
-      {"aktualizacja_auto", "Aktualizacje"}, {"klucz_wydan", "Aktualizacje"}, {"haslo_okna", "Aktualizacje"}};
+      {"aktualizacja_auto", "Aktualizacje"}, {"aktualizacja_wczesna", "Aktualizacje"}, {"klucz_wydan", "Aktualizacje"},
+      {"haslo_okna", "Aktualizacje"}};
   for (auto& e : bl) {
     std::string se = formularz::strona(p, "/u/abc/", "", {{e.pole, "Błąd testowy."}});
     bool dobrze = ile(se, "<details open>") == 1 && zawiera(se, std::string("<details open><summary><b>") + e.sekcja) &&
@@ -779,6 +780,7 @@ static void testR_KONF_59_uklad_strony() {
                                     "profil", "co2", "ladowanie_limit", "miasto", "humor", "buzzer", "cisza_od", "cisza_do",
                                     "podpowiedz", "cz_start", "wymiana.maska", "okres.maska", "nowy_model", "nowy_model_cofnij",
                                     "wymiana.filtr", "okres.filtr_tyg", "uwaga_o_masce", "aktualizacja_auto",
+                                    "aktualizacja_wczesna",  // R-KONF-62 (kanał wczesny, 23.11.2026)
                                     "klucz_wydan", "klucz_usun", "haslo_okna",
                                     // sekcja „Ekrany” (ADR-0045, R-KONF-60)
                                     "ekrany_start", "kk_start", "dk_start", "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia",
@@ -887,7 +889,7 @@ static void testR_KONF_59_uklad_strony() {
       {"ssid", ""}, {"wifi_haslo", "123"}, {"ab_adres", "http://x"}, {"ab_konto", "a\"b"}, {"profil", "zly"},
       {"wymiana.maska", "2099-01-01"}, {"okres.maska", "99"}, {"okres.filtr_tyg", "0"}, {"co2", "x"},
       {"humor", "x"}, {"buzzer", "x"}, {"podpowiedz", "x"}, {"ladowanie_limit", "x"}, {"cisza_od", "25:00"}, {"cisza_do", "x"},
-      {"miasto", "Atlantyda"}, {"uwaga_o_masce", "9"}, {"aktualizacja_auto", "x"}, {"klucz_wydan", "krotki"},
+      {"miasto", "Atlantyda"}, {"uwaga_o_masce", "9"}, {"aktualizacja_auto", "x"}, {"aktualizacja_wczesna", "x"}, {"klucz_wydan", "krotki"},
       {"haslo_okna", "krotkie"}, {"cz_start", "ZZ"},
       // sekcja „Ekrany” (ADR-0045): każde miejsce złe (7 błędów przy polach)
       {"ekrany_start", "1"}, {"kk_start", "ostatnia_noc,7_nocy,sypialnia"}, {"dk_start", "wietrzenie,jutro_rano,wymiana,pylek"},
@@ -938,8 +940,8 @@ static void testR_KONF_59_uklad_strony() {
                            "ladowanie_limit", "miasto",
                            "humor", "buzzer", "cisza_od", "cisza_do", "podpowiedz", "cz_start", "wymiana.maska",
                            "okres.maska", "nowy_model", "nowy_model_cofnij", "wymiana.filtr", "okres.filtr_tyg",
-                           "uwaga_o_masce", "aktualizacja_auto", "klucz_wydan", "klucz_usun", "haslo_okna",
-                           "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana",
+                           "uwaga_o_masce", "aktualizacja_auto", "aktualizacja_wczesna", "klucz_wydan", "klucz_usun",
+                           "haslo_okna", "kk_ostatnia_noc", "kk_7_nocy", "kk_sypialnia", "dk_wietrzenie", "dk_jutro_rano", "dk_wymiana",
                            "dk_pylek", "ekrany_start", "start_program", "start_dzien", "start_nawilzacz", "start_objawy",
                            "start_ponad"})
     wszystkie[pole] = "Nowa sieć: wpisz jej hasło albo zaznacz „bez hasła”. Panel nie zna dzisiejszej daty.";

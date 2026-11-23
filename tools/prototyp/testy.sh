@@ -488,6 +488,15 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odczyt_nieudany_brz
 echo "testy brzegowe odczytu nieudanego, część 2 (test/testy_odczyt_nieudany_brzegowe_2.cpp: bez usterek nośnika żadnej odmowy, dwa lata i przełom roku na obu ścieżkach ADR-0047, doba bez sieci)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_odczyt_nieudany_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_odczyt_nieudany_brzegowe_2"
 "$BUD/testy_odczyt_nieudany_brzegowe_2" | grep -v '^PLIK '  # blokuje (pipefail); wiersze PLIK do porównania z origin/main
+echo "testy trwale nieczytelnego pliku danych (test/testy_plik_nieczytelny.cpp: R-AW-40, T-WYM-19, T-TEST-520: sprawa po 3 kolejnych wybudzeniach, NVS przy zaniku zasilania, U-05, „Otwarte sprawy”, bez usterki klatki jak na main)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_plik_nieczytelny.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_plik_nieczytelny"
+"$BUD/testy_plik_nieczytelny"  # blokuje przy błędzie
+echo "testy brzegowe trwale nieczytelnego pliku (test/testy_plik_nieczytelny_brzegowe.cpp: koniec serii, wypieranie, wygasanie, plik oceny; BRZEG_BLOKUJE=1)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_plik_nieczytelny_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_plik_nieczytelny_brzegowe"
+BRZEG_BLOKUJE=1 "$BUD/testy_plik_nieczytelny_brzegowe"  # blokuje
+echo "testy brzegowe trwale nieczytelnego pliku, część 2 (test/testy_plik_nieczytelny_brzegowe_2.cpp: plik oceny zawsze z miejscem, cały nośnik nieczytelny, noce każdego roku są plikiem oceny, pełna NVS, plik czytany rzadko; BRZEG_BLOKUJE=1)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_plik_nieczytelny_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_plik_nieczytelny_brzegowe_2"
+BRZEG_BLOKUJE=1 "$BUD/testy_plik_nieczytelny_brzegowe_2"  # blokuje
 echo "testy brzegowe czekania na kablu, część 2 (test/testy_kabel_bez_snu_brzegowe_2.cpp: ADR-0047 zmiana 2026-11-17, lista katalogu z ukośnikiem a nowy rok, częściowe listuj(), usterki nośnika na obu ścieżkach, naciśnięcie już puszczone)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kabel_bez_snu_brzegowe_2.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kabel_bez_snu_brzegowe_2"
 echo "testy brzegowe limitu ładowania z czekaniem na kablu (test/testy_kabel_ladowanie_brzegowe.cpp: ADR-0046 × ADR-0047, losowe sekwencje na dwóch ścieżkach z resetem układu, błędami I2C i NVS; przywrócenie po wyłączeniu w czekaniu; formularz zachowuje kabel_bez_snu; nieczytelna konfiguracja: limit bez zmian, głęboki sen; KL_ZIARNA=n)"
@@ -553,6 +562,12 @@ g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_karta_slot_brzegowe
 echo "testy przypadków brzegowych aktualizacji (test/testy_aktualizacja_brzegowe.cpp)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_aktualizacja_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_aktualizacja_brzegowe"
 "$BUD/testy_aktualizacja_brzegowe"
+echo "kanał wczesny aktualizacji (test/testy_kanal_wczesny.cpp: R-KONF-62, T-TEST-521: lista wydań z pre-release, równoważność przy wyłączonym)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kanal_wczesny.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kanal_wczesny"
+"$BUD/testy_kanal_wczesny"
+echo "testy brzegowe kanału wczesnego (test/testy_kanal_wczesny_brzegowe.cpp: SemVer, nigdy w dół, SHA-256, przełączenie kanału, plik nieczytelny, rozmiar odpowiedzi GitHuba)"
+g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_kanal_wczesny_brzegowe.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_kanal_wczesny_brzegowe"
+"$BUD/testy_kanal_wczesny_brzegowe"
 echo "testy U-01 z aktualizacją (test/testy_scalenie_u01_stopka.cpp: kafelek ↻ z dyrygenta, odesłanie do istniejącego elementu)"
 g++ "${FLAGI[@]}" "${OSTRZEZENIA_TESTOW[@]}" "$FW/test/testy_scalenie_u01_stopka.cpp" "${OBIEKTY[@]}" -o "$BUD/testy_scalenie_u01_stopka"
 "$BUD/testy_scalenie_u01_stopka"

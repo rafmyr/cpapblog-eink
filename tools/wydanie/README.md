@@ -4,8 +4,8 @@ Podstawa: [ADR-0032](../../docs/decisions/0032-aktualizacja-firmware-z-github.md
 
 | Plik | Co robi |
 |---|---|
-| `wydaj.py` | (od 14.11.2026 z `--nowosc`: linie „Co nowego” na ekranie aktualizacji panelu, `--sprawdz-nowosci`: sama kontrola linii) buduje obraz bez sekretów (`pio run -e e1001_wydanie`, flaga `BEZ_SEKRETOW`), sprawdza, że w obrazie nie ma wartości z lokalnego `include/secrets.h`, że mieści się w slocie 4 MB i ma nagłówek obrazu ESP32, liczy SHA-256, pisze `cpap-eink-{wersja}.bin`, `wydanie.json` i `nota.md` w `build/wydanie-{wersja}/`; z `--publikuj` tworzy wydanie `v{wersja}` (`gh release create`) |
-| `wydaj.sh` | wydanie jednym poleceniem na Macu: bramki (main, CI), numer, pytanie „tak”, `wydaj.py --publikuj`, sprawdzenie na GitHubie |
+| `wydaj.py` | (od 14.11.2026 z `--nowosc`: linie „Co nowego” na ekranie aktualizacji panelu, `--sprawdz-nowosci`: sama kontrola linii) buduje obraz bez sekretów (`pio run -e e1001_wydanie`, flaga `BEZ_SEKRETOW`), sprawdza, że w obrazie nie ma wartości z lokalnego `include/secrets.h`, że mieści się w slocie 4 MB i ma nagłówek obrazu ESP32, liczy SHA-256, pisze `cpap-eink-{wersja}.bin`, `wydanie.json` i `nota.md` w `build/wydanie-{wersja}/`; z `--publikuj` tworzy wydanie `v{wersja}` (`gh release create`); od 23.11.2026 z `--wczesne` jako wersję próbną (`--prerelease`, R-KONF-62) |
+| `wydaj.sh` | wydanie jednym poleceniem na Macu: bramki (main, CI), numer, pytanie „tak”, `wydaj.py --publikuj`, sprawdzenie na GitHubie; `wydaj.sh --wczesne 1.1.0-beta.1` = wersja próbna (od 23.11.2026) |
 | `certyfikaty.py` | z pakietu certyfikatów Mozilli (certifi) pisze `firmware/prototyp/src/certyfikaty_github.h`: certyfikaty główne serwerów GitHuba wkompilowane w firmware (od 10.11.2026 także ISRG Root X1 i X2, bo serwer plików wydań ma certyfikat Let's Encrypt; HTTPS z weryfikacją) |
 
 ## Uwaga przed pierwszym wydaniem
@@ -38,12 +38,31 @@ Co robi, po kolei, i kiedy odmawia (bez publikacji):
 
 Wymaga PlatformIO w `~/.platformio` i `gh` zalogowanego na konto z prawem zapisu do repozytorium wydań. W tym repozytorium `REPO_WYDAN` w `wydaj.sh` wskazuje `rafmyr/cpapblog-eink`, a wydań z gotowym obrazem nie publikuje się w nim do opinii prawnika (ADR-0033 pkt 6); polecenie uruchamia tylko właściciel. Powstało po pierwszym wydaniu 10.11.2026, przy którym ręczne wgrywanie plików na stronie GitHuba zgubiło najpierw oba pliki, potem `wydanie.json`.
 
+## Wersja próbna dla kanału wczesnego (od 23.11.2026, R-KONF-62)
+
+Ryzykowne zmiany najpierw na egzemplarzu referencyjnym, potem na kolejnych panelach. Panel z ustawieniem „Dostawaj wersje próbne przed innymi” (formularz U-03, sekcja „Aktualizacje”, w pliku `aktualizacja_wczesna=tak`) widzi także wydania oznaczone jako pre-release; panel bez niego (domyślnie) widzi tylko zwykłe wydania, jak dotąd.
+
+```
+tools/wydanie/wydaj.sh --wczesne 1.1.0-beta.1
+```
+
+| Co się zmienia przy `--wczesne` | Szczegół |
+|---|---|
+| publikacja | `gh release create … --prerelease` (`wydaj.py --wczesne`) |
+| podsumowanie przed „tak” i po publikacji | ostrzeżenie: panel bez kanału wczesnego tego wydania nie zobaczy i zostaje przy ostatniej zwykłej wersji |
+| sprawdzenie na GitHubie | wydanie z tagu `v{wersja}` (`releases/latest` pomija pre-release z definicji GitHuba): nie robocze, oznaczone jako pre-release, z obrazem i `wydanie.json` |
+| zwykłe wydanie (bez `--wczesne`) | bez zmian: najnowsze wydanie nie może być pre-release |
+| argumenty `wydaj.sh` | `--wczesne` w dowolnym miejscu (`wydaj.sh 1.1.0-beta.1 --wczesne` też daje pre-release); nieznany przełącznik albo drugi numer = odmowa bez publikacji; zwykłe wydanie z numerem `-beta`/`-rc` pokazuje ostrzeżenie przed „tak”, że dostaną je wszystkie panele |
+
+Numer podawaj ręcznie i wyższy od ostatniego zwykłego wydania (np. po `1.1.0` następna próbna `1.2.0-beta.1`): bez numeru `wydaj.sh` proponuje następny po najwyższym tagu, a po zwykłym wydaniu będzie to numer bez `-beta` . Wersja próbna niższa od zwykłej nie trafi na żaden panel (panel instaluje tylko wersję wyższą, R-NF-34). Panel bierze najwyższą wersję z 5 ostatnio utworzonych wydań .
+
 ## Użycie wydaj.py (szczegóły)
 
 ```
 python3 tools/wydanie/wydaj.py --nastepna             # następny numer po ostatnim wydaniu
 python3 tools/wydanie/wydaj.py 1.0.1                  # budowa i pliki, bez wysyłania
 python3 tools/wydanie/wydaj.py 1.0.1 --publikuj       # to samo i wydanie na GitHubie (tylko na wyraźne polecenie właściciela)
+python3 tools/wydanie/wydaj.py 1.1.0-beta.1 --publikuj --wczesne   # wersja próbna (pre-release, kanał wczesny)
 python3 tools/wydanie/wydaj.py 1.0.1 --obraz plik.bin # z gotowego obrazu zbudowanego z BEZ_SEKRETOW
 python3 tools/wydanie/certyfikaty.py                  # odświeżenie certyfikatów (gdy GitHub zmieni wystawcę)
 ```

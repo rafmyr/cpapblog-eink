@@ -210,7 +210,9 @@ static void formularzStrona() {
   SPRAWDZ(zawiera(h, "Panel nie ostrzega o nagłych stanach. Przy duszności lub bólu w klatce wezwij pomoc."));
   SPRAWDZ(zawiera(h, "method=\"post\" action=\"/u/abc/\""));
   SPRAWDZ(zawiera(h, "value=\"publiczny\" selected"));
-  SPRAWDZ(h.size() < 18000);  // pamięć serwera panelu (z sekcją „Dobry start” ADR-0049; od ADR-0045 z sekcją „Ekrany”: 14,4 KB, < 16000; było < 12000)
+  // od R-KONF-62 (pole „Dostawaj wersje próbne przed innymi”, 23.11.2026) < 18500, było < 18000; granicę pamięci
+  // trzyma REZERWACJA_STRONY (test/testy_formularz_u03.cpp)
+  SPRAWDZ(h.size() < 18500);  // pamięć serwera panelu (z sekcją „Dobry start” ADR-0049; od ADR-0045 z sekcją „Ekrany”: 14,4 KB, < 16000; było < 12000)
 }
 
 static void formularzCialo() {
