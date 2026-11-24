@@ -19,7 +19,7 @@ bool terminRzadki(int m) { return m > PLAN_OKNO_DO && m < PLAN_NOC_OD && (m - PL
 // Powody z pełnym pobraniem (AirBridge: status, lista i raporty, zaległe doby; źródło otoczenia).
 const Powody PELNE = POWOD_OKNO_PORANNE | POWOD_SPRAWDZENIE_11 | POWOD_PONOWIENIE | POWOD_POGODA |
                        POWOD_POCZATEK_NOCY | POWOD_CZAS | POWOD_OKNO_GESTE | POWOD_POWTORKA |
-                       POWOD_OKNO_ZASILANIE;
+                       POWOD_OKNO_ZASILANIE | POWOD_DRUGA_SESJA;
 // Powody slotu dziennego z Wi-Fi tylko na `/api/status` i źródło otoczenia (R-KON-42) albo prognozę (R-KON-52).
 const Powody SLOT_SIECIOWE = POWOD_SLOT_DZIENNY_START | POWOD_SLOT_DZIENNY_GODZINA | POWOD_PROGNOZA_GODZINOWA;
 const Powody SIECIOWE = PELNE | SLOT_SIECIOWE | POWOD_SLOT_WIECZORNY;  // wieczór tylko status i otoczenie
@@ -121,6 +121,9 @@ Powody powodyMinuty(const WejsciePlanu& w, int m) {
       m > PLAN_OKNO_OD && m < PLAN_OKNO_DO &&
       m % (wGestymOknie(w, m) ? PLAN_ZASILANIE_GESTE_CO_MIN : PLAN_ZASILANIE_CO_MIN) == 0)
     p |= POWOD_OKNO_ZASILANIE;
+  // R-DANE-69: po terapii wznowionej po imporcie ostatniej nocy co 30 min do 11:00 (bez 11:00: R-DANE-24)
+  if (w.nocKompletna && w.drugaSesjaOd >= 0 && co30 && m > PLAN_OKNO_OD && m < PLAN_OKNO_DO && m * 60 > w.drugaSesjaOd)
+    p |= POWOD_DRUGA_SESJA;
   if (m == PLAN_OKNO_DO && !w.sprawdzenie11) p |= POWOD_SPRAWDZENIE_11;
   if (m > PLAN_OKNO_DO && m <= PLAN_NOC_OD && co30 && !w.nocKompletna) {
     bool rzadko = w.e01 && w.nocyBezDanych >= 2 && !w.logowanieOdrzucone;
@@ -177,6 +180,7 @@ WejsciePlanu nowaDoba(const WejsciePlanu& w) {
   n.przetwarzaOd = -1;  // przetwarzanie i powtórki R-DANE-62 liczą się w obrębie doby
   n.powtorekDzis = 0;
   n.drugiEkranPortretu = -1;
+  n.drugaSesjaOd = -1;  // R-DANE-69: tylko doba importu
   if (n.e01) n.nocyBezDanych++;
   return n;
 }
@@ -356,7 +360,7 @@ std::string nazwyPowodow(Powody powody) {
                                       "odswiezenie",  "slot_dzienny",   "slot_dzienny_godzina",
                                       "prognoza_godzinowa", "slot_dzienny_bez_sieci", "slot_wieczorny",
                                       "slot_tygodniowy", "slot_wieczorny_bez_sieci", "okno_geste",
-                                      "powtorka_przetwarzania", "okno_zasilanie"};
+                                      "powtorka_przetwarzania", "okno_zasilanie", "druga_sesja"};
   std::string s;
   for (unsigned i = 0; i < sizeof NAZWY / sizeof NAZWY[0]; i++) {
     if (!(powody & (1u << i))) continue;

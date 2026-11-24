@@ -8,7 +8,7 @@
 
 namespace {
 
-const uint32_t MAGIA_LICZNIKA = 0x5A7A0001;
+const uint32_t MAGIA_LICZNIKA = 0x5A7A0002;  // 0002: pola wSieci, restartySieci (24.11.2026)
 
 // FNV-1a 32 bity
 uint32_t fnv(uint32_t h, uint32_t v, int bajtow) {
@@ -26,6 +26,8 @@ uint32_t sumaLicznika(const LicznikStartow& l) {
   h = fnv(h, l.wersja, 4);
   h = fnv(h, l.poBledzie, 1);
   h = fnv(h, l.spadki, 2);
+  h = fnv(h, l.wSieci, 1);
+  h = fnv(h, l.restartySieci, 2);
   return h ^ 0xA5A5A5A5u;
 }
 
@@ -112,8 +114,19 @@ DecyzjaStartu decyzjaStartu(LicznikStartow& l, PrzyczynaStartu p, uint32_t wersj
   if (!waznyDla(l, wersja) || p == PrzyczynaStartu::ZASILANIE) {
     l.poBledzie = 0;
     l.spadki = 0;
+    l.wSieci = 0;
+    l.restartySieci = 0;
   }
-  if (poBledzieProgramu(p) && l.poBledzie < 255) l.poBledzie++;
+  // R-AW-39 (zmiana 2026-11-24): restart strażnika zadania w trakcie operacji sieciowej to awaria sieci, nie błąd
+  // programu: bez zwiększenia licznika startów po błędzie (tylko błąd programu i zawieszenie poza siecią)
+  if (p == PrzyczynaStartu::TASK_WDT && l.wSieci) {
+    d.restartWSieci = true;
+    if (l.restartySieci < 65535) l.restartySieci++;
+  } else if (poBledzieProgramu(p) && l.poBledzie < 255) {
+    l.poBledzie++;
+  }
+  l.wSieci = 0;
+  d.restartySieci = l.restartySieci;
   if (p == PrzyczynaStartu::SPADEK) {
     if (l.spadki < 65535) l.spadki++;
     d.spadekNapiecia = true;
@@ -142,10 +155,27 @@ DecyzjaStartu decyzjaStartu(LicznikStartow& l, PrzyczynaStartu p, uint32_t wersj
 }
 
 void zerujPrzedSnem(LicznikStartow& l, uint32_t wersja) {
-  if (!waznyDla(l, wersja)) l.spadki = 0;
+  if (!waznyDla(l, wersja)) {
+    l.spadki = 0;
+    l.restartySieci = 0;
+  }
   l.poBledzie = 0;
+  l.wSieci = 0;
   zamknij(l, wersja);
 }
+
+// Licznik nieważny (zasilanie, inna wersja): od zera, jak w zerujPrzedSnem(); ważny: tylko znacznik.
+static void znacznikSieci(LicznikStartow& l, uint32_t wersja, uint8_t w) {
+  if (!waznyDla(l, wersja)) {
+    l.poBledzie = 0;
+    l.spadki = 0;
+    l.restartySieci = 0;
+  }
+  l.wSieci = w;
+  zamknij(l, wersja);
+}
+void wejscieWSiec(LicznikStartow& l, uint32_t wersja) { znacznikSieci(l, wersja, 1); }
+void wyjscieZSieci(LicznikStartow& l, uint32_t wersja) { znacznikSieci(l, wersja, 0); }
 
 AkcjaAwaryjna nacisniecieAwaryjne(EkranAwaryjny e, Przycisk p, bool dlugo) {
   if (e == EkranAwaryjny::U06) {

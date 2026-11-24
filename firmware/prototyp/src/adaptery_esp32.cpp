@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Adaptery panelu reTerminal E1001 (src/adaptery_esp32.h): kod sprzętu, kontrakty w src/adaptery.h.
 #include "adaptery_esp32.h"
+#include "siec_limity.h"
 #include "magazyn.h"
 #include "aktualizacja.h"
 #include "szybkosc.h"
@@ -17,6 +18,7 @@
 #include <nvs.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <cctype>
 #include <cerrno>
 #include <LittleFS.h>
 #include <Wire.h>
@@ -659,7 +661,9 @@ std::string SiecEsp32::idPanelu() {
 std::string SiecEsp32::opisBledu() {
   Serial.printf("Wi-Fi: brak, status %d, powód rozłączenia %d\n", (int)WiFi.status(), wifiPowod);
   WiFi.disconnect();
-  int n = WiFi.scanNetworks();
+  // T-WYM-81: skan z limitem (rdzeń domyślnie czeka do 60 s), SKAN_NA_KANAL_MS na kanał jak domyślnie
+  WiFi.setScanTimeout(siec_limity::SKAN_LIMIT_MS);
+  int n = WiFi.scanNetworks(false, false, false, siec_limity::SKAN_NA_KANAL_MS);
   bool widac = false;
   for (int i = 0; i < n; i++) {
     Serial.printf("  skan: '%s' kanał %d RSSI %d zabezp. %d\n", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i),
@@ -687,65 +691,62 @@ bool SiecEsp32::czasZSieci(uint32_t limitMs) {
   return true;
 }
 
-// Ciało odpowiedzi prosto do std::string z limitem rozmiaru, końcem czasu i przerwaniem: po przekroczeniu
-// write() zwraca 0, co kończy writeToStream() błędem zapisu. Koniec czasu: budzetCialaMs od `startMs` (millis() przy
-// wejściu w get()), oba na zegarze adaptera; bez czasu rdzenia (Zegar::ms() po czekaniu na kablu ma inną podstawę,
-// ADR-0047, zmiana 2026-11-22).
-struct DoNapisu : Stream {
-  std::string& s;
-  const ZadanieHttp& z;
-  const uint32_t startMs;
-  bool zaDuzo = false, zaDlugo = false, przerwane = false;
-  DoNapisu(std::string& t, const ZadanieHttp& zad, uint32_t start) : s(t), z(zad), startMs(start) {}
-  bool stop() {
-    if (budzetCialaMinal(z.budzetCialaMs, startMs, (uint32_t)millis())) zaDlugo = true;
-    if (!zaDlugo && z.przerwij && z.przerwij()) przerwane = true;
-    return zaDlugo || przerwane;
-  }
-  size_t write(uint8_t c) override { return write(&c, 1); }
-  size_t write(const uint8_t* b, size_t n) override {
-    if ((z.budzetCialaMs || z.przerwij) && stop()) return 0;
-    if (z.maksBajtow && s.size() + n > z.maksBajtow) {
-      zaDuzo = true;
-      return 0;
-    }
-    s.append((const char*)b, n);
-    return n;
-  }
-  int available() override { return 0; }
-  int read() override { return -1; }
-  int peek() override { return -1; }
-  void flush() override {}
+// Ciało odpowiedzi do std::string własną pętlą w rdzeniu (siec_limity::czytajCialo(), T-WYM-81, zmiana 2026-11-24), zamiast
+// HTTPClient::writeToStream(): na rdzeniu 3.3.12 writeToStreamDataBlock() czyta, dopóki gniazdo jest połączone, bez
+// limitu czasu, więc połączenie, które milknie bez zamknięcia, wisiało do restartu przez strażnika zadania (150 s).
+// Pętla kończy się po przestoju bez nowych bajtów (siec_limity::przestojCialaMs(): limitMs zadania), po limicie
+// całkowitym od wejścia w get() (budzetCialaMs albo siec_limity::CIALO_NAJDLUZEJ_MS, wynik zaDlugo), po przerwij(),
+// po maksBajtow (zaDuzo) albo po zamknięciu połączenia; strażnik odnawia się tylko przy nowych bajtach. Kodowanie
+// `chunked` dekoduje siec_limity::DekoderChunked. Czas na zegarze adaptera (millis()), bez Zegar::ms() rdzenia (po
+// czekaniu na kablu inna podstawa, ADR-0047, zmiana 2026-11-22). wynikZapisu: liczba bajtów ciała przy końcu
+// poprawnym, -11 (HTTPC_ERROR_READ_TIMEOUT) przy przestoju i limicie, -10 (HTTPC_ERROR_STREAM_WRITE) przy zaDuzo
+// i przerwaniu, -7 (HTTPC_ERROR_ENCODING) przy błędzie `chunked` (jak wyniki writeToStream(), cialoKompletne()).
+// Strumień ciała na NetworkClient rdzenia dla wspólnej pętli siec_limity::czytajCialo() (testowanej na PC).
+struct StrumienEsp32 : siec_limity::StrumienCiala {
+  NetworkClient& s;
+  explicit StrumienEsp32(NetworkClient& k) : s(k) {}
+  int dostepne() override { return s.available(); }
+  int czytaj(uint8_t* b, size_t n) override { return s.read(b, n); }
+  bool polaczony() override { return s.connected() != 0; }
+  uint32_t ms() override { return (uint32_t)millis(); }
+  void czekaj(uint32_t m) override { delay(m); }
+  void odnow() override { esp_task_wdt_reset(); }
 };
+static int czytajCialo(HTTPClient& http, const ZadanieHttp& z, uint32_t t0, bool chunked, OdpowiedzHttp& o) {
+  NetworkClient* k = http.getStreamPtr();
+  if (!k) return -4;  // HTTPC_ERROR_NOT_CONNECTED
+  StrumienEsp32 st(*k);
+  return siec_limity::czytajCialo(st, z, t0, chunked, o);
+}
 
 OdpowiedzHttp SiecEsp32::get(const ZadanieHttp& z) {
   OdpowiedzHttp o;
   HTTPClient http;
   http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);  // R-NF-27: 3xx to odpowiedź, bez podążania (R-AW-25)
-  http.setTimeout(z.limitMs);
+  http.setReuse(false);  // każde żądanie osobnym połączeniem (pętla ciała czyta gniazdo wprost)
+  http.setTimeout((uint16_t)siec_limity::przestojCialaMs(z));
   http.setConnectTimeout((int32_t)z.limitMs);
   uint32_t t0 = (uint32_t)millis();
   if (!http.begin(String(z.url.c_str()))) {
     o.kod = -1;
     return o;
   }
-  const char* naglowki[] = {"WWW-Authenticate"};
-  http.collectHeaders(naglowki, 1);
+  const char* naglowki[] = {"WWW-Authenticate", "Transfer-Encoding"};
+  http.collectHeaders(naglowki, 2);
   for (auto& n : z.naglowki) http.addHeader(n.first.c_str(), n.second.c_str());
   o.kod = http.GET();
   if (o.kod == 401) {
     o.wwwAuthenticate = http.header("WWW-Authenticate").c_str();
   } else if (o.kod > 0 && (!z.cialoTylko200 || o.kod == 200)) {
-    o.contentLength = http.getSize();  // -1 = brak (wtedy kompletność sprawdza parser JSON)
+    std::string te = http.header("Transfer-Encoding").c_str();
+    for (auto& c : te) c = (char)tolower((unsigned char)c);
+    bool chunked = te.find("chunked") != std::string::npos;
+    o.contentLength = chunked ? -1 : http.getSize();  // -1 = brak (wtedy kompletność sprawdza parser JSON)
     if (z.maksBajtow && o.contentLength > (int)z.maksBajtow) {
       o.zaDuzo = true;  // bez czytania ciała
     } else {
       if (o.contentLength > 0) o.cialo.reserve((size_t)o.contentLength);
-      DoNapisu cel(o.cialo, z, t0);
-      o.wynikZapisu = http.writeToStream(&cel);
-      o.zaDuzo = cel.zaDuzo;
-      o.zaDlugo = cel.zaDlugo;
-      o.przerwane = cel.przerwane;
+      o.wynikZapisu = czytajCialo(http, z, t0, chunked, o);
     }
   }
   http.end();

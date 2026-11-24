@@ -1157,10 +1157,11 @@ static void testR_AW_24_sprawdzamCo3h() {
   ROWNE(t3.tytul, "Brak danych od 3 nocy");
   ROWNE(t3.powod, "AirBridge nie odpowiada od 21.10. " + CO3H);  // 50 znaków (R-AW-24)
   ROWNE(t3.krok, "→ Sprawdź AirBridge i sieć. Ustawienia: strona 3 / 3.");
-  // odrzucone logowanie (R-AW-34): ponawianie co 30 min także od 2. nocy, więc bez `co 3 h`
+  // odrzucone logowanie (R-AW-34): ponawianie co 30 min także od 2. nocy, więc bez `co 3 h`; od 24.11.2026 teksty
+  // R-AW-35 od pierwszej nocy (wcześniej ten test sprawdzał teksty R-AW-32 w 1. nocy, niezgodnie z R-AW-35)
   d.logowanieOdrzucone = true;
   d.dzis = "2026-10-22";
-  ROWNE(trescDnia("S5", "1", d).powod, t1.powod);
+  ROWNE(trescDnia("S5", "1", d).powod, "Panel ma inne konto lub hasło niż AirBridge. " + CO30);
   d.dzis = "2026-10-23";
   SPRAWDZ(trescDnia("S5", "1", d).powod.find(CO30) != std::string::npos);
   SPRAWDZ(trescDnia("S5", "1", d).powod.find(CO3H) == std::string::npos);
@@ -1195,11 +1196,12 @@ static void testR_AW_24_symulacjaTekstS5() {
   SPRAWDZ(b && wZdarzeniach(*b, "S5: Brak danych od 2 nocy / Wyjazd z aparatem? Dane wrócą same. " + CO3H));
   const Wyb* c = wybudzenieO(v, "2026-10-24", 11 * 60);
   SPRAWDZ(c && wZdarzeniach(*c, "S5: Brak danych od 3 nocy / AirBridge nie odpowiada od 21.10. " + CO3H));
-  // odrzucone logowanie: w 2. nocy co 30 min i zdanie `Ponawiam co 30 min.`
+  // odrzucone logowanie: w 2. nocy co 30 min i zdanie `Ponawiam co 30 min.` (od 24.11.2026 tytuł i powód R-AW-35,
+  // wcześniej R-AW-24 z `Ponawiam co 30 min.`)
   PanelSym q;
   std::vector<Wyb> u = symuluj(q, ep(2026, 10, 21, 5, 10), ep(2026, 10, 23, 15, 0), odpowiedziLogowanieOdrzucone);
   const Wyb* e = wybudzenieO(u, "2026-10-23", 14 * 60 + 30);
-  SPRAWDZ(e && wZdarzeniach(*e, "S5: Brak danych od 2 nocy / Wyjazd z aparatem? Dane wrócą same. " + CO30));
+  SPRAWDZ(e && wZdarzeniach(*e, "S5: AirBridge odrzucił logowanie / Panel ma inne konto lub hasło niż AirBridge. " + CO30));
   bool co3h = false;
   for (auto& w : u) co3h = co3h || wZdarzeniach(w, CO3H);
   SPRAWDZ(!co3h);

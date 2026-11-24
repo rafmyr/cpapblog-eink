@@ -268,3 +268,4 @@ R-DS-59,1 pochwała / dobę; 1 / 7 dni; 1 doba,czas interfejsu,"najwyżej jedna 
 R-AW-40,3 wybudzenia,parametr techniczny,kolejne wybudzenia z nieudanym odczytem tej samej ścieżki do sprawy trwale nieczytelnego pliku (src/nieczytelne.h WYBUDZEN_DO_SPRAWY)
 R-AW-40,14 dób,parametr techniczny,bez nieudanego odczytu ścieżki przez tyle czasu wpis i sprawa trwale nieczytelnego pliku wygasają (src/nieczytelne.h WYGASA_S)
 R-KONF-62,5 wydań na liście kanału wczesnego (`WYDAN_NA_LISCIE`),parametr techniczny,"kanał wczesny (23.11.2026): ok. 25 KB przy krótkich notach, w limicie odpowiedzi `releases/latest` 64 KB (`MAKS_ODPOWIEDZI_API`); src/aktualizacja.h; pytanie otwarte"
+R-DANE-69,"co 30 min; do 11:00",czas interfejsu,"sprawdzanie drugiej sesji nocy po terapii wznowionej po imporcie, decyzja właściciela projektu 24.11.2026 (wariant B), siatka jak R-DANE-19 i koniec okna jak R-DANE-24"

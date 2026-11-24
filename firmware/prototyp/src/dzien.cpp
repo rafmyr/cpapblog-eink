@@ -392,8 +392,9 @@ static TrescEkranu s10(const DaneDnia& d) {
 }
 
 // S5 (6.4): teksty dokładnie z katalogu zdarzeń, bez kodów technicznych (kod HTTP, powód Wi-Fi i 401 są w logu UART
-// i na ekranie testu). Brak Wi-Fi, brak odpowiedzi AirBridge i odrzucone logowanie (401) to dla użytkownika ten
-// sam stan E-01; E-03 tylko przy nieczytelnym formacie (R-AW-02) albo wersji AirBridge spoza zakresu (Załącznik A).
+// i na ekranie testu). Brak Wi-Fi i brak odpowiedzi AirBridge to dla użytkownika ten sam stan E-01 (R-AW-24,
+// R-AW-32); odrzucone logowanie (401) to E-01 z własnymi tekstami i krokiem od pierwszej nocy (R-AW-35); E-03 tylko
+// przy nieczytelnym formacie (R-AW-02) albo wersji AirBridge spoza zakresu (Załącznik A).
 static TrescEkranu s5(const DaneDnia& d) {
   TrescEkranu t;
   t.etykieta = "BRAK DANYCH Z NOCY";
@@ -406,6 +407,12 @@ static TrescEkranu s5(const DaneDnia& d) {
     t.tytul = "Nie rozumiem danych AirBridge";
     t.powod = d.abWersja.empty() ? "Format raportu zmienił się." : "Format raportu zmienił się (AirBridge " + d.abWersja + ").";
     t.krok = "→ Daj znać osobie, która instalowała panel.";
+  } else if (d.logowanieOdrzucone) {
+    // R-AW-35: AirBridge odrzucił logowanie (R-AW-34): od pierwszej nocy bez danych te same teksty, z krokiem do
+    // „Ustawień” (numer strony według ciągu stron kokpitu, R-KOK-30); bez hasła, konta i kodu HTTP
+    t.tytul = "AirBridge odrzucił logowanie";
+    t.powod = "Panel ma inne konto lub hasło niż AirBridge. Ponawiam co\xC2\xA0" "30\xC2\xA0" "min.";
+    t.krok = numeryStronWTekscie("→ Popraw konto i hasło. Ustawienia: strona 3 / 3.");  // R-KOK-30
   } else {  // E-01: łagodnie przez 2 noce, „awaria” z krokiem dopiero od 3. nocy bez danych (R-AW-24, R-AW-32)
     int n = nocyBezDanych(d);
     // twarda spacja w `co 30 min.` (R-EKR-08): przy zawijaniu `co` nie zostaje samo na końcu linii
@@ -418,8 +425,8 @@ static TrescEkranu s5(const DaneDnia& d) {
       t.powod = od.empty() ? "AirBridge na razie milczy. Pytam " + co30 : "AirBridge milczy od " + od + ". Pytam " + co30;
     } else {
       // od 2. nocy bez odpowiedzi panel po 11:00 pyta co 3 h (R-DANE-18, src/plan.h), więc `Sprawdzam co 3 h.`
-      // (R-AW-24); przy odrzuconym logowaniu dalej co 30 min (R-AW-34), więc `Ponawiam co 30 min.` (R-AW-35)
-      const std::string rytm = d.logowanieOdrzucone ? "Ponawiam " + co30 : "Sprawdzam co\xC2\xA0" "3\xC2\xA0" "h.";
+      // (R-AW-24); odrzucone logowanie ma własne teksty wyżej (R-AW-35)
+      const std::string rytm = "Sprawdzam co\xC2\xA0" "3\xC2\xA0" "h.";
       if (n == 2) {
         t.etykieta = "CZEKAM NA DANE";
         t.tytul = "Brak danych od 2 nocy";

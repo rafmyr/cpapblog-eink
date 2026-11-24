@@ -7,6 +7,7 @@
 // Cały stan jednego wybudzenia jest w obiekcie Przebieg (zmienne zwykłe prototypu); stan między wybudzeniami
 // w StanRtc (Uruchomienie::rtc()), w NVS i w plikach, jak w prototypie.
 #include "dyrygent.h"
+#include "siec_limity.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
@@ -145,10 +146,11 @@ struct PoNacisnieciu {
 
 void kopiuj(char* cel, size_t rozmiar, const std::string& z) { snprintf(cel, rozmiar, "%s", z.c_str()); }
 
-// Komplet adapterów z NVS podmienionym na warstwę z zapisem tylko przy zmianie (T-WYM-58).
-Adaptery zNvs(const Adaptery& a, Nvs& n) {
-  return Adaptery{a.zegar, n, a.pliki, a.siec, a.wyswietlacz, a.przyciski, a.czujniki, a.dzwiek, a.uruchomienie,
-                  a.straznik, a.sen, a.port, a.diagnostyka, a.wydania};
+// Komplet adapterów z NVS podmienionym na warstwę z zapisem tylko przy zmianie (T-WYM-58), siecią i wydaniami ze
+// znacznikiem „w sieci” (R-AW-39, zmiana 2026-11-24; src/siec_limity.h).
+Adaptery zNvs(const Adaptery& a, Nvs& n, Siec& s, Wydania* w) {
+  return Adaptery{a.zegar, n, a.pliki, s, a.wyswietlacz, a.przyciski, a.czujniki, a.dzwiek, a.uruchomienie,
+                  a.straznik, a.sen, a.port, a.diagnostyka, w};
 }
 
 // Skrót wierszy pliku (bez zmian treści = bez zapisu).
@@ -163,7 +165,9 @@ class Przebieg {
  public:
   Przebieg(const Adaptery& ad, const KonfiguracjaPanelu& ko, TekstyWybudzenia& t, PamiecPrzebiegow* p)
       : nvsZm(ad.nvs),
-        a(zNvs(ad, nvsZm)),
+        siecZn(ad.siec, ad.uruchomienie),
+        wydZn(ad.wydania, ad.uruchomienie),
+        a(zNvs(ad, nvsZm, siecZn, ad.wydania ? &wydZn : nullptr)),
         k(ko),
         r(ad.uruchomienie.rtc()),
         rej(ko.rejestr ? *ko.rejestr : rejestrFormatow()),
@@ -190,6 +194,11 @@ class Przebieg {
     DecyzjaStartu d = decyzjaStartu(a.uruchomienie.licznik(), przyczyna, wersjaId, zn, a.uruchomienie.stanWersji());
     log("start: przyczyna %s, starty po błędzie %u, spadki napięcia %u%s", nazwaPrzyczyny(przyczyna),
         (unsigned)d.poBledzie, (unsigned)d.spadki, d.spadekNapiecia ? " (start po spadku napięcia)" : "");
+    if (d.restartWSieci) {  // R-AW-39 (zmiana 2026-11-24): awaria sieci, nie błąd programu
+      siecZn.bezSieci = true;
+      log("start: restart strażnika w trakcie pracy w sieci (%u od zasilania), nie liczy się do trybu awaryjnego; "
+          "to wybudzenie bez sieci (R-AW-39)", (unsigned)d.restartySieci);
+    }
     if (d.usunZnacznik) {
       a.nvs.usun(NVS_PRZESTRZEN, NVS_KLUCZ_AWARYJNY);
       log("tryb awaryjny: start innej albo nowo wgranej wersji, znacznik usunięty (R-AW-39)");
@@ -220,6 +229,9 @@ class Przebieg {
 
  private:
   NvsTylkoZmiany nvsZm;  // przed `a`: `a.nvs` wskazuje na nią (kolejność inicjalizacji)
+  // przed `a`: `a.siec` i `a.wydania` wskazują na nie; znacznik „w sieci” w liczniku startów (R-AW-39, 24.11.2026)
+  siec_limity::SiecZeZnacznikiem siecZn;
+  siec_limity::WydaniaZeZnacznikiem wydZn;
   Adaptery a;
   KonfiguracjaPanelu k;
   StanRtc& r;
@@ -1283,7 +1295,8 @@ class Przebieg {
     w.odczytOk = odczytUdany;
     if (r.ab.ma) dataIMinuta(r.ab.pobrano, w.abData, w.abMinuta);
     w.kluczBraku = std::to_string(r.ab.pobrano);
-    w.kartaBraku = kartaBraku(httpKod);  // U6
+    w.logowanieOdrzucone = r.logowanieOdrzucone && !odczytUdany;  // R-AW-35 (StanRtc: ostatnia próba)
+    w.kartaBraku = kartaBraku(httpKod) && !w.logowanieOdrzucone;  // U6; R-AW-35: ekran danych bez K16
     w.e03 = httpKod == KOD_E03;
     w.wBudowie = r.ab.wBudowie;
     w.terapia = terapiaTrwa(odczytUdany, r.ab.rop);  // `rop` ze starego odczytu nie blokuje S10
@@ -1846,11 +1859,15 @@ class Przebieg {
     z.maksBajtow = 16384;
     z.cialoTylko200 = true;
     z.url = urlPrognozy(pogodaLatB32(), pogodaLonB32());
+    odnow();  // T-WYM-81: strażnik przed i po każdym żądaniu
     OdpowiedzHttp o1 = a.siec.get(z);
+    odnow();
     Prognoza p;
     if (o1.kod != 200 || !parsujPrognoze(o1.cialo, p)) { log("prognoza godzinowa: błąd %d", o1.kod); return; }
     z.url = urlPowietrza(pogodaLatB32(), pogodaLonB32());
+    odnow();
     OdpowiedzHttp o2 = a.siec.get(z);
+    odnow();
     if (o2.kod != 200 || !parsujPowietrze(o2.cialo, p)) log("prognoza powietrza: błąd %d (bez PM2.5 i pyłku)", o2.kod);
     p.pobrano = teraz();
     p.godzinaPobrania = godzina(p.pobrano);
@@ -1916,19 +1933,29 @@ class Przebieg {
     std::string dzis = dzisiaj(), d;
     int m = 0;
     if (dzis.empty() || st.rop == 1 || !prefiksSesji(st.prefiks, d, m) || d != dzis) return;
-    int imp = sekundaDzis(r.importNocyEp);
+    // R-KON-57, R-DANE-69 (zmiana 2026-11-24): drzemką nie jest tylko sesja faktycznie wliczona do
+    // nocy, czyli zaczęta przed ostatnim pobraniem nocy ponownie przy statusie bez terapii (NVS `cpap`/`ds_ep`);
+    // sesja, która trwała w chwili pobrania (np. 10:30–12:30), zostaje drzemką jak przed tą zmianą
+    const uint32_t od = nocDoEp();
+    int imp = sekundaDzis(od);
     if (imp < 0 || m * 60 <= imp || a.nvs.tekst("cpap", "b9_pref", "") == st.prefiks) return;
     std::string t;
     int kod = abGetRaz(sciezkaNocy(nrDnia(dzis) - 1), t, LIMIT_STATUSU_SLOTU_MS);
     std::vector<SesjaDoby> ses;
     float p95 = NAN;
     if (kod != 200 || !sesjeZRaportu(t, ses, p95)) { log("drzemka: raport doby niedostępny (%d), ponowię", kod); return; }
-    Drzemka dr = liczDrzemke(ses, r.importNocyEp);
+    Drzemka dr = liczDrzemke(ses, od);
     const Noc* nc = nocZDnia(hist, dzis);
     dr.wyciekP95 = wyciekDrzemkiZDoby(p95, nc ? nc->wp95 : NAN);
     a.nvs.ustawTekst("cpap", "b9_drz", zapiszDrzemke(dzis, dr));
     a.nvs.ustawTekst("cpap", "b9_pref", st.prefiks);
     log("drzemka: %d min, wyciek %s (R-KON-57, rekord nocy bez zmian)", dr.minut, calkowita(dr.wyciekP95).c_str());
+  }
+  // R-KON-57, R-DANE-69: koniec części doby wliczonej do nocy: późniejsza z chwil import nocy i ostatnie pobranie nocy
+  // ponownie przy statusie bez terapii dziś (R-DANE-69 albo R-DANE-24, NVS `cpap`/`ds_ep`)
+  uint32_t nocDoEp() {
+    uint32_t ds = a.nvs.liczbaU("cpap", "ds_ep", 0);
+    return sekundaDzis(ds) >= 0 && ds > r.importNocyEp ? ds : r.importNocyEp;
   }
   Drzemka drzemkaDzisB9(const std::string& dzis) {
     Drzemka d;
@@ -7191,6 +7218,39 @@ class Przebieg {
         s.proby.count(day) ? s.proby[day].proby : 0, AB_PROB_DOBY);
   }
 
+  // R-DANE-69 (wariant B, decyzja właściciela projektu 24.11.2026): druga sesja tej samej nocy po imporcie ostatniej
+  // nocy rano. Okno: od importu nocy kompletnej przed 11:00 do 11:00 (R-DANE-24 przejmuje). Status z terapią albo
+  // przetwarzaniem po imporcie zapamiętuje chwilę (terapia wznowiona); status spoczynku po niej albo `edf_prefix`
+  // z sesją zaczętą dziś po imporcie i przed 11:00 (inną niż ostatnio pobrana ponownie, NVS `cpap`/`ds_pref`) daje
+  // ponowne pobranie ostatniej nocy w tej samej sesji Wi-Fi (jak R-DANE-24, bez znacznika sprawdzenia o 11:00).
+  // Zwraca true, gdy noc trzeba pobrać ponownie teraz.
+  bool pobranieDrugiejSesji = false;  // to wybudzenie pobiera noc ponownie z R-DANE-69 (bez zapisu `ab_11`)
+  bool drugaSesjaPobrana = false;     // R-DANE-69: to wybudzenie zapisało noc pobraną ponownie
+  bool drugaSesjaTeraz = false;       // wybudzenie tylko z POWOD_DRUGA_SESJA (bez odczytu źródła otoczenia)
+  bool oknoDrugiejSesji(const std::string& dzis, int m) {
+    int imp = sekundaDzis(r.importNocyEp);
+    const Noc* n = dzis.empty() ? nullptr : nocZDnia(hist, dzis);
+    return n && n->zrodlo == 'A' && !n->czesciowa && imp >= 0 && imp < 11 * 3600 && m >= 5 * 60 && m < 11 * 60;
+  }
+  bool drugaSesja(const StatusAB& st, PoStatusie ps) {
+    std::string dzis = dzisiaj();
+    int m = minutaDoby();
+    if (!zegar() || !oknoDrugiejSesji(dzis, m)) {
+      r.terapiaPoImporcieEp = 0;
+      return false;
+    }
+    if (st.rop == 1 || ps == PoStatusie::ZABLOKOWANE || ps == PoStatusie::PRZETWARZA) {
+      if (!r.terapiaPoImporcieEp) log("noc %s: terapia po imporcie (druga sesja), pobiorę noc ponownie po jej końcu (R-DANE-69)", dzis.c_str());
+      r.terapiaPoImporcieEp = teraz();
+      return false;
+    }
+    std::string d;
+    int start = -1;
+    bool nowa = prefiksSesji(st.prefiks, d, start) && d == dzis && start * 60 > sekundaDzis(r.importNocyEp) &&
+                start < 11 * 60 && a.nvs.tekst("cpap", "ds_pref", "") != st.prefiks;
+    return r.terapiaPoImporcieEp != 0 || nowa;
+  }
+
   // Jedna doba z AirBridge.
   bool raportCzesciowyOstatniej = false;  // raport ostatniej nocy w tym wybudzeniu miał `partial = true`
   WynikDoby dobaZAirBridge(long day, const std::string& dzis, bool spr11, StanHistAB& s, int& kodBledu) {
@@ -7220,7 +7280,7 @@ class Przebieg {
       kodBledu = kod;
       if (przerwane) return WynikDoby::PRZERWANE;
       if (o == Odpowiedz::BLAD && (kod == 401 || (kod <= 0 && kod != AB_KOD_URWANE && kod != AB_KOD_ZA_DUZO))) {
-        if (ponownie) nvsTekst("ab_11", dzis);  // R-DANE-24 fail-path
+        if (ponownie && !pobranieDrugiejSesji) nvsTekst("ab_11", dzis);  // R-DANE-24 fail-path
         return WynikDoby::BRAK_POLACZENIA;
       }
       if (o == Odpowiedz::W_BUDOWIE) {  // R-AW-15
@@ -7229,7 +7289,7 @@ class Przebieg {
       }
       if (o == Odpowiedz::BLAD) {  // R-AW-12
         nieudanaProba(day, s, "odpowiedź bez raportu");
-        if (ponownie) nvsTekst("ab_11", dzis);
+        if (ponownie && !pobranieDrugiejSesji) nvsTekst("ab_11", dzis);
         return WynikDoby::NIEUDANA;
       }
       n = nocZRaportu(tresc, day, r.ab.tryb, abPna, abSrn);  // status tego wybudzenia
@@ -7297,13 +7357,13 @@ class Przebieg {
           s.proby[day].proby = 0;
           s.probyZm = true;
         }
-        if (ponownie) nvsTekst("ab_11", dzis);
+        if (ponownie && !pobranieDrugiejSesji) nvsTekst("ab_11", dzis);
         return WynikDoby::ZAPISANA;
       }
       case PoRaporcie::CZEKAJ: log("noc %s: partial, czekam", data.c_str()); return WynikDoby::CZEKA;
       case PoRaporcie::PONOW:
         nieudanaProba(day, s, n.stan == StanRaportu::ZLY_FORMAT ? "raport bez klucza krytycznego" : "raport nieczytelny");
-        if (ponownie) nvsTekst("ab_11", dzis);
+        if (ponownie && !pobranieDrugiejSesji) nvsTekst("ab_11", dzis);
         return WynikDoby::NIEUDANA;
       case PoRaporcie::POMIN:
         nieudanaProba(day, s, "raport nieczytelny");
@@ -7312,7 +7372,7 @@ class Przebieg {
         return WynikDoby::NIEUDANA;
       case PoRaporcie::E03:
         if (n.stan == StanRaportu::NIECZYTELNY) nieudanaProba(day, s, "raport nieczytelny");
-        if (ponownie) nvsTekst("ab_11", dzis);
+        if (ponownie && !pobranieDrugiejSesji) nvsTekst("ab_11", dzis);
         log("noc %s: raport nieczytelny (E-03)", data.c_str());
         return WynikDoby::E03;
     }
@@ -7432,12 +7492,13 @@ class Przebieg {
         st.bladRaportu.c_str());
 
     if (ps == PoStatusie::ZABLOKOWANE || ps == PoStatusie::PRZETWARZA) obsNocy = stan_nocy::Obserwacja::STATUS_BUDOWA;
+    pobranieDrugiejSesji = !wieczorTeraz && drugaSesja(st, ps);  // R-DANE-69 (także przy samym statusie slotu dziennego)
     if (wieczorTeraz) {  // R-KON-01: ocena slotu wieczornego, Wi-Fi tylko na `/api/status` i źródło otoczenia
       log("slot wieczorny: tylko odczyt stanu aparatu (rop %d)", st.rop);
       zapiszStanAB();
       return 1;
     }
-    if (tylkoStatusTeraz) {  // R-KON-42: Wi-Fi tylko na `/api/status` (bez listy, raportów i zaległych dób)
+    if (tylkoStatusTeraz && !pobranieDrugiejSesji) {  // R-KON-42: Wi-Fi tylko na `/api/status` (bez listy, raportów i zaległych dób)
       log("slot dzienny: tylko odczyt stanu aparatu (rop %d)", st.rop);
       drzemkaB9(st);  // R-KON-57, raport doby po drzemce w tej samej sesji Wi-Fi
       zapiszStanAB();
@@ -7466,7 +7527,8 @@ class Przebieg {
 
     // 3. lista nocy i raport ostatniej nocy (tylko, gdy czegoś brakuje); zaległe doby w tej samej sesji Wi-Fi
     std::string rano = nvsTekst("ab_rano"), spr = nvsTekst("ab_11");
-    bool spr11 = sprawdzenie11(dzis, m, rano, spr);
+    bool spr11 = sprawdzenie11(dzis, m, rano, spr) || pobranieDrugiejSesji;  // R-DANE-24, R-DANE-69
+    if (pobranieDrugiejSesji) log("noc %s: druga sesja po imporcie, pobieram noc ponownie (R-DANE-69)", dzis.c_str());
     StanHistAB& s = wczytajStanHist();
     int gotowe;
     uint32_t czekajDo;
@@ -7542,6 +7604,13 @@ class Przebieg {
           }
           if (w == WynikDoby::CZEKA) r.ab.wBudowie = !nocZDnia(hist, dzis) || nocZDnia(hist, dzis)->czesciowa;
           if (w == WynikDoby::ZAPISANA) obsNocy = stan_nocy::Obserwacja::RAPORT_KOMPLETNY;
+          // R-KON-57: noc pobrana ponownie przy statusie bez terapii obejmuje sesje zaczęte przed tą chwilą
+          if (w == WynikDoby::ZAPISANA && spr11 && st.rop != 1 && zegar()) a.nvs.ustawLiczbeU("cpap", "ds_ep", teraz());
+          if (w == WynikDoby::ZAPISANA && pobranieDrugiejSesji) {  // R-DANE-69: druga sesja w rekordzie (albo bez zmian)
+            r.terapiaPoImporcieEp = 0;
+            a.nvs.ustawTekst("cpap", "ds_pref", st.prefiks);
+            drugaSesjaPobrana = true;
+          }
           if (raportCzesciowyOstatniej) obsNocy = stan_nocy::Obserwacja::RAPORT_CZESCIOWY;
           else if (w == WynikDoby::E03) httpKod = KOD_E03;
           else if (w == WynikDoby::BRAK_POLACZENIA || w == WynikDoby::NIEUDANA) httpKod = kodPoNieudanej(kodDoby);
@@ -7741,7 +7810,11 @@ class Przebieg {
     // Wyjątek: to wybudzenie przyniosło noc kompletną, wtedy nowy ekran dnia dostaje świeży odczyt. Tylko pierwsze
     // pobranie wybudzenia (kolejne, np. po przycisku, czytają źródło jak zwykle).
     bool bezOtoczenia = rytmZasilaniaTeraz && !nocKompletnaDzis(hist, dzisiaj(), wczytajStanHist().pom);
+    // R-DANE-69: wybudzenie tylko ze sprawdzenia drugiej sesji czyta źródło otoczenia jak terminy baterii, czyli tylko
+    // wtedy, gdy przyniosło noc pobraną ponownie (jak wyżej: bez odświeżeń e-ink od samego CO2)
+    bezOtoczenia = bezOtoczenia || (drugaSesjaTeraz && !drugaSesjaPobrana);
     rytmZasilaniaTeraz = false;
+    drugaSesjaTeraz = false;
     if (bezOtoczenia) {
       otoTeraz = false;
       if (otoUzywalne()) log("otoczenie: bez odczytu w wybudzeniu z rytmu zasilania, zostają dane z %s", godzina(r.oto.pobrano).c_str());
@@ -7852,6 +7925,8 @@ class Przebieg {
     w.przetwarzaOd = sekundaDzis(r.przetwarzaEp);
     w.powtorekDzis = r.powtorkiDoba != 0 && r.powtorkiDoba == dobaPamieci() ? r.powtorki : 0;
     w.drugiEkranPortretu = dzis.empty() ? -1 : minutaDrugiegoEkranu(dzis);  // R-POR-04
+    // R-DANE-69: terapia po imporcie nocy rano (odczyt statusu) otwiera sprawdzanie co 30 min do 11:00
+    w.drugaSesjaOd = w.importNocy >= 0 ? sekundaDzis(r.terapiaPoImporcieEp) : -1;
     w.naZasilaniu = zasilanie == Zasilanie::ZEWNETRZNE;  // R-DANE-63, R-DANE-64; nieznane = jak bateria (R-DANE-65)
     return w;
   }
@@ -8511,6 +8586,8 @@ class Przebieg {
                        (powody & (Powody)~(POWOD_SLOT_DZIENNY_GODZINA | POWOD_CZUJNIKI)) == 0) ||
                       tylkoRytmZasilania(powody));  // R-DANE-63, R-DANE-64: bez odświeżeń od samej temperatury
     rytmZasilaniaTeraz = w == PowodWybudzenia::ZEGAR && tylkoRytmZasilania(powody);
+    drugaSesjaTeraz = w == PowodWybudzenia::ZEGAR && (powody & POWOD_DRUGA_SESJA) != 0 &&
+                      (powody & (Powody)~(POWOD_DRUGA_SESJA | POWOD_CZUJNIKI)) == 0;  // R-DANE-69
     log("cpap-eink %s, wybudzenie %s, licznik %lu", a.uruchomienie.wersja(), powodBaterii.c_str(),
         (unsigned long)r.wybudzen);
     // surowe rejestry ładowarki (-1 = nieodczytany): REG08 bit 2 PG daje stan, REG0A bit 7 BUS_GD tylko do porównania

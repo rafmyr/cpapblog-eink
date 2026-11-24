@@ -28,7 +28,9 @@ struct WiFiClass {
   void begin(const char*, const char*) {}
   wl_status_t status() { return WL_CONNECTED; }
   bool disconnect(bool = false) { return true; }
-  int scanNetworks() { return 0; }
+  int16_t scanNetworks(bool = false, bool = false, bool = false, uint32_t = 300, uint8_t = 0, const char* = nullptr,
+                       const uint8_t* = nullptr) { return 0; }
+  void setScanTimeout(uint32_t) {}
   String SSID(int) { return String(""); }
   String SSID() const { return String(""); }
   int channel(int) { return 0; }

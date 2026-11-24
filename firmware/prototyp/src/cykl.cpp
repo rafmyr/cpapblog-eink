@@ -15,6 +15,10 @@ bool brakDanych(const WejscieDnia& w) { return brakDanychAirBridge(w) || (w.e05K
 
 bool brakDanychAirBridge(const WejscieDnia& w) {
   if (w.e03 && dataOk(w.dzis) && !(w.hist && nocZDnia(*w.hist, w.dzis))) return true;  // R-AW-02: E-03 na ekran
+  // R-AW-35: odrzucone logowanie w oknie dnia bez ostatniej nocy w historii to S5 od pierwszej takiej próby, także
+  // przed 11:00 i przy nocy „znanej” z wcześniejszego odczytu (noc i tak nie przyjdzie do poprawy konta lub hasła)
+  if (w.logowanieOdrzucone && !w.odczytOk && dataOk(w.dzis) && oknoDnia(w.minuta) && !(w.hist && nocZDnia(*w.hist, w.dzis)))
+    return true;
   if (w.odczytOk || nocZnana(w)) return false;
   // przed 11:00 w oknie dnia: noc z dziś może jeszcze przyjść (S10, R-EKR-57), chyba że brak danych trwa już od
   // poprzedniej nocy (E-01 z wczoraj nie skończyło się, 6.4): wtedy S5 także rano, bez „zaraz tu będzie”

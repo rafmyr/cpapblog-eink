@@ -69,6 +69,11 @@ const Powody POWOD_POWTORKA = 1u << 18;     // „powtorka_przetwarzania”: R-D
 const Powody POWOD_OKNO_ZASILANIE = 1u << 19;  // „okno_zasilanie”: R-DANE-63 (co 5 min w oknie porannym) i
                                                // R-DANE-64 (co 2 min w gęstym oknie), tylko na zasilaniu
                                                // zewnętrznym (R-DANE-65); z Wi-Fi
+// Druga sesja tej samej nocy (R-DANE-69, decyzja właściciela projektu 24.11.2026, wariant B): gdy po imporcie
+// ostatniej nocy rano `/api/status` (z wybudzenia, które i tak go czyta: start i ocena slotu dziennego, pobranie)
+// pokaże terapię albo przetwarzanie, co 30 min do 11:00 sprawdzenie, czy terapia się skończyła; po jej końcu noc
+// pobrana ponownie (dyrygent: Przebieg::drugaSesja()). Z pełnym pobraniem jak okno poranne (przy terapii sam status).
+const Powody POWOD_DRUGA_SESJA = 1u << 20;     // „druga_sesja”: R-DANE-69; z Wi-Fi
 
 // Stałe planu kroku 2 (wszystkie [PRÓG] ze spec, minuty doby czasu lokalnego).
 const int PLAN_OKNO_OD = 5 * 60;            // R-DANE-02: okno poranne 05:00–11:00
@@ -187,6 +192,10 @@ struct WejsciePlanu {
   // Portret nocy (R-POR-04): minuta doby drugiego ekranu poranka (pierwsze narysowanie Portretu + 30 min); -1 = brak.
   // W tej minucie POWOD_ODSWIEZENIE (przerysowanie ekranu dnia bez Wi-Fi), przed startem slotu dziennego.
   int drugiEkranPortretu = -1;
+  // R-DANE-69: chwila (sekunda doby dziś) ostatniego odczytu `/api/status` z terapią albo przetwarzaniem po imporcie
+  // ostatniej nocy rano (StanRtc::terapiaPoImporcieEp); od niej do 11:00 terminy POWOD_DRUGA_SESJA co 30 min, dopóki
+  // noc nie jest pobrana ponownie (dyrygent zeruje chwilę). -1 = brak.
+  int drugaSesjaOd = -1;
 };
 
 // (R-KON-41, R-EKR-60, R-KON-09): koniec slotu dziennego i przerysowań R-EKR-60 (minuta doby) = początek okna
@@ -247,6 +256,10 @@ Termin nastepnyTermin(const WejsciePlanu& w);
 //    termin powtórki, który już minął (np. w czuwaniu po przycisku), daje sen ZALEGLY_TERMIN_S z tym powodem;
 //    powodyTeraz() nie daje POWOD_POWTORKA, gdy w tym samym przedziale jest POWOD_OKNO_PORANNE albo POWOD_OKNO_GESTE
 //    (powtórka nie zużywa wtedy licznika).
+// (R-DANE-69) w nastepnyTermin():
+//  - POWOD_DRUGA_SESJA: minuty co PLAN_CO_ILE_MIN w oknie porannym (05:00, 11:00) bez końców, późniejsze niż
+//    drugaSesjaOd (>= 0: terapia po imporcie), przy nocKompletna; 11:00 zostaje terminem R-DANE-24. Bez terapii
+//    po imporcie (zwykły poranek) żadnego terminu więcej.
 // (R-DANE-63, R-DANE-64) w nastepnyTermin(), tylko przy naZasilaniu:
 //  - POWOD_OKNO_ZASILANIE: w oknie porannym (05:00, 11:00) bez końców, dopóki !nocKompletna i !e01 (jak gęste okno:
 //    bez zagęszczenia po braku odpowiedzi AirBridge albo Wi-Fi i po odrzuconym logowaniu), w minutach bez
@@ -283,7 +296,7 @@ int poczatekSlotuDziennego(const WejsciePlanu& w);
 Powody powodyZalegle(const WejsciePlanu& w);
 
 // Czy powody wymagają Wi-Fi (R-NF-03): OKNO_PORANNE, SPRAWDZENIE_11, PONOWIENIE, POGODA, POCZATEK_NOCY, CZAS,
-// OKNO_GESTE i POWTORKA (R-DANE-61, R-DANE-62), OKNO_ZASILANIE (R-DANE-63, R-DANE-64);
+// OKNO_GESTE i POWTORKA (R-DANE-61, R-DANE-62), OKNO_ZASILANIE (R-DANE-63, R-DANE-64), DRUGA_SESJA (R-DANE-69);
 // także SLOT_DZIENNY_START i SLOT_DZIENNY_GODZINA (`/api/status`, R-KON-42) i PROGNOZA_GODZINOWA (R-KON-52).
 // CZUJNIKI, POWROT, PYTANIE, ODSWIEZENIE i SLOT_DZIENNY_BEZ_SIECI same nie włączają Wi-Fi (R-DANE-33, T-WYM-31, T-WYM-24, R-EKR-60).
 bool sieciowy(Powody powody);

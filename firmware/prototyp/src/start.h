@@ -36,6 +36,10 @@ struct LicznikStartow {
   uint32_t wersja;      // identyfikator wersji firmware (skrót napisu wersji)
   uint8_t poBledzie;    // kolejne starty po nieprawidłowym zakończeniu bez zaśnięcia pomiędzy
   uint16_t spadki;      // starty po spadku napięcia (tylko log i ekran testu)
+  // R-AW-39 (zmiana 2026-11-24): 1 = trwa operacja sieciowa (src/siec_limity.h SiecZeZnacznikiem); restart strażnika
+  // zadania przy ustawionym znaczniku nie liczy się do poBledzie
+  uint8_t wSieci;
+  uint16_t restartySieci;  // starty po restarcie strażnika w trakcie pracy w sieci (tylko log i ekran testu)
   uint32_t suma;        // suma kontrolna pól powyżej
 };
 
@@ -76,6 +80,10 @@ struct DecyzjaStartu {
   uint8_t poBledzie = 0;        // licznik po tej decyzji (do logu)
   uint16_t spadki = 0;          // licznik spadków napięcia (do logu i ekranu testu)
   bool spadekNapiecia = false;  // ten start jest po spadku napięcia (wpis w logu)
+  // R-AW-39 (zmiana 2026-11-24): start po restarcie strażnika zadania (TASK_WDT) w trakcie operacji sieciowej
+  // (znacznik wSieci): bez zwiększenia poBledzie; to wybudzenie idzie bez sieci (src/siec_limity.h `bezSieci`)
+  bool restartWSieci = false;
+  uint16_t restartySieci = 0;   // licznik takich startów (do logu)
 };
 
 // Decyzja na samym początku startu, przed montowaniem plików, migracjami i Wi-Fi (T-WYM-82). Przyjmuje licznik
@@ -86,6 +94,8 @@ struct DecyzjaStartu {
 // samej wersji jest w NVS; znacznik innej wersji → usunąć i zwykły start (R-AW-39: wyjście przy innej wersji).
 // rysujU06: przy wejściu w tryb tak; przy znaczniku z u06Narysowane i starcie po błędzie programu (PANIKA, TASK_WDT,
 // INT_WDT, WDT) nie, żeby błąd w rysowaniu nie dawał pętli (T-WYM-83).
+// R-AW-39 (zmiana 2026-11-24): TASK_WDT przy ustawionym znaczniku wSieci (ważny licznik tej wersji) nie zwiększa
+// poBledzie, tylko restartySieci, i daje restartWSieci; znacznik wSieci jest zdejmowany przy każdym starcie.
 DecyzjaStartu decyzjaStartu(LicznikStartow& l, PrzyczynaStartu p, uint32_t wersja, const ZnacznikAwaryjny& z);
 // To samo ze stanem bieżącej wersji: wersja „do sprawdzenia” to nowe wgranie, także
 // naprawa wgrana przez okno serwisowe U-05 albo kablem, więc znacznik trybu awaryjnego traktuje jak znacznik innej
@@ -97,6 +107,11 @@ DecyzjaStartu decyzjaStartu(LicznikStartow& l, PrzyczynaStartu p, uint32_t wersj
 // Tuż przed każdym zaśnięciem, także w trybie awaryjnym i po przekroczeniu limitu wybudzenia (T-WYM-82).
 // Ustawia licznik startów po błędzie na 0 (ważny, z bieżącą wersją); licznik spadków zostaje.
 void zerujPrzedSnem(LicznikStartow& l, uint32_t wersja);
+// R-AW-39 (zmiana 2026-11-24): znacznik „operacja sieciowa w toku” w liczniku (RTC_NOINIT). wejscieWSiec() przed
+// operacją, która może czekać na sieć, wyjscieZSieci() po niej; licznik nieważny (zasilanie, inna wersja) → od
+// zera z bieżącą wersją, jak w zerujPrzedSnem(). Woła tylko SiecZeZnacznikiem i WydaniaZeZnacznikiem.
+void wejscieWSiec(LicznikStartow& l, uint32_t wersja);
+void wyjscieZSieci(LicznikStartow& l, uint32_t wersja);
 
 // Ekrany trybu awaryjnego (spec funkcjonalna 6.2, 5.6.2): U-06 i U-05 otwarty z U-06.
 enum class EkranAwaryjny : uint8_t { U06, U05 };

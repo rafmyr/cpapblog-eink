@@ -57,6 +57,8 @@ ZRODLA+=("$FW/src/dobry_start.cpp")
 ZRODLA+=("$FW/src/wysylka_obrazu.cpp")
 # Trwale nieczytelny plik danych: licznik wybudzeń w RTC, sprawa w NVS, rodzaj danych słowem (src/nieczytelne.cpp)
 ZRODLA+=("$FW/src/nieczytelne.cpp")
+# Limity czasu operacji sieciowych wobec strażnika zadania i znacznik „w sieci” (src/siec_limity.cpp, T-WYM-81, R-AW-39)
+ZRODLA+=("$FW/src/siec_limity.cpp")
 # Programy testów rdzenia: każdy linkowany z obiektami ZRODLA, uruchamiany w testy.sh, sanitizerach i pokryciu
 # (testy wybudzenia: test/testy_wybudzenie.cpp i scenariusze dyrygenta test/testy_dyrygenta.cpp; plan wybudzenia
 # src/plan.cpp w ZRODLA i test/testy_plan_wybudzen.cpp; test/testy_slot_dzienny_w_planie.cpp, slot dzienny w planie wybudzeń;
@@ -183,6 +185,8 @@ TESTY+=("$FW/test/testy_wieczor_bez_wifi_obrazki.cpp" "$FW/test/testy_wieczor_be
 TESTY+=("$FW/test/testy_wzorce_l_hipotezy_h.cpp" "$FW/test/testy_wzorce_l_hipotezy_h_brzegowe.cpp") # katalog L/H wobec spec
 TESTY+=("$FW/test/testy_zdarzenia_e.cpp" "$FW/test/testy_zdarzenia_e_brzegowe.cpp") # zdarzenia E (brzegowe nie blokują, jak w testy.sh)
 TESTY+=("$FW/test/testy_zrzut_konfiguracja_brzegowe.cpp") # konfiguracja w zrzucie Z
+TESTY+=("$FW/test/testy_awarie_sieci.cpp") # awarie sieci: R-AW-35 rano, strażnik w sieci (T-WYM-81, R-AW-39), druga sesja nocy (R-DANE-24, R-DANE-69)
+TESTY+=("$FW/test/testy_awarie_sieci_brzegowe.cpp") # przypadki brzegowe awarii sieci: R-KON-57 i R-DANE-69, R-AW-35
 
 # Testy, których wynik ≠ 0 tylko wypisuje otwarte przypadki (tak samo w testy.sh); zgłoszenia sanitizera i tak
 # przerywają bramkę (grep wyniku w tools/jakosc/sprawdz.sh).

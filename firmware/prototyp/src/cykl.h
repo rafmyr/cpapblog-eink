@@ -23,6 +23,9 @@ struct WejscieDnia {
                                   // AirBridge spoza zakresu, R-AW-02): S5 z E-03 także przy nocy „znanej” ze statusu
   bool wBudowie = false;          // AirBridge odpowiada, ostatnia noc w budowie (R-DANE-35, R-AW-15, `partial`)
   bool terapia = false;           // `rop` = 1: terapia trwa, noc się jeszcze nie skończyła
+  // R-AW-35: ostatnia próba pobrania skończyła się odrzuceniem logowania (R-AW-34) i nie było po niej udanego
+  // odczytu: w oknie dnia bez ostatniej nocy w historii S5 (E-01) od pierwszej takiej próby, bez S10 (R-EKR-57)
+  bool logowanieOdrzucone = false;
   bool maNorme = false;
   bool sypialnia = false;         // S2c możliwe (StanDnia::sypialnia)
   // E-05 krytyczne (bateria ekranu ≤ 5%, 6.4): S5 po E-01 i E-03 (R1), zawsze ekranem danych (R-HUM-08), klucz
@@ -40,7 +43,8 @@ bool nocZnana(const WejscieDnia& w);
 // S5: ostatni odczyt nieudany i noc nieznana.
 // S5: nieudany odczyt przy nieznanej ostatniej nocy albo E-03 (R-AW-02), gdy ostatniej nocy nie ma w historii (zapisany
 // rekord zostaje na ekranie, R-DANE-24 fail-path).
-// E-01 dopiero od 11:00 [PRÓG] (R-DANE-20, 6.4): w oknie dnia przed 11:00 nieudany odczyt to „dane w drodze” (S10).
+// E-01 dopiero od 11:00 [PRÓG] (R-DANE-20, 6.4): w oknie dnia przed 11:00 nieudany odczyt to „dane w drodze” (S10),
+// poza odrzuconym logowaniem (R-AW-35): wtedy S5 od pierwszej takiej próby po 05:00.
 bool brakDanych(const WejscieDnia& w);
 // S5 z przyczyny po stronie AirBridge (E-01, E-03), bez E-05 krytycznego; brakDanych() = ta albo e05Krytyczne.
 bool brakDanychAirBridge(const WejscieDnia& w);

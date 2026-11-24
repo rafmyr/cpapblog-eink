@@ -159,6 +159,10 @@ struct StanRtc {
   int32_t powtorkiDoba = 0;
   uint8_t powtorki = 0;
   uint32_t pobranieRanoEp = 0;
+  // R-DANE-69 (wariant B, 24.11.2026): czas unix odczytu `/api/status` z terapią albo przetwarzaniem po imporcie
+  // ostatniej nocy rano (terapia wznowiona); 0 = nie było albo noc już pobrana ponownie. Po zaniku zasilania 0 (zostaje
+  // `edf_prefix` z sesją po imporcie i R-DANE-24 o 11:00).
+  uint32_t terapiaPoImporcieEp = 0;
   // R-DANE-65: sen przed tym wybudzeniem był zaplanowany w rytmie zasilania zewnętrznego (1). Powody wybudzenia
   // zegarem liczą się z tego stanu (wybudzenie zaplanowane na zasilaniu ma swój powód także po odłączeniu kabla,
   // R-NF-02), a następny termin z odczytu z bieżącego wybudzenia. Po zaniku zasilania 0 (jak bateria).
